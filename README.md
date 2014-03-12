@@ -1,5 +1,6 @@
-
 It uses classes from https://github.com/alec101/-utilClasses 
+
+check out https://github.com/alec101/OSInteraction/wiki for more info about this project
 
 check out pch.h for further compiling instructions
 
