@@ -1,3 +1,6 @@
+TODO: dropbox for devs configuration !!!!!!!!!!!!!!!!!!!!!!!!!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 It uses classes from https://github.com/alec101/-utilClasses 
 
 check out https://github.com/alec101/OSInteraction/wiki for more info about this project
