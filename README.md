@@ -28,3 +28,22 @@ Compiling in Mac:
 
 
 
+
+
+A nice way to place the source (this is how i got setup thigs):
+
+devYourDir/!utilClasses: https://github.com/alec101/-utilClasses 
+
+devYourDir/OSInteraction/source: this git
+
+
+
+devYourDir/OSInteraction/visualC/projectFile - if using Visual Studio
+
+devYourDir/OSInteraction/xcode/projectFile - if using XCode
+
+devYourDir/OSInteraction/netbeans/projectFile - if using NetBeans
+
+etc
+
+and include directories: ".." "../source" "../../!utilClasses"
