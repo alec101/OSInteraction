@@ -1250,116 +1250,110 @@ void Input::getUnicode(KeySym *ks, ulong *ret) {
     *ret= 0xFFFD;
 }
 
+#endif /// OS_LINUX
 
 
-void Input::getManip(KeySym* ks, ulong* ret) {
 
-// only string manipulator characters/keys are returned
+void Keyboard::doManip() {
+  // only string manipulator characters/keys are returned
 
-// XK_Tab 0xff09 NOT RETURNED ATM, SUBJECT TO CHANGE?
+  // XK_Tab 0xff09 NOT RETURNED ATM, SUBJECT TO CHANGE?
 
-  
-/// check if shift is pressed; if it is, check for selection changes chars
-  if(k.key[Kv.lshift] || k.key[Kv.rshift]) {
-    if(*ks== XK_Home)         { *ret= Kch_selHome;   return; }
-    if(*ks== XK_Begin)        { *ret= Kch_selHome;   return; }
-    if(*ks== XK_End)          { *ret= Kch_selEnd;    return; }
-    if(*ks== XK_Page_Up)      { *ret= Kch_selPgUp;   return; }
-    if(*ks== XK_Page_Down)    { *ret= Kch_selPgDown; return; }
-    if(*ks== XK_Left)         { *ret= Kch_selLeft;   return; }
-    if(*ks== XK_Up)           { *ret= Kch_selUp;     return; }
-    if(*ks== XK_Right)        { *ret= Kch_selRight;  return; }
-    if(*ks== XK_Down)         { *ret= Kch_selDown;   return; }
-
-    if(*ks== XK_KP_Home)      { *ret= Kch_selHome;   return; }
-    if(*ks== XK_KP_Begin)     { *ret= Kch_selHome;   return; }
-    if(*ks== XK_KP_End)       { *ret= Kch_selEnd;    return; }
-    if(*ks== XK_KP_Page_Up)   { *ret= Kch_selPgUp;   return; }
-    if(*ks== XK_KP_Page_Down) { *ret= Kch_selPgDown; return; }
-    if(*ks== XK_KP_Left)      { *ret= Kch_selLeft;   return; }
-    if(*ks== XK_KP_Up)        { *ret= Kch_selUp;     return; }
-    if(*ks== XK_KP_Right)     { *ret= Kch_selRight;  return; }
-    if(*ks== XK_KP_Down)      { *ret= Kch_selDown;   return; }
+  /// check if shift is pressed; if it is, check for selection changes chars
+  if(key[in.Kv.lshift] || key[in.Kv.rshift]) {
+    if(key[in.Kv.home])   { addManip(Kch_selHome, &osi.eventTime);   return; }
+    if(key[in.Kv.end])    { addManip(Kch_selEnd, &osi.eventTime);    return; }
+    if(key[in.Kv.pgup])   { addManip(Kch_selPgUp, &osi.eventTime);   return; }
+    if(key[in.Kv.pgdown]) { addManip(Kch_selPgDown, &osi.eventTime); return; }
+    if(key[in.Kv.left])   { addManip(Kch_selLeft, &osi.eventTime);   return; }
+    if(key[in.Kv.up])     { addManip(Kch_selUp, &osi.eventTime);     return; }
+    if(key[in.Kv.right])  { addManip(Kch_selRight, &osi.eventTime);  return; }
+    if(key[in.Kv.down])   { addManip(Kch_selDown, &osi.eventTime);   return; }
+    
+    if(!numLock) {
+      if(key[in.Kv.kp7]) { addManip(Kch_selHome, &osi.eventTime);   return; }
+      if(key[in.Kv.kp1]) { addManip(Kch_selEnd, &osi.eventTime);    return; }
+      if(key[in.Kv.kp9]) { addManip(Kch_selPgUp, &osi.eventTime);   return; }
+      if(key[in.Kv.kp3]) { addManip(Kch_selPgDown, &osi.eventTime); return; }
+      if(key[in.Kv.kp4]) { addManip(Kch_selLeft, &osi.eventTime);   return; }
+      if(key[in.Kv.kp8]) { addManip(Kch_selUp, &osi.eventTime);     return; }
+      if(key[in.Kv.kp6]) { addManip(Kch_selRight, &osi.eventTime);  return; }
+      if(key[in.Kv.kp2]) { addManip(Kch_selDown, &osi.eventTime);   return; }
+    }
   } /// if shift key is pressed
   
-  
-  if(*ks== XK_Return)         { *ret= Kch_enter;     return; }
-  if(*ks== XK_KP_Enter)       { *ret= Kch_enter;     return; }
-  if(*ks== XK_ISO_Enter)      { *ret= Kch_enter;     return; }
-  if(*ks== XK_Linefeed)       { *ret= Kch_enter;     return; }
+  if(key[in.Kv.enter])     { addManip(Kch_enter, &osi.eventTime);     return; }
+  if(key[in.Kv.kpenter])   { addManip(Kch_enter, &osi.eventTime);     return; }
 
-  if(*ks== XK_BackSpace)      { *ret= Kch_backSpace; return; }
-  if(*ks== XK_Delete)         { *ret= Kch_delete;    return; }
-  if(*ks== XK_KP_Delete)      { *ret= Kch_delete;    return; }
-  if(*ks== XK_Clear)          { *ret= Kch_delete;    return; }
+  if(key[in.Kv.backspace]) { addManip(Kch_backSpace, &osi.eventTime); return; }
+  if(key[in.Kv.del])       { addManip(Kch_delete, &osi.eventTime);    return; }
+  if(key[in.Kv.kpdel])     { addManip(Kch_delete, &osi.eventTime);    return; }
   
-  if(*ks== XK_Home)           { *ret= Kch_home;      return; }
-  if(*ks== XK_Begin)          { *ret= Kch_home;      return; }
-  if(*ks== XK_KP_Home)        { *ret= Kch_home;      return; }
-  if(*ks== XK_KP_Begin)       { *ret= Kch_home;      return; }
-  
-  if(*ks== XK_End)            { *ret= Kch_end;       return; }
-  if(*ks== XK_KP_End)         { *ret= Kch_end;       return; }
-  
-  if(*ks== XK_Page_Up)        { *ret= Kch_pgUp;      return; }
-  if(*ks== XK_KP_Page_Up)     { *ret= Kch_pgUp;      return; }
-  
-  if(*ks== XK_Page_Down)      { *ret= Kch_pgDown;    return; }
-  if(*ks== XK_KP_Page_Down)   { *ret= Kch_pgDown;    return; }
+  if(key[in.Kv.home])      { addManip(Kch_home, &osi.eventTime);      return; }
+  if(key[in.Kv.end])       { addManip(Kch_end, &osi.eventTime);       return; }
+  if(key[in.Kv.pgup])      { addManip(Kch_pgUp, &osi.eventTime);      return; }
+  if(key[in.Kv.pgdown])    { addManip(Kch_pgDown, &osi.eventTime);    return; }
     
-  if(*ks== XK_Left)           { *ret= Kch_left;      return; }
-  if(*ks== XK_Up)             { *ret= Kch_up;        return; }
-  if(*ks== XK_Right)          { *ret= Kch_right;     return; }
-  if(*ks== XK_Down)           { *ret= Kch_down;      return; }
-  if(*ks== XK_KP_Left)        { *ret= Kch_left;      return; }
-  if(*ks== XK_KP_Up)          { *ret= Kch_up;        return; }
-  if(*ks== XK_KP_Right)       { *ret= Kch_right;     return; }
-  if(*ks== XK_KP_Down)        { *ret= Kch_down;      return; }
+  if(key[in.Kv.left])      { addManip(Kch_left, &osi.eventTime);      return; }
+  if(key[in.Kv.up])        { addManip(Kch_up, &osi.eventTime);        return; }
+  if(key[in.Kv.right])     { addManip(Kch_right, &osi.eventTime);     return; }
+  if(key[in.Kv.down])      { addManip(Kch_down, &osi.eventTime);      return; }
+         
+  if(!numLock) {         
+    if(key[in.Kv.kp7])  { addManip(Kch_home, &osi.eventTime);      return; }
+    if(key[in.Kv.kp1])  { addManip(Kch_end, &osi.eventTime);       return; }
+    if(key[in.Kv.kp9])  { addManip(Kch_pgUp, &osi.eventTime);      return; }
+    if(key[in.Kv.kp3])  { addManip(Kch_pgDown, &osi.eventTime);    return; }
+    if(key[in.Kv.kp4])  { addManip(Kch_left, &osi.eventTime);      return; }
+    if(key[in.Kv.kp8])  { addManip(Kch_up, &osi.eventTime);        return; }
+    if(key[in.Kv.kp6])  { addManip(Kch_right, &osi.eventTime);     return; }
+    if(key[in.Kv.kp2])  { addManip(Kch_down, &osi.eventTime);      return; }
+  }
 
 
 // no clue what to do on a japanese keyboard, for example ... :\
 // must find out what their default 'copy/cut/paste' keys combs are
   
 /// 'copy' key combination checks
-  if((k.key[Kv.lctrl]  || k.key[Kv.rctrl]) &&       /// ctrl +
-     (k.key[Kv.insert] || k.key[Kv.kpinsert])) {    /// insert
-    *ret= Kch_copy;
+  if((key[in.Kv.lctrl]  || key[in.Kv.rctrl]) &&     /// ctrl +
+     (key[in.Kv.insert] || key[in.Kv.kp0])) {       /// insert
+    addManip(Kch_copy, &osi.eventTime);
     return;
   }
-  if((k.key[Kv.lctrl] || k.key[Kv.rctrl]) &&        /// ctrl +
-      k.key[Kv.c]) {                                /// c
-    *ret= Kch_copy;
+  if((key[in.Kv.lctrl] || key[in.Kv.rctrl]) &&      /// ctrl +
+      key[in.Kv.c]) {                               /// c
+    addManip(Kch_copy, &osi.eventTime);
     return;
   }
     
 /// 'cut' key combination checks
-  if((k.key[Kv.lctrl] || k.key[Kv.rctrl])  &&       /// ctrl +
-     (k.key[Kv.del]   || k.key[Kv.kpdel]))  {       /// del
-    *ret= Kch_cut;
+  if((key[in.Kv.lctrl] || key[in.Kv.rctrl])  &&     /// ctrl +
+     (key[in.Kv.del]   || key[in.Kv.kpdel]))  {     /// del
+    addManip(Kch_cut, &osi.eventTime);
     return;
   }
-  if((k.key[Kv.lctrl] || k.key[Kv.rctrl]) &&        /// ctrl +
-      k.key[Kv.x]) {                                /// x
-    *ret= Kch_cut;
+  if((key[in.Kv.lctrl] || key[in.Kv.rctrl]) &&      /// ctrl +
+      key[in.Kv.x]) {                               /// x
+    addManip(Kch_cut, &osi.eventTime);
     return;
   }
     
 /// 'paste' key combination checks
-  if((k.key[Kv.lshift] || k.key[Kv.rshift]) &&      /// shift +
-     (k.key[Kv.insert] || k.key[Kv.kpinsert])) {    /// insert
-    *ret= Kch_paste;
+  if((key[in.Kv.lshift] || key[in.Kv.rshift]) &&    /// shift +
+     (key[in.Kv.insert] || key[in.Kv.kp0])) {       /// insert
+    addManip(Kch_paste, &osi.eventTime);
     return;
   }
-  if((k.key[Kv.lctrl] || k.key[Kv.rctrl]) &&        /// ctrl +
-      k.key[Kv.v]) {                                /// v
-    *ret= Kch_paste;
+  if((key[in.Kv.lctrl] || key[in.Kv.rctrl]) &&      /// ctrl +
+      key[in.Kv.v]) {                               /// v
+    addManip(Kch_paste, &osi.eventTime);
     return;
   }
-      
+  
 }
 
 
-#endif /// OS_LINUX
+
 
 
 
@@ -1613,7 +1607,7 @@ void _Kv::populate() {
   tab=        0x30; // kVK_Tab
   space=      0x31; // kVK_Space
   backspace=  0x33; // kVK_Delete
-  insert=     0x3F; // kVK_Function <<<<<<<< not shure what to do about this one
+  insert=     0x72; // online doc says 0x3F. seems WRONG...;
   del=        0x75; // kVK_ForwardDelete
   home=       0x73; // kVK_Home
   end=        0x77; // kVK_End
@@ -1635,8 +1629,8 @@ void _Kv::populate() {
   f8=         0x64; // kVK_F8
   f9=         0x65; // kVK_F9
   f10=        0x6D; // kVK_F10
-  f11=        0x67; // kVK_F11
-  f12=        0x6F; // kVK_F12
+  f11=        0x67; // kVK_F11                  SYSTEM GRABED BY DEFAULT
+  f12=        0x6F; // kVK_F12                  .SYSTEM GRABED BY DEFAULT
   left=       0x7B; // kVK_LeftArrow
   up=         0x7E; // kVK_UpArrow
   right=      0x7C; // kVK_RightArrow
@@ -1709,11 +1703,9 @@ void _Kv::populate() {
   kpminus=    0x4E; // kVK_ANSI_KeypadMinus
   kpplus=     0x45; // kVK_ANSI_KeypadPlus
   kpdel=      0x41; // kVK_ANSI_KeypadDecimal
-  lOS=        0x37; // kVK_Command               left win
-  
-  // TO CHECK OUT EXACT KEY CODES FOR THESE THINGS (with osinteraction...)
-  rOS=        0;    //                           right win
-  menu=       0;    //???          // menu/propr
+  lOS=        0x37; // kVK_Command                left win
+  rOS=        0x36; // ???                        right win
+  menu=       0x6E; // ???                        menu/propr
 
   #endif /// OS_MAC
 }

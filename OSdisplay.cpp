@@ -132,16 +132,6 @@ OSIMonitor::OSIMonitor() {
 
 OSIMonitor::~OSIMonitor() {
   delData();
-  
-  #ifdef OS_LINUX
-  delete[] original.resID;
-  delete[] progRes.resID;
-  #endif /// OS_LINUX
-  
-  #ifdef OS_MAC
-  delete[] original.id;
-  delete[] progRes.id;
-  #endif /// OS_MAC
 }
 
 void OSIMonitor::delData() {

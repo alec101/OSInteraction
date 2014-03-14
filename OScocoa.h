@@ -4,6 +4,9 @@
 
 class OSIcocoa {
   
+  
+  
+  
 public:
   
   void setProgramPath();              /// under mac is not certain that it is set, it seems

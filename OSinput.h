@@ -131,10 +131,10 @@ public:
   void clearTypedBuffer();      /// clear both typed chars buffers (might want to clear them before a new input box, dunno) CLEAR THEM ON ALT-TAB TOO!!!!!!!!
 
 
-
 // --- nothing to bother from this point on (usually) ---
   void addChar(ulong c, uint64 *time);  /// internal. used in WM_CHAR message... nothing to bother
   void addManip(ulong c, uint64 *time); /// internal. string manipulation keys - enter/del/arrow keys/etc
+  void doManip();                       /// internal, OSchar.cpp. checks if current keys pressed form a char manip, if they do, calls addManip() 
 
   inline void swapBuffers();    /// swaps what key and lastKey point to (so no copying is involved)
 
@@ -352,7 +352,7 @@ struct _Kv {
         kp1, kp2, kp3, kp4, kp5, kp6, kp7, kp8, kp9, kp0,
         minus, equal, backslash, lbracket, rbracket, semicolon, apostrophe, // should apostrophe be quote?
         comma, dot, slash, grave, kpslash, kpmultiply, kpminus, kpplus, kpequal, kpdel, // dot= period
-        lOS, rOS, menu; /// left win key, right win key, propreties or menu key
+        lOS, rOS, menu; /// left win key, right win key, propreties key
   void populate();  /// updates all these vars. SOURCE CODE IN "OSchar.cpp"
 };
 
@@ -377,6 +377,8 @@ public:
   GamePad gp[20];           /// gp[0-7]= OS driver; gp[8-15] XINPUT; gp[16-19] DIRECT INPUT
   GameWheel gw[20];         /// gw[0-7]= OS driver; gw[8-15] XINPUT; gw[16-19] DIRECT INPUT
   _Kv Kv;                   /// struct with most inportant keycodes: in.k.key[Kv.space] is possible. OS independant/ if keyboard is changed in any way, just call Kv.populate()
+  
+  
 
 
   bool init(int mMode= 1, int kMode= 1);          // ? START
@@ -420,7 +422,6 @@ public:
   // these funcs are in <OSchar.cpp>, at the end of the file !!!!!!!!!!!!!
   void keysym2unicode(KeySym *, ulong *ret);  /// converts keysym to unicode (no checks, use getUnicode)
   void getUnicode(KeySym *, ulong *ret);      /// converts keysym to unicode, verifies that the character is valid
-  void getManip(KeySym *, ulong *ret);        /// checks if the keysym is a string manipulation character (return/del/arrow key/etc)
   #endif
 
 

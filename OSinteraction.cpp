@@ -191,7 +191,6 @@ int getY(double a) {
 void drawSomething();
 
 int main() {
-  test sending to linux repo
 /*
   printf("Q1[% 6.1f][% 6.1f][% 6.1f][% 6.1f][% 6.1f][% 6.1f]\n", pov( 0,    100), pov( 5,    100), pov( 50,   100), pov( 100,  100), pov( 100,  50),  pov( 100,  5));
   printf("Q2[% 6.1f][% 6.1f][% 6.1f][% 6.1f][% 6.1f][% 6.1f]\n", pov( 100,  0),   pov( 100, -5),   pov( 100, -50),  pov( 100, -100), pov( 50,  -100), pov( 5,   -100));

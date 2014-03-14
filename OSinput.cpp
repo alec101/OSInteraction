@@ -191,6 +191,10 @@ Input::Input() {
   m.diDevice= null;
   dInput= null;
   #endif /// USING_DIRECTINPUT
+  
+  #ifdef OS_MAC
+  k.numLock= true;    /// macs don't handle num locks. this will always be on
+  #endif /// OS_MAC
 }
 
 Input::~Input() {

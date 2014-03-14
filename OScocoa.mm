@@ -22,6 +22,13 @@
 
 //#include <Core
 
+// TODO: 
+/*
+ the name of the display must be found a different way. the current func was just deprecated...
+ 
+ */
+
+
 // COCOA RESEARCH
 /*
  https://developer.apple.com/library/mac/samplecode/CocoaGL/Listings/GLCheck_c.html#//apple_ref/doc/uid/DTS10004501-GLCheck_c-DontLinkElementID_7
@@ -44,6 +51,10 @@
  * 
  * NSOpenGLContext -> check for specific cocoa/gl funcs (agl is gone)
  * every 'method' is actually a c function wrapped in some shit, so do not despair!
+ 
+ 
+ Note: Views that receive and edit text must conform to the NSTextInput protocol. Adopting this protocol allows a custom view to interact properly with the text input management system. The Application Kit classes NSText and NSTextView implement NSTextInput, so if you subclass these classes you get the protocol conformance “for free.“
+ 
  
  */
 
@@ -101,6 +112,8 @@ OSIcocoa cocoa;
     object:self];
 
   [self setAcceptsMouseMovedEvents:YES];
+  
+  [self setExcludedFromWindowsMenu:NO];
 
   printf("%s\n",__FUNCTION__);
   return self;
@@ -110,6 +123,7 @@ OSIcocoa cocoa;
 }
 
 - (void) windowWillClose: (NSNotification *)notification {
+  osi.flags.exit= true;
   [NSApp terminate:nil];    // <<<< program exit. is this ok? a close button is pressed... i guess program must exit...
 }
 
@@ -162,16 +176,14 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 
 // caps/shift/ctrl/alt/ these kind of keys have this func... who knows how to distinguish between a press and a depress...
 - (void) flagsChanged: (NSEvent *)theEvent {
-  /// usually command keys should not have a repeat message...
-  if([theEvent isARepeat])
-    return;
-
+  // find out all flagsChanged!!!!!!!!!!
+  
   bool chatty= true;
   ulong flags= [theEvent modifierFlags];
   uchar code= [theEvent keyCode];
   
   osi.getMillisecs(&osi.eventTime);
-  
+  printf("event!!\n");
   //MUST TEST THIS, it is INPOSSIBLE OTHERWISE...
   /// caps lock
   uchar press= 0;
@@ -181,10 +193,12 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
       in.k.capsLock= true;  // MUST TEST
     } else {
       in.k.capsLock= false; // not shure about this
+
     }
+    printf("capsLock[%s]\n", in.k.capsLock? "true": "false");
   }
   // TEST ^^^ no clue if macs actually have a true 'lock'
-  
+
   /// the others ...
 
   // MUST TEST
@@ -203,7 +217,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
   // it's a KEY PRESS
   if(press) {
     osi.flags.keyPress= true;
-    if(chatty) printf("key PRESS code=%d \n", code);
+    if(chatty) printf("key PRESS code[0x%x] \n", code);
     
     /// log the key
     Keyboard::KeyPressed k;
@@ -220,7 +234,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
   } else {
     osi.flags.keyPress= false;
     
-    if(chatty) printf("key RELEASE code=%d\n", code);
+    if(chatty) printf("key RELEASE code[0x%x]\n", code);
     
     
     
@@ -264,31 +278,23 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 
 // ---------------================ KEY DOWN =================-------------------
 - (void) keyDown:(NSEvent *)theEvent {
-  // insertText (method)... not shure if this is a WM_CHAR stile func
   // string UCKeytranslate(b,a,c);<< this one is "very low". hopefully, everything is ok with what cocoa has as a basic.
   
   bool chatty= true;
-  ulong flags= [theEvent modifierFlags];  // might be needed for manipChars
   uchar code= [theEvent keyCode];
-  long unicode;
-  NSString *chrs= [theEvent characters];
-  //  NSString *chrsNoMod= [theEvent charactersIgnoringModifiers];
   
-  osi.getMillisecs(&osi.eventTime);
+  // ulong flags= [theEvent modifierFlags];
+  // long unicode;
+  // NSString *chrs= [theEvent characters];
+  // NSString *chrsNoMod= [theEvent charactersIgnoringModifiers];
+
+  osi.getMillisecs(&osi.eventTime);       /// event time. can't rely on what cocoa passes, it must match with osi.getMilisecs()
+  
   osi.flags.keyPress= false;
-  
-  /// keyboard character input
-  for(short a= 0; a< [chrs length]; a++) {
-    unicode= [chrs characterAtIndex: a];
-    // further testing must be done. some chars are translated to unicode (arrow keys i think)
-    // they be put in something like 0x7xxx or something, must be tested)
-    // they should be dead chars
-    in.k.addChar(unicode, &osi.eventTime);
-  }
   
   /// if it's not a repeat press event, start the keypress log
   if(![theEvent isARepeat]) {
-    if(chatty) printf("Key pressed: code[%d]\n", code);
+    if(chatty) printf("Key pressed: code[0x%x]\n", code);
     /// log the key
     Keyboard::KeyPressed k;
     k.code= code;
@@ -300,51 +306,24 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
     in.k.keyTime[code]= osi.eventTime;
     //in.k.repeat[code]= 1;                  /// a new key press, sets repeat to 1  // MIGHT BE DELETED
   }
-
   
-  // OLD BLA BLA ---- DELETE
-  // !!! UInt16 keyCode = [event keyCode]; // !!! i think this is ze way for keycodes, not what that dude was doing with [theEvent characters]
-  //  if(0== (flags& NSCommandKeyMask) && [chrs length]> 0) {
-    //    NSRightArrowFunctionKey
-    /*
-    if(32<= unicode && unicode< 128 && nCharBufUsed<NKEYBUF) {
-      charBuffer[nCharBufUsed++]=unicode;
-    }
-    */
-  //}
-/*
-  chrsNoMod= [theEvent charactersIgnoringModifiers]; // this might be needed for key code
-  if([chrsNoMod length]> 0) {
-    int unicode, fskey;
-    unicode= [chrsNoMod characterAtIndex:0];
- */
-    // mac has different key codes (of course...)
-    
-    //fskey= YsMacUnicodeToFsKeyCode(unicode);
-    
-    /*
-    if(fskey!=0) {
-      fsKeyIsDown[fskey]= 1;
-
-      if(nKeyBufUsed<NKEYBUF) {
-        keyBuffer[nKeyBufUsed++]= fskey;
-      }
-    }
-    */
+  in.k.doManip();     /// check if pressed keys form a manip char. if they do, manipChar is added to manip stream
   
-  
+  /// next line translates key(s) for inputText and doCommandBySelector (wich is disabled)
+  [self interpretKeyEvents:[NSArray arrayWithObject:theEvent]];
 }
 
 // ---------------================= KEY UP ==================-------------------
 - (void) keyUp:(NSEvent *)theEvent {
   bool chatty= true;
   
+  makeme
   osi.getMillisecs(&osi.eventTime);
   osi.flags.keyPress= false;
   
   uchar code= [theEvent keyCode];
   
-  if(chatty) printf("key RELEASE code=%d\n", code);
+  if(chatty) printf("key RELEASE code[0x%x]\n", code);
   
   /// log the key in history
   bool found= false;
@@ -505,6 +484,26 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 - (void) otherMouseDragged:(NSEvent *)theEvent {
   [self mouseMoved:theEvent];
 }
+
+
+
+// keyboard character(s) input
+- (void)insertText:(id)string {
+  long unicode;
+  
+  for(short a= 0; a< [string length]; a++) {
+    unicode= [string characterAtIndex: a];
+    in.k.addChar(unicode, &osi.eventTime);      /// eventTime is already updated. insertText is RIGHT AFTER a keyDown event
+  }
+
+  //[super insertText:string];  // have superclass insert it - THIS MAKES A BEEP if no one handles the text
+}
+
+
+- (void)doCommandBySelector:(SEL)aSelector {
+  // overided to disable command (key) beeps
+}
+
 @end
 
 
@@ -520,6 +519,54 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 
 
 OSIcocoa::OSIcocoa() {
+  NSAutoreleasePool *pool= [[NSAutoreleasePool alloc] init];
+  
+  
+  [NSApplication sharedApplication];  
+  /// setting the application as a regular app, with taskbar icon&everything.
+  /// by default the app has no taskbar icon& window menu
+
+  /*
+  // THIS WORKS, but it is deprecated :(
+  ProcessSerialNumber psn;
+  if (!GetCurrentProcess(&psn)) {
+    TransformProcessType(&psn, kProcessTransformToForegroundApplication);
+   SetFrontProcess(&psn);
+  }
+  */
+  
+  // this works, it seems
+  [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+  
+  
+  /// setup the 'delegate' (this delegate has some app settings, but heck if i know why it exists)
+  MacDelegate *delegate;
+  delegate= [MacDelegate alloc];
+  [delegate init];
+  [NSApp setDelegate: delegate];
+  
+  // ICON MUST BE PLACED SOMEWHERE AROUND HERE or after finishLaunching();
+  //myImage = [NSImage imageNamed: @"ChangedIcon"];
+  //  [NSApp setApplicationIconImage: myImage];
+  
+  [NSApp finishLaunching]; // <<<<---- after finish launching settings from here 
+  
+  /// this seems to disable the crappy momentum scrolling. problem is, there won't be any scrolling, i think
+  //  NSDictionary *appDefaults = [NSDictionary dictionaryWithObject:@"NO" forKey:@"AppleMomentumScrollSupported"];
+  //  [[NSUserDefaults standardUserDefaults] registerDefaults:appDefaults];
+
+  // this doesn't seem to work atm - COPY PASTE FROM SDL
+  /// Create the window menu
+  NSMenu *windowMenu= [[NSMenu alloc] initWithTitle:@"Window"];
+  [windowMenu addItemWithTitle:@"Minimize" action:@selector(performMiniaturize:) keyEquivalent:@"m"];
+  [windowMenu addItemWithTitle:@"Zoom" action:@selector(performZoom:) keyEquivalent:@""];
+  [NSApp setWindowsMenu:windowMenu];
+  [windowMenu release];
+  
+
+  [NSApp activateIgnoringOtherApps: YES];
+  
+  [pool release];
 }
 
 OSIcocoa::~OSIcocoa() {
@@ -551,73 +598,116 @@ void OSIcocoa::setProgramPath() {
 
 
 
-/*
-void YsAddMenu(void)
-{
- 	NSAutoreleasePool *pool=[[NSAutoreleasePool alloc] init];
 
-	NSMenu *mainMenu;
-
-	mainMenu=[NSMenu alloc];
-	[mainMenu initWithTitle:@"Minimum"];
-
-	NSMenuItem *fileMenu;
-	fileMenu=[[NSMenuItem alloc] initWithTitle:@"File" action:NULL keyEquivalent:[NSString string]];
-	[mainMenu addItem:fileMenu];
-
-	NSMenu *fileSubMenu;
-	fileSubMenu=[[NSMenu alloc] initWithTitle:@"File"];
-	[fileMenu setSubmenu:fileSubMenu];
-
-	NSMenuItem *fileMenu_Quit;
-	fileMenu_Quit=[[NSMenuItem alloc] initWithTitle:@"Quit"  action:@selector(terminate:) keyEquivalent:@"q"];
-	[fileMenu_Quit setTarget:NSApp];
-	[fileSubMenu addItem:fileMenu_Quit];
-
-	[NSApp setMainMenu:mainMenu];
-
-	[pool release];
+ 
+ /*
+  NSMenu *appleMenu;
+  NSMenu *serviceMenu;
+  NSMenu *windowMenu;
+  NSMenuItem *menuItem;
+  
+  if (NSApp == nil) {
+    return;
+  }
+  
+  // Create the main menu bar 
+  [NSApp setMainMenu:[[NSMenu alloc] init]];
+  
+  // Create the application menu
+  appName = GetApplicationName();
+  appleMenu = [[NSMenu alloc] initWithTitle:@""];
+  
+  // Add menu items 
+  title = [@"About " stringByAppendingString:appName];
+  [appleMenu addItemWithTitle:title action:@selector(orderFrontStandardAboutPanel:) keyEquivalent:@""];
+  
+  [appleMenu addItem:[NSMenuItem separatorItem]];
+  
+  [appleMenu addItemWithTitle:@"Preferences…" action:nil keyEquivalent:@","];
+  
+  [appleMenu addItem:[NSMenuItem separatorItem]];
+  
+  serviceMenu = [[NSMenu alloc] initWithTitle:@""];
+  menuItem = (NSMenuItem *)[appleMenu addItemWithTitle:@"Services" action:nil keyEquivalent:@""];
+  [menuItem setSubmenu:serviceMenu];
+  
+  [NSApp setServicesMenu:serviceMenu];
+  [serviceMenu release];
+  
+  [appleMenu addItem:[NSMenuItem separatorItem]];
+  
+  title = [@"Hide " stringByAppendingString:appName];
+  [appleMenu addItemWithTitle:title action:@selector(hide:) keyEquivalent:@"h"];
+  
+  menuItem = (NSMenuItem *)[appleMenu addItemWithTitle:@"Hide Others" action:@selector(hideOtherApplications:) keyEquivalent:@"h"];
+  [menuItem setKeyEquivalentModifierMask:(NSAlternateKeyMask|NSCommandKeyMask)];
+  
+  [appleMenu addItemWithTitle:@"Show All" action:@selector(unhideAllApplications:) keyEquivalent:@""];
+  
+  [appleMenu addItem:[NSMenuItem separatorItem]];
+  
+  title = [@"Quit " stringByAppendingString:appName];
+  [appleMenu addItemWithTitle:title action:@selector(terminate:) keyEquivalent:@"q"];
+  
+  // Put menu into the menubar
+  menuItem = [[NSMenuItem alloc] initWithTitle:@"" action:nil keyEquivalent:@""];
+  [menuItem setSubmenu:appleMenu];
+  [[NSApp mainMenu] addItem:menuItem];
+  [menuItem release];
+  
+  // Tell the application object that this is now the application menuß
+  [NSApp setAppleMenu:appleMenu];
+  [appleMenu release];
+  
+  
+  // Create the window menu
+  windowMenu = [[NSMenu alloc] initWithTitle:@"Window"];
+  
+  // Add menu items
+  [windowMenu addItemWithTitle:@"Minimize" action:@selector(performMiniaturize:) keyEquivalent:@"m"];
+  
+  [windowMenu addItemWithTitle:@"Zoom" action:@selector(performZoom:) keyEquivalent:@""];
+  
+  // Put menu into the menubar
+  menuItem = [[NSMenuItem alloc] initWithTitle:@"Window" action:nil keyEquivalent:@""];
+  [menuItem setSubmenu:windowMenu];
+  [[NSApp mainMenu] addItem:menuItem];
+  [menuItem release];
+  
+  // Tell the application object that this is now the window menu
+  [NSApp setWindowsMenu:windowMenu];
+  [windowMenu release];
 }
 */
 
-
-
 bool OSIcocoa::createWindow(OSIWindow *w) {
+  NSAutoreleasePool *pool= [[NSAutoreleasePool alloc] init];
   
   bool ret= true;
-  
-  NSAutoreleasePool *pool= [[NSAutoreleasePool alloc] init];
   
   MacGLWindow *win= NULL;
   MacGLview *view= NULL;
   
-  [NSApplication sharedApplication];
-  //[NSBundle loadNibNamed: @"MainMenu" owner: NSApp];
-  
-  MacDelegate *delegate;
-  delegate= [MacDelegate alloc];
-  [delegate init];
-  [NSApp setDelegate: delegate];
-	
-  [NSApp finishLaunching];
-  
+  /// window size
   NSRect contRect;
   contRect= NSMakeRect(w->monitor->x0+ w->x0, w->monitor->y0+ w->y0, w->dx, w->dy);
   
+  /// window style
   uint winStyle;
-	if(w->mode== 1)
+	if(w->mode== 1)                     /// windowed style
     winStyle=
       NSTitledWindowMask|
       NSClosableWindowMask|
       NSMiniaturizableWindowMask|
       NSResizableWindowMask;
-  if(w->mode== 3 || w->mode== 2)
+  if(w->mode== 3 || w->mode== 2)      /// fullscreen / fullscreen window style
     winStyle=
 //      NSTitledWindowMask|
 //      NSClosableWindowMask|
-//      NSMiniaturizableWindowMask|
+      NSMiniaturizableWindowMask|
       NSBorderlessWindowMask;
   
+  /// window alloc & init
   win= [MacGLWindow alloc];
   [win
     initWithContentRect: contRect
@@ -625,41 +715,42 @@ bool OSIcocoa::createWindow(OSIWindow *w) {
     backing: NSBackingStoreBuffered 
     defer: NO];
   
+  // see http://www.mikeash.com/pyblog/nsopenglcontext-and-one-shot.html
+  /// prevent window deletion when hidden
+  [win setOneShot:NO];
+
+  /// pixel format
+  // THIS MIGHT NEED MORE CUSTOMIZATION
   NSOpenGLPixelFormat *format;
   NSOpenGLPixelFormatAttribute formatAttrib[]= {
     NSOpenGLPFAWindow,
     NSOpenGLPFADepthSize, (NSOpenGLPixelFormatAttribute)32,
-    NSOpenGLPFADoubleBuffer,
+    NSOpenGLPFADoubleBuffer,                                  /// double buffer window
     0
   };
-
-  /*
-  if(useDoubleBuffer== 0) {
-    formatAttrib[3]= 0;
-  }
-  */
   
   format= [NSOpenGLPixelFormat alloc];
   [format initWithAttributes: formatAttrib];
-	
+
+	/// OpenGL view alloc & init
   view= [MacGLview alloc];
   contRect= NSMakeRect(0, 0, w->dx, w->dy);
   [view
     initWithFrame: contRect
     pixelFormat: format];
   
+  /// rest of window settings
   [win setContentView: view];
   [win makeFirstResponder: view];
-
+  [win setTitle:[NSString stringWithUTF8String: w->name.d]];
   [win makeKeyAndOrderFront: nil];
   
   if(w== &osi.win[0])
     [win makeMainWindow];
 
-  [NSApp activateIgnoringOtherApps: YES];
+  //  [NSApp activateIgnoringOtherApps: YES]; // THIS WAS MOVED TO CONSTRUCTOR
 
-  // YsAddMenu();
-  
+  /// OSIWindow connection
   w->win= win;
   w->view= view;
   w->isCreated= true;
