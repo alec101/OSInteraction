@@ -13,24 +13,7 @@
  * 30/01/2014 - Alec
  */
 
-
-// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
-// LIST IS INVALID, IT MUST BE SORTED FIRST
-// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
-#ifdef OS_WIN
-#endif /// OS_WIN
-
-#ifdef OS_MAC
-#endif /// OS_MAC
-
 extern OSInteraction osi;
-
-
-
-
-
 
 #ifdef OS_LINUX
 // -keysyms that have no unicode counterpart were ignored
@@ -1184,20 +1167,20 @@ void Input::keysym2unicode(KeySym *ks, ulong *ret) {
   int max= sizeof(ks2unicode)/ sizeof(struct CodePair)- 1;
   int mid;
   
-/// check for Latin-1 characters (1:1 mapping)
+  /// check for Latin-1 characters (1:1 mapping)
   if( ((*ks)>= 0x0020 && (*ks)<= 0x007e) ||
       ((*ks)>= 0x00a0 && (*ks)<= 0x00ff) ) {
     *ret= *ks;
     return;
   }
 
-/// check for directly encoded unicode characters
+  /// check for directly encoded unicode characters
   if (((*ks)& 0xff000000) == 0x01000000) {
     *ret= (*ks)& 0x00ffffff;
     return;
   }
   
-/// binary search in table */
+  /// binary search in table */
   while (max >= min) {
     mid = (min+ max)/ 2;
     if (ks2unicode[mid].keysym < *ks)
@@ -1210,8 +1193,8 @@ void Input::keysym2unicode(KeySym *ks, ulong *ret) {
     }
   }
 
-/// just asume the keysym is 1:1 mapped (THIS PART IS DIFFERENT FROM THE ORIGINAL FILE)
-/// must test the resulting unicode if is valid or not, but not in this func
+  /// just asume the keysym is 1:1 mapped (THIS PART IS DIFFERENT FROM THE ORIGINAL FILE)
+  /// must test the resulting unicode if is valid or not, but not in this func
   *ret= *ks;
 }
 
@@ -1220,12 +1203,12 @@ void Input::keysym2unicode(KeySym *ks, ulong *ret) {
 
 void Input::getUnicode(KeySym *ks, ulong *ret) {
   
-// only unicode printable characters are returned
-// this func can return 0! STRING TERMINATOR CONFUSION warning!!!!
+  // only unicode printable characters are returned
+  // this func can return 0! STRING TERMINATOR CONFUSION warning!!!!
 
   
-// these checks are hand-picked from keysymdef.h.
-/// there are printable characters in between these (maybe some checks can be combined, but...)
+  // these checks are hand-picked from keysymdef.h.
+  /// there are printable characters in between these (maybe some checks can be combined, but...)
   if((*ks>= 0xff08) && (*ks <= 0xff7f))  { *ret= 0; return; }
   if((*ks>= 0xff89) && (*ks <= 0xff9f))  { *ret= 0; return; }
   if((*ks>= 0xffbe) && (*ks <= 0xffee))  { *ret= 0; return; }
@@ -1236,16 +1219,16 @@ void Input::getUnicode(KeySym *ks, ulong *ret) {
   if((*ks>= 0xfee0) && (*ks <= 0xfefc))  { *ret= 0; return; }
   if(*ks== 0xffff)                       { *ret= 0; return; } // Delete, rubout
   
-/// call the main transform func
+  /// call the main transform func
   keysym2unicode(ks, ret);
   
-// further checks of resulting unicode value must be placed from here  
+  // further checks of resulting unicode value must be placed from here  
 
-/// check for the limit of Unicode <--------------------- (maybe this changes in the future)
+  /// check for the limit of Unicode <--------------------- (maybe this changes in the future)
   if(*ret>= 0x10FFFF)
     *ret= 0xFFFD;
   
-/// it can't be a utf-16 surrogate
+  /// it can't be a utf-16 surrogate
   if( (*ret>= 0xD800) && (*ret<= 0xDFFF) )  
     *ret= 0xFFFD;
 }
@@ -1253,6 +1236,9 @@ void Input::getUnicode(KeySym *ks, ulong *ret) {
 #endif /// OS_LINUX
 
 
+
+
+// is this function more tied to OSchar.cpp? should this be in OSinput.cpp, as it is part of Keyboard?
 
 void Keyboard::doManip() {
   // only string manipulator characters/keys are returned
@@ -1311,10 +1297,11 @@ void Keyboard::doManip() {
   }
 
 
-// no clue what to do on a japanese keyboard, for example ... :\
-// must find out what their default 'copy/cut/paste' keys combs are
+  // no clue what to do on a japanese keyboard, for example ... :\
+  // must find out what their default 'copy/cut/paste' keys combs are
+  // IT SEEMS TO BE THE SAME, SO NOTHING TO BOTHER ABOUT OTHER COUNTRYES KEYBOARDS
   
-/// 'copy' key combination checks
+  /// 'copy' key combination checks
   if((key[in.Kv.lctrl]  || key[in.Kv.rctrl]) &&     /// ctrl +
      (key[in.Kv.insert] || key[in.Kv.kp0])) {       /// insert
     addManip(Kch_copy, &osi.eventTime);
@@ -1326,7 +1313,7 @@ void Keyboard::doManip() {
     return;
   }
     
-/// 'cut' key combination checks
+  /// 'cut' key combination checks
   if((key[in.Kv.lctrl] || key[in.Kv.rctrl])  &&     /// ctrl +
      (key[in.Kv.del]   || key[in.Kv.kpdel]))  {     /// del
     addManip(Kch_cut, &osi.eventTime);
@@ -1338,7 +1325,7 @@ void Keyboard::doManip() {
     return;
   }
     
-/// 'paste' key combination checks
+  /// 'paste' key combination checks
   if((key[in.Kv.lshift] || key[in.Kv.rshift]) &&    /// shift +
      (key[in.Kv.insert] || key[in.Kv.kp0])) {       /// insert
     addManip(Kch_paste, &osi.eventTime);
@@ -1356,13 +1343,7 @@ void Keyboard::doManip() {
 
 
 
-
-
-
-
-
-
-
+// Keyboard key codes (standard keys only) for each OS
 
 void _Kv::populate() {
   #ifdef OS_WIN
@@ -1590,6 +1571,8 @@ void _Kv::populate() {
   #endif /// OS_LINUX
     
   #ifdef OS_MAC
+  
+  // THE FOLLOWING ARE NOT HANDLED !!!!
   /*
    // JIS keyboards only
 	enum {
@@ -1600,7 +1583,9 @@ void _Kv::populate() {
 	  kVK_JIS_Kana                  = 0x68
 	};
   */
+  
   // http://forums.macrumors.com/showthread.php?t=780577
+  
   esc=        0x35; // kVK_Escape
   enter=      0x24; // kVK_Return
   kpenter=    0x4C; // kVK_ANSI_KeypadEnter
@@ -1704,10 +1689,13 @@ void _Kv::populate() {
   kpplus=     0x45; // kVK_ANSI_KeypadPlus
   kpdel=      0x41; // kVK_ANSI_KeypadDecimal
   lOS=        0x37; // kVK_Command                left win
-  rOS=        0x36; // ???                        right win
-  menu=       0x6E; // ???                        menu/propr
+  rOS=        0x36; // ??? found via test         right win
+  menu=       0x6E; // ??? found via test         menu/propr
 
   #endif /// OS_MAC
 }
+
+
+
 
 

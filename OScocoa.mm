@@ -55,6 +55,7 @@
  
  Note: Views that receive and edit text must conform to the NSTextInput protocol. Adopting this protocol allows a custom view to interact properly with the text input management system. The Application Kit classes NSText and NSTextView implement NSTextInput, so if you subclass these classes you get the protocol conformance “for free.“
  
+ * there might be a set to make a window the principal 'responder' wich i belive will be the one to receive msg events. there's 2 levels of this, i think (before anyone processes even, possibly)
  
  */
 
@@ -73,12 +74,16 @@ OSIcocoa cocoa;
 @end
 
 @implementation MacDelegate
-
+// various 
 - (BOOL) applicationShouldTerminateAfterLastWindowClosed:(NSApplication *)theApplication {
   return YES;
 }
 
+// this one might be wrongly placed. the MacGLWindow one is the right placement, i think...
+// they are not called tho...
+
 - (BOOL) canBecomeMainWindow:(NSApplication *)theApplication{
+  printf("%s\n", __FUNCTION__);
   return YES;
 }
 
@@ -96,6 +101,18 @@ OSIcocoa cocoa;
 @end
 
 @implementation MacGLWindow
+/*
+- (BOOL) canBecomeMainWindow:(NSApplication *)theApplication  {
+  printf("%s\n", __FUNCTION__);
+  return YES;
+}
+*/
+- (BOOL) canBecomeKeyWindow {
+  printf("%s\n", __FUNCTION__);  
+  return YES;
+}
+
+// extra window propreties in init func
 - (id) initWithContentRect: (NSRect)rect styleMask:(NSUInteger)wndStyle backing:(NSBackingStoreType)bufferingType defer:(BOOL)deferFlg {
   [super initWithContentRect:rect styleMask:wndStyle backing:bufferingType defer:deferFlg];
 
@@ -111,21 +128,60 @@ OSIcocoa cocoa;
     name:NSWindowWillCloseNotification
     object:self];
 
+  [[NSNotificationCenter defaultCenter]
+   addObserver:self
+   selector:@selector(windowDidBecomeKey:)
+   name:NSWindowDidBecomeKeyNotification
+   object:self];
+
+  [[NSNotificationCenter defaultCenter]
+   addObserver:self
+   selector:@selector(windowDidResignKey:)
+   name:NSWindowDidResignKeyNotification
+   object:self];
+  
+  
   [self setAcceptsMouseMovedEvents:YES];
   
   [self setExcludedFromWindowsMenu:NO];
 
-  printf("%s\n",__FUNCTION__);
+  printf("%s\n", __FUNCTION__);
   return self;
 }
 
+// window resize
 - (void) windowDidResize: (NSNotification *)notification {
 }
 
+// window close - PROGRAM EXIT
 - (void) windowWillClose: (NSNotification *)notification {
   osi.flags.exit= true;
   [NSApp terminate:nil];    // <<<< program exit. is this ok? a close button is pressed... i guess program must exit...
 }
+
+- (void)windowDidBecomeKey:(NSNotification *)notification{
+  printf("%s\n", __FUNCTION__);
+  
+  // maybe maximize?
+  
+  /// set window as topmost/shielded for fullscreen mode
+  OSIWindow *w= osi.getWin(self);
+  if(w->mode== 2|| w->mode== 3)
+    [self setLevel:CGShieldingWindowLevel()];
+}
+
+- (void)windowDidResignKey:(NSNotification *)notification{
+  printf("%s\n", __FUNCTION__);
+  
+  // maybe minimize? dunno
+  
+  /// lose the 'shielded' atribute
+  OSIWindow *w= osi.getWin(self);
+  if(w->mode== 2|| w->mode== 3)
+    [self setLevel:kCGNormalWindowLevel];
+}
+
+
 
 @end
 
@@ -141,18 +197,27 @@ OSIcocoa cocoa;
 - (void) drawRect: (NSRect) bounds;
 @end
 
+// not much to bother here
 @implementation MacGLview
+
+/*
+- (BOOL) canBecomeKeyView {
+  printf("%s\n", __FUNCTION__);
+  return YES;
+}
+*/
+
+
 -(void) drawRect: (NSRect) bounds {
-  printf("%s\n",__FUNCTION__);
-//  exposure=1;
+  printf("%s\n", __FUNCTION__);
 }
 
 -(void) prepareOpenGL {
-  printf("%s\n",__FUNCTION__);
+  printf("%s\n", __FUNCTION__);
 }
 
 -(NSMenu *)menuForEvent: (NSEvent *)theEvent {
-  printf("%s\n",__FUNCTION__);
+  printf("%s\n", __FUNCTION__);
   return [NSView defaultMenu];
 }
 
@@ -160,6 +225,10 @@ OSIcocoa cocoa;
 ///==========================================================================///
 // ---------------------------- SYSTEM EVENTS ------------------------------- //
 ///==========================================================================///
+
+
+
+
 
 
 // --------------------------- KEYBOARD EVENTS ------------------------------ //
@@ -217,7 +286,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
   // it's a KEY PRESS
   if(press) {
     osi.flags.keyPress= true;
-    if(chatty) printf("key PRESS code[0x%x] \n", code);
+    if(chatty) printf("key PRESS code[0x%x] [flagsChanged]\n", code);
     
     /// log the key
     Keyboard::KeyPressed k;
@@ -234,7 +303,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
   } else {
     osi.flags.keyPress= false;
     
-    if(chatty) printf("key RELEASE code[0x%x]\n", code);
+    if(chatty) printf("key RELEASE code[0x%x] [flagsChanged]\n", code);
     
     
     
@@ -283,6 +352,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
   bool chatty= true;
   uchar code= [theEvent keyCode];
   
+  /// different vars that might be needed some day (atm, everything seems set with keyboard, tho):
   // ulong flags= [theEvent modifierFlags];
   // long unicode;
   // NSString *chrs= [theEvent characters];
@@ -294,7 +364,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
   
   /// if it's not a repeat press event, start the keypress log
   if(![theEvent isARepeat]) {
-    if(chatty) printf("Key pressed: code[0x%x]\n", code);
+    if(chatty) printf("Key PRESS: code[0x%x] [keyDown]\n", code);
     /// log the key
     Keyboard::KeyPressed k;
     k.code= code;
@@ -317,13 +387,12 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 - (void) keyUp:(NSEvent *)theEvent {
   bool chatty= true;
   
-  makeme
   osi.getMillisecs(&osi.eventTime);
   osi.flags.keyPress= false;
   
   uchar code= [theEvent keyCode];
   
-  if(chatty) printf("key RELEASE code[0x%x]\n", code);
+  if(chatty) printf("key RELEASE code[0x%x] [keyUp]\n", code);
   
   /// log the key in history
   bool found= false;
@@ -348,28 +417,26 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
   /// set the key as pressed & other vars
   in.k.key[code]= 0;
   in.k.keyTime[code]= 0;
-  //    in.k.repeat[code]= 0;
-  
-  
-  // OLD CRAP - DELETE <<<<<<<<<<<<<<<  
-  //  chrs= [theEvent characters];
-  //  if([chrs length]> 0) {
-  //    int unicode;
-  //    unicode= [chrs characterAtIndex:0];
-  //	}
-  //  chrsNoMod= [theEvent charactersIgnoringModifiers];
-  //  if([chrsNoMod length]>0) {
-  //    int unicode, fskey;
-  //    unicode= [chrsNoMod characterAtIndex:0];
-    /*
-    fskey= YsMacUnicodeToFsKeyCode(unicode);
-
-    if(fskey!=0) {
-      fsKeyIsDown[fskey]= 0;
-    }
-    */
-  //}
+  //    in.k.repeat[code]= 0;     // MIGHT BE DELETED
 }
+
+// -------------============== CHARACTER(s) INPUT ==============----------------
+- (void)insertText:(id)string {
+  long unicode;
+
+  for(short a= 0; a< [string length]; a++) {
+    unicode= [string characterAtIndex: a];
+    in.k.addChar(unicode, &osi.eventTime);      /// eventTime is already updated. insertText is RIGHT AFTER a keyDown event
+  }
+  
+  //DISABLED [super insertText:string];  // have superclass insert it - THIS MAKES A BEEP if no one handles the text
+}
+
+// DISABLED
+- (void)doCommandBySelector:(SEL)aSelector {
+  // overided to disable command (key) beeps
+}
+
 
 ///==========================================================================///
 // ----------------------------- MOUSE EVENTS ------------------------------- //
@@ -377,32 +444,38 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 
 // ---------------============== MOUSE MOVED ================-------------------
 - (void) mouseMoved:(NSEvent *)theEvent {
-  NSRect rect= [self frame];
-  
+  bool chatty= false;
+
   in.m.oldx= in.m.x;
   in.m.oldy= in.m.y;
-  in.m.x= (int)[theEvent locationInWindow].x;
-  in.m.y= rect.size.height- 1- (int)[theEvent locationInWindow].y;
+  
+  in.m.x= theEvent.window.screen.frame.origin.x+ theEvent.window.frame.origin.x+ theEvent.locationInWindow.x;
+  in.m.y= theEvent.window.screen.frame.origin.y+ theEvent.window.frame.origin.y+ theEvent.locationInWindow.y;
+  
   if(in.m.useDelta) {
     in.m.dx+= in.m.x- in.m.oldx;
     in.m.dy+= in.m.y- in.m.oldy;
   }
+  if(chatty) printf("mouseMoved: x[%d] y[%d]\n", in.m.x, in.m.y);
 }
 
 
 // ---------------============ LEFT BUTTON DOWN =============-------------------
 - (void) mouseDown:(NSEvent *)theEvent {
+  bool chatty= false;
   osi.flags.buttonPress= true;
   osi.getMillisecs(&osi.eventTime);
   
   in.m.b[0].down= true;
   in.m.b[0].timeStart= osi.eventTime;
+  if(chatty) printf("mouseDown (left button)\n");
 }
 
 // ---------------============= LEFT BUTTON UP ==============-------------------
 - (void) mouseUp:(NSEvent *)theEvent {
+  bool chatty= false;
   osi.getMillisecs(&osi.eventTime);
-  osi.flags.buttonPress= false;
+  osi.flags.buttonPress= false;      /// it's not accurate, needs further testing against other buttons, but...
   
   if(in.m.b[0].down) {                    /// an alt-bab might mess stuff...
     in.m.b[0].lastTimeStart= in.m.b[0].timeStart;
@@ -414,21 +487,25 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
     in.m.b[0].lastDT= 1;
   }
   in.m.b[0].down= false;
+  if(chatty) printf("mouseUp (left button)\n");
 }
 
 // ---------------=========== RIGHT BUTTON DOWN =============-------------------
 - (void) rightMouseDown:(NSEvent *)theEvent {
+  bool chatty= false;
   osi.flags.buttonPress= true;
   osi.getMillisecs(&osi.eventTime);
   
   in.m.b[1].down= true;
   in.m.b[1].timeStart= osi.eventTime;
+    if(chatty) printf("rightMouseDown\n");
 }
 
 // ---------------============ RIGHT BUTTON UP ==============-------------------
 - (void) rightMouseUp:(NSEvent *)theEvent {
+  bool chatty= false;
   osi.getMillisecs(&osi.eventTime);
-  osi.flags.buttonPress= false;
+  osi.flags.buttonPress= false;      /// it's not accurate, needs further testing against other buttons, but...
   
   if(in.m.b[1].down) {                    /// an alt-bab might mess stuff...
     in.m.b[1].lastTimeStart= in.m.b[1].timeStart;
@@ -440,25 +517,31 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
     in.m.b[1].lastDT= 1;
   }
   in.m.b[1].down= false;
+  if(chatty) printf("rightMouseUp\n");
 }
 
 // ---------------========== 'OTHER' BUTTON DOWN ============-------------------
 - (void) otherMouseDown:(NSEvent *)theEvent {
-  int b= (int)[theEvent buttonNumber];      // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+  bool chatty= false;
+  
+  int b= (int)theEvent.buttonNumber; /// this seems ok: 2= middle; 3, 4= extra butotns
   
   osi.flags.buttonPress= true;
   osi.getMillisecs(&osi.eventTime);
   
   in.m.b[b].down= true;
   in.m.b[b].timeStart= osi.eventTime;
+  if(chatty) printf("otherMouseDown [%d]\n", b);
 }
 
 // ---------------=========== 'OTHER' BUTTON UP =============-------------------
 - (void) otherMouseUp:(NSEvent *)theEvent {
-  int b= (int)[theEvent buttonNumber];      // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+  bool chatty= false;
+  
+  int b= (int)theEvent.buttonNumber; /// this seems ok. 2=middle; 3, 4= extra butotns
   
   osi.getMillisecs(&osi.eventTime);
-  osi.flags.buttonPress= false;
+  osi.flags.buttonPress= false;      /// it's not accurate, needs further testing against other buttons, but...
   
   if(in.m.b[b].down) {                    /// an alt-bab might mess stuff...
     in.m.b[b].lastTimeStart= in.m.b[b].timeStart; 
@@ -470,9 +553,20 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
     in.m.b[b].lastDT= 1;
   }
   in.m.b[b].down= false;
+  if(chatty) printf("otherMouseUp [%d]\n", b);
 }
 
+// ---------------============== MOUSE WHEEL ================-------------------
+- (void) scrollWheel:(NSEvent *)theEvent {
+  bool chatty= true;
+  if(theEvent.scrollingDeltaY> 0)
+    in.m.wheel++;
+  else
+    in.m.wheel--;
+  if(chatty) printf("scrollWheel [%d]\n", theEvent.scrollingDeltaY> 0? 1: -1);
+}
 
+// -= rest of mouse moving event types, will all call the main moving function =-
 - (void) mouseDragged:(NSEvent *)theEvent {
   [self mouseMoved:theEvent];
 }
@@ -483,25 +577,6 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 
 - (void) otherMouseDragged:(NSEvent *)theEvent {
   [self mouseMoved:theEvent];
-}
-
-
-
-// keyboard character(s) input
-- (void)insertText:(id)string {
-  long unicode;
-  
-  for(short a= 0; a< [string length]; a++) {
-    unicode= [string characterAtIndex: a];
-    in.k.addChar(unicode, &osi.eventTime);      /// eventTime is already updated. insertText is RIGHT AFTER a keyDown event
-  }
-
-  //[super insertText:string];  // have superclass insert it - THIS MAKES A BEEP if no one handles the text
-}
-
-
-- (void)doCommandBySelector:(SEL)aSelector {
-  // overided to disable command (key) beeps
 }
 
 @end
@@ -551,11 +626,11 @@ OSIcocoa::OSIcocoa() {
   
   [NSApp finishLaunching]; // <<<<---- after finish launching settings from here 
   
-  /// this seems to disable the crappy momentum scrolling. problem is, there won't be any scrolling, i think
+  /// this seems to disable the crappy momentum scrolling. Thing is, there won't be any scrolling involved, tho
   //  NSDictionary *appDefaults = [NSDictionary dictionaryWithObject:@"NO" forKey:@"AppleMomentumScrollSupported"];
   //  [[NSUserDefaults standardUserDefaults] registerDefaults:appDefaults];
 
-  // this doesn't seem to work atm - COPY PASTE FROM SDL
+  // this doesn't seem to work atm - SDL REF
   /// Create the window menu
   NSMenu *windowMenu= [[NSMenu alloc] initWithTitle:@"Window"];
   [windowMenu addItemWithTitle:@"Minimize" action:@selector(performMiniaturize:) keyEquivalent:@"m"];
@@ -573,33 +648,19 @@ OSIcocoa::~OSIcocoa() {
 }
 
 
-
-// something like this must be called in OSI constructor <<<<<<<<<<<<<<<<<<<<<<<
+// sets program path, and updates osi.path
 void OSIcocoa::setProgramPath() {
   NSAutoreleasePool *pool= [[NSAutoreleasePool alloc] init];
 
-  char buf[1024];
-  getcwd(buf, 1023);
-	printf("CWD(Initial): %s\n", buf);
-
 	NSString *path;
 	path= [[NSBundle mainBundle] bundlePath];
-	printf("BundlePath:%s\n", [path UTF8String]);
-  
 	[[NSFileManager defaultManager] changeCurrentDirectoryPath: path];
-
-	getcwd(buf, 1023);
-	printf("CWD(Changed): %s\n", buf);
-  
   osi.path= [path UTF8String];
   
 	[pool release];
 }
 
-
-
-
- 
+// various types MENUS that macs have. None is usefull but windowMenu, i think
  /*
   NSMenu *appleMenu;
   NSMenu *serviceMenu;
@@ -702,8 +763,8 @@ bool OSIcocoa::createWindow(OSIWindow *w) {
       NSResizableWindowMask;
   if(w->mode== 3 || w->mode== 2)      /// fullscreen / fullscreen window style
     winStyle=
-//      NSTitledWindowMask|
-//      NSClosableWindowMask|
+    //      NSTitledWindowMask|
+      NSClosableWindowMask|
       NSMiniaturizableWindowMask|
       NSBorderlessWindowMask;
   
@@ -742,12 +803,25 @@ bool OSIcocoa::createWindow(OSIWindow *w) {
   /// rest of window settings
   [win setContentView: view];
   [win makeFirstResponder: view];
-  [win setTitle:[NSString stringWithUTF8String: w->name.d]];
+
+  /// windowed mode
+  if(w->mode== 1) {
+    [win setTitle:[NSString stringWithUTF8String: w->name.d]];
+    [win setLevel:kCGNormalWindowLevel];
+  /// fullscreen / fullscreen window
+  } else if(w->mode== 2|| w->mode== 3) {
+    [win setLevel:CGShieldingWindowLevel()];
+  }
+  
+  more fullscreen research & changing resolutions for each monitor
+  
   [win makeKeyAndOrderFront: nil];
   
+  /* this crashes, dunno why
   if(w== &osi.win[0])
     [win makeMainWindow];
-
+   */
+  
   //  [NSApp activateIgnoringOtherApps: YES]; // THIS WAS MOVED TO CONSTRUCTOR
 
   /// OSIWindow connection
@@ -776,13 +850,14 @@ void processMSG(void) {
   while(1) {
     [pool release];
     pool= [[NSAutoreleasePool alloc] init];
-	
-    NSEvent *event;
-    event= [NSApp
-           nextEventMatchingMask: NSAnyEventMask
+
+    NSEvent *event= [NSApp nextEventMatchingMask: NSAnyEventMask
            untilDate: [NSDate distantPast]
            inMode: NSDefaultRunLoopMode
            dequeue: YES];
+    
+    // TO BE OR NOT TO BE... it might eliminate function calls that generate lag ...
+    // it is a vital part of the program that needs to be the fastest possible...
     
     //    if([event type]== NSRightMouseDown) {
     //		  printf("R mouse down event\n");
@@ -845,7 +920,6 @@ void OSIcocoa::makeCurrent(OSIWindow *w) {
   [[(MacGLview *)w->view openGLContext] makeCurrentContext];
 }
 
-
 bool OSIcocoa::displayName(unsigned long id, string8 *out) {
   bool ret= false;
   out->delData();
@@ -865,39 +939,9 @@ bool OSIcocoa::displayName(unsigned long id, string8 *out) {
   return ret;
 }
 
-
-
-
-/* int main(int argc, char *argv[])
-{
-	YsTestApplicationPath();
-
-	YsOpenWindow();
-
-	printf("Going into the event loop\n");
-
-	double angle;
-	angle=0.0;
-	while(1)
-	{
-		YsPollEvent();
-
-		DrawTriangle(angle);
-		angle=angle+0.05;
-
-		YsSleep(20);
-	}
-
-	return 0;
-	} */
-
-
-
-//#define uint unsigned int
-//#define ushort unsigned short
-//#define null NULL
-
-
-
-
 #endif /// OS_MAC
+
+
+
+
+

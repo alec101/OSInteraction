@@ -1,0 +1,42 @@
+if (SDL_ShouldAllowTopmost() && fullscreen) {
+        /* OpenGL is rendering to the window, so make it visible! */
+        [nswindow setLevel:CGShieldingWindowLevel()];
+    } else {
+        [nswindow setLevel:kCGNormalWindowLevel];
+    } 
+
+
+Cocoa_MaximizeWindow(_THIS, SDL_Window * window)
+{
+    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+    SDL_WindowData *windata = (SDL_WindowData *) window->driverdata;
+    NSWindow *nswindow = windata->nswindow;
+
+    [nswindow zoom:nil];
+
+    ScheduleContextUpdates(windata);
+
+    [pool release];
+}
+
+void
+Cocoa_MinimizeWindow(_THIS, SDL_Window * window)
+{
+    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+    NSWindow *nswindow = ((SDL_WindowData *) window->driverdata)->nswindow;
+
+    [nswindow miniaturize:nil];
+    [pool release];
+}
+ 
+
+
+void
+Cocoa_HideWindow(_THIS, SDL_Window * window)
+{
+    NSAutoreleasePool *pool = [[NSAutoreleasePool alloc] init];
+    NSWindow *nswindow = ((SDL_WindowData *) window->driverdata)->nswindow;
+
+    [nswindow orderOut:nil];
+    [pool release];
+} 

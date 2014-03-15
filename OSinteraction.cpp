@@ -12,11 +12,6 @@
  * gamepad vibration under directinput (it is possible) & force feedback (MUST HAVE A VIBRATION GAMEPAD FIRST...)
  * OSX emulator? to test stuf under osx?
  *
- * ******************************************
- * needs excessive testing. how is the drawing done? for(each renderer) / for each window()?
- * or only change perspective, and what? NEEDS EXCESSIVE TESTINGS, after a system with 2-3 gr cards is set
- * ****************************************** it will be done when linux=win=osx
- *
  * test keyboard locks under linux
  * test mouse grab under linux
  * test keyboard grab under linux (first make shure it is possible to exit program)
@@ -24,7 +19,7 @@
  * in linux, if messing with visual variables, the black screen flash can go away
  *  therefore, in windows, pfd must be messed with to get rid of the black flash
  *
- * linux mouse, keboard manipChars, gamepad
+ * linux keboard manipChars
  *
  * win+linux joystick, xbox controller, wheel (BUY THEM first)
  * win test japanese keyboard, see what chars shows... or print to a file at least
@@ -50,9 +45,6 @@
 
 // LINUX WINDOW RESEARCH
 
-// ONLY 1 DISPLAY MUST BE CREATED. it is 'the connection' to the 'server'(linux/computer, call it what u like)
-// ONLY 1 DISPLAY MUST BE CREATED. it is 'the connection' to the 'server'(linux/computer, call it what u like)
-// ONLY 1 DISPLAY MUST BE CREATED. it is 'the connection' to the 'server'(linux/computer, call it what u like)
 // ONLY 1 DISPLAY MUST BE CREATED. it is 'the connection' to the 'server'(linux/computer, call it what u like)
 
 /* -Two commonly met examples are Maximized and Shaded. A window manager may implement these as proper substates
@@ -136,9 +128,13 @@ _NET_CLOSE_WINDOW
     #pragma comment(lib, "dxguid")
   #endif
   #ifdef USING_XINPUT
+
+// something must be done with this <<<<<<<<<<<<<<<<<<<<<<<<<<<
     #pragma comment(lib, "c:/alec/dxSDK2010j/lib/x64/xinput")
   #endif
 #endif /// OS_WIN
+
+
 
 
 // ################
@@ -240,7 +236,7 @@ int main() {
   osi.display.populate(&osi);     // check all monitors/ resolutions/ etc
 
 
-  osi.createGLWindow(&osi.win[0], &osi.display.monitor[0], "window 0", 400, 400, 32, 1);
+  osi.createGLWindow(&osi.win[0], &osi.display.monitor[0], "window 0", 400, 400, 32, 3);
   //osi.createGLWindow(&osi.win[1], &osi.display.monitor[1], "window 2", 400, 400, 32, 3);
 
   //osi.createGLWindow(&osi.win[2], &osi.display.monitor[1], "window 3", 400, 400, 32, 1);
@@ -393,7 +389,7 @@ OSInteraction::OSInteraction() {
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
-//  setlocale(LC_ALL, "");
+  //  setlocale(LC_ALL, ""); // can't rely on setlocale. everything is different on each os. rely on StringClass32/8 and that's that.
 //  setlocale(LC_CTYPE, "");
   primWin->dis= XOpenDisplay(null);          // DISPLAY CONNECTION TO XSERVER can be something like ":0.0" :displayNr.screenNr
   if(primWin->dis == NULL)
@@ -402,12 +398,13 @@ OSInteraction::OSInteraction() {
 
   #ifdef OS_MAC
   mach_timebase_info(&machInfo);            /// read cpu frequency & stuff; used for high performance timer (mac variant, named mach)
+  cocoa.setProgramPath();                   /// program path (osi.path stores the string afterwards)
   #endif /// OS_MAC
 }
 
 OSInteraction::~OSInteraction() {
   #ifdef OS_LINUX
-// it seems system already destroys display/windowses and calling any of these causes segmentation error
+// it seems system already destroys the display/windows and calling any of these causes segmentation error
 // maybe put them in a program exit function that might be called by the program.
 //
   // XSync(primWin->dis, False);
@@ -417,18 +414,22 @@ OSInteraction::~OSInteraction() {
 }
 
 void OSInteraction::delData() {
+  /// destroy every window. kinda useless...
   for(short a= 0; a< MAX_WINDOWS; a++)
     if(win[a].isCreated) win[a].delData();
 }
 
 
+// -------------============== WINDOW CREATION ================----------------
 
+// SIMPLE WINDOW CREATION FUNCS. they all call createGLWindow()
 
+// create just a single 'primary' window on 'primary' monitor
 bool OSInteraction::primaryGLWindow(string name, int dx, int dy, int8 bpp, int8 mode, short freq) {
   return createGLWindow(primWin, display.primary, name, dx, dy, bpp, mode, freq);
 }
 
-
+// create a fullscreen (mode 3) primary window
 bool OSInteraction::primaryGLWindow() {
   win[0].mode= 3;
   win[0].name= "Primary Program Window";
@@ -438,13 +439,13 @@ bool OSInteraction::primaryGLWindow() {
   return createGLWindow(&win[0], display.primary, win[0].name, win[0].dx, win[0].dy, win[0].bpp, win[0].mode, win[0].freq);
 }
 
-
+// MAIN CREATE WINDOW FUNC. has every customisation
 bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int dx, int dy, int8 bpp, int8 mode, short freq) {
   string func= "OSInteraction::createGLWindow: ";
   w->name= name;
   w->monitor= m;
 
-/// window position
+  /// window position
   if(mode== 1) {                                    /// windowed position
     int tx= m->x0+ (m->original.dx/ 2)- (dx/ 2);
     int ty= m->y0+ (m->original.dy/ 2)- (dy/ 2);
@@ -457,7 +458,7 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
     w->x0= display.vx0;
     w->y0= display.vy0;
   }
-/// fullscreen window size set to monitor resolution size - else use them passed vars
+  /// fullscreen window size set to monitor resolution size - else use them passed vars
   if(mode == 3) {                                   /// fullscreen window
     w->dx= m->original.dx;
     w->dy= m->original.dy;
@@ -480,7 +481,7 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
   DWORD dwStyle;        // Window Style
   RECT rect;            // Grabs Rectangle Upper Left / Lower Right Values
 
-/// fullscreen resolution change
+  /// fullscreen resolution change
   if(mode== 2) {
     if(!display.changeRes(w, m, w->dx, w->dy, w->bpp, w->freq)) {
       mode= 1;                            // if it fails, set mode to windowed <<--- ???
@@ -563,7 +564,7 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
     error.simple(func+ "Window creation error.");
     return false;
   }
-
+  /// pixel format - MORE TESTING NEEDED HERE. screen blacks out on mode 3 - it shouldn't
   static PIXELFORMATDESCRIPTOR pfd;
   pfd.nSize= sizeof(PIXELFORMATDESCRIPTOR);
   pfd.nVersion= 1;
@@ -621,9 +622,9 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
 
   w->glRenderer= m->glRenderer;
 
-// from help: wglMakeCurrent()
-//	All subsequent OpenGL calls made by the thread are drawn on the device identified by hdc.
-//	You can also use wglMakeCurrent to change the calling thread's current rendering context so it's no longer current.
+  // from help: wglMakeCurrent()
+  //	All subsequent OpenGL calls made by the thread are drawn on the device identified by hdc.
+  //	You can also use wglMakeCurrent to change the calling thread's current rendering context so it's no longer current.
 
 
   if(!wglMakeCurrent(w->hDC, m->glRenderer)) {          // Try To Activate The Rendering Context
@@ -754,7 +755,7 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
     // ICON
 
   } else {
-  /// window has no taskbar icon
+    /// rest of windows have no taskbar icons
     //XSetTransientForHint(primWin->dis, w->win, primWin->win); // it seems transientFor is the only thing needed (no taskbar icon)
     w->setWMstate(1, "_NET_WM_STATE_SKIP_TASKBAR");
 
@@ -768,7 +769,7 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
 
   }
 
-/// fullscreen mode linux specific msgs settings
+  /// fullscreen mode linux specific msgs settings
   //XMoveWindow(w->dis, w->win, w->x0, w->y0);
   if((mode==2) || (mode==3))
     w->setWMstate(1, "_NET_WM_STATE_FULLSCREEN");
@@ -805,7 +806,7 @@ I have not checked this because I don't have a multihead system.
   XStoreName(w->dis, w->win, name);
 
 
-// NOTE: this func has shareLists in its params !!!!!!!!!!!!!!!!!!!!!
+  // NOTE: this func has shareLists in its params !!!!!!!!!!!!!!!!!!!!!
   if(win== primWin)
     w->glRenderer= glXCreateContext(w->dis, vi, NULL, GL_TRUE);
   else
@@ -824,7 +825,7 @@ I have not checked this because I don't have a multihead system.
 
   glEnable(GL_DEPTH_TEST);
 
-///  handle the close button WM
+  ///  handle the close button WM
   if(w== primWin) {
     Atom wmDelete= XInternAtom(w->dis, "WM_DELETE_WINDOW", True);
     XSetWMProtocols(w->dis, w->win, &wmDelete, 1);
@@ -836,26 +837,25 @@ I have not checked this because I don't have a multihead system.
 
   #endif /// OS_LINUX
 
-  #ifdef OS_MAC
+  #ifdef OS_MAC // <<<<<<<<<<<<<< MAC >>>>>>>>>>>>>>>
   
-  bool ret= cocoa.createWindow(w);
-
+  /// window creation is in OScocoa.mm due to Abjective-C
   
-  // more stuff to put
-  
-  
-  
-  
-  return ret;
+  return cocoa.createWindow(w);  /// all window vars are set, just create the window.
   #endif /// OS_MAC
 
 /// if program reached this point, there's no OS defined
   error.simple(func+ "no OS specified?");
   return false;
-} // OSInteraction::createGLWindow END
+} // OSInteraction::createGLWindow END <<<
 
 
-// GLWINDOW DELETION
+
+
+
+
+
+// -------------------============ GLWINDOW DELETION ==============-------------
 bool OSInteraction::killPrimaryGLWindow() {
   return killGLWindow(&win[0]);
 }
@@ -883,6 +883,8 @@ bool OSInteraction::killGLWindow(OSIWindow *w) {
 
   return false;
 } /// OSInteraction::killGLWindow
+
+
 
 
 

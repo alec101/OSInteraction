@@ -33,7 +33,13 @@
 
 
 /* TODO:
+ *
+ * every COORDONATE UNIFICATION: x0,y0 -> left,bottom (as in OpenGL, MAC.  NOT AS IN: windows, (i think linux too)
+      this includes mouseWheel (+y means UP, as in the real cood system)
+ 
  * 
+ 
+ 
  * joystick button history
  * 
  * name the TYPE2 / TYPE3 driver (osi must handle at least that)
