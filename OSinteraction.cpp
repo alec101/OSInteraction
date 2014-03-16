@@ -22,10 +22,11 @@
  * linux keboard manipChars
  *
  * win+linux joystick, xbox controller, wheel (BUY THEM first)
+ *
  * win test japanese keyboard, see what chars shows... or print to a file at least
  * win Kv structure
  * linux test Kv structure that is actually working on a arabic (for example) keyboard
- *
+ * mac test Kv structure on a complex language keyboards
  * - create a loading window, in the center of the screen? eventually to have image of the game
  *
  * - set an icon for the window
@@ -36,6 +37,8 @@
  * - extensive testings on program exit. something crashes!!!! ... hardt to find but MUST find it
  * - Linux: test monitors on duplicate (on mirror, on whatever crap the os calls them)
  *
+ * - window to change a monitor without problems (unplug?)
+ *   but on multiple monitor mode, mark it as closed? something like this... notify the program somehow, so a rearrangement will be done
 
 // CHANGE THE STYLE I PROGRAM, "void getBla(retval)", not "retval getBla();"
 // faster this way ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
