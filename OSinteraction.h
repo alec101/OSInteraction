@@ -54,6 +54,7 @@ public:
 
   string name;              /// window name (program name)
   bool isCreated;           /// window has been created flag
+  bool hasFocus;            /// has input focus (if no window has focus, program lost focus)
   short x0, y0, dx, dy;     /// window position & size
   int8 bpp;                 /// bits per pixel (if in fullscreen)
   short freq;               /// frequency (if used - fullscreen)

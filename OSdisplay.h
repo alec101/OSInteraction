@@ -124,7 +124,7 @@ struct OSIMonitor {
   #endif /// OS_LINUX
   
   #ifdef OS_MAC
-  uint32 id;                /// quartz monitor id
+  uint id;                  /// quartz monitor id
   string name;              // monitor name. this is a good candidate for the unified OS monitor name/description
   #endif /// OS_MAC
   

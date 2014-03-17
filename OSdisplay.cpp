@@ -26,6 +26,7 @@
  *  
  * LINUX: primary monitor: who the heck is it?
  * 
+ 
 stuff to KEEP AN EYE ON:
  * "horizontal span" nvidia/ati specific opengl extension
  *
@@ -233,35 +234,7 @@ void OSIDisplay::delData() {
 
 
 bool OSIDisplay::changePrimary(short dx, short dy, int8 bpp, short freq) {      // change primary display& primary monitor resolution
-  #ifdef OS_WIN
-  DEVMODE dm;
-  memset(&dm, 0, sizeof(dm));
-  dm.dmSize= sizeof(dm);
-  dm.dmPelsWidth= dx;           /// selected screen width
-  dm.dmPelsHeight= dy;          /// selected screen height
-  dm.dmBitsPerPel= bpp;         /// selected bits per pixel
-  if(freq)
-    dm.dmDisplayFrequency= freq;
-  dm.dmFields= DM_BITSPERPEL| DM_PELSWIDTH| DM_PELSHEIGHT;
-
-/// try to set selected mode and get results.  NOTE: CDS_FULLSCREEN gets rid of start bar
-  if(ChangeDisplaySettings(&dm, CDS_FULLSCREEN)!= DISP_CHANGE_SUCCESSFUL) {
-    error.simple("This full screen is mode not supported");
-    return false;
-  }
-  return true;
-  #endif /// OS_WIN
-
-  #ifdef OS_LINUX
-  //int m= XDefaultScreen(osi.primWin->dis);
-  //osi.primWin->monitor= &monitor[m];
-  //return changeRes(osi.primWin, &monitor[m], dx, dy, bpp, freq);
   return changeRes(osi.primWin, primary, dx, dy, bpp, freq);
-  #endif /// OS_LINUX
-
-  #ifdef OS_MAC
-  return changeRes(osi.primWin, primary, dx, dy, bpp, freq);
-  #endif /// OS_MAC
 }
 
 
@@ -271,6 +244,10 @@ bool OSIDisplay::changePrimary(short dx, short dy, int8 bpp, short freq) {      
 ///----------------------------------------------------------------------///
 bool OSIDisplay::changeRes(OSIWindow *w, OSIMonitor *m, short dx, short dy, int8 bpp, short freq) {
   bool chatty= true;
+  
+  // THIS FUNCTION MIGHT CHANGE, so it will be only 1 code with multiple, per OS res change calls
+  ///^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  
   #ifdef OS_WIN
   DEVMODE dm;
   memset(&dm, 0, sizeof(dm));
@@ -462,11 +439,124 @@ bool OSIDisplay::changeRes(OSIWindow *w, OSIMonitor *m, short dx, short dy, int8
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
-//  makeme
-  return false; //!!!
+  
+  //  CGDisplaySwitchToMode (display, mode);
+  //  CGDisplaySetDisplayMode(CGDirectDisplayID display, CGDisplayModeRef mode, CFDictionaryRef options(reserved, pass null));
+  /// search in data for requested resolution (hope populate() was called first)
+  OSIResolution *r= getResolution(dx, dy, m);
+  
+  if(r == null) {
+    error.simple("OSI:changeRes: Can't find requested resolution size");
+    return false;
+  }
+  if(chatty) printf("requested resolution change: %dx%d %dHz\n", r->dx, r->dy, freq);
+  
+  short f= 0;
+  //uint reqID;
+  //Status s;
+  if(freq) f= getFreq(freq, r);
+  
+  if(f== -1) {
+    error.simple("OSI:changeRes: Requested frequency not found");
+    return false;
+  }
+  
+  // THERE HAS TO BE ALL THE CHECKS IN HERE, cuz changing 10 times the resolution
+  // in 1 second (wich can freaqing happen, due to some crazy request), might
+  // blow up your monitor
+  
+  /// check if the ORIGINAL RESOLUTION was requested
+  if(!freq)                               /// frequency might be ignored (0)
+    f= m->original.freq[0];
+  
+  if((m->original.dx== dx) && (m->original.dy== dy) && (m->original.freq[0]== f)) {
+    if(m->inOriginal) {                   // already in original res?
+      if(chatty) printf("changeRes: IGNORE: already in original resolution\n");
+      return true;
+    }
+    
+    restoreRes(w, m);
+    return true;
+  } /// if original resolution is requested
+  
+  /// check if changing TO PROGRAM RESOLUTION (from original probly, an alt-tab or something)
+  if(!freq)                               /// frequency might be ignored (0)
+    f= m->progRes.freq[0];
+  
+  if((m->progRes.dx== dx) && (m->progRes.dy== dy) && (m->progRes.freq[0]== f)) {
+    if(m->inOriginal) {
+      
+      // IFDEF OS_MAC <<<
+      /// get resolution with specified ID
+      CFArrayRef modes= CGDisplayCopyAllDisplayModes(m->id, NULL);
+      const void *resid= CFArrayGetValueAtIndex(modes, r->id[f]);
+      
+      /// change resolution <<<<
+      if(CGDisplaySetDisplayMode(m->id, (CGDisplayModeRef)resid, null) != kCGErrorSuccess) {
+        CFRelease(modes);
+        error.simple("OSdisplay::changeRes: can't change to requested resolution");
+        return false;
+      }
+      
+      CFRelease(modes);
+      // ENDIF /// OS_MAC <<<
+      
+      w->bpp= bpp;
+      w->dx= dx;
+      w->dy= dy;
+      w->freq= r->freq[f];
+      m->inOriginal= false;
+      
+      return true;
+    } /// if in original resolution
+    if(chatty) printf("changeRes: IGNORE: already in program resolution\n");
+    return true; /// if already in program resolution, just return
+  } /// if progRes is requested
+  
+  
+  /// it's not origRes requested, nor progRes requested, it's a NEW resolution
+  /// if frequency is not supplied
+  if(!freq) {
+    f= getFreq(60, r);        // try 60hz
+    if(f== -1)
+      f= getFreq(59, r);      // try 59hz
+    if(f== -1)
+      f= 0;                   // just get the first freq in list (there has to be 1)
+  }
+  
+  // IFDEF OS_MAC <<<
+  /// get resolution with specified ID
+  CFArrayRef modes= CGDisplayCopyAllDisplayModes(m->id, NULL);
+  const void *resid= CFArrayGetValueAtIndex(modes, r->id[f]);
+  
+  /// change resolution <<<<
+  if(CGDisplaySetDisplayMode(m->id, (CGDisplayModeRef)resid, null) != kCGErrorSuccess) {
+    CFRelease(modes);
+    error.simple("OSdisplay::changeRes: can't change to requested resolution");
+    return false;
+  }
+  
+  CFRelease(modes);
+  // ENDIF /// OS_MAC <<<
+
+  m->progRes.dx= dx;
+  m->progRes.dy= dy;
+  m->progRes.id[0]= r->id[0]; // more OS specific, but doable
+  m->progRes.freq[0]= f;
+  
+  w->bpp= bpp;
+  w->dx= dx;
+  w->dy= dy;
+  w->freq= r->freq[f];
+  
+  m->inOriginal= false;
+  
+  return true;
+  
+  
+  
   #endif /// OS_MAC
 }
-
 
 
 void OSIDisplay::restorePrimary() {
@@ -475,6 +565,8 @@ void OSIDisplay::restorePrimary() {
 
 
 void OSIDisplay::restoreRes(OSIWindow *w, OSIMonitor *m) {
+  bool chatty= true;
+  
   #ifdef OS_WIN
   if(m->inOriginal)
     return;
@@ -535,7 +627,28 @@ void OSIDisplay::restoreRes(OSIWindow *w, OSIMonitor *m) {
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
-//  makeme
+  if(m->inOriginal)
+    return;
+   
+  if(chatty) printf("RESTORE RESOLUTION\n");
+  
+  // IFDEF OS_MAC <<<
+  /// get resolution with specified ID
+  CFArrayRef modes= CGDisplayCopyAllDisplayModes(m->id, NULL);
+  const void *resid= CFArrayGetValueAtIndex(modes, m->original.id[0]);
+
+  /// change resolution <<<<
+  if(CGDisplaySetDisplayMode(m->id, (CGDisplayModeRef)resid, null) != kCGErrorSuccess)
+    error.simple("OSIDisplay::restoreRes: cannot change back to original resolution."); /// just an error, i guess, let the program try to continue functioning
+  
+  CFRelease(modes);
+  
+  CGDisplayShowCursor(m->id);   /// show mouse cursor? this need a little bit of further thinking
+  // ENDIF /// OS_MAC <<<
+  
+
+  m->inOriginal= true;
+  
   #endif /// OS_MAC
 } // OSIDisplay::restoreRes
 
@@ -1078,7 +1191,7 @@ void OSIDisplay::populate(OSInteraction *t) {
     //monitor[d].original.freq[0]= (short)dm.dmDisplayFrequency;
       
     if(chatty) printf("monitor %d (%s):\n", d, monitor[d].name.d);
-    if(chatty) printf("  id[%ld] position[%dx%d] original res[%dx%d]\n", monitor[d].id, monitor[d].x0, monitor[d].y0, monitor[d].original.dx, monitor[d].original.dy);
+    if(chatty) printf("  id[%d] position[%dx%d] original res[%dx%d]\n", monitor[d].id, monitor[d].x0, monitor[d].y0, monitor[d].original.dx, monitor[d].original.dy);
     
 // MAC 10.5 required
     // double CGDisplayRotation(dis[d]); this is macOS 10.5 onwards... <<<<<<<<<<<<<<<<<<<<<<<<<
@@ -1258,7 +1371,8 @@ void OSIDisplay::populate(OSInteraction *t) {
       tx= (int)CGDisplayModeGetWidth((CGDisplayModeRef)resid);
       ty= (int)CGDisplayModeGetHeight((CGDisplayModeRef)resid);
       double freq= CGDisplayModeGetRefreshRate((CGDisplayModeRef)resid);
-      uint idt= CGDisplayModeGetIODisplayModeID((CGDisplayModeRef)resid);
+      //uint idt= CGDisplayModeGetIODisplayModeID((CGDisplayModeRef)resid);
+      uint idt= a; // isn't this really the resID? IO ID might be for an even higher(that it seems it won't be used) id
 
       /// this supposed to find the first 0 id in the res[] list and update it with the one found ... hope this mess works...
       for(b= 0; b< n; b++)
@@ -1321,6 +1435,7 @@ void OSIDisplay::populate(OSInteraction *t) {
 // IT'S OVERRRRR ... 
   #endif /// OS_MAC
 }
+
 
 void OSIDisplay::getMonitorPos(OSIMonitor *m) {
   #ifdef OS_WIN

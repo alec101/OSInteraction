@@ -4,14 +4,14 @@
 
 class OSIcocoa {
   
-  
-  
+ 
   
 public:
   
+  
   void setProgramPath();              /// under mac is not certain that it is set, it seems
   bool createWindow(OSIWindow *w);
-  
+  bool changeRes(OSIWindow *w, OSIMonitor *m, short dx, short dy, int8 bpp, short freq= 0);
   void checkMSG();
   
   

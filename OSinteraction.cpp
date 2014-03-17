@@ -21,20 +21,20 @@
  *
  * linux keboard manipChars
  *
- * win+linux joystick, xbox controller, wheel (BUY THEM first)
+ * - [win+linux] joystick, xbox controller, wheel (BUY THEM first)
  *
- * win test japanese keyboard, see what chars shows... or print to a file at least
- * win Kv structure
- * linux test Kv structure that is actually working on a arabic (for example) keyboard
- * mac test Kv structure on a complex language keyboards
+ * - [win] test japanese keyboard, see what chars shows... or print to a file at least
+ * - [win] Kv structure
+ * - [linux] test Kv structure that is actually working on a arabic (for example) keyboard
+ * - [mac] test Kv structure on a complex language keyboards
  * - create a loading window, in the center of the screen? eventually to have image of the game
  *
- * - set an icon for the window
+ * - set an icon for the window;  [win] WHEN dealing with icons, must remember to develop WM_GETICON too
+ * - [WIN] WM_SETFOCUS & WM_KILLFOCUS - develop these? WM_ACTIVATE handles focus change atm.
  * - system to create a glRenderer for each graphic card (MUST install a second grcard on a computer) (THIS IS A MUST)
  * - threads!
  * - if there is 1 glRenderer per window, glShareLists knows not to make duplicates if in the same graphics card??? THIS IS THE QUESTION.
  *
- * - extensive testings on program exit. something crashes!!!! ... hardt to find but MUST find it
  * - Linux: test monitors on duplicate (on mirror, on whatever crap the os calls them)
  *
  * - window to change a monitor without problems (unplug?)
@@ -239,8 +239,8 @@ int main() {
   osi.display.populate(&osi);     // check all monitors/ resolutions/ etc
 
 
-  osi.createGLWindow(&osi.win[0], &osi.display.monitor[0], "window 0", 400, 400, 32, 3);
-  //osi.createGLWindow(&osi.win[1], &osi.display.monitor[1], "window 2", 400, 400, 32, 3);
+  osi.createGLWindow(&osi.win[0], &osi.display.monitor[0], "window 0", 1024, 768, 32, 2);
+  //    osi.createGLWindow(&osi.win[1], &osi.display.monitor[0], "window 2", 400, 400, 32, 3);
 
   //osi.createGLWindow(&osi.win[2], &osi.display.monitor[1], "window 3", 400, 400, 32, 1);
 
@@ -289,7 +289,10 @@ int main() {
             osi.swapBuffers(&osi.win[a]);
           }
     }
-
+    
+    if(in.k.key[in.Kv.esc] || (in.k.key[in.Kv.lalt] && in.k.key[in.Kv.f4]))
+      osi.flags.exit= true;
+      
     #ifdef OS_WIN
     COORD pos= {0,0};
     //pos.X= 0; pos.Y= 0;
@@ -1337,6 +1340,7 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       } case WM_KILLFOCUS: { printf("WM_KILLFOCUS %s 0x%x %d %d\n", osi.getWinName(hWnd), m, wParam, lParam); goto ret;     /// keyboard focus i think
       } case WM_NCACTIVATE: { printf("WM_NCACTIVATE %s 0x%x %d %d\n", osi.getWinName(hWnd), m, wParam, lParam); goto ret;
       } case WM_GETICON: { goto ret;              /// usually is used when alt-tabbing, gets an icon for the mini alt-tab list
+        // WHEN dealing with icons, must remember to develop WM_GETICON too
       } case WM_IME_NOTIFY: {	goto ret;
       } case WM_IME_SETCONTEXT: {	goto ret;
       } case WM_NCHITTEST: { goto ret;            /// something to do with mouse placement
