@@ -24,7 +24,7 @@
 /* TODO:
  *
  * WIN: to use progRes
- * 
+ * WIN: move getMonitorPos in populate(). it's win only, and small, used only in populate() anyways
  * xrand has some event handling, must be checked
  *  
  * LINUX: primary monitor: who the heck is it?
@@ -137,6 +137,7 @@ OSIMonitor::OSIMonitor() {
 }
 
 OSIMonitor::~OSIMonitor() {
+  delData();
 }
 
 void OSIMonitor::delData() {
@@ -444,8 +445,6 @@ bool OSIDisplay::changeRes(OSIWindow *w, OSIMonitor *m, short dx, short dy, int8
 
   #ifdef OS_MAC
   
-  //  CGDisplaySwitchToMode (display, mode);
-  //  CGDisplaySetDisplayMode(CGDirectDisplayID display, CGDisplayModeRef mode, CFDictionaryRef options(reserved, pass null));
   /// search in data for requested resolution (hope populate() was called first)
   OSIResolution *r= getResolution(dx, dy, m);
   
@@ -1233,15 +1232,16 @@ void OSIDisplay::populate(OSInteraction *t) {
       for(a= 0; a< n2; a++) {
       
         resid= CFArrayGetValueAtIndex(modes, a);
-        tx= (int)CGDisplayModeGetWidth((CGDisplayModeRef)resid);
-        ty= (int)CGDisplayModeGetHeight((CGDisplayModeRef)resid);
-        double freq= CGDisplayModeGetRefreshRate((CGDisplayModeRef)resid);
-        uint idt= CGDisplayModeGetIODisplayModeID((CGDisplayModeRef)resid);
-        uint32_t flags= CGDisplayModeGetIOFlags((CGDisplayModeRef)resid);
-        CFStringRef st= CGDisplayModeCopyPixelEncoding((CGDisplayModeRef)resid);
+        tx=        (int)CGDisplayModeGetWidth(          (CGDisplayModeRef)resid);
+        ty=        (int)CGDisplayModeGetHeight(         (CGDisplayModeRef)resid);
+        double freq=    CGDisplayModeGetRefreshRate(    (CGDisplayModeRef)resid);
+        uint idt=       CGDisplayModeGetIODisplayModeID((CGDisplayModeRef)resid);
+        uint32_t flags= CGDisplayModeGetIOFlags(        (CGDisplayModeRef)resid);
+        CFStringRef st= CGDisplayModeCopyPixelEncoding( (CGDisplayModeRef)resid);
+        const char *cs= CFStringGetCStringPtr(st, CFStringGetSystemEncoding());
+                                        
       
-      
-        printf("   %02d [%dx%d] id[%d] freq[%f] flags[%x] pixel[%s]\n", a, tx, ty, idt, freq, flags, CFStringGetCStringPtr(st, CFStringGetSystemEncoding()));
+        printf("   %02d [%dx%d] id[%d] freq[%f] flags[%x] pixel[%s]\n", a, tx, ty, idt, freq, flags, cs);
 
         if(flags& kDisplayModeSafetyFlags)            printf("SafetyFlags ");
         if(flags& kDisplayModeAlwaysShowFlag)         printf("AlwaysShow ");
@@ -1265,6 +1265,8 @@ void OSIDisplay::populate(OSInteraction *t) {
         if(flags& kDisplayModeDefaultFlag)            printf("Default ");
         printf("\n");
         
+        CFRelease(cs);
+        
         CFRelease(st); /// "caller is responsible for releasing the string"
       }
 
@@ -1283,7 +1285,9 @@ void OSIDisplay::populate(OSInteraction *t) {
       
       /// only 32bit resolutions ... SUBJECT OF INTESIVE THINKING... remove 16 bits?! <<<<<<<<<<<<<
       CFStringRef st= CGDisplayModeCopyPixelEncoding((CGDisplayModeRef)resid);
-      if(s!= CFStringGetCStringPtr(st, CFStringGetSystemEncoding())) {
+      const char *cs= CFStringGetCStringPtr(st, CFStringGetSystemEncoding());
+      if(s!= cs) {
+        delete[] cs;
         CFRelease(st);
         continue;
       }
@@ -1303,6 +1307,7 @@ void OSIDisplay::populate(OSInteraction *t) {
         monitor[d].nrRes++;
       }
       CFRelease(st);
+      CFRelease(cs);
     } /// for each vommit element
     
     n= monitor[d].nrRes;                  /// n= name shortcut
@@ -1346,8 +1351,10 @@ void OSIDisplay::populate(OSInteraction *t) {
       
       /// only 32bit resolutions ... SUBJECT OF INTESIVE THINKING... remove 16 bits?! <<<<<<<<<<<<<
       CFStringRef st= CGDisplayModeCopyPixelEncoding((CGDisplayModeRef)resid);
-      if(s!= CFStringGetCStringPtr(st, CFStringGetSystemEncoding())) {
+      const char *cs= CFStringGetCStringPtr(st, CFStringGetSystemEncoding());
+      if(s!= cs) {
         CFRelease(st);
+        CFRelease(cs);
         continue;
       }
 
@@ -1357,7 +1364,9 @@ void OSIDisplay::populate(OSInteraction *t) {
       for(b= 0; b< n; b++)                                          /// search for resolution & increase it's nr of frequencies
         if((tx== p[b].dx)&& (ty== p[b].dy))
           p[b].nrFreq++;
+      
       CFRelease(st);
+      CFRelease(cs);
     }
 
     /// alloc the list per resolution (got the max numbers)
@@ -1379,8 +1388,11 @@ void OSIDisplay::populate(OSInteraction *t) {
       
       /// only 32bit resolutions ... SUBJECT OF INTESIVE THINKING... remove 16 bits?! <<<<<<<<<<<<<
       CFStringRef st= CGDisplayModeCopyPixelEncoding((CGDisplayModeRef)resid);
-      if(s!= CFStringGetCStringPtr(st, CFStringGetSystemEncoding())) {
+      const char *cs= CFStringGetCStringPtr(st, CFStringGetSystemEncoding());
+
+      if(s!= cs) {
         CFRelease(st);
+        CFRelease(cs);
         continue;
       }
       
@@ -1400,6 +1412,7 @@ void OSIDisplay::populate(OSInteraction *t) {
               break;
             }
       CFRelease(st);
+      CFRelease(cs);
     }
 
     
@@ -1452,7 +1465,7 @@ void OSIDisplay::populate(OSInteraction *t) {
   #endif /// OS_MAC
 }
 
-
+// this is good only for windows... it might just be moeved in populate()
 void OSIDisplay::getMonitorPos(OSIMonitor *m) {
   #ifdef OS_WIN
   DEVMODE dm= { 0 };

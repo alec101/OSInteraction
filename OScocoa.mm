@@ -108,7 +108,7 @@ OSIcocoa cocoa;
 }
 */
 - (BOOL) canBecomeKeyWindow {
-  // printf("%s\n", __FUNCTION__);  // << this one is spammed
+  // printf("%s\n", __FUNCTION__);  // << this one is spammed... there might be a setCanBecome, so this is not spammed anymore
   return YES;
 }
 
