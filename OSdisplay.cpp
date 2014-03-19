@@ -18,6 +18,9 @@
 */
 
 
+// [MAC]: -restoring monitor resolutions is done with a single function for all monitors. _It is possible to restore resolutions for each monitor, if NEEDED_
+//        - alt-tabbing sets fullscreen windows to the back; the other option would be to autohide - it would be easy to set (in cocoa.mm cocoa.createWindow() )
+//          there is a single line that is commented. This mode seems pretty nice, tho; the back window can be hidden with right-click on it's taskbar icon...
 /* TODO:
  *
  * WIN: to use progRes
@@ -26,6 +29,8 @@
  *  
  * LINUX: primary monitor: who the heck is it?
  * 
+ 
+
  
 stuff to KEEP AN EYE ON:
  * "horizontal span" nvidia/ati specific opengl extension
@@ -132,7 +137,6 @@ OSIMonitor::OSIMonitor() {
 }
 
 OSIMonitor::~OSIMonitor() {
-  delData();
 }
 
 void OSIMonitor::delData() {
@@ -558,11 +562,20 @@ bool OSIDisplay::changeRes(OSIWindow *w, OSIMonitor *m, short dx, short dy, int8
   #endif /// OS_MAC
 }
 
-
+// 
 void OSIDisplay::restorePrimary() {
   restoreRes(osi.primWin, osi.primWin->monitor);
 }
 
+
+void OSIDisplay::restoreAllRes() {
+  for(short a= 0; a< nrMonitors; a++)
+    restoreRes(osi.primWin, &monitor[a]);
+}
+
+///----------------------------------------------------------------------///
+// --------------->>>>>>>>>>>>> RESTORERES <<<<<<<<<<<<<<---------------- //
+///----------------------------------------------------------------------///
 
 void OSIDisplay::restoreRes(OSIWindow *w, OSIMonitor *m) {
   bool chatty= true;
@@ -633,31 +646,32 @@ void OSIDisplay::restoreRes(OSIWindow *w, OSIMonitor *m) {
   if(chatty) printf("RESTORE RESOLUTION\n");
   
   // IFDEF OS_MAC <<<
-  /// get resolution with specified ID
-  CFArrayRef modes= CGDisplayCopyAllDisplayModes(m->id, NULL);
-  const void *resid= CFArrayGetValueAtIndex(modes, m->original.id[0]);
+  /// this restores resolutions for ALL monitors
+  CGRestorePermanentDisplayConfiguration();
+  
+  /// set inOriginal flag for all monitors, as they all get in original resolution
+  for(short a= 0; a< MAX_WINDOWS; a++)
+    if(osi.win[a].isCreated) {
+      osi.win[a].monitor->inOriginal= true;
+      CGDisplayShowCursor(m->id);   /// show mouse cursor? this need a little bit of further thinking      
+    }
 
+  // PER MONITOR RESTORE... needs more work (in display.populate() ). probly keep the CGDisplayModeRef of the original resolution somewhere
+  /*
   /// change resolution <<<<
   if(CGDisplaySetDisplayMode(m->id, (CGDisplayModeRef)resid, null) != kCGErrorSuccess)
     error.simple("OSIDisplay::restoreRes: cannot change back to original resolution."); /// just an error, i guess, let the program try to continue functioning
-  
-  CFRelease(modes);
-  
-  CGDisplayShowCursor(m->id);   /// show mouse cursor? this need a little bit of further thinking
-  // ENDIF /// OS_MAC <<<
-  
 
+  CGDisplayShowCursor(m->id);   /// show mouse cursor? this need a little bit of further thinking
   m->inOriginal= true;
+  */
+  // ENDIF /// OS_MAC <<<
   
   #endif /// OS_MAC
 } // OSIDisplay::restoreRes
 
 
 
-void OSIDisplay::restoreAllRes() {
-  for(short a= 0; a< nrMonitors; a++)
-    restoreRes(osi.primWin, &monitor[a]);
-}
 
 
 ///---------------------------------------------------------------------///
@@ -1185,9 +1199,11 @@ void OSIDisplay::populate(OSInteraction *t) {
     monitor[d].x0= r.origin.x;
     monitor[d].y0= r.origin.y;
    
+    
     /// original monitor settings
     monitor[d].original.dx= (int)CGDisplayPixelsWide(dis[d]);
     monitor[d].original.dy= (int)CGDisplayPixelsHigh(dis[d]);
+    
     //monitor[d].original.freq[0]= (short)dm.dmDisplayFrequency;
       
     if(chatty) printf("monitor %d (%s):\n", d, monitor[d].name.d);
@@ -1206,7 +1222,7 @@ void OSIDisplay::populate(OSInteraction *t) {
     
     //ORIGINAL RESOLUTION!!!
     //    CGDisplayModeRef org= CGDisplayCopyDisplayMode(dis[d]); // help says it must be deallocated with CGDisplayModeRelease
-    
+
     
     CFArrayRef modes= CGDisplayCopyAllDisplayModes(dis[d], NULL);
     n2= (uint)CFArrayGetCount(modes);

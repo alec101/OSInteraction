@@ -702,7 +702,6 @@ OSIcocoa::OSIcocoa() {
   
 
   [NSApp activateIgnoringOtherApps: YES];
-  
   [pool release];
 }
 
@@ -733,6 +732,8 @@ bool OSIcocoa::createWindow(OSIWindow *w) {
   
   MacGLWindow *win= NULL;
   MacGLview *view= NULL;
+  
+  //  mode 4 window !!!!!
   
   /// change monitor resolution
   if(w->mode== 2)
@@ -803,8 +804,8 @@ bool OSIcocoa::createWindow(OSIWindow *w) {
     [win setLevel:CGShieldingWindowLevel()];
     [win setOpaque:YES];              /// no clue what this has in advantages, but documentation sets this; no other info found on oficial doc
     
-        if(w->mode== 2)
-          [win setHidesOnDeactivate:YES]; /// using this for fullscreen... TEST IF CHANGING RES IS OK WITH JUST MOVING THE WINDOW TO THE BACK
+    //        if(w->mode== 2)
+    //      [win setHidesOnDeactivate:YES]; /// using this for fullscreen... TEST IF CHANGING RES IS OK WITH JUST MOVING THE WINDOW TO THE BACK
   }
   //see https://developer.apple.com/library/mac/documentation/graphicsimaging/conceptual/OpenGL-MacProgGuide/EnablingOpenGLforHighResolution/EnablingOpenGLforHighResolution.html#//apple_ref/doc/uid/TP40001987-CH1001-SW5  
   

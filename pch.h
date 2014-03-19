@@ -83,9 +83,11 @@
 
 #ifdef OS_MAC
 #include <unistd.h>
-#include <mach/mach.h>          // high resolution clock funcs
-#include <mach/mach_time.h>     // high resolution clock funcs
-#include <CoreGraphics/CoreGraphics.h> // trying to pinpoint quartz
+#include <mach/mach.h>                  // high resolution clock funcs
+#include <mach/mach_time.h>             // high resolution clock funcs
+#include <CoreGraphics/CoreGraphics.h>  // trying to pinpoint quartz
+//#include <IOKit/hid/IOHIDKeys.h>        // human interface devices (joysticks/gamepads/gamewheels)
+#include <IOKit/hid/IOHIDLib.h>         // human interface devices (joysticks/gamepads/gamewheels)
 #endif /// OS_MAC
 
 

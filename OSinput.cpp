@@ -1,5 +1,6 @@
 #include "pch.h"
 
+
 //#include <sys/types.h>
 //#include <sys/stat.h>
 
@@ -181,7 +182,13 @@ void Input::vibrate() {
 }
 /// end testing
 
-
+#ifdef OS_MAC
+/// all these are callback functions. any pad/stick/wheel added/button press / etc + some kind of egipteean hierogliph func, that should be cleaned (first one)
+static CFMutableDictionaryRef hu_CreateDeviceMatchingDictionary(UInt32 inUsagePage, UInt32 inUsage);
+static void HIDadded(void *, IOReturn , void *, IOHIDDeviceRef);
+static void HIDremoved(void *, IOReturn , void *, IOHIDDeviceRef);
+static void HIDchange(void *, IOReturn, void *, IOHIDValueRef);
+#endif /// OS_MAC
 
 
 // ------------============= INPUT CLASS ===========--------------------
@@ -203,9 +210,19 @@ Input::Input() {
   #endif /// OS_MAC
 }
 
+
+
+
+
+
 Input::~Input() {
   delData();
+  
+  IOHIDManagerClose(manager, kIOHIDOptionsTypeNone); /// close the HID manager
+  CFRelease(manager);                                /// delloc memory
 }
+
+
 
 void Input::delData() {
   m.delData();
@@ -262,8 +279,58 @@ bool Input::init(int mMode, int kMode) {
     getT3gw(a)->mode= 3;
   }
   #endif /// USING_XINPUT
-
-
+  
+  #ifdef OS_MAC
+  
+  in.manager= IOHIDManagerCreate(kCFAllocatorDefault, kIOHIDOptionsTypeNone);
+  
+  // COPY PASTE from apple 'documentation'
+  
+  
+  /// create an array of matching dictionaries
+  CFMutableArrayRef arr= CFArrayCreateMutable(kCFAllocatorDefault, 0, &kCFTypeArrayCallBacks);
+  
+  /// create a device matching dictionary for joysticks
+  CFDictionaryRef dic= hu_CreateDeviceMatchingDictionary(kHIDPage_GenericDesktop, kHIDUsage_GD_Joystick);
+  CFArrayAppendValue(arr, dic);                 /// add it to the matching array
+  CFRelease(dic);                               /// release it
+  
+  /// create a device matching dictionary for game pads
+  dic= hu_CreateDeviceMatchingDictionary(kHIDPage_GenericDesktop, kHIDUsage_GD_GamePad);
+  CFArrayAppendValue(arr, dic);                 /// add it to the matching array
+  CFRelease(dic);                               /// release it
+  
+  /// create a device matching dictionary for gameWheels (hopefully)
+  dic= hu_CreateDeviceMatchingDictionary(kHIDPage_GenericDesktop, kHIDUsage_GD_Wheel);
+  CFArrayAppendValue(arr, dic);                 /// add it to the matching array
+  CFRelease(dic);                               /// release it
+  
+  
+  /// set the created array of criterias to the manager
+  IOHIDManagerSetDeviceMatchingMultiple(manager, arr);
+  
+  CFRelease(arr);                               // release array
+  
+  
+  IOHIDManagerRegisterDeviceMatchingCallback(manager, HIDadded, NULL);  /// callback function for when a matching HID is added
+  IOHIDManagerRegisterDeviceRemovalCallback(manager, HIDremoved, NULL); /// callback function for when a matching HID is removed
+  
+  // RUN LOOPS? MAYBE WON'T NEED THEM
+  IOHIDManagerScheduleWithRunLoop(manager, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
+  
+  /// open the manager
+  IOHIDManagerOpen(manager, kIOHIDOptionsTypeNone); // option bits: kIOHIDOptionsTypeNone or kIOHIDOptionsTypeSeizeDevice
+  
+  
+  /// register a callback function when a value from any registered HIDs change
+  IOHIDManagerRegisterInputValueCallback(manager, HIDchange, NULL);
+  
+  
+  
+  //continue from https://developer.apple.com/library/mac/technotes/tn2187/_index.html
+  
+  #endif /// OS_MAC
+  
   return true;
 }
 
@@ -1685,6 +1752,127 @@ bool GameWheel::init(short mode) {
 
 
 
+
+
+
+
+
+
+
+#ifdef OS_MAC // garbage, but this is MAC
+
+/// NO DAMN CLUE HOW IT IS POSSIBLE TO CREATE SOMETHING LIKE THIS FOR 2 VARIABLES. ARE THEY PAYED FOR THE NUMBER OF CHARACTERS THEY TYPE?
+// COPY-PASTE FROM APPLE 'DOCUMENTATION' ...lol
+
+// function to create matching dictionary
+static CFMutableDictionaryRef hu_CreateDeviceMatchingDictionary( UInt32 inUsagePage, UInt32 inUsage) {
+ 
+  // create a dictionary to add usage page/usages to
+  CFMutableDictionaryRef result= CFDictionaryCreateMutable(kCFAllocatorDefault, 0, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+  // Add key for device type to refine the matching dictionary.
+  CFNumberRef pageCFNumberRef= CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &inUsagePage);
+  CFDictionarySetValue(result, CFSTR(kIOHIDDeviceUsagePageKey), pageCFNumberRef);
+  CFRelease(pageCFNumberRef);
+        
+  // note: the usage is only valid if the usage page is also defined
+  CFNumberRef usageCFNumberRef = CFNumberCreate(kCFAllocatorDefault, kCFNumberIntType, &inUsage);
+  CFDictionarySetValue(result, CFSTR(kIOHIDDeviceUsageKey), usageCFNumberRef);
+  
+  CFRelease(usageCFNumberRef);
+  return result;
+}   // hu_CreateDeviceMatchingDictionary
+
+
+// this will be called when the HID Manager matches a new ( hot plugged ) HID device
+static void HIDadded(void *inContext, IOReturn inResult, void *inSender, IOHIDDeviceRef inHIDDevice) {
+  // inContext:   context from IOHIDManagerRegisterDeviceMatchingCallback
+  // inResult:    the result of the matching operation
+  // inSender:    the IOHIDManagerRef for the new device
+  // inHIDDevice: the new HID device
+  //IOHIDDeviceRef r; IOHIDDeviceRef
+  
+  printf("%s\n", __FUNCTION__);
+} /// HIDadded
+
+
+// this will be called when a HID device is removed ( unplugged )
+static void HIDremoved(void *inContext, IOReturn inResult, void *inSender, IOHIDDeviceRef inHIDDevice) {
+  // inContext:   context from IOHIDManagerRegisterDeviceMatchingCallback
+  // inResult:    the result of the removing operation
+  // inSender:    the IOHIDManagerRef for the device being removed
+  // inHIDDevice: the removed HID device
+
+  printf("%s\n", __FUNCTION__);
+} /// HIDremoved
+
+/// any value change from any HIDs -> this callback func
+static void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDValueRef val) {
+  // inContext:       context from IOHIDManagerRegisterInputValueCallback
+  // IinResult:       completion result for the input value operation
+  // inSender:        the IOHIDManagerRef
+  // inIOHIDValueRef: the new element value
+  printf("%s", __FUNCTION__);
+  
+  
+  /// return the collection type:
+  //  kIOHIDElementTypeInput_Misc         = 1,
+  //  kIOHIDElementTypeInput_Button       = 2,
+  //  kIOHIDElementTypeInput_Axis         = 3,
+  //  kIOHIDElementTypeInput_ScanCodes    = 4,
+  //  kIOHIDElementTypeOutput             = 129,
+  //  kIOHIDElementTypeFeature            = 257,
+  //  kIOHIDElementTypeCollection         = 513
+  //IOHIDElementType tType = IOHIDElementGetType(elementRef);
+  
+  IOHIDElementRef elem= IOHIDValueGetElement(val);
+  IOHIDDeviceRef dev= IOHIDElementGetDevice(elem);
+  IOHIDElementType type= IOHIDElementGetType(elem);
+  CFTypeID id= IOHIDElementGetTypeID(); // crap
+  CFStringRef str= IOHIDElementGetName(elem); // crap
+  IOHIDElementCookie coo= IOHIDElementGetCookie(elem);
+  IOHIDELEm
+  
+  printf(" typeID[%lu]", id);
+  
+  if(str) {
+    long n= CFStringGetMaximumSizeForEncoding(CFStringGetLength(str), kCFStringEncodingUTF8);
+    char *buf= new char[n];
+    CFStringGetCString(str, buf, n, kCFStringEncodingUTF8);
+
+    printf(" name[%s]", buf);
+    delete[] buf;
+  }
+  
+  switch(type) {
+    case kIOHIDElementTypeInput_Misc:     /// gamepad axis go here, actually everything but buttons go here, ffs
+      printf(" misc...\n");
+
+      
+      
+      ///      IOHIDElement_GetDoubleProperty(element, CFSTR(kIOHIDElementCalibrationMaxKey), &calibrateMax);
+      
+      break;
+    case kIOHIDElementTypeInput_Button:     /// some buttons go here (not the d-pad)
+      printf(" button\n");
+      break;
+    case kIOHIDElementTypeInput_Axis:     /// full of NO DATA AT ALL HERE
+      printf(" axis\n");
+      break;
+    default:
+      printf(" other stuff\n");
+  };
+  
+  /// Returns the timestamp value associated with this HID value reference.
+  //uint64_t IOHIDValueGetTimeStamp(IOHIDValueRef inIOHIDValueRef);
+  
+  /// Returns an integer representation for this HID value reference.
+  //  CFIndex IOHIDValueGetIntegerValue(IOHIDValueRef inIOHIDValueRef);
+  
+  
+} /// Handle_IOHIDInputValueCallback
+
+
+#endif
 
 
 

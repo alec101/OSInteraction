@@ -422,9 +422,11 @@ public:
   // these funcs are in <OSchar.cpp>, at the end of the file !!!!!!!!!!!!!
   void keysym2unicode(KeySym *, ulong *ret);  /// converts keysym to unicode (no checks, use getUnicode)
   void getUnicode(KeySym *, ulong *ret);      /// converts keysym to unicode, verifies that the character is valid
-  #endif
+  #endif /// OS_LINUX
 
-
+  #ifdef OS_MAC
+  IOHIDManagerRef manager;
+  #endif /// OS_MAC
 
 // TESTING
   void vibrate();
