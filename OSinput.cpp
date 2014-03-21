@@ -300,7 +300,15 @@ bool Input::init(int mMode, int kMode) {
   dic= hu_CreateDeviceMatchingDictionary(kHIDPage_GenericDesktop, kHIDUsage_GD_Wheel);
   CFArrayAppendValue(arr, dic);                 /// add it to the matching array
   CFRelease(dic);                               /// release it
+
+  // TEST THIS -this might include the mouse or something. check the pen too
+  /// create a device matching dictionary for whatever multi axis controller
+  dic= hu_CreateDeviceMatchingDictionary(kHIDPage_GenericDesktop, kHIDUsage_GD_MultiAxisController);
+  CFArrayAppendValue(arr, dic);                 /// add it to the matching array
+  CFRelease(dic);                               /// release it
+  // TEST THIS 
   
+
   
   /// set the created array of criterias to the manager
   IOHIDManagerSetDeviceMatchingMultiple(manager, arr);
@@ -541,6 +549,7 @@ ReadAgain:
           case 0:                         // [X axis?]   / [l stick X] / [wheel???]
             gp[a].lx= ev[b].value;
             
+            break;
           case 1:                         // [Y axis?]   / [l stick Y] / [wheel???]
             gp[a].ly= ev[b].value;
             
@@ -655,6 +664,8 @@ ReadAgain:
 
   #ifdef USING_DIRECTINPUT
   #endif /// USING_DIRECTINPUT
+  
+  // mac has callback functions for stick/pad/wheel updates, they are at the back of the file
 
 }
 
@@ -1280,9 +1291,9 @@ void Keyboard::clearTypedBuffer() {
 
 
 
-
-// ------------============= JOYSTICK CLASS ===========--------------------
-// ========================================================================
+///========================================================================///
+// ------------============= JOYSTICK CLASS ===========-------------------- //
+///========================================================================///
 
 Joystick::Joystick() {
   mode= 0;
@@ -1307,7 +1318,8 @@ Joystick::~Joystick() {
 
 void Joystick::delData() {
   mode= 0;
-
+  name.delData();
+  
   x= y= throttle= rudder= u= v= pov= 0;
 
   b= buffer1;
@@ -1327,7 +1339,6 @@ void Joystick::delData() {
   if(file!= -1)
     close(file);
   id= -1;
-  name.delData();
   #endif /// OS_LINUX
 }
 
@@ -1388,6 +1399,8 @@ void Joystick::update() {
   */  
     
     #endif /// OS_LINUX
+    
+    // mac has callback functions for stick/pad/wheel updates, they are at the back of the file
   }
   
   // TYPE 2 JOYSTICKS
@@ -1418,6 +1431,7 @@ void Joystick::update() {
   }
   #endif /// USING_XINPUT
 
+  
 }
 
 
@@ -1505,6 +1519,7 @@ GamePad::~GamePad() {
 
 void GamePad::delData() {
   mode= 0;
+  name.delData();
   
   /// clear axis
   lx= ly= 0;
@@ -1531,7 +1546,6 @@ void GamePad::delData() {
   if(file!= -1)
     close(file);
   id= -1;
-  name.delData();
   #endif /// OS_LINUX
 }
 
@@ -1574,13 +1588,14 @@ bool GamePad::unaquire() {
 void GamePad::update() {
   
   if(mode== 1) {
+    // mac has callback functions for stick/pad/wheel updates, they are at the back of the file
     return;
   }
   
   #ifdef OS_WIN           /// skip some checks. only mode 1 works atm in linux
   if(mode== 2) {
   
-  #ifdef USING_DIRECTINPUT
+    #ifdef USING_DIRECTINPUT
     diDevice->GetDeviceState(sizeof(DIJOYSTATE2), (LPVOID)&diStats);
     /// left & right sticks
     lx= diStats.lX;
@@ -1599,7 +1614,7 @@ void GamePad::update() {
     u= diStats.rglSlider[0];
     v= diStats.rglSlider[1];
     return;
-  #endif /// USING_DIRECTINPUT
+    #endif /// USING_DIRECTINPUT
   
   }
   
@@ -1642,9 +1657,9 @@ bool GamePad::init(short mode) {
 
 
 
-
-// ------------============= GAMEWHEEL CLASS ===========--------------------
-// ========================================================================
+///========================================================================///
+// ------------============= GAMEWHEEL CLASS ===========------------------- //
+///========================================================================///
 
 GameWheel::GameWheel() {
   mode= 0;
@@ -1671,6 +1686,7 @@ GameWheel::~GameWheel() {
 
 void GameWheel::delData() {
   mode= 0;
+  name.delData();
   
   /// clear axis
   wheel= 0;
@@ -1694,7 +1710,6 @@ void GameWheel::delData() {
   if(file!= -1)
     close(file);
   id= -1;
-  name.delData();
   #endif /// OS_LINUX
 }
 
@@ -1757,12 +1772,45 @@ bool GameWheel::init(short mode) {
 
 #ifdef OS_MAC // garbage, but this is MAC
 
+///----------------///
+// HIDDriver STRUCT //
+///----------------///
+
+/// part of HIDDriver structure. each 'element' can be a button or axis in a stick/pad/wheel
+struct HIDElement {
+  char type;                    /// 1= axis, 2= button
+  short id;                     /// button or axis number (0 - max buttons / 0 - max axis)
+
+  long logicalMin;               /// minimum value it can have
+  long logicalMax;               /// maximum value it can have
+  bool hasNULLstate;
+  bool isHat;                   /// is it a pov hat (i think)
+  HIDElement(): type(0), id(0), logicalMin(0), logicalMax(0), hasNULLstate(false), isHat(false) {}
+};
+
+/// macs lack a proper joystick api; the next struct is a helper to 'decode' the mess that is raw reading from a HID device
+struct HIDDriver {              /// [internal]
+  bool inUse;                   /// is this in use?
+  IOHIDDeviceRef device;        /// coresponding 'device' that this stick/pad/wheel is tied to
+  short nrButtons;              /// number of buttons that this stick/pad/wheel has
+  short nrAxis;                 /// number of axis this stick/pad/wheel has
+  HIDElement *elem;             /// array of elements the device has
+  
+  /// standard constructor/destructor/delData(); everything will be set to 0 and memory will be auto-deallocated if allocated
+  HIDDriver(): inUse(false), device(null), nrButtons(0), nrAxis(0), elem(0) {}
+  void delData() { if(elem) delete[] elem; elem= null; nrButtons= nrAxis= 0; inUse= false; device= null; }
+  ~HIDDriver() { delData(); }
+} driver[MAX_JOYSTICKS];        /// [internal]
+
+
+
+
 /// NO DAMN CLUE HOW IT IS POSSIBLE TO CREATE SOMETHING LIKE THIS FOR 2 VARIABLES. ARE THEY PAYED FOR THE NUMBER OF CHARACTERS THEY TYPE?
 // COPY-PASTE FROM APPLE 'DOCUMENTATION' ...lol
 
 // function to create matching dictionary
 static CFMutableDictionaryRef hu_CreateDeviceMatchingDictionary( UInt32 inUsagePage, UInt32 inUsage) {
- 
+
   // create a dictionary to add usage page/usages to
   CFMutableDictionaryRef result= CFDictionaryCreateMutable(kCFAllocatorDefault, 0, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
   // Add key for device type to refine the matching dictionary.
@@ -1776,22 +1824,135 @@ static CFMutableDictionaryRef hu_CreateDeviceMatchingDictionary( UInt32 inUsageP
   
   CFRelease(usageCFNumberRef);
   return result;
-}   // hu_CreateDeviceMatchingDictionary
+} /// hu_CreateDeviceMatchingDictionary
 
 
-// this will be called when the HID Manager matches a new ( hot plugged ) HID device
-static void HIDadded(void *inContext, IOReturn inResult, void *inSender, IOHIDDeviceRef inHIDDevice) {
-  // inContext:   context from IOHIDManagerRegisterDeviceMatchingCallback
-  // inResult:    the result of the matching operation
-  // inSender:    the IOHIDManagerRef for the new device
-  // inHIDDevice: the new HID device
+
+// CALLBACK FUNCTION: when a device is plugged in ---------------------------------
+///================================================================================
+static void HIDadded(void *context, IOReturn result, void *sender, IOHIDDeviceRef device) {
+  // context:   context from IOHIDManagerRegisterDeviceMatchingCallback
+  // result:    the result of the matching operation
+  // sender:    the IOHIDManagerRef for the new device
+  // device: the new HID device
   //IOHIDDeviceRef r; IOHIDDeviceRef
+  bool chatty= true;
+  if(chatty) printf("%s\n", __FUNCTION__);
+
+  /// find the first non-in-use joystick
+  short a;
+  for(a= 0; a< MAX_JOYSTICKS; a++)
+    if(!driver[a].inUse)
+      break;
   
-  printf("%s\n", __FUNCTION__);
+  // start to 'populate' vars inside the helper struct
+
+  in.nr.jFound++;  in.nr.jOS++;
+  in.nr.gpFound++; in.nr.gpOS++;
+  in.nr.gwFound++; in.nr.gwOS++;
+  
+  driver[a].inUse= true;  
+  driver[a].device= device;
+  in.j[a].mode= 1;              /// set it's mode to 1. in macs i think only mode 1 will be avaible... there is no freaking support for HIDs
+  in.gp[a].mode= 1;
+  in.gw[a].mode= 1;
+  
+  /// stick/pad/wheel name (product name) ... this should be easy, right?...
+  CFStringRef name;
+  name= (CFStringRef)IOHIDDeviceGetProperty(device, CFSTR(kIOHIDProductKey));
+
+  if(name && (CFGetTypeID(name)== CFStringGetTypeID())) {
+    CFIndex length;
+		
+		CFStringGetBytes(name, CFRangeMake(0, CFStringGetLength(name)), kCFStringEncodingUTF8, '?', false, NULL, 100, &length);
+    
+    in.j[a].name.d= new char[length+ 1];
+                             
+		CFStringGetBytes(name, CFRangeMake(0, CFStringGetLength(name)), kCFStringEncodingUTF8, '?', false, (UInt8 *) in.j[a].name.d, length+ 1, NULL);
+		in.j[a].name.d[length]= 0;  /// terminator
+    in.j[a].name.updateLen();
+    
+    in.gp[a].name= in.j[a].name;
+    in.gw[a].name= in.j[a].name;
+  } else {
+    in.j[a].name= "Unknown";
+    in.gp[a].name= in.j[a].name;
+    in.gw[a].name= in.j[a].name;
+  }
+  
+  /// not used ATM:
+  // IOHIDDeviceGetVendorID(device);
+  // IOHIDDeviceGetProductID(device);
+  
+  
+  CFArrayRef elems;       /// array with all elements
+	IOHIDElementRef elem;   /// 1 element
+	IOHIDElementType type;  /// button / axis
+	IOHIDElementCookie cookie;
+  /// get all elements the device has
+	elems= IOHIDDeviceCopyMatchingElements(device, NULL, kIOHIDOptionsTypeNone);
+  
+  /// count the number of axis and buttons the device has
+  /*
+  
+  
+  for(short b= 0; b< CFArrayGetCount(elems); b++) {
+		elem= (IOHIDElementRef)CFArrayGetValueAtIndex(elems, b);
+		type= IOHIDElementGetType(elem);
+		
+    /// unfortunately type for axis is screwed... some axis are put into Misc by mac HIDapi...
+		if(type== kIOHIDElementTypeInput_Misc || type== kIOHIDElementTypeInput_Axis)
+      driver[a].nrAxis++;
+    if(type== kIOHIDElementTypeInput_Button)
+      driver[a].nrButtons++;
+  }
+
+  /// got numbers-> alloc elem array
+   */
+  
+  //driver[a].elem= new HIDElement[driver[a].nrButtons+ driver[a].nrAxis];
+  
+  
+  driver[a].elem= new HIDElement[CFArrayGetCount(elems)];
+  
+  /// populate driver struct
+  short c= 0, d= 0; /// c will hold counter for axis, d for buttons
+  for(short b= 0; b< CFArrayGetCount(elems); b++) {
+		elem= (IOHIDElementRef)CFArrayGetValueAtIndex(elems, b);
+		type= IOHIDElementGetType(elem);
+    cookie= IOHIDElementGetCookie(elem); /// cookies represent a unique identifier for a HID element within a HID device.
+
+    /// unfortunately type for axis is screwed... some axis are put into Misc by mac HIDapi...
+		if(type== kIOHIDElementTypeInput_Misc || type== kIOHIDElementTypeInput_Axis) {
+      driver[a].elem[b].type= 1;
+      driver[a].elem[b].id= c; c++;
+     
+      driver[a].elem[b].logicalMin=   IOHIDElementGetLogicalMin(elem);
+			driver[a].elem[b].logicalMax=   IOHIDElementGetLogicalMax(elem);
+			driver[a].elem[b].hasNULLstate= IOHIDElementHasNullState(elem);
+			driver[a].elem[b].isHat=        IOHIDElementGetUsage(elem)== kHIDUsage_GD_Hatswitch;
+      
+      
+    /// buttons
+    } else if(type== kIOHIDElementTypeInput_Button) {
+      driver[a].elem[b].type= 2;
+      driver[a].elem[b].id= d; d++;
+    }
+    printf("element[%d]: cookie[%d] id[%d] type[%d] min[%ld] max[%ld] hasNULL[%d] isHat[%d]\n", b, cookie, driver[a].elem[b].id, driver[a].elem[b].type, driver[a].elem[b].logicalMin, driver[a].elem[b].logicalMax, driver[a].elem[b].hasNULLstate, driver[a].elem[b].isHat);
+
+	} /// for each element
+
+	CFRelease(elems);     /// release elements array
+	if(chatty) printf("device[%s] nrButtons[%d] nrAxis[%d]\n", in.j[a].name.d, driver[a].nrButtons, driver[a].nrAxis);
+
+
 } /// HIDadded
 
 
-// this will be called when a HID device is removed ( unplugged )
+
+
+// CALLBACK FUNCTION: when a device is removed ------------------------------------
+///================================================================================
 static void HIDremoved(void *inContext, IOReturn inResult, void *inSender, IOHIDDeviceRef inHIDDevice) {
   // inContext:   context from IOHIDManagerRegisterDeviceMatchingCallback
   // inResult:    the result of the removing operation
@@ -1801,26 +1962,281 @@ static void HIDremoved(void *inContext, IOReturn inResult, void *inSender, IOHID
   printf("%s\n", __FUNCTION__);
 } /// HIDremoved
 
-/// any value change from any HIDs -> this callback func
+
+
+// CALLBACK FUNCTION: any value in a device (axis/button) has changed -------------
+///================================================================================
 static void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDValueRef val) {
   // inContext:       context from IOHIDManagerRegisterInputValueCallback
   // IinResult:       completion result for the input value operation
   // inSender:        the IOHIDManagerRef
   // inIOHIDValueRef: the new element value
+  
   printf("%s", __FUNCTION__);
   
   
-  IOHIDElementRef elem= IOHIDValueGetElement(val);      /// get the 'element' thet of the value
-  IOHIDDeviceRef device= IOHIDElementGetDevice(elem);   /// get the HID device that a element belongs to
-  int v= IOHIDValueGetIntegerValue(val);                /// the actual value that changed
-  
-  
-  CFTypeID id= IOHIDElementGetTypeID();                 // crap
+  IOHIDElementRef elem= IOHIDValueGetElement(val);        /// get the 'element' thet of the value
+  IOHIDDeviceRef device= IOHIDElementGetDevice(elem);     /// get the HID device that a element belongs to
+  IOHIDElementCookie cookie= IOHIDElementGetCookie(elem); /// cookies represent a unique identifier for a HID element within a HID device.
+  long v= IOHIDValueGetIntegerValue(val);                 /// the actual value that changed
+  /// Returns the timestamp value associated with this HID value reference.
+  /// !!! these timestamps are using mach too, so they are reliable !!!
+  uint64_t time= IOHIDValueGetTimeStamp(val)/ 1000000;    /// convert to millisecs too (from nanosecs)
 
-
-  // IOHIDElementCookie represent a unique identifier for a HID element within a HID device.
-  IOHIDElementCookie cookie= IOHIDElementGetCookie(elem);
+  /// find the stick/pad/wheel this change belongs to
+  short a;
+  for(a= 0; a< in.nr.jOS; a++) {
+    if(driver[a].device== device) /// found it
+      break;
+  }
   
+  printf(" cookie[%d]", cookie);
+  
+  cookie--;
+  
+  short id= driver[a].elem[cookie].id;            /// name shortcut
+  
+  if(driver[a].elem[cookie].type== 1) {           // axis
+    switch(id) {
+      case 0:                         // [X axis?]   / [l stick X] / [wheel???]
+        
+        printf(" POV CHANGE: %ld x\n", v);
+        break; // !!!!!!!!!!
+        
+        long x, y;          // they gotta be integers for exact 0 degrees or 90 degrees, else there are problems
+        double pov;
+        
+        /// get axis from current pov position (wich is in degrees)
+        pov= in.j[a].pov;
+        x= y= 0;
+        
+        if(in.j[a].pov!= -1) {           /// ... only if it's not on -1 position (nothing selected)
+          x= (double)(32767.0* sin(in.j[a].pov* (M_PI/ 180.0)));
+          y= (double)(32767.0* cos(in.j[a].pov* (M_PI/ 180.0)));
+        }
+        
+        /// update from event
+        if(id== 0)                    /// x axis event
+          x= v;
+        else                          /// y axis event
+          y= -v;
+        
+        /// find pov in degrees; there have to be checks for each quadrant, unfortunatelly (bad for speed)
+        if(y> 0) {
+          if(x>= 0)
+            pov= (double) ((atan(x/ y))* (180.0/ M_PI));
+          else
+            pov= (double) ((2* M_PI+ atan(x/ y))* (180.0/ M_PI));
+        } else if(y< 0) {
+          pov= (double) (( M_PI+ atan(x/ y))* (180.0/ M_PI));
+          
+        } else if(y == 0) {
+          if(x== 0)
+            pov= -1;
+          else if(x> 0)
+            pov= 90;
+          else if(x< 0)
+            pov= 270;
+        }
+        
+        /// pov found @ this point
+        in.j[a].pov= pov;
+        in.gp[a].pov= pov;
+        // gw is not set<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+        printf(" pov[%ld]\n", in.gp[a].pov);
+        break;
+        // THIS IS THE POV
+        break;
+      case 1:                         // [Throttle?] / [r stick X] / [wheel???]
+        in.gp[a].lx= v;
+        printf(" lStick[%ld]x\n", in.gp[a].lx);
+
+        break;
+      case 2:                         // [extra1 X?] / [l trigger] / [wheel???]
+        in.gp[a].ly= v;
+        printf(" lStick[%ld]y\n", in.gp[a].ly);
+
+        break;
+      case 3:                         // [extra1 Y?] / [r trigger] / [wheel???]
+        in.gp[a].rx= v;
+        printf(" rStick[%ld]x\n", in.gp[a].rx);
+
+        break;
+      case 4:                         // [Rudder?]   / [rStick Y]  / [wheel???]
+        in.gp[a].lt= v;
+        printf(" lTrigger[%ld]\n", in.gp[a].lt);
+        
+        clean up+ comments. everything seems ok. check the xbox after making pov/ values
+        
+        break;
+      case 5:                         // [POV X?]    / [POV X]     / [wheel???]
+        in.gp[a].rt= v;
+        printf(" rTrigger[%ld]\n", in.gp[a].rt);
+
+        break;
+      case 6:                         // [POV Y?]    / [POV Y]     / [wheel???]
+        in.gp[a].ry= v;
+        printf(" rStick[%ld]y\n", in.gp[a].ry);
+  
+        break;
+      case 7:                         // [u axis]    / [u axis]    / [u axis]
+        in.gp[a].u= v;
+        printf(" u[%ld]\n", in.gp[a].u);
+        
+        break;
+      case 8:                         // [v axis]    / [v axis]    / [v axis]
+        in.gp[a].v= v;
+        printf(" u[%ld]\n", in.gp[a].v);
+        
+        break;
+        /*
+      case 10:
+        in.gp[a].u= v;
+        break;
+      case 11:
+        in.gp[a].v= v;
+        break;
+      case 12:
+        in.gp[a].u= v;
+        break;
+      case 13:
+        in.gp[a].v= v;
+        break;
+        */
+        
+        
+        
+      default:
+        printf(" error: unkown id\n");
+    };
+  } else if(driver[a].elem[cookie].type== 2) {    // button
+    in.j[a].b[id]= (uchar)v;
+    in.gp[a].b[id]= (uchar)v;
+    //in.gw[a].b[id]= (uchar)v;
+    
+    if(v== 0) {                                   // release
+      printf(" button release [%d]\n", id);
+      in.j[a].bTime[id]=  time;
+      in.gp[a].bTime[id]= time;
+      in.gw[a].bTime[id]= time;
+    } else if(v== 1) {                            // press
+      printf(" button press [%d]\n", id);
+      /// put the button in history
+      ButPressed p;
+      p.b= id;
+      p.checked= false;
+      p.timeDown= in.j[a].bTime[id];
+      p.timeUp= time;
+      p.timeDT= p.timeUp- p.timeDown;
+      
+      in.j[a].log(p);
+      in.gp[a].log(p);
+      in.gw[a].log(p);
+    }
+  } /// if(type) end
+  
+  /*
+   if(ev[b].type== JS_EVENT_AXIS) {     // ---=== axis event ===---
+   /// axis order...
+   
+   // possible to make a[MAX_AXIS] and x/y/rudder/etc would be refrences to a[]
+   switch (ev[b].number) {
+   // [JOYSTICK]  / [GAMEPAD]   / [GAMEWHEEL]
+   case 0:                         // [X axis?]   / [l stick X] / [wheel???]
+   gp[a].lx= ev[b].value;
+   
+   case 1:                         // [Y axis?]   / [l stick Y] / [wheel???]
+   gp[a].ly= ev[b].value;
+   
+   break;
+   case 2:                         // [Throttle?] / [r stick X] / [wheel???]
+   gp[a].rx= ev[b].value;
+   
+   break;
+   case 3:                         // [extra1 X?] / [l trigger] / [wheel???]
+   gp[a].lt= ev[b].value;
+   
+   break;
+   case 4:                         // [extra1 Y?] / [r trigger] / [wheel???]
+   gp[a].rt= ev[b].value;
+   
+   break;
+   case 5:                         // [Rudder?]   / [rStick Y]  / [wheel???]
+   gp[a].ry= ev[b].value;
+   
+   break;
+   case 6:                         // [POV X?]    / [POV X]     / [wheel???]
+   case 7:                         // [POV Y?]    / [POV Y]     / [wheel???]
+   long x, y;          // they gotta be integers for exact 0 degrees or 90 degrees, else there are problems
+   double pov;
+   
+   /// get axis from current pov position (wich is in degrees)
+   pov= j[a].pov;
+   x= y= 0;
+   
+   if(j[a].pov!= -1) {           /// ... only if it's not on -1 position (nothing selected)
+   x= (double)(32767.0* sin(j[a].pov* (M_PI/ 180.0)));
+   y= (double)(32767.0* cos(j[a].pov* (M_PI/ 180.0)));
+   }
+   
+   /// update from event
+   if(ev[b].number== 6)          /// x axis event
+   x= ev[b].value;
+   else                          /// y axis event
+   y= -ev[b].value;
+   
+   /// find pov in degrees; there have to be checks for each quadrant, unfortunatelly (bad for speed)
+   if(y> 0) {
+   if(x>= 0)
+   pov= (double) ((atan(x/ y))* (180.0/ M_PI));
+   else
+   pov= (double) ((2* M_PI+ atan(x/ y))* (180.0/ M_PI));
+   } else if(y< 0) {
+   pov= (double) (( M_PI+ atan(x/ y))* (180.0/ M_PI));
+   
+   } else if(y == 0) {
+   if(x== 0)
+   pov= -1;
+   else if(x> 0)
+   pov= 90;
+   else if(x< 0)
+   pov= 270;
+   }
+   
+   /// pov found @ this point
+   j[a].pov= pov;
+   gp[a].pov= pov;
+   // gw is not set<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+   
+   break;
+   case 8:                         // [u axis]    / [u axis]    / [u axis]
+   //gp[a].u= ev[b].value;
+   
+   break;
+   case 9:                         // [v axis]    / [v axis]    / [v axis]
+   //gp[a].v= ev[b].value;
+   
+   case 10:
+   gp[a].lx= ev[b].value;
+   case 11:
+   gp[a].ly= ev[b].value;
+   case 12:
+   gp[a].rx= ev[b].value;
+   case 13:
+   gp[a].ry= ev[b].value;
+   
+   break;
+   
+   }
+   } /// axis event
+   */
+  
+  
+  
+  
+  
+  
+  /* element proprety functions: 
   // return the collection type:
   //  kIOHIDElementTypeInput_Misc         = 1,
   //  kIOHIDElementTypeInput_Button       = 2,
@@ -1857,14 +2273,8 @@ static void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDV
   
   // the HID element name
   CFStringRef name= IOHIDElementGetName(elem);
-  char buffer[500];  
   
-  if(name) {
-    for(short b= 0; b<500; b++)
-      buffer[b]= 0;
-    CFStringGetCString(name, buffer, 499, CFStringGetSystemEncoding());
-  }
-  
+  /// no clue what these are  
   // element report information
   uint32_t reportID = IOHIDElementGetReportID(elem);
   uint32_t reportSize = IOHIDElementGetReportSize(elem);
@@ -1873,33 +2283,25 @@ static void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDV
   // element unit & exponent
   uint32_t unit = IOHIDElementGetUnit(elem);
   uint32_t unitExp = IOHIDElementGetUnitExponent(elem);
-  
-  // logical & physical minimums & maximums
-  CFIndex logicalMin = IOHIDElementGetLogicalMin(elem);
-  CFIndex logicalMax = IOHIDElementGetLogicalMax(elem);
-  CFIndex physicalMin = IOHIDElementGetPhysicalMin(elem);
-  CFIndex physicalMax = IOHIDElementGetPhysicalMax(elem);
-  
-  
-  
+
   //There are also functions to determine the device, parent, and child of a specified HID element:
-  
   
   // return the collection element that a HID element belongs to (if any)
   IOHIDElementRef parent= IOHIDElementGetParent(elem);
   
   // return the child elements of a collection element (if any)
   CFArrayRef tCFArrayRef= IOHIDElementGetChildren(elem);
+*/
   
-  
+  /*
    go for struct for each joystick 
      each cookie = button or axis
-     switch (cookie) {
-         
-     }
-  //  printf(" typeID[%lu]", id);
-  printf(" name[%s] cookie[%u] tType[%u] cType[%u] page[%ld] usage[%ld]\n", buffer, cookie, tType, cType, page, usage);
-    
+    if(type= axis)
+      switch(struct[cookie].axisNumber)
+      if(type== button)
+          struct[cookie].buttonNumber
+   */
+  
   //  printf(" element[%d] value[%d]\n", elem, v);
   
   /*
@@ -1920,11 +2322,7 @@ static void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDV
   };
   */
   
-  /// Returns the timestamp value associated with this HID value reference.
-  //uint64_t IOHIDValueGetTimeStamp(IOHIDValueRef inIOHIDValueRef);
   
-  /// Returns an integer representation for this HID value reference.
-  //  CFIndex IOHIDValueGetIntegerValue(IOHIDValueRef inIOHIDValueRef);
   
   
 } /// Handle_IOHIDInputValueCallback
@@ -1947,6 +2345,8 @@ static void HIDchange(void *context, IOReturn result, void *sender, IOHIDReportT
 */
 #endif
 
+// check more on this:
+// http://sacredsoftware.net/svn/misc/StemLibProjects/gamepad/trunk/source/gamepad/Gamepad_macosx.c
 
 /*
  Copyright (c) 2013 Alex Diener

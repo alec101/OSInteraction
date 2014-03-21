@@ -26,7 +26,7 @@
 #define MAX_MOUSE_BUTTONS 16
 #define MAX_JOYSTICK_BUTTONS 32
 #define MAX_KEYS_LOGGED 8
-
+#define MAX_JOYSTICKS 20          /// nr of maximum joysticks/gamepads/gamewheels, NOT JUST JOYSTICKS
 
 
 // --------------============= MOUSE CLASS ============--------------
@@ -181,7 +181,7 @@ class Joystick {
   inline void swapBuffers();
 public:
   short mode;   // [MODE 1]: sys default  [MODE 2]: xinput/ linux bla/mac bla [MODE 3]: direct input/ linux bla/mac bla
-
+  string name;                     /// joystick name (product name)
   long x, y;                       /// main stick x and y axis
   long throttle;                   /// 3rd axis usually throttle
   long rudder;                     /// 4th axis usually rudder
@@ -210,7 +210,6 @@ public:
   #ifdef OS_LINUX
   int file;                           /// driver 'file'
   short id;                           /// /dev/input/js[X]
-  string name;                        /// description of joystick
   #endif
 
 // functions
@@ -236,7 +235,7 @@ class GamePad {
   inline void swapBuffers();
 public:
   short mode;                     // [MODE1]: xinput/os variant 1 [MODE2]: directinput/os variant2 [MODE3] ????  [MODE 0]= not used not init NA
-
+  string name;                   /// gamepad name (product name)
 
   long lx, ly;                   /// stick 1 axis position (left)
   long rx, ry;                   /// stick 2 axis position (right)
@@ -264,7 +263,6 @@ public:
   #ifdef OS_LINUX
   int file;                           /// driver 'file'
   short id;                           /// /dev/input/js[X] (shared between j/
-  string name;
   #endif
 
 // functions
@@ -290,6 +288,7 @@ class GameWheel {
   inline void swapBuffers();
 public:
   short mode;                   // [MODE1]: xinput/os variant 1 [MODE2]: directinput/os variant2 [MODE3] ????
+  string name;                 /// wheel name (product name)
 
   long wheel;                  /// the wheel
   long a1, a2, a3, a4, a5;     /// different axis/ pedals
@@ -310,7 +309,6 @@ public:
   #ifdef OS_LINUX
   int file;
   short id;                           /// /dev/input/js[X] (shared between j/
-  string name;
   #endif
 
 // functions
@@ -371,12 +369,12 @@ BOOL CALLBACK diDevCallback(LPCDIDEVICEINSTANCE, LPVOID); /// no, i did not crea
 class Input {
 
 public:
-  Mouse m;                  /// more than 1 mouse?
-  Keyboard k;               /// more than 1 keyboard?
-  Joystick j[20];           ///  j[0-7]= OS driver;  j[8-15] XINPUT;  j[16-19] DIRECT INPUT
-  GamePad gp[20];           /// gp[0-7]= OS driver; gp[8-15] XINPUT; gp[16-19] DIRECT INPUT
-  GameWheel gw[20];         /// gw[0-7]= OS driver; gw[8-15] XINPUT; gw[16-19] DIRECT INPUT
-  _Kv Kv;                   /// struct with most inportant keycodes: in.k.key[Kv.space] is possible. OS independant/ if keyboard is changed in any way, just call Kv.populate()
+  Mouse m;                      /// more than 1 mouse?
+  Keyboard k;                   /// more than 1 keyboard?
+  Joystick j[MAX_JOYSTICKS];    ///  j[0-7]= OS driver;  j[8-15] XINPUT;  j[16-19] DIRECT INPUT
+  GamePad gp[MAX_JOYSTICKS];    /// gp[0-7]= OS driver; gp[8-15] XINPUT; gp[16-19] DIRECT INPUT
+  GameWheel gw[MAX_JOYSTICKS];  /// gw[0-7]= OS driver; gw[8-15] XINPUT; gw[16-19] DIRECT INPUT
+  _Kv Kv;                       /// struct with most inportant keycodes: in.k.key[Kv.space] is possible. OS independant/ if keyboard is changed in any way, just call Kv.populate()
   
   
 
@@ -424,9 +422,13 @@ public:
   void getUnicode(KeySym *, ulong *ret);      /// converts keysym to unicode, verifies that the character is valid
   #endif /// OS_LINUX
 
-  #ifdef OS_MAC
-  IOHIDManagerRef manager;
-  #endif /// OS_MAC
+  #ifdef OS_MAC // MAC MESS <<<--------------- NOTHING TO BOTHER HERE ------
+  /// nothing to bother here, all internal vars
+  IOHIDManagerRef manager;        /// [internal] 'manager' that handles all HID devices (this one is set to handle sticks/pads/wheels only)
+  
+
+  
+  #endif // END MAC MESS <<<-----------------------------------------------
 
 // TESTING
   void vibrate();
