@@ -214,8 +214,10 @@ Input::Input() {
 Input::~Input() {
   delData();
   
+  #ifdef OS_MAC
   IOHIDManagerClose(manager, kIOHIDOptionsTypeNone); /// close the HID manager
   CFRelease(manager);                                /// delloc memory
+  #endif /// OS_MAC
 }
 
 
@@ -407,6 +409,8 @@ void Input::populate(bool scanMouseKeyboard) {
   
 	//#ifdef JS_VERSION
 	//#if JS_VERSION > 0xsomething
+  
+  bool chatty= true;
   
   int f;
   int version, axes= 0, buttons= 0;

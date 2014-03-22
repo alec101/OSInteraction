@@ -108,7 +108,7 @@ OSIMonitor::OSIMonitor() {
   glRenderer= null;
   inOriginal= true;     /// start in original resolution... right?
 
-/// original & program resolutions
+  /// original & program resolutions
   original.nrFreq= 1;
   original.freq= new short[1];
   original.dx= 0;
@@ -248,39 +248,11 @@ bool OSIDisplay::changePrimary(short dx, short dy, int8 bpp, short freq) {      
 // --------------->>>>>>>>>>>>> CHANGERES <<<<<<<<<<<<<<----------------- //
 ///----------------------------------------------------------------------///
 bool OSIDisplay::changeRes(OSIWindow *w, OSIMonitor *m, short dx, short dy, int8 bpp, short freq) {
+  // THERE HAS TO BE ALL THE CHECKS IN HERE, cuz changing 10 times the resolution
+  // in 1 second (wich can freaqing happen, due to some crazy request), might
+  // blow up your monitor
+
   bool chatty= true;
-  
-  // THIS FUNCTION MIGHT CHANGE, so it will be only 1 code with multiple, per OS res change calls
-  ///^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  
-  #ifdef OS_WIN
-  DEVMODE dm;
-  memset(&dm, 0, sizeof(dm));
-  dm.dmSize= sizeof(dm);
-  dm.dmPelsWidth= dx;           /// selected screen width
-  dm.dmPelsHeight= dy;          /// selected screen height
-  dm.dmBitsPerPel= bpp;         /// selected bits per pixel
-  if(freq)
-    dm.dmDisplayFrequency= freq;
-  dm.dmFields= DM_BITSPERPEL| DM_PELSWIDTH| DM_PELSHEIGHT;
-
-  /*
-  MAKE ME SAFE, AS IN, WHAT IS IN LINUX VARIANT. multiple(fast) resolution changes
-  can fry the monitor
-  */
-
-
-
-
-  /// try to set selected mode and get results.  NOTE: CDS_FULLSCREEN gets rid of start bar
-  if(ChangeDisplaySettingsEx(m->id, &dm, NULL, CDS_FULLSCREEN, NULL)!= DISP_CHANGE_SUCCESSFUL) {
-    error.simple("This full screen is mode not supported");
-    return false;
-  }
-  return true;
-  #endif /// OS_WIN
-
-  #ifdef OS_LINUX
 
   /// search in data for requested resolution (hope populate() was called first)
   OSIResolution *r= getResolution(dx, dy, m);
@@ -291,44 +263,70 @@ bool OSIDisplay::changeRes(OSIWindow *w, OSIMonitor *m, short dx, short dy, int8
   }
   if(chatty) printf("requested resolution change: %dx%d %dHz\n", r->dx, r->dy, freq);
   
-  short f= 0;
-  Status s;
+  /// if a frequency is provided, get it's ID from databanks
+  short f= 0;                             /// this will help with frequencyes
   if(freq) f= getFreq(freq, r);
-
-  if(f== -1) {
+  
+  if(f== -1) {                            /// getFreq returns -1 if none found
     error.simple("OSI:changeRes: Requested frequency not found");
     return false;
   }
-
-// THERE HAS TO BE ALL THE CHECKS IN HERE, cuz changing 10 times the resolution
-// in 1 second (wich can freaqing happen, due to some crazy request), might
-// blow up your monitor
-
-  /// check if the ORIGINAL RESOLUTION was requested
+  
+  // check if the ORIGINAL RESOLUTION was requested
   if(!freq)                               /// frequency might be ignored (0)
     f= m->original.freq[0];
-
+  
   if((m->original.dx== dx) && (m->original.dy== dy) && (m->original.freq[0]== f)) {
     if(m->inOriginal) {                   // already in original res?
       if(chatty) printf("changeRes: IGNORE: already in original resolution\n");
       return true;
     }
-
+    
     restoreRes(w, m);
     return true;
   } /// if original resolution is requested
-
-  /// check if changing TO PROGRAM RESOLUTION (from original probly, an alt-tab or something)
+  
+  // check if changing TO PROGRAM RESOLUTION (from original probly, an alt-tab or something)
   if(!freq)                               /// frequency might be ignored (0)
-      f= m->progRes.freq[0];
-
+    f= m->progRes.freq[0];
+  
   if((m->progRes.dx== dx) && (m->progRes.dy== dy) && (m->progRes.freq[0]== f)) {
     if(m->inOriginal) {
+      /// per OS resolution change
+      #ifdef OS_WIN
+      DEVMODE dm;
+      for(short a= 0; a< sizeof(DEVMODE); a++) ((char *)&dm)[a]= 0;
+      dm.dmSize= sizeof(dm);
+      dm.dmPelsWidth= dx;           /// selected screen width
+      dm.dmPelsHeight= dy;          /// selected screen height
+      dm.dmBitsPerPel= bpp;         /// selected bits per pixel
+      if(freq)
+        dm.dmDisplayFrequency= freq;
+      dm.dmFields= DM_BITSPERPEL| DM_PELSWIDTH| DM_PELSHEIGHT;
+
+      /// try to set selected mode and get results.  NOTE: CDS_FULLSCREEN gets rid of start bar
+      if(ChangeDisplaySettingsEx(m->id, &dm, NULL, CDS_FULLSCREEN, NULL)!= DISP_CHANGE_SUCCESSFUL) {
+        error.simple("OSdisplay::changeRes: can't change to requested resolution");
+        return false;
+      }
+      #endif /// OS_WIN
+      
+      #ifdef OS_LINUX
+      Status s;
       XRRScreenResources *scr= XRRGetScreenResources(w->dis, w->win);
       XRRCrtcInfo *crtc= XRRGetCrtcInfo(w->dis, scr, m->crtcID);
       if(chatty) printf("m->outID:%lu crtc->noutputs:%d crtc->outputs[0]:%lu\n", m->outID, crtc->noutput, crtc->outputs[0]);
       
+      //!! this is what it might be missing. call before setCrtcConfig. it won't affect current mode, only the next mode change
       
+      XTransform trn;
+      
+      
+      XRRGetCrtcTransform - for current 'filter' and 'values'
+        
+      XRRSetCrtcTransform(primWin->dis, 
+        !!
+        
       s= XRRSetCrtcConfig(w->dis, scr,    /// display, screen resources (virtual desktop configuration)
                           m->crtcID,      /// crt that will change resolution
                           CurrentTime,
@@ -337,11 +335,17 @@ bool OSIDisplay::changeRes(OSIWindow *w, OSIMonitor *m, short dx, short dy, int8
                           r->rotation,
                           crtc->outputs,  /// outputs(+monitors) that will change resolution
                           crtc->noutput); /// will change res on all (noutput) duplicate monitors
-
-      XRROutputInfo *out= XRRGetOutputInfo(w->dis, scr, crtc->outputs[0]);
-      XRRSetScreenSize(w->dis, m->root, dx, dy, out->mm_width, out->mm_height);
-      XRRFreeOutputInfo(out);
-  
+      if(s== Success) {
+        get the scr again!!! after each res change, i think all things change!!! THEN disable the panning or something
+        XRROutputInfo *out= XRRGetOutputInfo(w->dis, scr, crtc->outputs[0]);
+        XRRSetScreenSize(w->dis, m->root, dx, dy, out->mm_width, out->mm_height);
+        XRRFreeOutputInfo(out);
+      }        
+      
+      // !!!!!!!!1!!!!!
+      // resolution change, get the new vars, i think... this is a step that has to be tryed
+      // !!!!!!!!!!!!!1
+      
       XRRFreeCrtcInfo(crtc);
       XRRFreeScreenResources(scr);
 
@@ -362,134 +366,10 @@ bool OSIDisplay::changeRes(OSIWindow *w, OSIMonitor *m, short dx, short dy, int8
       XRRFreeScreenResources(scr);
       */
       // END TESTS
-
-      w->bpp= bpp;
-      w->dx= dx;
-      w->dy= dy;
-      w->freq= r->freq[f];
-      m->inOriginal= false;
-
-      return true;
-    } /// if in original resolution
-    if(chatty) printf("changeRes: IGNORE: already in program resolution\n");
-    return true; /// if already in program resolution, just return
-  } /// if progRes is requested
-
-/// it's not origRes requested, nor progRes requested, it's a NEW resolution
-  /// if frequency is not supplied
-  if(!freq) {
-    f= getFreq(60, r);        // try 60hz
-    if(f== -1)
-      f= getFreq(59, r);      // try 59hz
-    if(f== -1)
-      f= 0;                   // just get the first freq in list (there has to be 1)
-  }
-  
-  XRRScreenResources *scr= XRRGetScreenResources(w->dis, m->root);
-  XRRCrtcInfo *crtc= XRRGetCrtcInfo(w->dis, scr, m->crtcID);
-  
-  
-  //XRRFreeScreenResources(scr);
-  //*scr= XRRGetScreenResources(w->dis, m->root);
-  
-  if(chatty) printf("m->outID:%lu crtc->noutputs:%d crtc->outputs[0]:%lu\n", m->outID, crtc->noutput, crtc->outputs[0]);
-  s= XRRSetCrtcConfig(w->dis, scr,         /// server connection, screen resources (virtual desktop)
-                      m->crtcID,           /// crt that will change the res
-                      CurrentTime,         /// time
-                      m->x0, m->y0,        /// monitor position
-                      r->resID[f],         /// resolution id (paired with frequency)
-                      r->rotation,         /// rotation
-//    &m->outID, 1);
-                      crtc->outputs,       /// outputs that will change (duplicate monitors all will change res)
-                      crtc->noutput);      /// nr monitors that will change res
-  
-  XRROutputInfo *out= XRRGetOutputInfo(w->dis, scr, crtc->outputs[0]);        // MIGHT WORK WITH ONLY 1 MONITOR. not gonna recalculate the whole virtual screen size ... 
-  XRRSetScreenSize(w->dis, m->root, dx, dy, out->mm_width, out->mm_height);
-  XRRFreeOutputInfo(out);
-
-  XRRFreeCrtcInfo(crtc);
-  XRRFreeScreenResources(scr);
-  
-  if(s!= Success) {
-    error.simple("OSdisplay::changeRes: can't change to requested resolution");
-    return false;
-  }
-
-  // TESTS
-
-
-  /*
-  sleep(3);
-  XRRPanning p= {0};                            // try DISABLE panning
-  scr= XRRGetScreenResources(w->dis, m->root);
-  XRRSetPanning(w->dis, scr, m->crtcID, &p);
-  XRRFreeScreenResources(scr);
-  */
-  
-  // END TESTS
-  
-  m->progRes.dx= dx;
-  m->progRes.dy= dy;
-  m->progRes.resID[0]= r->resID[0];
-  m->progRes.freq[0]= f;
-
-  w->bpp= bpp;
-  w->dx= dx;
-  w->dy= dy;
-  w->freq= r->freq[f];
-
-  m->inOriginal= false;
-  
-  return true;
-  #endif /// OS_LINUX
-
-  #ifdef OS_MAC
-  
-  /// search in data for requested resolution (hope populate() was called first)
-  OSIResolution *r= getResolution(dx, dy, m);
-  
-  if(r == null) {
-    error.simple("OSI:changeRes: Can't find requested resolution size");
-    return false;
-  }
-  if(chatty) printf("requested resolution change: %dx%d %dHz\n", r->dx, r->dy, freq);
-  
-  short f= 0;
-  //uint reqID;
-  //Status s;
-  if(freq) f= getFreq(freq, r);
-  
-  if(f== -1) {
-    error.simple("OSI:changeRes: Requested frequency not found");
-    return false;
-  }
-  
-  // THERE HAS TO BE ALL THE CHECKS IN HERE, cuz changing 10 times the resolution
-  // in 1 second (wich can freaqing happen, due to some crazy request), might
-  // blow up your monitor
-  
-  /// check if the ORIGINAL RESOLUTION was requested
-  if(!freq)                               /// frequency might be ignored (0)
-    f= m->original.freq[0];
-  
-  if((m->original.dx== dx) && (m->original.dy== dy) && (m->original.freq[0]== f)) {
-    if(m->inOriginal) {                   // already in original res?
-      if(chatty) printf("changeRes: IGNORE: already in original resolution\n");
-      return true;
-    }
-    
-    restoreRes(w, m);
-    return true;
-  } /// if original resolution is requested
-  
-  /// check if changing TO PROGRAM RESOLUTION (from original probly, an alt-tab or something)
-  if(!freq)                               /// frequency might be ignored (0)
-    f= m->progRes.freq[0];
-  
-  if((m->progRes.dx== dx) && (m->progRes.dy== dy) && (m->progRes.freq[0]== f)) {
-    if(m->inOriginal) {
       
-      // IFDEF OS_MAC <<<
+      #endif /// OS_LINUX
+      
+      #ifdef OS_MAC //<<<
       /// get resolution with specified ID
       CFArrayRef modes= CGDisplayCopyAllDisplayModes(m->id, NULL);
       const void *resid= CFArrayGetValueAtIndex(modes, r->id[f]);
@@ -500,9 +380,8 @@ bool OSIDisplay::changeRes(OSIWindow *w, OSIMonitor *m, short dx, short dy, int8
         error.simple("OSdisplay::changeRes: can't change to requested resolution");
         return false;
       }
-      
       CFRelease(modes);
-      // ENDIF /// OS_MAC <<<
+      #endif /// OS_MAC <<<
       
       w->bpp= bpp;
       w->dx= dx;
@@ -527,7 +406,71 @@ bool OSIDisplay::changeRes(OSIWindow *w, OSIMonitor *m, short dx, short dy, int8
       f= 0;                   // just get the first freq in list (there has to be 1)
   }
   
-  // IFDEF OS_MAC <<<
+  // RESOLUTION CHANGE, os specific
+  #ifdef OS_WIN // <<<
+  DEVMODE dm;
+  for(short a= 0; a< sizeof(DEVMODE); a++) ((char *)&dm)[a]= 0;
+  dm.dmSize= sizeof(dm);
+  dm.dmPelsWidth= dx;           /// selected screen width
+  dm.dmPelsHeight= dy;          /// selected screen height
+  dm.dmBitsPerPel= bpp;         /// selected bits per pixel
+  if(freq)
+    dm.dmDisplayFrequency= freq;
+  dm.dmFields= DM_BITSPERPEL| DM_PELSWIDTH| DM_PELSHEIGHT;
+
+  /// try to set selected mode and get results.  NOTE: CDS_FULLSCREEN gets rid of start bar
+  if(ChangeDisplaySettingsEx(m->id, &dm, NULL, CDS_FULLSCREEN, NULL)!= DISP_CHANGE_SUCCESSFUL) {
+    error.simple("OSdisplay::changeRes: can't change to requested resolution");
+    return false;
+  }
+  #endif /// OS_WIN <<<
+
+  #ifdef OS_LINUX // <<<
+  Status s;
+  XRRScreenResources *scr= XRRGetScreenResources(w->dis, m->root);
+  XRRCrtcInfo *crtc= XRRGetCrtcInfo(w->dis, scr, m->crtcID);
+  
+  if(chatty) printf("m->outID:%lu crtc->noutputs:%d crtc->outputs[0]:%lu\n", m->outID, crtc->noutput, crtc->outputs[0]);
+  s= XRRSetCrtcConfig(w->dis, scr,         /// server connection, screen resources (virtual desktop)
+                      m->crtcID,           /// crt that will change the res
+                      CurrentTime,         /// time
+                      m->x0, m->y0,        /// monitor position
+                      r->resID[f],         /// resolution id (paired with frequency)
+                      r->rotation,         /// rotation
+//    &m->outID, 1);
+                      crtc->outputs,       /// outputs that will change (duplicate monitors all will change res)
+                      crtc->noutput);      /// nr monitors that will change res
+  
+  if(s== Success) {
+    XRROutputInfo *out= XRRGetOutputInfo(w->dis, scr, crtc->outputs[0]);        // MIGHT WORK WITH ONLY 1 MONITOR. not gonna recalculate the whole virtual screen size ... 
+    XRRSetScreenSize(w->dis, m->root, dx, dy, out->mm_width, out->mm_height);
+    XRRFreeOutputInfo(out);
+  }
+  
+  XRRFreeCrtcInfo(crtc);
+  XRRFreeScreenResources(scr);
+  
+  if(s!= Success) {
+    error.simple("OSdisplay::changeRes: can't change to requested resolution");
+    return false;
+  }
+
+  // TESTS
+  // TRY TO GET scr again, after the resolution change!!!! , if nothing else works. 
+
+  /*
+  sleep(3);
+  XRRPanning p= {0};                            // try DISABLE panning
+  scr= XRRGetScreenResources(w->dis, m->root);
+  XRRSetPanning(w->dis, scr, m->crtcID, &p);
+  XRRFreeScreenResources(scr);
+  */
+  // END TESTS
+  
+  m->progRes.resID[0]= r->resID[0];
+  #endif /// OS_LINUX  <<<
+  
+  #ifdef OS_MAC // <<<
   /// get resolution with specified ID
   CFArrayRef modes= CGDisplayCopyAllDisplayModes(m->id, NULL);
   const void *resid= CFArrayGetValueAtIndex(modes, r->id[f]);
@@ -538,13 +481,12 @@ bool OSIDisplay::changeRes(OSIWindow *w, OSIMonitor *m, short dx, short dy, int8
     error.simple("OSdisplay::changeRes: can't change to requested resolution");
     return false;
   }
-  
   CFRelease(modes);
-  // ENDIF /// OS_MAC <<<
+  m->progRes.id[0]= r->id[0];
+  #endif /// OS_MAC <<<
 
   m->progRes.dx= dx;
   m->progRes.dy= dy;
-  m->progRes.id[0]= r->id[0]; // more OS specific, but doable
   m->progRes.freq[0]= f;
   
   w->bpp= bpp;
@@ -555,18 +497,14 @@ bool OSIDisplay::changeRes(OSIWindow *w, OSIMonitor *m, short dx, short dy, int8
   m->inOriginal= false;
   
   return true;
-  
-  
-  
-  #endif /// OS_MAC
 }
 
-// 
+// restores primary monitor resolution (usualy used in case only 1 window is created)
 void OSIDisplay::restorePrimary() {
   restoreRes(osi.primWin, osi.primWin->monitor);
 }
 
-
+// restores all monitors to their original resolution
 void OSIDisplay::restoreAllRes() {
   for(short a= 0; a< nrMonitors; a++)
     restoreRes(osi.primWin, &monitor[a]);
@@ -577,25 +515,23 @@ void OSIDisplay::restoreAllRes() {
 ///----------------------------------------------------------------------///
 
 void OSIDisplay::restoreRes(OSIWindow *w, OSIMonitor *m) {
+  // TODO: linux restore mouse cursor
   bool chatty= true;
-  
-  #ifdef OS_WIN
   if(m->inOriginal)
     return;
-
+  if(chatty) printf("RESTORE MONITOR RESOLUTION [%s]", m->nane);
+  
+  #ifdef OS_WIN
   ChangeDisplaySettingsEx(m->id, NULL, NULL, NULL, NULL);
   ShowCursor(TRUE);
   m->inOriginal= true;            // set 'in original resolution' FLAG
   #endif
 
   #ifdef OS_LINUX
-  if(m->inOriginal)
-    return;
   XRRScreenResources *scr= XRRGetScreenResources(w->dis, m->root);
   XRRCrtcInfo *crtc= XRRGetCrtcInfo(w->dis, scr, m->crtcID);
   
   XRRModeInfo *mode= this->getMode(scr, m->original.resID[0]);
-  printf("RESTORE RESOLUTION\n");
   printf("crtc: x[%d] y[%d] dx[%d] dy[%d] mode[%d] noutputs[%d] output1[%d]\n", crtc->x, crtc->y, crtc->width, crtc->height, crtc->mode, crtc->noutput, crtc->outputs[0]);
   printf("req:  x[%d] y[%d] dx[%d] dy[%d] mode[%d]\n", m->x0, m->y0, mode->width, mode->height, mode->id);
   
@@ -628,7 +564,6 @@ void OSIDisplay::restoreRes(OSIWindow *w, OSIMonitor *m) {
 
     return;
   }
-  
 
   XRRFreeCrtcInfo(crtc);
   XRRFreeScreenResources(scr);
@@ -639,12 +574,7 @@ void OSIDisplay::restoreRes(OSIWindow *w, OSIMonitor *m) {
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
-  if(m->inOriginal)
-    return;
-   
-  if(chatty) printf("RESTORE RESOLUTION\n");
   
-  // IFDEF OS_MAC <<<
   /// this restores resolutions for ALL monitors
   CGRestorePermanentDisplayConfiguration();
   
@@ -664,7 +594,6 @@ void OSIDisplay::restoreRes(OSIWindow *w, OSIMonitor *m) {
   CGDisplayShowCursor(m->id);   /// show mouse cursor? this need a little bit of further thinking
   m->inOriginal= true;
   */
-  // ENDIF /// OS_MAC <<<
   
   #endif /// OS_MAC
 } // OSIDisplay::restoreRes
@@ -879,15 +808,14 @@ void OSIDisplay::populate(OSInteraction *t) {
 
 
   #ifdef OS_LINUX
-//  XRRScreenSize *xrrs; // OLD CODE
+  //  XRRScreenSize *xrrs; // OLD CODE
 
   primary monitor!!!
+  ;
   
   short a, b, c, d, e;              /// all used in loops...
   OSIResolution *p;
   
-  // NEW CODE MUST BE MADE
-  // XRRScreenResources *scr;       // moved to display class as a member
   XRROutputInfo *out, *out2;
   XRRCrtcInfo *crtc;
   XRRScreenResources *scr;
@@ -895,13 +823,13 @@ void OSIDisplay::populate(OSInteraction *t) {
   scr= XRRGetScreenResourcesCurrent(t->primWin->dis, DefaultRootWindow(t->primWin->dis));
   if(chatty) printf("Screen info: outputs= %d; modes= %d; crtcs= %d\n",scr->noutput, scr->nmode, scr->ncrtc);
   
-/// virtual desktop size
+  /// virtual desktop size
   vx0= 0; vy0= 0;
   vdx= scr->modes[0].width;
   vdy= scr->modes[0].height;
   if(chatty) printf("virtual desktop size [%dx%d]\n", vdx, vdy);
 
-/// find the number of connected monitors  
+  /// find the number of connected monitors  
   for(a= 0; a< scr->noutput; a++) {
      out= XRRGetOutputInfo(t->primWin->dis, scr, scr->outputs[a]);
      if(chatty) printf("output %d: %s %s (crtc%d)\n", a, out->name, (out->connection== RR_Connected)? "active": "no connection", out->crtc);
@@ -911,7 +839,7 @@ void OSIDisplay::populate(OSInteraction *t) {
      XRRFreeOutputInfo(out);
   }
 
-/// create & start populating monitor structure
+  /// create & start populating monitor structure
   monitor= new OSIMonitor[nrMonitors];
 
   for(a= 0, b= 0; a< scr->noutput; a++) { /// for each output (empty outputs will be ignored)
@@ -931,8 +859,8 @@ void OSIDisplay::populate(OSInteraction *t) {
       for(short z= 0; z< crtc->noutput; z++)
         printf(" %lu", crtc->outputs[z]);
       printf("\n");
-      
     }
+    
     monitor[b].screen= DefaultScreen(t->primWin->dis);;  // can it be possible anymore to be a different value???
     monitor[b].root= RootWindow(t->primWin->dis, monitor[b].screen);
     monitor[b].outID= scr->outputs[a];
@@ -943,18 +871,20 @@ void OSIDisplay::populate(OSInteraction *t) {
     monitor[b].original.dy= crtc->height;
     monitor[b].original.resID[0]= crtc->mode; /// this is the only use
     monitor[b].original.rotation= crtc->rotation;
-    
-    
+    if((crtc->x== 0) && (crtc->y== 0)) {      /// primary monitor is in position 0, 0
+      // there's XRRGetOutputPrimary() if 0,0 is a bad ideea
+      monitor[b].primary= true;
+      primary= &monitor[b];
+    }
     if(chatty) printf("monitor position %d,%d crtc[%d] out[%d]\n", monitor[b].x0, monitor[b].y0, monitor[b].crtcID, monitor[b].outID);
+
+    // ***********************************************************
+    // MUST TEST IF RANDR AUTOMATICALLY LOWERS THE POSSIBLE RESOLUTIONS
+    // FOR MONITORS SET ON DUPLICATE. CHANSES ARE, IT DOESN'T
+    // ***********************************************************
     
 
-// ***********************************************************
-// MUST TEST IF RANDR AUTOMATICALLY LOWERS THE POSSIBLE RESOLUTIONS
-// FOR MONITORS SET ON DUPLICATE. CHANSES ARE, IT DOESN'T
-// ***********************************************************
-    
-
-/// find the number of resolutions the monitor supports (this is not easy cuz of duplicate monitors)
+    /// find the number of resolutions the monitor supports (this is not easy cuz of duplicate monitors)
     
     /// if there are multiple monitors on same crtc, they are set on DUPLICATE (mirror or watever the OS names them).
     /// each resolution MUST be avaible on all monitors in this case
@@ -963,7 +893,7 @@ void OSIDisplay::populate(OSInteraction *t) {
     RRMode *tmp= new RRMode[out->nmode];      // temporary array, will be populated with resolutions all monitors support
     short tmpSize= 0;
     
-    for(c= 0; c< out->nmode; c++) {     // for each res (resolution==mode)
+    for(c= 0; c< out->nmode; c++) {            // for each res (resolution==mode)
       found= true;                            /// start with true(res is found), just mark it as false on the way
       
       if(crtc->noutput> 1)
@@ -974,7 +904,7 @@ void OSIDisplay::populate(OSInteraction *t) {
         
           found2= false;                      /// start with false(res not found in out2), mark as true if found
         
-          for(e= 0; e< out2->nmode; e++)      // for each mode in out2
+          for(e= 0; e< out2->nmode; e++)       // for each mode in out2
             if(out->modes[c]== out2->modes[e])
               found2= true;
         
@@ -991,7 +921,7 @@ void OSIDisplay::populate(OSInteraction *t) {
         tmp[tmpSize++]= out->modes[c];        /// temporary matrix update
     } /// for each res [c]
     
-/// find the real number of resolutions (based on size only)
+    /// find the real number of resolutions (based on size only)
     RRMode *tmp2= new RRMode[tmpSize];        // temporary array, will be populated without duplicate sizes in tmp
     short tmp2Size= 0;
     XRRModeInfo *i, *j;
@@ -1008,7 +938,7 @@ void OSIDisplay::populate(OSInteraction *t) {
     } /// for each element in tmp
     if(chatty) printf("found %d unique res\n", tmp2Size);
     
-/// create & populate res structure 
+    /// create & populate res structure 
     monitor[b].nrRes= tmp2Size;
     monitor[b].res= new OSIResolution[tmp2Size];
     
@@ -1022,7 +952,7 @@ void OSIDisplay::populate(OSInteraction *t) {
       monitor[b].res[c].rotation= RR_Rotate_0;
     }
 
-/// populate frequencies and modeIDs  (
+    /// populate frequencies and modeIDs  (
     // tmp holds modeIDs that are good for all duplicating monitors
     // tmp2 holds what tmp holds, without duplicate sizes (each res size is unique)
     
@@ -1458,6 +1388,8 @@ void OSIDisplay::populate(OSInteraction *t) {
   #endif /// OS_MAC
 }
 
+
+// TODO MOVE THE WIN VARIANT TO POPULATE !!!!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 // this is good only for windows... it might just be moeved in populate()
 void OSIDisplay::getMonitorPos(OSIMonitor *m) {
   #ifdef OS_WIN
@@ -1491,7 +1423,6 @@ XRRModeInfo *OSIDisplay::getMode(XRRScreenResources* s, RRMode id) {
 #endif /// OS_LINUX
 
 
-
 OSIResolution *OSIDisplay::getResolution(int dx, int dy, OSIMonitor *gr) {
   for(short a= 0; a< gr->nrRes; a++) {
     OSIResolution *p= &gr->res[a];
@@ -1510,6 +1441,10 @@ short OSIDisplay::getFreq(short freq, OSIResolution *r) {
 
   return -1;
 }
+
+
+
+
 
 
 
