@@ -295,13 +295,23 @@ int main() {
       
     #ifdef OS_WIN
     COORD pos= {0,0};
-    //pos.X= 0; pos.Y= 0;
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), pos);
     #endif /// OS_WIN
-    #ifdef OS_LINUX
+    #ifdef OS_LINUX /// OS_LINUX & OS_MAC
     printf("\x1b[H");      // should set cursor position to '0,0' or whatever home means
     #endif /// OS_LINUX
-/*
+    #ifdef OS_MAC
+    
+    //    printf("\x1b[H");      // should set cursor position to '0,0' or whatever home means
+
+    #endif /// OS_MAC
+    
+    ulong c= in.k.getChar();
+    if(c) {
+      string s(c);
+      printf("%s ", s.d);
+    }
+    /*
     printf("mouse: %05dx %05dy %dl %dr %dm %dx1 %dx2 % dw %d %d %d %d \n", in.m.x, in.m.y, in.m.b[0].down, in.m.b[1].down, in.m.b[2].down, in.m.b[3].down, in.m.b[4].down, in.m.getWheelDu(), in.m.b[5].down, in.m.b[6].down, in.m.b[7].down, in.m.b[8].down);
     printf("last keyboard keys: %03d %03d %03d\n", in.k.lastKey[0].code, in.k.lastKey[1].code, in.k.lastKey[2].code);
     printf("nr: joysticks(%d) gamepads(%d) gamewheels(%d)\n", in.nr.jFound, in.nr.gpFound, in.nr.gwFound);
@@ -319,9 +329,10 @@ int main() {
       printf("%lc", c);
       //printf("% c", (in.k.charTyped.nrNodes> a)? ((Keyboard::chTyped*)in.k.charTyped.get(a))->c: ' ');
     }
+    
     printf("\n");
-    printf("ZE QUESTION: [%d] [%d]\n", osi.display.monitor[0].glRenderer, osi.display.monitor[1].glRenderer);
-*/
+    //    printf("ZE QUESTION: [%d] [%d]\n", osi.display.monitor[0].glRenderer, osi.display.monitor[1].glRenderer);
+    */
     
     #ifdef OS_LINUX
     for(short a= 0; a< 256; a++) {

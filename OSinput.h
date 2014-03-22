@@ -19,6 +19,7 @@
 //    will tell input.update() to update it. Else, update it manually
 //    or just use nrJoy, nrBlabla??????????????????? this might be CUT
 
+// GAMEPAD BUTTON PRESSUREs 20 - 23 are for dPad button pressures
 
 // TODO is on the cpp file
 
@@ -169,7 +170,7 @@ struct ButPressed {
   uchar b;                        /// button number
   bool checked;                   /// checked & lastKey[] used for mortal kombat style of keyboard check (3 buffer keys for slow pc/ unhandled drop in framerate)
   uint64 timeDown, timeUp, timeDT;  /// if a key is down, it has a time& timeDown is not 0 (same with timeUp) timeDT= time delta
-
+  
   ButPressed(const ButPressed &o): checked(o.checked), timeDown(o.timeDown), timeUp(o.timeUp), timeDT(o.timeDT) {};
   ButPressed() {checked= false; timeDown= timeUp= timeDT= 0; }
 };
@@ -189,10 +190,11 @@ public:
   long pov;                        /// POV angle (multiplied by 100, so 35,900(max)= 359 degrees)
 
 /// buttons state / history / everything
-  uchar *b;                         /// buttons state
-  uint64 bTime[MAX_JOYSTICK_BUTTONS]; /// time @ key started to be pressed
-  uchar *lastCheck;                 /// holds what the last time the keys were checked button press info - points to 1 of the buffers
-  ButPressed lastBut[MAX_KEYS_LOGGED]; /// history of pressed buttons
+  uchar *b;                             /// buttons state
+  long bPressure[MAX_JOYSTICK_BUTTONS]; /// heck if k knew this existed... guess no game (that i played) uses it; now it's implemented!
+  uint64 bTime[MAX_JOYSTICK_BUTTONS];   /// time @ key started to be pressed
+  uchar *lastCheck;                     /// holds what the last time the keys were checked button press info - points to 1 of the buffers
+  ButPressed lastBut[MAX_KEYS_LOGGED];  /// history of pressed buttons
 
 /// OS specific stuff
   #ifdef OS_WIN
@@ -244,10 +246,11 @@ public:
   long pov;                      /// POV angle (multiplied by 100, so 35,900(max)= 359 degrees) (-1 usually, if not pressed)
 
 /// buttons state / history
-  uchar *b;                         /// buttons state
-  uint64 bTime[MAX_JOYSTICK_BUTTONS]; /// time @ key started to be pressed
-  uchar *lastCheck;                 /// holds what the last time the keys were checked button press info - points to 1 of the buffers
-  ButPressed lastBut[MAX_KEYS_LOGGED]; /// history of pressed buttons
+  uchar *b;                             /// buttons state
+  long bPressure[MAX_JOYSTICK_BUTTONS]; /// heck if k knew this existed... guess no game (that i played) uses it; now it's implemented!
+  uint64 bTime[MAX_JOYSTICK_BUTTONS];   /// time @ key started to be pressed
+  uchar *lastCheck;                     /// holds what the last time the keys were checked button press info - points to 1 of the buffers
+  ButPressed lastBut[MAX_KEYS_LOGGED];  /// history of pressed buttons
 
 
 /// OS/ driver specific stuff
@@ -295,10 +298,11 @@ public:
   // a pov??                    // THIS NEEDS MORE WORK <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 /// buttons state / history
-  uchar *b;                         /// buttons state
-  uint64 bTime[MAX_JOYSTICK_BUTTONS]; /// time @ key started to be pressed
-  uchar *lastCheck;                 /// holds what the last time the keys were checked button press info - points to 1 of the buffers
-  ButPressed lastBut[MAX_KEYS_LOGGED]; /// history of pressed buttons
+  uchar *b;                             /// buttons state
+  long bPressure[MAX_JOYSTICK_BUTTONS]; /// heck if k knew this existed... guess no game (that i played) uses it; now it's implemented!
+  uint64 bTime[MAX_JOYSTICK_BUTTONS];   /// time @ key started to be pressed
+  uchar *lastCheck;                     /// holds what the last time the keys were checked button press info - points to 1 of the buffers
+  ButPressed lastBut[MAX_KEYS_LOGGED];  /// history of pressed buttons
 
 /// OS / driver specific stuff
   #ifdef USING_DIRECTINPUT
@@ -425,9 +429,6 @@ public:
   #ifdef OS_MAC // MAC MESS <<<--------------- NOTHING TO BOTHER HERE ------
   /// nothing to bother here, all internal vars
   IOHIDManagerRef manager;        /// [internal] 'manager' that handles all HID devices (this one is set to handle sticks/pads/wheels only)
-  
-
-  
   #endif // END MAC MESS <<<-----------------------------------------------
 
 // TESTING

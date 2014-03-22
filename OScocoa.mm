@@ -194,7 +194,7 @@ OSIcocoa cocoa;
             osi.display.changeRes(&osi.win[a], osi.win[a].monitor, osi.win[a].dx, osi.win[a].dy, osi.win[a].bpp, osi.win[a].freq);              
             
           /// in full screen & full screen window, set the windows level to top (shilding level)
-          if(osi.win[a].mode== 2 || osi.win[a].mode== 3)
+          if(osi.win[a].mode== 2 || osi.win[a].mode== 3|| osi.win[a].mode== 4)
             [((MacGLWindow *)osi.win[a].win) setLevel:CGShieldingWindowLevel()];
 
         } /// if the window is created
@@ -230,13 +230,11 @@ OSIcocoa cocoa;
           osi.display.restoreRes(&osi.win[a], osi.win[a].monitor);
         
         /// lose the 'shielded' atribute (move to back)
-        if(w->mode== 2|| w->mode== 3)
+        if(w->mode== 2|| w->mode== 3|| osi.win[a].mode== 4)
           [((MacGLWindow *)osi.win[a].win) setLevel:kCGNormalWindowLevel- 1];
       } /// if this is a created window
   } /// if the program is not active anymore
 }
-
-
 
 @end
 
@@ -309,12 +307,12 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 - (void) flagsChanged: (NSEvent *)theEvent {
   // find out all flagsChanged!!!!!!!!!!
   
-  bool chatty= true;
+  bool chatty= FALSE;
   ulong flags= [theEvent modifierFlags];
   uchar code= [theEvent keyCode];
   
   osi.getMillisecs(&osi.eventTime);
-  printf("event!!\n");
+  if(chatty) printf("event!!\n");
   //MUST TEST THIS, it is INPOSSIBLE OTHERWISE...
   /// caps lock
   uchar press= 0;
@@ -326,7 +324,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
       in.k.capsLock= false; // not shure about this
 
     }
-    printf("capsLock[%s]\n", in.k.capsLock? "true": "false");
+    if(chatty) printf("capsLock[%s]\n", in.k.capsLock? "true": "false");
   }
   // TEST ^^^ no clue if macs actually have a true 'lock'
 
@@ -411,7 +409,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 - (void) keyDown:(NSEvent *)theEvent {
   // string UCKeytranslate(b,a,c);<< this one is "very low". hopefully, everything is ok with what cocoa has as a basic.
   
-  bool chatty= true;
+  bool chatty= false;
   uchar code= [theEvent keyCode];
   
   /// different vars that might be needed some day (atm, everything seems set with keyboard, tho):
@@ -447,7 +445,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 
 // ---------------================= KEY UP ==================-------------------
 - (void) keyUp:(NSEvent *)theEvent {
-  bool chatty= true;
+  bool chatty= false;
   
   osi.getMillisecs(&osi.eventTime);
   osi.flags.keyPress= false;
@@ -620,7 +618,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 
 // ---------------============== MOUSE WHEEL ================-------------------
 - (void) scrollWheel:(NSEvent *)theEvent {
-  bool chatty= true;
+  bool chatty= false;
   if(theEvent.scrollingDeltaY> 0)
     in.m.wheel++;
   else
@@ -733,8 +731,6 @@ bool OSIcocoa::createWindow(OSIWindow *w) {
   MacGLWindow *win= NULL;
   MacGLview *view= NULL;
   
-  //  mode 4 window !!!!!
-  
   /// change monitor resolution
   if(w->mode== 2)
     osi.display.changeRes(w, w->monitor, w->dx, w->dy, w->bpp, w->freq);
@@ -751,7 +747,7 @@ bool OSIcocoa::createWindow(OSIWindow *w) {
       NSClosableWindowMask|
       NSMiniaturizableWindowMask|
       NSResizableWindowMask;
-  if(w->mode== 3 || w->mode== 2)      /// fullscreen / fullscreen window style
+  if(w->mode== 3 || w->mode== 2 || w->mode== 4)      /// fullscreen / fullscreen window style / extended on all monitors
     winStyle=
     //      NSTitledWindowMask|
       NSClosableWindowMask|
@@ -800,7 +796,7 @@ bool OSIcocoa::createWindow(OSIWindow *w) {
     [win setTitle:[NSString stringWithUTF8String: w->name.d]];
     [win setLevel:kCGNormalWindowLevel];
   /// fullscreen / fullscreen window
-  } else if(w->mode== 2|| w->mode== 3) {
+  } else if(w->mode== 2|| w->mode== 3|| w->mode== 4) {
     [win setLevel:CGShieldingWindowLevel()];
     [win setOpaque:YES];              /// no clue what this has in advantages, but documentation sets this; no other info found on oficial doc
     
