@@ -1,6 +1,6 @@
 It uses classes from https://github.com/alec101/-utilClasses 
 
-check out https://github.com/alec101/OSInteraction/wiki for more info about this project
+check out the wiki (https://github.com/alec101/OSInteraction/wiki) for more info about this project
 
 This is a setup for netbeans/xcode/visual studio/code blocks/codelite :
 https://www.dropbox.com/s/gze6yepuhwn278k/OSInteraction.zip
