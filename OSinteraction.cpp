@@ -239,7 +239,7 @@ int main() {
   osi.display.populate(&osi);     // check all monitors/ resolutions/ etc
 
 
-  osi.createGLWindow(&osi.win[0], &osi.display.monitor[0], "window 0", 400, 400, 32, 1);
+  osi.createGLWindow(&osi.win[0], &osi.display.monitor[0], "window 0", 1024, 768, 32, 2);
   //    osi.createGLWindow(&osi.win[1], &osi.display.monitor[0], "window 2", 400, 400, 32, 3);
 
   //osi.createGLWindow(&osi.win[2], &osi.display.monitor[1], "window 3", 400, 400, 32, 1);
@@ -337,7 +337,7 @@ int main() {
     #ifdef OS_LINUX
     for(short a= 0; a< 256; a++) {
       if(in.k.key[a])
-        printf("keydown: keycode[%02lu], keysym[%06x]\n", a, XkbKeycodeToKeysym(osi.primWin->dis, a, null, 0));
+        printf("keydown: keycode[%02d], keysym[%06lx]\n", a, XkbKeycodeToKeysym(osi.primWin->dis, a, null, 0));
     }
     #endif /// OS_LINUX
 
@@ -1459,7 +1459,7 @@ void OSInteraction::processMSG()  {
       ulong ch;
       in.getUnicode(&ks, &ch);
       if(ch)
-        in.k.addChar(ch);
+        in.k.addChar(ch, &eventTime);
       
       
       
@@ -1477,7 +1477,7 @@ void OSInteraction::processMSG()  {
       in.k.key[code]= 128;
       in.k.keyTime[code]= eventTime;
       
-      in.k.addManip(); must be placed here <<<<<<<<<<<<<<<<
+      //  in.k.addManip(); must be placed here <<<<<<<<<<<<<<<< <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
       
       //      in.k.repeat[code]= 1;                  /// a new key press, sets repeat to 1  // MIGHT BE DELETED
     } /// [MODE 1]
@@ -1506,7 +1506,7 @@ void OSInteraction::processMSG()  {
       k.code= code;
       k.checked= false;
       k.timeUp= eventTime;
-      k.timeDown= kTimeUp- 1;           /// 1 milisecond before the keyup
+      k.timeDown= k.timeUp- 1;          /// 1 milisecond before the keyup
       k.timeDT= 1;                      /// timeUp- timeDown
       in.k.log(k);
     }
@@ -1966,7 +1966,7 @@ void OSInteraction::getNanosecs(uint64 *out) {
   #ifdef OS_LINUX
   timespec t;
   clock_gettime(CLOCK_MONOTONIC, &t);
-  *out= (t.tv_sec* 1 000 000 000)+ t.tv_nsec;
+  *out= (t.tv_sec* 1000000000)+ t.tv_nsec;
   #endif /// OS_LINUX
 
   #ifdef OS_MAC

@@ -40,9 +40,14 @@ public:
 class OSIDisplay {
 public:
 // call this at program start
-  void populate(OSInteraction *t);      // call this once to populate everything (it's usually auto-called when a window is created)
+  void populate(OSInteraction *t);       // call this once to populate everything
 
   void getMonitorPos(OSIMonitor *m);    /// sets m->x0 & m->y0, the monitor position on VIRTUAL DESKTOP (call this after a resolution change
+  
+  //void updateMonitorsPos();
+  
+  
+  
   short nrMonitors;                     /// nr of active monitors connected to the system
   short nrCards;                        /// WIP (nothing atm)
   short vx0, vy0, vdx, vdy;             /// VIRTUAL DESKTOP size (all monitors are placed inside this virtual desktop/ fullscreen virtual desktop mode, uses these)
@@ -60,18 +65,18 @@ public:
 //MULTI MONITOR HANDLERS
   bool changeRes(OSIWindow *w, OSIMonitor *m, short dx, short dy, int8 bpp, short freq= 0); // change specific monitor resolution (this is actually the main resolution change func)
 
-  void restoreRes(OSIWindow *w, OSIMonitor *m);           /// restores original resolution of a specific monitor
-  void restoreAllRes();                     /// restores all original resolutions
+  void restoreRes(OSIWindow *w, OSIMonitor *m);   /// restores original resolution of a specific monitor
+  void restoreAllRes();                           /// restores all original resolutions
 
-  bool isRendererInUse(uint glRender);      /// check if the renderer is in use on other windows (if not in use anymore, it can be destroyed)
+  bool isRendererInUse(uint glRender);            /// check if the renderer is in use on other windows (if not in use anymore, it can be destroyed)
   
 /// mainly private stuff from here
   OSIResolution *getResolution(int dx, int dy, OSIMonitor *m);  /// searches *res[] data for requested resolution
-  short getFreq(short freq, OSIResolution *r);   /// searches *res[] data for requested frequency
+  short getFreq(short freq, OSIResolution *r);    /// searches *res[] data for requested frequency
   
   #ifdef OS_LINUX
   //XRRScreenResources *scr;
-  XRRModeInfo *getMode(XRRScreenResources *s, RRMode id);
+  XRRModeInfo *getMode(XRRScreenResources *s, RRMode id); /// [internal] 
   #endif /// OS_LINUX
 
   OSIDisplay();
@@ -87,12 +92,12 @@ struct OSIResolution {
   void delData();             /// NOT USED ATM, SUBJECT OF DELETION
   
   #ifdef OS_LINUX
-  Rotation rotation;          /// X if it is used...
-  RRMode *resID;              /// it is tied with frequency (RRMode[nrFreq])
+  Rotation rotation;          /// [internal] X if it is used...
+  RRMode *resID;              /// [internal] it is tied with frequency (RRMode[nrFreq])
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
-  uint *id;                   /// resolution id (mac) - tied with frequency (id[nrFreq])
+  uint *id;                   /// [internal] resolution id (mac) - tied with frequency (id[nrFreq])
 //possible that a CGDisplayModeRef must be used 
   #endif /// OS_MAC
   
@@ -105,27 +110,31 @@ struct OSIResolution {
 // -------------========= OSIMonitor =======------------------
 struct OSIMonitor {
   int x0, y0;               /// position on the VIRTUAL DESKTOP
+  int dx, dy;               /// current size (resolution size)
   //string name/display there has to be a description/name, common for all OSes (same variable name, that can be used in the main program)
+  string name;              // monitor name. this is a good candidate for the unified OS monitor name/description
   
   #ifdef OS_WIN
-  string id;                /// win- display ID
-  string name;              /// display's card name
-  string monitorID;         /// monitor id (NOT USED FOR ANYTHING?... wincrap rulz)
-  string monitorName;       /// monitor description (did not find any use for it ina ANY windows function)
+  string id;                /// [internal] win- display ID
+  //string name;              /// [internal] display's card name
+  string monitorID;         /// [internal] monitor id (NOT USED FOR ANYTHING?... wincrap rulz)
+  string monitorName;       /// [internal] monitor description (did not find any use for it ina ANY windows function)
   // if a monitor is set to duplicate another monitor, windows returns only one display,
   // with combined resolution options, and monitorID+monitorName for each. Can't do anything with any of them, so im not storing them anywhere.
   #endif /// OS_WIN
   
   #ifdef OS_LINUX
-  int screen;               /// monitor id (number)
-  Window root;              /// root window of screen (monitor)
-  RROutput outID;           /// xrandr output (phisical out that a monitor can be attached to; this output holds connected monitor info/supported modes too)
-  RRCrtc crtcID;            /// xrandr crtc (some internal graphics card thingie that handles pixels sent to outputs->monitors)
+  int screen;               /// [internal] monitor id (number)
+  Window root;              /// [internal] root window of screen (monitor)
+  RROutput outID;           /// [internal] xrandr output (phisical out that a monitor can be attached to; this output holds connected monitor info/supported modes too)
+  RRCrtc crtcID;            /// [internal] xrandr crtc (some internal graphics card thingie that handles pixels sent to outputs->monitors)
+  OSIMonitor *right;        /// [internal] points to a monitor next to this one, to the right, or NULL
+  OSIMonitor *bottom;       /// [internal] points to a monitor next to this one, to the bottom, or NULL
   #endif /// OS_LINUX
   
   #ifdef OS_MAC
-  uint id;                  /// quartz monitor id
-  string name;              // monitor name. this is a good candidate for the unified OS monitor name/description
+  uint id;                  /// [internal] quartz monitor id
+  // name was here << name unification change
   #endif /// OS_MAC
   
   

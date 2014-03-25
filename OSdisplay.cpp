@@ -45,6 +45,7 @@ stuff to KEEP AN EYE ON:
  * chromium - opengl extension. same as xdmx (different rendering for opengl)
  *
 */
+void updateVirtualDesktop();
 
 #ifdef OS_WIN
 #pragma comment(lib, "opengl32")
@@ -107,7 +108,8 @@ OSIMonitor::OSIMonitor() {
   primary= false;
   glRenderer= null;
   inOriginal= true;     /// start in original resolution... right?
-
+  x0= y0= dx= dy= 0;
+  
   /// original & program resolutions
   original.nrFreq= 1;
   original.freq= new short[1];
@@ -146,10 +148,8 @@ void OSIMonitor::delData() {
     res= null;
     nrRes= 0;
   }
-  #ifdef OS_WIN
-  id= "";
   name= "";
-  #endif /// OS_WIN
+  x0= y0= dx= dy= 0;  /// current position & size;
   primary= false;
 
   original.dx= 0;
@@ -160,8 +160,16 @@ void OSIMonitor::delData() {
   progRes.dy= 0;
   progRes.freq[0]= 0;
   
+  #ifdef OS_WIN
+  id= "";
+  #endif /// OS_WIN
+
+  #ifdef OS_LINUX
+  bottom= null;
+  right= null;
+  #endif /// OS_LINUX
+  
   #ifdef OS_MAC
-  this->name= "";
   #endif ///OS_MAC
 }
 
@@ -252,6 +260,16 @@ bool OSIDisplay::changeRes(OSIWindow *w, OSIMonitor *m, short dx, short dy, int8
   // in 1 second (wich can freaqing happen, due to some crazy request), might
   // blow up your monitor
 
+  // this program should NOT handle monitor plug & plays; you set the monitors before you use OSI.
+  
+  
+  // LINUX research: http://cgit.freedesktop.org/xorg/app/xrandr/tree/xrandr.c 
+  //                 http://cgit.freedesktop.org/xorg/proto/randrproto/tree/randrproto.txt
+  //                 * gamma seems nighmarish to set, unfortunately. There is a function in xrandr.c (line 1031)
+  //                 * a 'revert' function @ line 1631 (uses functions: line[1597], line[1506], line[1532])
+  //                 * hope there are no problems with 'primary' monitor, and needs to be set manually...
+  //                 * XGrabServer, might be needed when res changing! (line[1683])
+
   bool chatty= true;
 
   /// search in data for requested resolution (hope populate() was called first)
@@ -272,7 +290,7 @@ bool OSIDisplay::changeRes(OSIWindow *w, OSIMonitor *m, short dx, short dy, int8
     return false;
   }
   
-  // check if the ORIGINAL RESOLUTION was requested
+  // check if the ORIGINAL RESOLUTION was requested <<<==================================================================
   if(!freq)                               /// frequency might be ignored (0)
     f= m->original.freq[0];
   
@@ -286,7 +304,7 @@ bool OSIDisplay::changeRes(OSIWindow *w, OSIMonitor *m, short dx, short dy, int8
     return true;
   } /// if original resolution is requested
   
-  // check if changing TO PROGRAM RESOLUTION (from original probly, an alt-tab or something)
+  // check if changing TO PROGRAM RESOLUTION (from original res, an alt-tab or something) <<<==========================
   if(!freq)                               /// frequency might be ignored (0)
     f= m->progRes.freq[0];
   
@@ -312,21 +330,15 @@ bool OSIDisplay::changeRes(OSIWindow *w, OSIMonitor *m, short dx, short dy, int8
       #endif /// OS_WIN
       
       #ifdef OS_LINUX
+      //XGrabServer(w->dis);                 // GRAB SERVER 
       Status s;
+      /// the monitor resolution is getting bigger/smaller; the next 2 vars hold the delta for each axis
+      int changex= dx- m->dx;             /// delta x axis change
+      int changey= dy- m->dy;             /// delta y axis change
       XRRScreenResources *scr= XRRGetScreenResources(w->dis, w->win);
       XRRCrtcInfo *crtc= XRRGetCrtcInfo(w->dis, scr, m->crtcID);
-      if(chatty) printf("m->outID:%lu crtc->noutputs:%d crtc->outputs[0]:%lu\n", m->outID, crtc->noutput, crtc->outputs[0]);
-      
-      //!! this is what it might be missing. call before setCrtcConfig. it won't affect current mode, only the next mode change
-      
-      XTransform trn;
-      
-      
-      XRRGetCrtcTransform - for current 'filter' and 'values'
-        
-      XRRSetCrtcTransform(primWin->dis, 
-        !!
-        
+      //XRROutputInfo *out= XRRGetOutputInfo(w->dis, scr, m->outID); ???
+
       s= XRRSetCrtcConfig(w->dis, scr,    /// display, screen resources (virtual desktop configuration)
                           m->crtcID,      /// crt that will change resolution
                           CurrentTime,
@@ -335,37 +347,16 @@ bool OSIDisplay::changeRes(OSIWindow *w, OSIMonitor *m, short dx, short dy, int8
                           r->rotation,
                           crtc->outputs,  /// outputs(+monitors) that will change resolution
                           crtc->noutput); /// will change res on all (noutput) duplicate monitors
-      if(s== Success) {
-        get the scr again!!! after each res change, i think all things change!!! THEN disable the panning or something
-        XRROutputInfo *out= XRRGetOutputInfo(w->dis, scr, crtc->outputs[0]);
-        XRRSetScreenSize(w->dis, m->root, dx, dy, out->mm_width, out->mm_height);
-        XRRFreeOutputInfo(out);
-      }        
-      
-      // !!!!!!!!1!!!!!
-      // resolution change, get the new vars, i think... this is a step that has to be tryed
-      // !!!!!!!!!!!!!1
-      
+      //XRRFreeOutputInfo(out); ???
       XRRFreeCrtcInfo(crtc);
-      XRRFreeScreenResources(scr);
 
       if(s!= Success) {
         error.simple("OSdisplay::changeRes: can't change to requested resolution");
+        XRRFreeScreenResources(scr);
+        //XUngrabServer(w->dis);             // UNGRAB SERVER
         return false;
       }
-      
-      // TESTS
-      
-      
-      /*
-      sleep(3);
-      XRRPanning p= {0};                            // try DISABLE panning
-      
-      scr= XRRGetScreenResources(w->dis, m->root);
-      XRRSetPanning(w->dis, scr, m->crtcID, &p);
-      XRRFreeScreenResources(scr);
-      */
-      // END TESTS
+      // sleep(1); ?????? maybe?
       
       #endif /// OS_LINUX
       
@@ -381,14 +372,62 @@ bool OSIDisplay::changeRes(OSIWindow *w, OSIMonitor *m, short dx, short dy, int8
         return false;
       }
       CFRelease(modes);
-      #endif /// OS_MAC <<<
       
+      #endif /// OS_MAC <<<
+
+      /// adjust current window& monitor variables
+      m->dx= dx;
+      m->dy= dy;
+
       w->bpp= bpp;
       w->dx= dx;
       w->dy= dy;
       w->freq= r->freq[f];
       m->inOriginal= false;
+
+      // VIRTUAL DESKTOP RESIZE+ EACH MONITOR POSITION & PANNING
+      #ifdef OS_LINUX
+      /// update all [monitors position] on the [right] and [bottom] of current monitor that just changed resolution
+      OSIMonitor *m2;
+  
+      /// pass thru all monitors on the right
+      m2= m->right;
+      while(m2) {
+        m2->x0+= changex;                   /// right monitor x0 position adjust
+        m2= m2->right;
+      }
+      /// pass thru all monitors below m
+      m2= m->bottom;
+      while(m2) {
+        m2->y0+= changey;                   /// bottom monitor y0 position adjust
+        m2= m2->bottom;
+      }
+  
+      /// change the virtual desktop size
+      updateVirtualDesktop();               /// updates all virtual desktop vars (atm not mm)
+  
+      XRRSetScreenSize(w->dis, DefaultRootWindow(w->dis), vx0, vy0,
+              DisplayWidthMM(w->dis, 0), DisplayHeightMM(w->dis, 0)); // the size in mm is kinda hard to compute, but doable... it might NOT be NEEDED
+  
+      /// set panning for all monitors
+      XRRPanning p;
+      for(short a= 0; a< nrMonitors; a++) {
+        p.left= monitor[a].x0;
+        p.top= monitor[a].y0;
+        p.width= monitor[a].dx;
+        p.height= monitor[a].dy;
+  
+        XRRSetPanning(w->dis, scr, monitor[a].crtcID, &p);
+      }
       
+      XRRFreeScreenResources(scr);
+      //XUngrabServer(w->dis);               // UNGRAB SERVER
+      #else // OS_WIN & OS_MAC
+      /// update monitors positions after resolution change
+      for(short a= 0; a< nrMonitors; a++)
+        getMonitorPos(&monitor[a]);
+      #endif /// OS_WIN & OS_MAC
+
       return true;
     } /// if in original resolution
     if(chatty) printf("changeRes: IGNORE: already in program resolution\n");
@@ -396,7 +435,7 @@ bool OSIDisplay::changeRes(OSIWindow *w, OSIMonitor *m, short dx, short dy, int8
   } /// if progRes is requested
   
   
-  /// it's not origRes requested, nor progRes requested, it's a NEW resolution
+  /// it's not origRes requested, nor progRes requested, it's a NEW resolution <<<==================================
   /// if frequency is not supplied
   if(!freq) {
     f= getFreq(60, r);        // try 60hz
@@ -426,46 +465,38 @@ bool OSIDisplay::changeRes(OSIWindow *w, OSIMonitor *m, short dx, short dy, int8
   #endif /// OS_WIN <<<
 
   #ifdef OS_LINUX // <<<
+  //XGrabServer(w->dis);                   // GRAB SERVER
   Status s;
+  /// the monitor resolution is getting bigger/smaller; the next 2 vars hold the delta for each axis
+  int changex= dx- m->dx;               /// delta x axis change
+  int changey= dy- m->dy;               /// delta y axis change
   XRRScreenResources *scr= XRRGetScreenResources(w->dis, m->root);
-  XRRCrtcInfo *crtc= XRRGetCrtcInfo(w->dis, scr, m->crtcID);
+  XRRCrtcInfo *crtc= XRRGetCrtcInfo(w->dis, scr, monitor[0].crtcID);
+  //XRROutputInfo *out= XRRGetOutputInfo(w->dis, scr, monitor[0].outID);
   
-  if(chatty) printf("m->outID:%lu crtc->noutputs:%d crtc->outputs[0]:%lu\n", m->outID, crtc->noutput, crtc->outputs[0]);
-  s= XRRSetCrtcConfig(w->dis, scr,         /// server connection, screen resources (virtual desktop)
-                      m->crtcID,           /// crt that will change the res
+  // MUST DO some checks for only 1 monitor, and randr < 1.3    <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+  
+  
+  s= XRRSetCrtcConfig(w->dis, scr,            /// server connection, screen resources (virtual desktop)
+                      m->crtcID,   /// crt that will change the res
                       CurrentTime,         /// time
-                      m->x0, m->y0,        /// monitor position
+                      m->x0, m->y0,             /// monitor position
                       r->resID[f],         /// resolution id (paired with frequency)
                       r->rotation,         /// rotation
-//    &m->outID, 1);
+                   // &m->outID, 1);
                       crtc->outputs,       /// outputs that will change (duplicate monitors all will change res)
                       crtc->noutput);      /// nr monitors that will change res
   
-  if(s== Success) {
-    XRROutputInfo *out= XRRGetOutputInfo(w->dis, scr, crtc->outputs[0]);        // MIGHT WORK WITH ONLY 1 MONITOR. not gonna recalculate the whole virtual screen size ... 
-    XRRSetScreenSize(w->dis, m->root, dx, dy, out->mm_width, out->mm_height);
-    XRRFreeOutputInfo(out);
-  }
-  
+  //XRRFreeOutputInfo(out);
   XRRFreeCrtcInfo(crtc);
-  XRRFreeScreenResources(scr);
   
   if(s!= Success) {
     error.simple("OSdisplay::changeRes: can't change to requested resolution");
+    XRRFreeScreenResources(scr);
+    //XUngrabServer(w->dis);               // UNGRAB SERVER
     return false;
   }
-
-  // TESTS
-  // TRY TO GET scr again, after the resolution change!!!! , if nothing else works. 
-
-  /*
-  sleep(3);
-  XRRPanning p= {0};                            // try DISABLE panning
-  scr= XRRGetScreenResources(w->dis, m->root);
-  XRRSetPanning(w->dis, scr, m->crtcID, &p);
-  XRRFreeScreenResources(scr);
-  */
-  // END TESTS
+  // sleep(1); ?????? maybe?
   
   m->progRes.resID[0]= r->resID[0];
   #endif /// OS_LINUX  <<<
@@ -482,10 +513,14 @@ bool OSIDisplay::changeRes(OSIWindow *w, OSIMonitor *m, short dx, short dy, int8
     return false;
   }
   CFRelease(modes);
+  
   m->progRes.id[0]= r->id[0];
   #endif /// OS_MAC <<<
 
-  m->progRes.dx= dx;
+  /// adjust current window& monitor variables
+  m->dx= dx;
+  m->dy= dy;
+  m->progRes.dx= dx;        /// this is the point progRes is initialized
   m->progRes.dy= dy;
   m->progRes.freq[0]= f;
   
@@ -496,6 +531,66 @@ bool OSIDisplay::changeRes(OSIWindow *w, OSIMonitor *m, short dx, short dy, int8
   
   m->inOriginal= false;
   
+  // VIRTUAL DESKTOP RESIZE+ EACH MONITOR POSITION & PANNING
+  #ifdef OS_LINUX
+  // 9 monitors, arranged in a 3x3 grid:
+  
+  // situation 1:    situation 2:    situation 3:
+  // +---+---+---+   +---+---+---+   +---+---+---+
+  // | m | X | X |   |   | m | X |   |   |   |   |
+  // +---+---+---+   +---+---+---+   +---+---+---+
+  // | X |   |   |   |   | X |   |   | m | X | X |  ETC.
+  // +---+---+---+   +---+---+---+   +---+---+---+
+  // | X |   |   |   |   | X |   |   | X |   |   |
+  // +---+---+---+   +---+---+---+   +---+---+---+
+  // 
+  // m= monitor that changed resolution
+  // X= all monitors that need to change position (the rest will change if other monitors resolution change)
+  
+  // * IF THIS ALGORITHM IS NOT ENOUGH, WELL, JUST MANUALLY CHANGE
+  //   THE DANG MONITORS, IN LINUX 'CONTROL PANEL' AND THAT'S THAT!
+
+  
+  /// update all [monitors position] on the [right] and [bottom] of current monitor that just changed resolution
+  OSIMonitor *m2;
+  
+  /// pass thru all monitors on the right
+  m2= m->right;
+  while(m2) {
+    m2->x0+= changex;                   /// right monitor x0 position adjust
+    m2= m2->right;
+  }
+  /// pass thru all monitors below m
+  m2= m->bottom;
+  while(m2) {
+    m2->y0+= changey;                   /// bottom monitor y0 position adjust
+    m2= m2->bottom;
+  }
+  
+  /// change the virtual desktop size
+  updateVirtualDesktop();               /// updates all virtual desktop vars (atm not mm)
+  
+  XRRSetScreenSize(w->dis, DefaultRootWindow(w->dis), vx0, vy0,
+              DisplayWidthMM(w->dis, 0), DisplayHeightMM(w->dis, 0)); // the size in mm is kinda hard to compute, but doable... it might be NOT NEEDED
+  
+  /// set panning for all monitors
+  XRRPanning p;
+  for(short a= 0; a< nrMonitors; a++) { /// for each monitor
+    p.left= monitor[a].x0;
+    p.top= monitor[a].y0;
+    p.width= monitor[a].dx;
+    p.height= monitor[a].dy;
+  
+    XRRSetPanning(w->dis, scr, monitor[a].crtcID, &p);
+  } /// for each monitor
+  XRRFreeScreenResources(scr);
+  //XUngrabServer(w->dis);                 // UNGRAB SERVER
+  #else // OS_WIN & OS_MAC
+  /// update monitors positions after resolution change
+  for(short a= 0; a< nrMonitors; a++)
+    getMonitorPos(&monitor[a]);
+  #endif /// ALL OSes
+
   return true;
 }
 
@@ -519,35 +614,32 @@ void OSIDisplay::restoreRes(OSIWindow *w, OSIMonitor *m) {
   bool chatty= true;
   if(m->inOriginal)
     return;
-  if(chatty) printf("RESTORE MONITOR RESOLUTION [%s]", m->nane);
+  if(chatty) printf("RESTORE MONITOR RESOLUTION [%s]", m->name.d);
   
   #ifdef OS_WIN
   ChangeDisplaySettingsEx(m->id, NULL, NULL, NULL, NULL);
   ShowCursor(TRUE);
-  m->inOriginal= true;            // set 'in original resolution' FLAG
+  
+  /// current monitor configuration adjust
+  m->dx= m->original.dx;
+  m->dy= m->original.dy;
+  m->inOriginal= true;
+
+  /// update monitors positions after resolution change
+  for(short a= 0; a< nrMonitors; a++)
+    getMonitorPos(&monitor[a]);
   #endif
 
   #ifdef OS_LINUX
+  //XGrabServer(w->dis);
+  int changex= m->original.dx- m->dx;   /// delta x axis change
+  int changey= m->original.dy- m->dy;   /// delta y axis change
   XRRScreenResources *scr= XRRGetScreenResources(w->dis, m->root);
   XRRCrtcInfo *crtc= XRRGetCrtcInfo(w->dis, scr, m->crtcID);
   
-  XRRModeInfo *mode= this->getMode(scr, m->original.resID[0]);
-  printf("crtc: x[%d] y[%d] dx[%d] dy[%d] mode[%d] noutputs[%d] output1[%d]\n", crtc->x, crtc->y, crtc->width, crtc->height, crtc->mode, crtc->noutput, crtc->outputs[0]);
-  printf("req:  x[%d] y[%d] dx[%d] dy[%d] mode[%d]\n", m->x0, m->y0, mode->width, mode->height, mode->id);
-  
-  // TESTS
-  
-  XRRPanning p= {0};                            // try DISABLE panning
-  scr= XRRGetScreenResources(w->dis, m->root);
-  XRRSetPanning(w->dis, scr, m->crtcID, &p);
-  XRRFreeScreenResources(scr);
-  sleep(3);
-  
-  XRROutputInfo *out= XRRGetOutputInfo(w->dis, scr, crtc->outputs[0]);
-  XRRSetScreenSize(w->dis, m->root, m->original.dx, m->original.dy, out->mm_width, out->mm_height);
-  XRRFreeOutputInfo(out);
-  
-  // END TESTS
+  //XRRModeInfo *mode= this->getMode(scr, m->original.resID[0]);
+  //printf("crtc: x[%d] y[%d] dx[%u] dy[%u] mode[%lu] noutputs[%d] output1[%lu]\n", crtc->x, crtc->y, crtc->width, crtc->height, crtc->mode, crtc->noutput, crtc->outputs[0]);
+  //printf("req:  x[%d] y[%d] dx[%u] dy[%u] mode[%lu]\n", m->x0, m->y0, mode->width, mode->height, mode->id);
   
   if(XRRSetCrtcConfig(w->dis, scr,
                       m->crtcID,
@@ -561,14 +653,51 @@ void OSIDisplay::restoreRes(OSIWindow *w, OSIMonitor *m) {
     
     XRRFreeCrtcInfo(crtc);
     XRRFreeScreenResources(scr);
-
+    //XUngrabServer(w->dis);               // UNGRAB SERVER
     return;
   }
 
   XRRFreeCrtcInfo(crtc);
-  XRRFreeScreenResources(scr);
   
+  /// current monitor configuration adjust
+  m->dx= m->original.dx;
+  m->dy= m->original.dy;
   m->inOriginal= true;
+  
+  /// update all [monitors positions] on the [right] and [bottom] of current monitor that just changed resolution
+  OSIMonitor *m2;
+  
+  /// pass thru all monitors on the right
+  m2= m->right;
+  while(m2) {
+    m2->x0+= changex;                   /// right monitor x0 position adjust
+    m2= m2->right;
+  }
+  /// pass thru all monitors below m
+  m2= m->bottom;
+  while(m2) {
+    m2->y0+= changey;                   /// bottom monitor y0 position adjust
+    m2= m2->bottom;
+  }
+  
+  /// change the virtual desktop size
+  updateVirtualDesktop();               /// updates all virtual desktop vars (atm not mm)
+  
+  XRRSetScreenSize(w->dis, DefaultRootWindow(w->dis), vx0, vy0,
+              DisplayWidthMM(w->dis, 0), DisplayHeightMM(w->dis, 0)); // the size in mm is kinda hard to compute, but doable... it might be NOT NEEDED
+  
+  /// set panning for all monitors
+  XRRPanning p;
+  for(short a= 0; a< nrMonitors; a++) { /// for each monitor
+    p.left= monitor[a].x0;
+    p.top= monitor[a].y0;
+    p.width= monitor[a].dx;
+    p.height= monitor[a].dy;
+  
+    XRRSetPanning(w->dis, scr, monitor[a].crtcID, &p);
+  } /// for each monitor
+  XRRFreeScreenResources(scr);
+  //XUngrabServer(w->dis);                 // UNGRAB SERVER
   
   return;
   #endif /// OS_LINUX
@@ -581,9 +710,15 @@ void OSIDisplay::restoreRes(OSIWindow *w, OSIMonitor *m) {
   /// set inOriginal flag for all monitors, as they all get in original resolution
   for(short a= 0; a< MAX_WINDOWS; a++)
     if(osi.win[a].isCreated) {
+      osi.win[a].monitor->dx= osi.win[a].monitor->original.dx;
+      osi.win[a].monitor->dy= osi.win[a].monitor->original.dy;
       osi.win[a].monitor->inOriginal= true;
       CGDisplayShowCursor(m->id);   /// show mouse cursor? this need a little bit of further thinking      
     }
+  
+  /// update monitors positions after resolution change
+  for(short a= 0; a< nrMonitors; a++)
+    getMonitorPos(&monitor[a]);
 
   // PER MONITOR RESTORE... needs more work (in display.populate() ). probly keep the CGDisplayModeRef of the original resolution somewhere
   /*
@@ -592,10 +727,19 @@ void OSIDisplay::restoreRes(OSIWindow *w, OSIMonitor *m) {
     error.simple("OSIDisplay::restoreRes: cannot change back to original resolution."); /// just an error, i guess, let the program try to continue functioning
 
   CGDisplayShowCursor(m->id);   /// show mouse cursor? this need a little bit of further thinking
+   
+  /// current monitor configuration adjust
+  m->dx= m->original.dx;
+  m->dy= m->original.dy;
   m->inOriginal= true;
   */
   
+  /// update monitors positions after resolution change
+  for(short a= 0; a< nrMonitors; a++)
+    getMonitorPos(&monitor[a]);
+  
   #endif /// OS_MAC
+  
 } // OSIDisplay::restoreRes
 
 
@@ -609,7 +753,7 @@ void OSIDisplay::populate(OSInteraction *t) {
   bool chatty= true;   // this is used for debug: prints stuff it finds to terminal
   delData();
   #ifdef OS_WIN
-
+    
   int a, b, n, tx, ty;//, m;
   OSIResolution *p;
   string s;
@@ -663,6 +807,8 @@ void OSIDisplay::populate(OSInteraction *t) {
     if(EnumDisplaySettings(monitor[d].id, ENUM_CURRENT_SETTINGS, &dm)) {
       monitor[d].original.dx= dm.dmPelsWidth;
       monitor[d].original.dy= dm.dmPelsHeight;
+      monitor[d].dx= dm.dmPelsWidth;            /// current resolution dx
+      monitor[d].dy= dm.dmPelsHeight;           /// current resolution dy
       monitor[d].original.freq[0]= (short)dm.dmDisplayFrequency;
     }
 
@@ -810,8 +956,28 @@ void OSIDisplay::populate(OSInteraction *t) {
   #ifdef OS_LINUX
   //  XRRScreenSize *xrrs; // OLD CODE
 
-  primary monitor!!!
-  ;
+  
+  
+  
+  
+  
+  
+  // RESEARCH:  
+  // RR_DoubleScan is the oposite of RR_Interlace !!!!!!!!!!!!
+  
+  //XRRQueryVersion (dpy, &major, &minor);
+  //  if (major > 1 || (major == 1 && minor >= 3))
+  //^^^ checks for xrandr ver 1.3!!! (if it is installed on machine)
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
   
   short a, b, c, d, e;              /// all used in loops...
   OSIResolution *p;
@@ -832,7 +998,7 @@ void OSIDisplay::populate(OSInteraction *t) {
   /// find the number of connected monitors  
   for(a= 0; a< scr->noutput; a++) {
      out= XRRGetOutputInfo(t->primWin->dis, scr, scr->outputs[a]);
-     if(chatty) printf("output %d: %s %s (crtc%d)\n", a, out->name, (out->connection== RR_Connected)? "active": "no connection", out->crtc);
+     if(chatty) printf("output %d: %s %s (crtc%lu)\n", a, out->name, (out->connection== RR_Connected)? "active": "no connection", out->crtc);
      
      if(out->connection== RR_Connected)
        nrMonitors++;
@@ -854,7 +1020,7 @@ void OSIDisplay::populate(OSInteraction *t) {
     crtc= XRRGetCrtcInfo(t->primWin->dis, scr, out->crtc);
     /// can ge usefull data from a crtc
     if(chatty) {
-      printf("out%d: is on crtc%d\n", scr->outputs[a], out->crtc);
+      printf("out%lu: is on crtc%lu\n", scr->outputs[a], out->crtc);
       printf("crtc%lu: has %d outputs:", out->crtc, crtc->noutput);
       for(short z= 0; z< crtc->noutput; z++)
         printf(" %lu", crtc->outputs[z]);
@@ -867,6 +1033,7 @@ void OSIDisplay::populate(OSInteraction *t) {
     monitor[b].crtcID= out->crtc;
     monitor[b].x0= crtc->x;
     monitor[b].y0= crtc->y;
+    monitor[b].name= out->name;
     monitor[b].original.dx= crtc->width;
     monitor[b].original.dy= crtc->height;
     monitor[b].original.resID[0]= crtc->mode; /// this is the only use
@@ -876,7 +1043,29 @@ void OSIDisplay::populate(OSInteraction *t) {
       monitor[b].primary= true;
       primary= &monitor[b];
     }
-    if(chatty) printf("monitor position %d,%d crtc[%d] out[%d]\n", monitor[b].x0, monitor[b].y0, monitor[b].crtcID, monitor[b].outID);
+    monitor[b].dx= crtc->width;
+    monitor[b].dy= crtc->height;
+    
+    if(chatty) printf("monitor [%s] position %d,%d crtc[%lu] out[%lu]\n", monitor[b].name.d, monitor[b].x0, monitor[b].y0, monitor[b].crtcID, monitor[b].outID);
+
+    /* crtc transform tests. SEEMS NOTHING USEFULL IS HERE (not going into zooms and scales)
+    XRRCrtcTransformAttributes *attr;
+    XRRGetCrtcTransform(osi.primWin->dis, out->crtc, &attr);
+    
+    for(int x= 0; x< 3; x++) {
+      for(int y= 0; y< 3; y++)
+        printf("%d ", attr->pendingTransform.matrix[x][y]);
+      printf("\n");
+    }
+
+    printf("current filter: %s\n", attr->currentFilter);
+    printf("current nr of parameters: %d\n", attr->currentNparams);
+    for(int x= 0; x< attr->currentNparams; x++)
+      printf("param%d: %d\n", x, attr->currentParams[x]);
+    
+    getchar();
+    _exit(1);  
+     */
 
     // ***********************************************************
     // MUST TEST IF RANDR AUTOMATICALLY LOWERS THE POSSIBLE RESOLUTIONS
@@ -989,6 +1178,36 @@ void OSIDisplay::populate(OSInteraction *t) {
     XRRFreeOutputInfo(out);
   } /// for each output
   
+  
+  // find monitors that are glued on the right & bottom for each monitor (will help ennourmously on resolution change)
+  int mx, my;                                             /// middle point on x and y
+  OSIMonitor *m1, *m2;                                    /// name shortcuts
+  
+  for(a= 0; a< nrMonitors; a++) {
+    m1= &monitor[a];                                      /// name shortcut for monitor[a]
+    
+    /// pass thru all monitors again, to find glued ones
+    for(b= 0; b< nrMonitors; b++) {
+      m2= &monitor[b];                                    /// m2 will be checked against m1
+      if(m1== m2) continue;                               /// same monitor, skip
+      
+      /// check if m2 is glued on the right of m1
+      my= m2->y0+ (m2->original.dy/ 2);
+
+      if((my> m1->y0) && (my< (m1->y0+ m1->original.dy))) /// if it is approx on the same x axis
+        if(m2->x0== (m1->x0+ m1->original.dx))            /// if it is glued on the right
+          m1->right= m2;
+      
+      /// check if m2 is glued on the bottom of m1
+      mx= m2->x0+ (m2->original.dx/ 2);
+
+      if((mx> m1->x0) && (mx< (m1->x0+ m1->original.dx))) /// if it is approx on the same y axis
+        if(m2->y0== (m1->y0+ m1->original.dy))            /// if it is glued on the bottom
+          m1->bottom= m2;
+    } /// for each monitor again
+  } /// for each monitor
+  
+  
   XRRFreeScreenResources(scr);
   
   if(chatty)
@@ -999,6 +1218,10 @@ void OSIDisplay::populate(OSInteraction *t) {
           printf(" %d[id%lu]", monitor[a].res[b].freq[c], monitor[a].res[b].resID[c]);
         printf("\n");
       }
+  
+  
+  
+  
   
   // IT'S OVERRRRR ... 
   
@@ -1080,7 +1303,8 @@ void OSIDisplay::populate(OSInteraction *t) {
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
-
+  monitor.dx,dy ADDED<<< current dx (not progres, not original)
+    
   int a, b, c, d, tx, ty;
   CGRect r;
   OSIResolution *p;
@@ -1133,6 +1357,8 @@ void OSIDisplay::populate(OSInteraction *t) {
     /// original monitor settings
     monitor[d].original.dx= (int)CGDisplayPixelsWide(dis[d]);
     monitor[d].original.dy= (int)CGDisplayPixelsHigh(dis[d]);
+    monitor[d].dx= (int)CGDisplayPixelsWide(dis[d]);
+    monitor[d].dy= (int)CGDisplayPixelsHigh(dis[d]);
     
     //monitor[d].original.freq[0]= (short)dm.dmDisplayFrequency;
       
@@ -1366,21 +1592,7 @@ void OSIDisplay::populate(OSInteraction *t) {
     delete[] tmp;
   } /// displays loop
   
-  /// virtual desktop size
-  vx0= primary->x0;
-  vy0= primary->y0;
-  vdx= primary->original.dx;
-  vdy= primary->original.dy;
-  for(a= 0; a< nrMonitors; a++) {
-    if(monitor[a].x0< vx0)                              /// <<
-      vx0= monitor[a].x0;
-    if(monitor[a].y0< vy0)                              /// ^^
-      vy0= monitor[a].y0;
-    if(monitor[a].x0+ monitor[a].original.dx- 1> vdx)   /// >>
-      vdx= monitor[a].x0+ monitor[a].original.dx- 1;
-    if(monitor[a].y0+ monitor[a].original.dy- 1> vdy)   /// vv
-      vdy= monitor[a].y0+ monitor[a].original.dy- 1;
-  }
+  updateVirtualDesktop();
   
   delete[] dis;
   
@@ -1389,8 +1601,8 @@ void OSIDisplay::populate(OSInteraction *t) {
 }
 
 
-// TODO MOVE THE WIN VARIANT TO POPULATE !!!!<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-// this is good only for windows... it might just be moeved in populate()
+
+// after each resolution change, this shuld be called; it works in populate() too
 void OSIDisplay::getMonitorPos(OSIMonitor *m) {
   #ifdef OS_WIN
   DEVMODE dm= { 0 };
@@ -1407,7 +1619,10 @@ void OSIDisplay::getMonitorPos(OSIMonitor *m) {
   #endif
   
   #ifdef OS_MAC
-  // function useless in MAC
+  CGRect r;
+  r= CGDisplayBounds(m->id);
+  m->x0= r.origin.x;
+  m->y0= r.origin.y;
   #endif /// OS_MAC
 
 }
@@ -1443,6 +1658,24 @@ short OSIDisplay::getFreq(short freq, OSIResolution *r) {
 }
 
 
+/// virtual desktop resize
+void updateVirtualDesktop() {
+  osi.display.vx0= osi.display.primary->x0;
+  osi.display.vy0= osi.display.primary->y0;
+  osi.display.vdx= osi.display.primary->dx;
+  osi.display.vdy= osi.display.primary->dy;
+  
+  for(short a= 0; a< osi.display.nrMonitors; a++) {                                /// for each monitor
+    if(osi.display.monitor[a].x0< osi.display.vx0)                                 /// <<
+      osi.display.vx0= osi.display.monitor[a].x0;
+    if(osi.display.monitor[a].y0< osi.display.vy0)                                 /// ^^
+      osi.display.vy0= osi.display.monitor[a].y0;
+    if(osi.display.monitor[a].x0+ osi.display.monitor[a].dx- 1> osi.display.vdx)   /// >>
+      osi.display.vdx= osi.display.monitor[a].x0+ osi.display.monitor[a].dx- 1;
+    if(osi.display.monitor[a].y0+ osi.display.monitor[a].dy- 1> osi.display.vdy)   /// vv
+      osi.display.vdy= osi.display.monitor[a].y0+ osi.display.monitor[a].dy- 1;
+  } /// for each monitor
+}
 
 
 
