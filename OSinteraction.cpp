@@ -238,8 +238,8 @@ int main() {
 
   osi.display.populate(&osi);     // check all monitors/ resolutions/ etc
 
-
-  osi.createGLWindow(&osi.win[0], &osi.display.monitor[0], "window 0", 400, 400, 32, 1);
+  //osi.createGLWindow(&osi.win[0], &osi.display.monitor[0], "window 0", 400, 400, 32, 1);
+  osi.createGLWindow(&osi.win[0], &osi.display.monitor[0], "window 0", 1024, 768, 32, 2);
   //    osi.createGLWindow(&osi.win[1], &osi.display.monitor[0], "window 2", 400, 400, 32, 3);
 
   //osi.createGLWindow(&osi.win[2], &osi.display.monitor[1], "window 3", 400, 400, 32, 1);
@@ -291,14 +291,14 @@ int main() {
     }
     
     if(in.k.key[in.Kv.esc] || (in.k.key[in.Kv.lalt] && in.k.key[in.Kv.f4]))
-      osi.flags.exit= true;
-      
+      osi.exit(0);
+
     #ifdef OS_WIN
     COORD pos= {0,0};
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), pos);
     #endif /// OS_WIN
     #ifdef OS_LINUX /// OS_LINUX & OS_MAC
-    printf("\x1b[H");      // should set cursor position to '0,0' or whatever home means
+    // printf("\x1b[H");      // should set cursor position to '0,0' or whatever home means
     #endif /// OS_LINUX
     #ifdef OS_MAC
     
@@ -335,10 +335,12 @@ int main() {
     */
     
     #ifdef OS_LINUX
+    /*
     for(short a= 0; a< 256; a++) {
       if(in.k.key[a])
-        printf("keydown: keycode[%02lu], keysym[%06x]\n", a, XkbKeycodeToKeysym(osi.primWin->dis, a, null, 0));
+        printf("keydown: keycode[%02d], keysym[%06lx]\n", a, XkbKeycodeToKeysym(osi.primWin->dis, a, null, 0));
     }
+    */
     #endif /// OS_LINUX
 
 
@@ -1373,7 +1375,7 @@ ret:
 
 #ifdef OS_LINUX
 void OSInteraction::processMSG()  {
-  bool chatty= false;      // used for debugs, prints stuff in every message
+  bool chatty= true;      // used for debugs, prints stuff in every message
 
   XEvent event;
   OSIWindow *w= null;
@@ -1459,7 +1461,7 @@ void OSInteraction::processMSG()  {
       ulong ch;
       in.getUnicode(&ks, &ch);
       if(ch)
-        in.k.addChar(ch);
+        in.k.addChar(ch, &eventTime);
       
       
       
@@ -1477,7 +1479,7 @@ void OSInteraction::processMSG()  {
       in.k.key[code]= 128;
       in.k.keyTime[code]= eventTime;
       
-      in.k.addManip(); must be placed here <<<<<<<<<<<<<<<<
+      //  in.k.addManip(); must be placed here <<<<<<<<<<<<<<<< <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
       
       //      in.k.repeat[code]= 1;                  /// a new key press, sets repeat to 1  // MIGHT BE DELETED
     } /// [MODE 1]
@@ -1506,7 +1508,7 @@ void OSInteraction::processMSG()  {
       k.code= code;
       k.checked= false;
       k.timeUp= eventTime;
-      k.timeDown= kTimeUp- 1;           /// 1 milisecond before the keyup
+      k.timeDown= k.timeUp- 1;          /// 1 milisecond before the keyup
       k.timeDT= 1;                      /// timeUp- timeDown
       in.k.log(k);
     }
@@ -1616,8 +1618,8 @@ void OSInteraction::processMSG()  {
 
 // ---------------=============== FOCUS IN ==================-------------------
 
-/// once a window is mapped, it is in the hands of WM (window manager)
-/// so use only window manager messages ("_NET_BLABLA")
+  /// once a window is mapped, it is in the hands of WM (window manager)
+  /// so use only window manager messages ("_NET_BLABLA")
   } else if(event.type == FocusIn) { // these are spammed
     if(chatty) printf("focusIn\n");
 
@@ -1629,17 +1631,19 @@ void OSInteraction::processMSG()  {
 
     if(chatty) printf("FocusIn:NotifyNormal, haveFocus=%d\n", flags.haveFocus);
 
-
-/// fullscreen CHANGING RESOLUTIONS IS NOT WORKING FOR MULTIPLE MONITORS ATM (single monitor works)
+      /// fullscreen
       if(primWin->mode== 2)
-//        for(short a= 0; a< MAX_WINDOWS; a++)  /// for each (created) window
-          if(win[0].isCreated) {
-            if(chatty) printf("Changing resolution for window primary\n"); //[%d]\n", a);
-//            display.changeRes(&win[a], win[a].monitor, win[a].dx, win[a].dy, win[a].bpp, win[a].freq);
-            display.changeRes(&win[0], win[0].monitor, win[0].dx, win[0].dy, win[0].bpp, win[0].freq);
+        for(short a= 0; a< MAX_WINDOWS; a++)  /// for each (created) window
+          if(win[a].isCreated) {
+            if(chatty) printf("Changing resolution for window [%d]\n", a);
+            display.changeRes(&win[a], win[a].monitor, win[a].dx, win[a].dy, win[a].bpp, win[a].freq);
+            win[a].setWMstate(1, "_NET_WM_STATE_ABOVE");
+            win[a].setWMstate(0, "_NET_WM_STATE_BELOW");
+
+
           } /// is window created
 
-/// fullscreen window
+      /// fullscreen window
       if(primWin->mode== 3)
         for(short a= 0; a< MAX_WINDOWS; a++)
           if(win[a].isCreated) {
@@ -1679,18 +1683,21 @@ void OSInteraction::processMSG()  {
       if(!flags.haveFocus)                      /// ignore if already not focused
         return;
 
-      /// fullscreen CHANGING RESOLUTIONS IS NOT WORKING FOR MULTIPLE MONITORS ATM (single works)
+      /// fullscreen
       if(primWin->mode== 2)                      /// if fullscreen only
-//        for(short a= 0; a< MAX_WINDOWS; a++)     /// for each (created) window
-          if(win[0].isCreated) {
-//            XIconifyWindow(win[0].dis, win[a].win, win[a].monitor->screen);
-            XIconifyWindow(win[0].dis, win[0].win, win[0].monitor->screen);
-//            display.restoreRes(&win[a], win[a].monitor);
-            display.restoreRes(&win[0], win[0].monitor);
-            flags.minimized= true;
-            if(chatty) printf("Changing to original resolution for window primary\n"); //[%d]\n", a);
-          } /// if window is created
+        for(short a= 0; a< MAX_WINDOWS; a++)     /// for each (created) window
+          if(win[a].isCreated) {
+            if(chatty) printf("Changing to original resolution for window [%d]\n", a);
 
+            XIconifyWindow(win[0].dis, win[a].win, win[a].monitor->screen);
+            win[a].setWMstate(0, "_NET_WM_STATE_ABOVE");
+            win[a].setWMstate(1, "_NET_WM_STATE_BELOW");
+
+
+            display.restoreRes(&win[a], win[a].monitor);
+            flags.minimized= true;
+          } /// if window is created
+      
       /// fullscreen window
       if(primWin->mode== 3)
         for(short a= 0; a< MAX_WINDOWS; a++)    /// for each (created) window
@@ -1966,7 +1973,7 @@ void OSInteraction::getNanosecs(uint64 *out) {
   #ifdef OS_LINUX
   timespec t;
   clock_gettime(CLOCK_MONOTONIC, &t);
-  *out= (t.tv_sec* 1 000 000 000)+ t.tv_nsec;
+  *out= (t.tv_sec* 1000000000)+ t.tv_nsec;
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
@@ -2012,7 +2019,20 @@ void OSInteraction::getMillisecs(uint64 *out) {
   #endif /// OS_MAC
 }
 
+void OSInteraction::exit(int retVal) {
+  display.restoreAllRes();
+  #ifdef OS_WIN
+  exit(retVal);
+  #endif /// OS_WIN
 
+  #ifdef OS_LINUX
+  _exit(retVal);
+  #endif /// OS_LINUX
+
+  #ifdef OS_MAC
+  _exit(retVal);
+  #endif /// OS_MAC
+}
 
 
 

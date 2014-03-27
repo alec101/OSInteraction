@@ -141,7 +141,8 @@ public:
   
   
   string path;                  /// program path
-
+  void exit(int retVal);
+  
 // all program windows win[0] should be primary (primWin)
   OSIWindow win[MAX_WINDOWS];   /// all windows, including primary window (win[0])
   OSIWindow *primWin;           /// win[0]; primary window
