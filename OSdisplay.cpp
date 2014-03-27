@@ -53,6 +53,7 @@ void updateVirtualDesktop();
 
 // ^^^^^^^^^^^^^^^^^
 
+void updateVirtualDesktop();
 
 #ifdef OS_WIN
 #pragma comment(lib, "opengl32")
@@ -284,6 +285,16 @@ bool OSIDisplay::changeRes(OSIWindow *w, OSIMonitor *m, short dx, short dy, int8
   //                 * hope there are no problems with 'primary' monitor, and needs to be set manually...
   //                 * XGrabServer, might be needed when res changing! (line[1683])
 
+  // this program should NOT handle monitor plug & plays; you set the monitors before you use OSI.
+  
+  
+  // LINUX research: http://cgit.freedesktop.org/xorg/app/xrandr/tree/xrandr.c 
+  //                 http://cgit.freedesktop.org/xorg/proto/randrproto/tree/randrproto.txt
+  //                 * gamma seems nighmarish to set, unfortunately. There is a function in xrandr.c (line 1031)
+  //                 * a 'revert' function @ line 1631 (uses functions: line[1597], line[1506], line[1532])
+  //                 * hope there are no problems with 'primary' monitor, and needs to be set manually...
+  //                 * XGrabServer, might be needed when res changing! (line[1683])
+
   bool chatty= true;
 
   /// search in data for requested resolution (hope populate() was called first)
@@ -339,7 +350,29 @@ bool OSIDisplay::changeRes(OSIWindow *w, OSIMonitor *m, short dx, short dy, int8
       /// adjust current window& monitor variables
       m->dx= dx;
       m->dy= dy;
+=======
+      #endif /// OS_WIN
+      
+      #ifdef OS_LINUX
+      //XGrabServer(w->dis);                 // GRAB SERVER 
+      Status s;
+      /// the monitor resolution is getting bigger/smaller; the next 2 vars hold the delta for each axis
+      int changex= dx- m->dx;             /// delta x axis change
+      int changey= dy- m->dy;             /// delta y axis change
+      XRRScreenResources *scr= XRRGetScreenResources(w->dis, w->win);
+      XRRCrtcInfo *crtc= XRRGetCrtcInfo(w->dis, scr, m->crtcID);
+      //XRROutputInfo *out= XRRGetOutputInfo(w->dis, scr, m->outID); ???
 
+      s= XRRSetCrtcConfig(w->dis, scr,    /// display, screen resources (virtual desktop configuration)
+                          m->crtcID,      /// crt that will change resolution
+                          CurrentTime,
+                          m->x0, m->y0,   /// monitor position on virtual screen
+                          r->resID[f],
+                          r->rotation,
+                          crtc->outputs,  /// outputs(+monitors) that will change resolution
+                          crtc->noutput); /// will change res on all (noutput) duplicate monitors
+      //XRRFreeOutputInfo(out); ???
+      XRRFreeCrtcInfo(crtc);
       w->bpp= bpp;
       w->dx= dx;
       w->dy= dy;
@@ -398,6 +431,66 @@ bool OSIDisplay::changeRes(OSIWindow *w, OSIMonitor *m, short dx, short dy, int8
   
   m->inOriginal= false;
   
+  // VIRTUAL DESKTOP RESIZE+ EACH MONITOR POSITION & PANNING
+  #ifdef OS_LINUX
+  // 9 monitors, arranged in a 3x3 grid:
+  
+  // situation 1:    situation 2:    situation 3:
+  // +---+---+---+   +---+---+---+   +---+---+---+
+  // | m | X | X |   |   | m | X |   |   |   |   |
+  // +---+---+---+   +---+---+---+   +---+---+---+
+  // | X |   |   |   |   | X |   |   | m | X | X |  ETC.
+  // +---+---+---+   +---+---+---+   +---+---+---+
+  // | X |   |   |   |   | X |   |   | X |   |   |
+  // +---+---+---+   +---+---+---+   +---+---+---+
+  // 
+  // m= monitor that changed resolution
+  // X= all monitors that need to change position (the rest will change if other monitors resolution change)
+  
+  // * IF THIS ALGORITHM IS NOT ENOUGH, WELL, JUST MANUALLY CHANGE
+  //   THE DANG MONITORS, IN LINUX 'CONTROL PANEL' AND THAT'S THAT!
+
+  
+  /// update all [monitors position] on the [right] and [bottom] of current monitor that just changed resolution
+  OSIMonitor *m2;
+  
+  /// pass thru all monitors on the right
+  m2= m->right;
+  while(m2) {
+    m2->x0+= changex;                   /// right monitor x0 position adjust
+    m2= m2->right;
+  }
+  /// pass thru all monitors below m
+  m2= m->bottom;
+  while(m2) {
+    m2->y0+= changey;                   /// bottom monitor y0 position adjust
+    m2= m2->bottom;
+  }
+  
+  /// change the virtual desktop size
+  updateVirtualDesktop();               /// updates all virtual desktop vars (atm not mm)
+  
+  XRRSetScreenSize(w->dis, DefaultRootWindow(w->dis), vx0, vy0,
+              DisplayWidthMM(w->dis, 0), DisplayHeightMM(w->dis, 0)); // the size in mm is kinda hard to compute, but doable... it might be NOT NEEDED
+  
+  /// set panning for all monitors
+  XRRPanning p;
+  for(short a= 0; a< nrMonitors; a++) { /// for each monitor
+    p.left= monitor[a].x0;
+    p.top= monitor[a].y0;
+    p.width= monitor[a].dx;
+    p.height= monitor[a].dy;
+  
+    XRRSetPanning(w->dis, scr, monitor[a].crtcID, &p);
+  } /// for each monitor
+  XRRFreeScreenResources(scr);
+  //XUngrabServer(w->dis);                 // UNGRAB SERVER
+  #else // OS_WIN & OS_MAC
+  /// update monitors positions after resolution change
+  for(short a= 0; a< nrMonitors; a++)
+    getMonitorPos(&monitor[a]);
+  #endif /// ALL OSes
+
   return true;
 }
 
