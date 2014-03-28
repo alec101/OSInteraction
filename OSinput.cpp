@@ -37,8 +37,9 @@
  *
  * every COORDONATE UNIFICATION: x0,y0 -> left,bottom (as in OpenGL, MAC.  NOT AS IN: windows, (i think linux too)
       this includes mouseWheel (+y means UP, as in the real cood system)
- 
  * 
+ * could set, that if program chooses Direct Input mode, under linux/mac to choose MODE 1 <<<<<<<<<
+ *   or basically, if a mode is unavaible, go for mode 1 - maybe m.update() / k.update() to simply return under linux/mac (if cant make mode 2/3 work
  
  
  * joystick button history
@@ -471,9 +472,15 @@ void Input::populate(bool scanMouseKeyboard) {
 
 }
 
+// resets all buttons for all devices- usually called on alt/tab - cmd/tab or something similar
 void Input::resetPressedButtons() {
   m.resetButtons();
   k.resetButtons();
+  for(short a= 0; a< MAX_JOYSTICKS; a++) {
+    j[a].resetButtons();
+    gp[a].resetButtons();
+    gw[a].resetButtons();
+  }
 }
 
 
@@ -810,18 +817,23 @@ bool Mouse::unaquire() {
   return false;
 }
 
+
+
 void Mouse::resetButtons() {
-  uint64 present; osi.getMillisecs(&present);
+  uint64 present;
+  osi.getMillisecs(&present);// <<----------------- there should be only one present var, set in osi, so there is only 1 call to this func. many calls= time wasted
+  
   for(short a= 0; a< MAX_MOUSE_BUTTONS; a++) {
     if(b[a].down) {
       b[a].lastTimeStart= b[a].timeStart;
       b[a].lastTimeEnded= present;
       b[a].lastDT= b[a].lastTimeEnded- b[a].lastTimeStart;
-      b[a].timeStart= 0;
       b[a].down= false;
     }
   }
 }
+  
+
 
 void Mouse::update() {
   if(!osi.flags.haveFocus)
@@ -930,13 +942,6 @@ void Mouse::update() {
   #endif /// USING_DIRECTINPUT
 }
 
-Mouse::Button::Button() {
-    lastDT= lastTimeStart= lastTimeEnded= 0;
-
-    down= false;
-    timeStart= 0;
-}
-
 
 
 
@@ -983,7 +988,7 @@ void Keyboard::delData() {
 }
 
 
-
+// could be called, but using in.init() is better, as it inits every device
 bool Keyboard::init(short mode) {
   this->mode= mode;
   if(mode== 1)
@@ -1014,23 +1019,7 @@ bool Keyboard::init(short mode) {
 }
 
 
-short Keyboard::getFirstKey() {
-  for(short a= 0; a< MAX_KEYBOARD_KEYS; a++)
-    if(key[a])
-      return a;
-
-  return 0;	/// fail
-}
-
-// debugging
-void Keyboard::printPressed() {
-  if((mode== 2) || (mode== 3))
-    for(short a= 0; a< MAX_KEYBOARD_KEYS; a++)
-      if(key[a]& 0x80)
-        printf(" kc%d(%d)", a, key[a]);
-}
-
-
+// ### UPDATE func ### - if not using MODE 1, call this
 void Keyboard::update() {
   
   if(!osi.flags.haveFocus)
@@ -1093,12 +1082,28 @@ void Keyboard::update() {
 }
 
 
-void Keyboard::swapBuffers() {
-  lastCheck= key;
-  key= (key== buffer1)? buffer2: buffer1;
+// updates keyboard lock states (numlock/capslock/scrolllock)
+void Keyboard::updateLocks() {
+  #ifdef OS_WIN
+  capsLock=   GetKeyState(VK_CAPITAL)& 0x01 == 1;
+  numLock=    GetKeyState(VK_NUMLOCK)& 0x01 == 1;
+  scrollLock= GetKeyState(VK_SCROLL)&  0x01 == 1;
+  #endif /// OS_WIN
+
+  #ifdef OS_LINUX
+  uint n;
+  XkbGetIndicatorState(osi.primWin->dis, XkbUseCoreKbd, &n);
+  capsLock=   (n& 0x01) == 1;
+  numLock=    (n& 0x02) == 1;
+  scrollLock= (n& 0x04) == 1;
+  #endif /// OS_LINUX
+
+  #ifdef OS_MAC
+  makeme - better to have this!!!
+  #endif /// OS_MAC
 }
 
-
+// grab exclusive control of the keyboard (if possible)
 bool Keyboard::aquire() {
   if(mode== 1) {
     #ifdef OS_LINUX
@@ -1121,7 +1126,7 @@ bool Keyboard::aquire() {
   return false;
 }
 
-
+// ungrab exclusive control of the keyboard
 bool Keyboard::unaquire() {
   if(mode== 1) {
     #ifdef OS_LINUX
@@ -1141,59 +1146,40 @@ bool Keyboard::unaquire() {
 }
 
 
+
+// clears all character buffers, ususally called when switching to a new/ existing input box / control
+void Keyboard::clearTypedBuffer() {
+  while(charTyped.first)
+    charTyped.del(charTyped.first);
+  while(manipTyped.first)
+    manipTyped.del(manipTyped.first);
+}
+
+
+// clears buffers and resets all logged keys, usually called when alt-tabbing (losing focus)
 void Keyboard::resetButtons() {
   uint64 present;
   osi.getMillisecs(&present);// <<----------------- there should be only one present var, set in osi, so there is only 1 call to this func. many calls= time wasted
-
+  
+  /// clear all buffers
   for(short a= 0; a< MAX_KEYBOARD_KEYS; a++) {
-    if(key[a]) {
-      KeyPressed k;
-      k.code= a;
-      k.checked= false;
-      k.timeDown= keyTime[a];
-      k.timeUp= present;
-      k.timeDT= k.timeUp- k.timeDown;
-      log(k);
+    buffer1[a]= buffer2[a]= 0;
+    keyTime[a]= 0;
+  }
+
+  /// reset logged keys
+  for(short a= 0; a< MAX_KEYS_LOGGED; a++) {
+    /// if dela time pressed was not computed, it still waiting for key release
+    if(!lastKey[a].timeDT) {
+      lastKey[a].timeUp= present;
+      lastKey[a].timeDT= lastKey[a].timeUp- lastKey[a].timeDown;
     }
   }
 }
 
 
-void Keyboard::updateLocks() {
-  #ifdef OS_WIN
-  capsLock=   GetKeyState(VK_CAPITAL)& 0x01 == 1;
-  numLock=    GetKeyState(VK_NUMLOCK)& 0x01 == 1;
-  scrollLock= GetKeyState(VK_SCROLL)&  0x01 == 1;
-  #endif /// OS_WIN
 
-  #ifdef OS_LINUX
-  uint n;
-  XkbGetIndicatorState(osi.primWin->dis, XkbUseCoreKbd, &n);
-  capsLock=   (n& 0x01) == 1;
-  numLock=    (n& 0x02) == 1;
-  scrollLock= (n& 0x04) == 1;
-  #endif /// OS_LINUX
-
-  #ifdef OS_MAC
-//  makeme
-  #endif /// OS_MAC
-}
-
-
-void Keyboard::log(const Keyboard::KeyPressed &k) {
-  for(short a= MAX_KEYS_LOGGED- 1; a> 0; a--)
-    lastKey[a]= lastKey[a- 1];
-  lastKey[0]= k;
-}
-
-/*
-void Keyboard::logd(const Keyboard::KeyDown &k) {
-  for(short a= MAX_KEYS_LOGGED- 1; a> 0; a--)
-    lastKeyDown[a]= lastKeyDown[a- 1];
-  lastKeyDown[0]= k;
-}
-*/
-
+// returns a character that user has typed (from a buffer wich has 1 second lifetime)
 ulong Keyboard::getChar() {
   if(!charTyped.nrNodes)
     return 0;
@@ -1237,7 +1223,7 @@ ulong Keyboard::getManip() {
   
 }
 
-
+// [internal]
 void Keyboard::addChar(ulong c, uint64 *time) {
   if(!c) return;
 
@@ -1255,7 +1241,7 @@ void Keyboard::addChar(ulong c, uint64 *time) {
 }
 
 
-// identical as addChar...
+// [internal] identical as addChar...
 void Keyboard::addManip(ulong c, uint64 *time) {
   if(!c) return;
 
@@ -1273,13 +1259,41 @@ void Keyboard::addManip(ulong c, uint64 *time) {
 }
 
 
+// might never be used... gets the first key that is down... not much uses for this other than checking if any key is pressed
+short Keyboard::getFirstKey() {
+  for(short a= 0; a< MAX_KEYBOARD_KEYS; a++)
+    if(key[a])
+      return a;
 
-void Keyboard::clearTypedBuffer() {
-  while(charTyped.first)
-    charTyped.del(charTyped.first);
-  while(manipTyped.first)
-    manipTyped.del(manipTyped.first);
+  return -1;	/// fail
 }
+
+
+/// internal stuff
+void Keyboard::swapBuffers() {
+  lastCheck= key;
+  key= (key== buffer1)? buffer2: buffer1;
+}
+
+
+// [internal] logs a key to histoty of keys that were pressed
+void Keyboard::log(const Keyboard::KeyPressed &k) {
+  for(short a= MAX_KEYS_LOGGED- 1; a> 0; a--)
+    lastKey[a]= lastKey[a- 1];
+  lastKey[0]= k;
+}
+
+
+
+// debugging
+void Keyboard::printPressed() {
+  if((mode== 2) || (mode== 3))
+    for(short a= 0; a< MAX_KEYBOARD_KEYS; a++)
+      if(key[a]& 0x80)
+        printf(" kc%d(%d)", a, key[a]);
+}
+
+
 
 
 
@@ -1293,7 +1307,7 @@ void Keyboard::clearTypedBuffer() {
 
 Joystick::Joystick() {
   mode= 0;
-
+  
   #ifdef OS_LINUX
   file= -1;
   #endif /// OS_LINUX
@@ -1338,21 +1352,37 @@ void Joystick::delData() {
   #endif /// OS_LINUX
 }
 
-void Joystick::swapBuffers() {
-  lastCheck= b;
-  b= (b== buffer1)? buffer2: buffer1;
-}
+// this is called by in.init() for all sticks. don't call it
+bool Joystick::init(short mode) {
+  this->mode= mode;
 
-void Joystick::log(const ButPressed &k) {
-  for(short a= MAX_KEYS_LOGGED- 1; a> 0; a--)
-    lastBut[a]= lastBut[a- 1];
-  lastBut[0]= k;
-}
+  if(mode== 1) {
+    return true;
+  }
+  
+  if(mode== 2) {
+    #ifdef USING_DIRECTINPUT
+    if(diDevice->SetDataFormat(&c_dfDIJoystick2)== DI_OK) {
+      if(diDevice->SetCooperativeLevel(osi.win[0].hWnd, DISCL_EXCLUSIVE| DISCL_FOREGROUND)!= DI_OK)
+        error.simple("cant set cooperative level");
+      return true;
+    }
+    #endif /// USING_DIRECTINPUT
+  }
+  
+  if(mode== 3) {
+    #ifdef USING_XINPUT
+    #endif /// USING_XIMPUT
+    return true;
+  }
 
+  return false;
+}
 
 
 
 // ############### JOYSTICK UPDATE #################
+// ATM, handles pads/wheels too. might be a good ideea to call this func if others are called, dunno
 void Joystick::update() {
   // TYPE1 joysticks
   if(mode== 1) {
@@ -1431,30 +1461,39 @@ void Joystick::update() {
 }
 
 
-bool Joystick::init(short mode) {
-  this->mode= mode;
 
-  if(mode== 1) {
-    return true;
-  }
+void Joystick::resetButtons() {
+  uint64 present;
+  osi.getMillisecs(&present);// <<----------------- there should be only one present var, set in osi, so there is only 1 call to this func. many calls= time wasted
   
-  if(mode== 2) {
-    #ifdef USING_DIRECTINPUT
-    if(diDevice->SetDataFormat(&c_dfDIJoystick2)== DI_OK) {
-      if(diDevice->SetCooperativeLevel(osi.win[0].hWnd, DISCL_EXCLUSIVE| DISCL_FOREGROUND)!= DI_OK)
-        error.simple("cant set cooperative level");
-      return true;
+  /// clear all buffers
+  for(short a= 0; a< MAX_JOYSTICK_BUTTONS; a++) {
+    buffer1[a]= buffer2[a]= 0;
+    bPressure[a]= 0;
+    bTime[a]= 0;
+  }
+
+  /// reset logged buttons
+  for(short a= 0; a< MAX_KEYS_LOGGED; a++) {
+    /// if dela time pressed was not computed, it still waiting for button depress
+    if(!lastBut[a].timeDT) {
+      lastBut[a].timeUp= present;
+      lastBut[a].timeDT= lastBut[a].timeUp- lastBut[a].timeDown;
     }
-    #endif /// USING_DIRECTINPUT
   }
-  
-  if(mode== 3) {
-    #ifdef USING_XINPUT
-    #endif /// USING_XIMPUT
-    return true;
-  }
+}
 
-  return false;
+
+void Joystick::swapBuffers() {
+  lastCheck= b;
+  b= (b== buffer1)? buffer2: buffer1;
+}
+
+
+void Joystick::log(const ButPressed &k) {
+  for(short a= MAX_KEYS_LOGGED- 1; a> 0; a--)
+    lastBut[a]= lastBut[a- 1];
+  lastBut[0]= k;
 }
 
 
@@ -1473,10 +1512,6 @@ BOOL CALLBACK EnumEffectsCallback(LPCDIEFFECTINFO di, LPVOID pvRef)
     return DIENUM_CONTINUE;
 }
 #endif
-
-
-
-
 
 
 // ------------============= GAMEPAD CLASS ===========--------------------
@@ -1545,46 +1580,14 @@ void GamePad::delData() {
   #endif /// OS_LINUX
 }
 
-void GamePad::swapBuffers() {
-  lastCheck= b;
-  b= (b== buffer1)? buffer2: buffer1;
-}
 
-void GamePad::log(const ButPressed &k) {
-  for(short a= MAX_KEYS_LOGGED- 1; a> 0; a--)
-    lastBut[a]= lastBut[a- 1];
-  lastBut[0]= k;
-}
-
-
-
-
-bool GamePad::aquire() {
-  if(mode== 2) {
-    #ifdef USING_DIRECTINPUT
-    if(diDevice->Acquire()== DI_OK)
-      return true;
-    #endif
-  }
-  return false;
-}
-
-
-bool GamePad::unaquire() {
-  if(mode== 2) {
-    #ifdef USING_DIRECTINPUT
-    if(diDevice->Unacquire()== DI_OK)
-      return true;
-    #endif
-  }
-  return false;
-}
-
-
+// ### UPDATE func ### ATM joystick update handles pads/wheels too.
 void GamePad::update() {
   
   if(mode== 1) {
-    // mac has callback functions for stick/pad/wheel updates, they are at the back of the file
+    // windows: check Joystick::update()
+    // linux: updates in joystick, everything (pad/wheel/stick)
+    // mac: has callback functions for stick/pad/wheel updates, they are at the back of the file
     return;
   }
   
@@ -1620,7 +1623,7 @@ void GamePad::update() {
   #endif /// OS_WIN
 }
 
-
+// call in.init(), not this one
 bool GamePad::init(short mode) {
   this->mode= mode;
   
@@ -1648,7 +1651,64 @@ bool GamePad::init(short mode) {
   return false;
 }
 
+// clears all button buffers / resets logged buttons - called by in.resetPressedButtons() - when alt-tab / something similar
+void GamePad::resetButtons() {
+  uint64 present;
+  osi.getMillisecs(&present);// <<----------------- there should be only one present var, set in osi, so there is only 1 call to this func. many calls= time wasted
+  
+  /// clear all buffers
+  for(short a= 0; a< MAX_JOYSTICK_BUTTONS; a++) {
+    buffer1[a]= buffer2[a]= 0;
+    bPressure[a]= 0;
+    bTime[a]= 0;
+  }
 
+  /// reset logged buttons
+  for(short a= 0; a< MAX_KEYS_LOGGED; a++) {
+    /// if dela time pressed was not computed, it still waiting for button depress
+    if(!lastBut[a].timeDT) {
+      lastBut[a].timeUp= present;
+      lastBut[a].timeDT= lastBut[a].timeUp- lastBut[a].timeDown;
+    }
+  }
+}
+
+
+void GamePad::swapBuffers() {
+  lastCheck= b;
+  b= (b== buffer1)? buffer2: buffer1;
+}
+
+
+void GamePad::log(const ButPressed &k) {
+  for(short a= MAX_KEYS_LOGGED- 1; a> 0; a--)
+    lastBut[a]= lastBut[a- 1];
+  lastBut[0]= k;
+}
+
+
+// grab exclusive control of device (if possible)
+bool GamePad::aquire() {
+  if(mode== 2) {
+    #ifdef USING_DIRECTINPUT
+    if(diDevice->Acquire()== DI_OK)
+      return true;
+    #endif
+  }
+  return false;
+}
+
+
+// ungrab exclusive control of device
+bool GamePad::unaquire() {
+  if(mode== 2) {
+    #ifdef USING_DIRECTINPUT
+    if(diDevice->Unacquire()== DI_OK)
+      return true;
+    #endif
+  }
+  return false;
+}
 
 
 
@@ -1710,21 +1770,9 @@ void GameWheel::delData() {
   #endif /// OS_LINUX
 }
 
-void GameWheel::swapBuffers() {
-  lastCheck= b;
-  b= (b== buffer1)? buffer2: buffer1;
-}
-
-void GameWheel::log(const ButPressed &k) {
-  for(short a= MAX_KEYS_LOGGED- 1; a> 0; a--)
-    lastBut[a]= lastBut[a- 1];
-  lastBut[0]= k;
-}
 
 
-
-
-
+// init func. this is called by in.init() for each wheel
 bool GameWheel::init(short mode) {
   this->mode= mode;
   
@@ -1755,17 +1803,66 @@ bool GameWheel::init(short mode) {
 }
 
 
+// could manually update a specific wheel (if os permits)
+void GameWheel::update() {
+  error.simple("not done!");
+  
+  // windows: check Joystick::update()
+  // linux: updates in joystick, everything (pad/wheel/stick)
+  // mac: has callback functions for stick/pad/wheel updates, they are at the back of the file
+
+}
+
+
+// grab exclusive control of device
+bool GameWheel::aquire() {
+  error.simple("not done!");
+  return false;
+}
+
+// ungrab exclusive control of device
+bool GameWheel::unaquire() {
+  error.simple("not done!");
+  return false;
+}
+
+
+// clears button buffer states / resets logged buttons history
+void GameWheel::resetButtons() {
+  uint64 present;
+  osi.getMillisecs(&present);// <<----------------- there should be only one present var, set in osi, so there is only 1 call to this func. many calls= time wasted
+  
+  /// clear all buffers
+  for(short a= 0; a< MAX_JOYSTICK_BUTTONS; a++) {
+    buffer1[a]= buffer2[a]= 0;
+    bPressure[a]= 0;
+    bTime[a]= 0;
+  }
+
+  /// reset logged buttons
+  for(short a= 0; a< MAX_KEYS_LOGGED; a++) {
+    /// if dela time pressed was not computed, it still waiting for button depress
+    if(!lastBut[a].timeDT) {
+      lastBut[a].timeUp= present;
+      lastBut[a].timeDT= lastBut[a].timeUp- lastBut[a].timeDown;
+    }
+  }
+}
 
 
 
 
+void GameWheel::swapBuffers() {
+  lastCheck= b;
+  b= (b== buffer1)? buffer2: buffer1;
+}
 
 
-
-
-
-
-
+void GameWheel::log(const ButPressed &k) {
+  for(short a= MAX_KEYS_LOGGED- 1; a> 0; a--)
+    lastBut[a]= lastBut[a- 1];
+  lastBut[0]= k;
+}
 
 
 

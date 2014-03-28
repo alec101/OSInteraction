@@ -1,7 +1,5 @@
 #pragma once
 
-// clang WARNING a[--n]= b[n] WILL NOT DECREASE n BEFORE b[n] ( so it will be a[n-1]= b[n]) !!!!!!!!!!!
-
 /// the main defs that are used:
 // OS_WIN
 // OS_LINUX
@@ -9,7 +7,8 @@
 
 // start with display.populate(&osi), to scan monitors/resolutions/sizes
 // then a window can be created
-// createGLWindow / primaryGlWindow/ etcWindow   MODE parameter:
+// createGLWindow / primaryGlWindow/ etc
+// Window   MODE parameter:
 // [mode 1]: windowed, supplied using size, center screen
 // [mode 2]: fullscreen, changes resolution of selected monitor with selected sizes
 // [mode 3]: fullscreen window on selected monitor
@@ -17,11 +16,11 @@
 
 // USAGE WARNING
 // CREATE win[0], wich is the primary window FIRST
-// DELETE the primary window LAST
+// DELETE the primary window LAST <<< or better, don't destroy anything, as they are auto-destroyed on program exit
 
 
 // graphics cards are ignored atm; no usefull data that i can think of can be gathered; (windows)
-// only the monitors that are attached to graphics cards are important - all data is gathered on them
+//   only the monitors that are attached to graphics cards are important - all data is gathered on them
 
 //=============//
 // LINUX STUFF //
@@ -38,15 +37,13 @@
 
 
 
-
-
-// 64 is too much...
+// 64 may be too much i think...
 #define MAX_WINDOWS 64
-
 
 
 // -----------------============ WINDOW CLASS =============---------------------
 class OSIWindow {
+  friend class OSInteraction;
 public:
   OSIWindow();
   ~OSIWindow();
@@ -60,7 +57,10 @@ public:
   short freq;               /// frequency (if used - fullscreen)
   int8 mode;                /// 1= windowed, 2= fullscreen, 3= fullscreen window, 4= full virtual desktop
   OSIMonitor *monitor;      /// on what monitor it is drawn
-
+  
+  // GL RENDERER MUST BE PLACED SOMEWHERE ELSE, NOT IN THE PRIVATE DATA PART
+  
+// internal data from here
 #ifdef OS_WIN
   HGLRC glRenderer;         /// permanent rendering context
   HDC hDC;                  /// private GDI device context
@@ -76,14 +76,13 @@ public:
   Window win;               /// window 'handle' or watever
   XWindowAttributes gwa;    /// window attributes (size/etc)
   
-  GLXContext glRenderer;        /// openGL renderer  <<<<<<<<<<<<<<<<<<<<<<<<<
+  GLXContext glRenderer;    /// openGL renderer  <<<<<<<<<<<<<<<<<<<<<<<<<
   
   bool isMapped;            /// internal flag used when resolution is changing
 
   /// specific linux window propreties functions
   void setWMprop(string8 wmID, string8 wmProp, uint val1, uint val2= 0); /// documentation is @ end of OSinteraction.h
   void setWMstate(uint val, string8 prop1, string8 prop2= (cchar*)0); /// documentation is @ end of OSinteraction.h
- 
 #endif
 
 #ifdef OS_MAC
@@ -98,88 +97,98 @@ public:
 
 // -----------=========== OSINTERACTION CLASS ================------------------
 class OSInteraction {
-  
-
 public:
+  string path;                        /// program path
+  OSIDisplay display;                 /// display class, handles monitors, resolutions
+  OSIWindow win[MAX_WINDOWS];         /// all windows; win[0] is the primary window, it should be created first
+  OSIWindow *primWin;                 /// win[0]; primary window
   uint64 present;   /// present time, updated in checkMSG(), wich should be the first func in a main loop. present MUST BE UPDATED MANUALLY, each frame, if checkMSG() is not called
-  OSInteraction();
-  ~OSInteraction();
-  void delData();   /// called by destructor
-    
-// primaryWindow must be expanded with a bool to be set to middle of screen, eventually to have image of the game
-// or resize / standard buttons if windowed mode is used for the game
-// frequency must be the same 
-  bool primaryGLWindow(string name, int dx, int dy, int8 bpp, int8 mode, short freq= 0); // mode: 1= windowed, 2= fullscreen, 3= fullscreeen window(must research this one), 4= fullscreen virtual desktop (every monitor)
-  bool primaryGLWindow();       // uses data from OSInteraction::ini
+  uint64 eventTime;                   /// each event/msg timestamp/ used internally, to timestamp different messages
 
-// [mode1]: windowed, using size, center screen [mode2] fullscreen [mode3] fullscreen window [mode4] full Virtual Screen window, on ALL MONITORS
-  bool createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int dx, int dy, int8 bpp, int8 mode, short freq= 0);
+// main flags - check these frequently (mainly after a call to checkMSG() )
+  struct OSIFlags {
+    bool haveFocus;                    // program has FOCUS or is in the BACKGROUND
+    bool minimized;                    // program is minimized
+    bool exit;                         // system wants program to CLOSE
+    bool keyPress;                     // a keyboard key is pressed - autoupdates @ checkMSG()
+    bool buttonPress;                  // a mouse button is pressed - autoupdates @ checkMSG()
+  } flags;
 
-
-  bool killPrimaryGLWindow();         /// calls restoreResolution, if in fullscreen
-  void swapPrimaryBuffers();          /// OS dependant
-// opengl funcs 
-  bool killGLWindow(OSIWindow *w);    /// kills a specific opengl window
-  void swapBuffers(OSIWindow *w);     /// swap buffers of specific window
   
-  bool glMakeCurrent(OSIWindow *w);   /// OS independant variant. Pass null, to unmake current
-  bool glCreateRenderer(OSIWindow *w);
-  bool glDestroyRenderer(OSIWindow *w); /// OS independant variant
+  OSInteraction();                    /// lots of inits go here. check cpp file
+  ~OSInteraction();
+  void delData();                     /// called by destructor
 
-// time functions
+  // SYSTEM EVENTS HANDLER: call this in MAIN PROGRAM LOOP
+  
+  bool checkMSG();                    /// checks for OS messages, should be INCLUDED in the MAIN LOOP
+
+  
+// openGL window creation / deletion funcs:
+  
+  // createGLWindow is the main function to use
+  // [mode1]: windowed, using size, center screen [mode2] fullscreen [mode3] fullscreen window [mode4] full Virtual Screen window, on all monitors
+  bool createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int dx, int dy, int8 bpp, int8 mode, short freq= 0);
+  bool killGLWindow(OSIWindow *w);    /// destroys a specific opengl window
+  
+  // next funcs call createGLWindow / killGLWindow; they might make life easier, but nothing more
+  
+  // primaryWindow must be expanded with a bool to be set to middle of screen, eventually to have image of the game
+  // or resize / standard buttons if windowed mode is used for the game
+  // frequency must be the same 
+  bool primaryGLWindow(string name, int dx, int dy, int8 bpp, int8 mode, short freq= 0); // mode: 1= windowed, 2= fullscreen, 3= fullscreeen window(must research this one), 4= fullscreen virtual desktop (every monitor)
+  bool primaryGLWindow();             /// uses data from OSInteraction::ini <<< WIP???
+  bool killPrimaryGLWindow();         /// calls restoreResolution, if in fullscreen
+
+// very usefull functions that will work on all OSes
+  
   void getNanosecs(uint64 *out);      /// performance timer in nanoseconds
   void getMicrosecs(uint64 *out);     /// performance timer in microseconds
   void getMillisecs(uint64 *out);     /// performance timer in miliseconds
+  void exit(int retVal);              /// restores all monitor resolutions & exits. call this instead of _exit() or exit() func
 
-// system events
-  bool checkMSG();                    /// checks for OS messages, should be INCLUDED in the MAIN LOOP
-  uint64 eventTime;                   /// each event/msg timestamp/ used internally, to timestamp different messages
-  /// windows processMSG() is outside class, their callback sucks, as allways
-  #ifdef OS_LINUX
-  void processMSG(); // linux MESSAGE HANDLER variant -don't call it, use OS independent checkMSG()
-  #endif /// OS_LINUX
+// opengl funcs
+  
+  void swapBuffers(OSIWindow *w);     /// swap buffers of specific window
+  void swapPrimaryBuffers();          /// calls swapBuffers, but for primary window (this makes life a little easier)
+  bool glMakeCurrent(OSIWindow *w);   /// OS independant variant. Pass null, to unmake current
   
   
-  string path;                  /// program path
-  void exit(int retVal);
-  
-// all program windows win[0] should be primary (primWin)
-  OSIWindow win[MAX_WINDOWS];   /// all windows, including primary window (win[0])
-  OSIWindow *primWin;           /// win[0]; primary window
+  bool glCreateRenderer(OSIWindow *w);  /// WIP? <<<
+  bool glDestroyRenderer(OSIWindow *w); /// WIP? <<< OS independant variant
 
-  #ifdef OS_WIN
+
+  
+// internals from here on; nothing to bother
 private:
+  #ifdef OS_WIN
+//private:
   LARGE_INTEGER timerFreq;
-public:
+//public:
   string getWinName(HWND h);
-  OSIWindow *getWin(HWND h);          /// returns the OSIWindow that has the specified HWND
+  OSIWindow *getWin(HWND h);          /// [internal] returns the OSIWindow that has the specified HWND
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
-  OSIWindow *getWin(Window *w);       /// returns the OSIWindow that has the specified Window *
+  OSIWindow *getWin(Window *w);       /// [internal] returns the OSIWindow that has the specified Window *
   //void setFullScreen(OSIWindow *w, bool fullScreen);  /// sets _NET_WM_STATE_FULLSCREEN attribute for selected window
   //void sendWMProp(int wmID, int wmProp, bool activate); /// documentation is @ end of OSinteraction.h
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
-  mach_timebase_info_data_t machInfo; /// mac variant of a performance timer. this var holds cpu frequencies & stuff (similar to QuerryPerformance... in win)
-  OSIWindow *getWin(void *w);         /// returns the OSIWindow that has the specified NSWindow *
+  mach_timebase_info_data_t machInfo; /// [internal] mac variant of a performance timer. this var holds cpu frequencies & stuff (similar to QuerryPerformance... in win)
+  OSIWindow *getWin(void *w);         /// [internal] returns the OSIWindow that has the specified NSWindow *
   #endif /// OS_MAC
-  
-  
-  OSIDisplay display;           /// display class, handles monitors, resolutions
-  
-// main flags - check these frequently (mainly after a call to checkMSG() )
-  struct OSIFlags {
-    bool haveFocus;       // program has FOCUS or is in the BACKGROUND
-    bool minimized;       // program is minimized
-    bool exit;            // system wants program to CLOSE
-    bool keyPress;        // a keyboard key is pressed - autoupdates @ checkMSG()
-    bool buttonPress;     // a mouse button is pressed - autoupdates @ checkMSG()
-  } flags;
 
-    
+  /// windows processMSG() is outside class
+  #ifdef OS_LINUX
+  void processMSG(); // linux MESSAGE HANDLER variant -don't call it, use OS independent checkMSG()
+  #endif /// OS_LINUX
+
+  
+
 // nothing to do with this class:
+public:
   bool resizeGLScene(GLsizei dx, GLsizei dy);   // this is NOT OS DEPENDANT<------------ maybe needs to be placed in another class or something    
 };
 
@@ -191,6 +200,7 @@ BOOL CALLBACK monitorData(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor,
 #ifdef OS_MAC
 extern "C" void processMSG(void);   /// declared in OScocoa.mm
 #endif
+
 
 extern OSInteraction osi;   // only 1 global class
 
