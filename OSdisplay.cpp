@@ -8,6 +8,7 @@
 //#include <CoreGraphics.framework/headers/CGDirectDisplay.h>
 #endif /// OS_MAC
 
+
 /*
 #ifdef OS_WIN
 #include <Windows.h>
@@ -583,6 +584,10 @@ bool doChange(OSIWindow *w, OSIMonitor *m, OSIResolution *r, int8 bpp, short fre
   // m= monitor that changed resolution
   // X= all monitors that need to change position (the rest will change if other monitors resolution change)
   
+  // posibility 2: in case none on the left on m, move all monitors on the bottom-left(in case none above them, in that case algorithm stops on that branch), same on the right...
+  //               in case none on bottom, move all monitors on the right-bottom, same on top.
+  //               this will need a pointers to monitors on the left & top
+  
   // * IF THIS ALGORITHM IS NOT ENOUGH, WELL, JUST MANUALLY CHANGE
   //   THE DANG MONITORS, IN LINUX 'CONTROL PANEL' AND THAT'S THAT!
 
@@ -995,12 +1000,6 @@ void OSIDisplay::populate(OSInteraction *t) {
   scr= XRRGetScreenResourcesCurrent(t->primWin->dis, DefaultRootWindow(t->primWin->dis));
   if(chatty) printf("Screen info: outputs= %d; modes= %d; crtcs= %d\n",scr->noutput, scr->nmode, scr->ncrtc);
   
-  /// virtual desktop size
-  vx0= 0; vy0= 0;
-  vdx= DisplayWidth(osi.primWin->dis, 0);
-  vdy= DisplayHeight(osi.primWin->dis, 0);
-  if(chatty) printf("virtual desktop size [%dx%d]\n", vdx, vdy);
-
   /// find the number of connected monitors  
   for(a= 0; a< scr->noutput; a++) {
      out= XRRGetOutputInfo(t->primWin->dis, scr, scr->outputs[a]);
@@ -1033,6 +1032,8 @@ void OSIDisplay::populate(OSInteraction *t) {
       printf("\n");
     }
     
+    
+      
     monitor[b].screen= DefaultScreen(t->primWin->dis);;  // can it be possible anymore to be a different value???
     monitor[b].root= RootWindow(t->primWin->dis, monitor[b].screen);
     monitor[b].outID= scr->outputs[a];
@@ -1044,6 +1045,9 @@ void OSIDisplay::populate(OSInteraction *t) {
     monitor[b].original.dy= crtc->height;
     monitor[b].original.resID[0]= crtc->mode; /// this is the only use
     monitor[b].original.rotation= crtc->rotation;
+    
+    
+    
     if((crtc->x== 0) && (crtc->y== 0)) {      /// primary monitor is in position 0, 0
       // there's XRRGetOutputPrimary() if 0,0 is a bad ideea
       monitor[b].primary= true;
@@ -1098,7 +1102,7 @@ void OSIDisplay::populate(OSInteraction *t) {
           out2= XRRGetOutputInfo(t->primWin->dis, scr, crtc->outputs[d]);
         
           found2= false;                      /// start with false(res not found in out2), mark as true if found
-        
+          
           for(e= 0; e< out2->nmode; e++)       // for each mode in out2
             if(out->modes[c]== out2->modes[e])
               found2= true;
@@ -1120,7 +1124,7 @@ void OSIDisplay::populate(OSInteraction *t) {
     RRMode *tmp2= new RRMode[tmpSize];        // temporary array, will be populated without duplicate sizes in tmp
     short tmp2Size= 0;
     XRRModeInfo *i, *j;
-
+    
     for(c= 0; c< tmpSize; c++) {              // for each element in tmp (eliminate duplicate sizes)
       if(c!= 0) {
         /// if last res size was the same as this one, skip it
@@ -1216,6 +1220,9 @@ void OSIDisplay::populate(OSInteraction *t) {
   
   XRRFreeScreenResources(scr);
   
+  
+
+  
   if(chatty)
     for(a= 0; a< nrMonitors; a++)
       for(b= 0; b< monitor[a].nrRes; b++) {
@@ -1224,6 +1231,54 @@ void OSIDisplay::populate(OSInteraction *t) {
           printf(" %d[id%lu]", monitor[a].res[b].freq[c], monitor[a].res[b].resID[c]);
         printf("\n");
       }
+
+  
+  
+  
+  /// if xinerama is not present... at least do a sketchy list of IDs
+  /// i found that xinerama has the exact oposite order for the monitors as XRandr
+  /// (i might be wrong, but if it is not installed, this is a dud anyway)
+  for(a= nrMonitors- 1; a>= 0; a--)
+    monitor[a].XineramaID= a;
+  
+  
+  
+    
+  /// try to get the XineramaID for the monitor (this is the only thing Xinerama is used for)
+  int dummy1, dummy2, heads;
+  
+  if(!XineramaQueryExtension(osi.primWin->dis, &dummy1, &dummy2)) {
+    error.console("No Xinerama extension");
+    return;
+  }
+  
+  if(!XineramaIsActive(osi.primWin->dis)) {
+    error.console("Xinerama not active");
+    return;
+  }
+
+  XineramaScreenInfo *xi= XineramaQueryScreens(osi.primWin->dis, &heads);
+  
+  for (a= 0; a< heads; a++) {
+    if(chatty) printf("XINERAMA: monitor[%d/%d]: size[x y] position[%dx %dy]\n", a, heads, xi[a].x_org, xi[a].y_org);
+    for(b= 0; b< nrMonitors; b++) {
+      if(xi[a].x_org== monitor[b].x0 && xi[a].y_org== monitor[b].y0) {
+        monitor[b].XineramaID= a;
+        printf("monitor[%d] xineramaID[%d]\n", b, monitor[b].XineramaID);
+      }
+    }
+  }
+  
+  XFree(xi);
+  
+    /// virtual desktop size
+  updateVirtualDesktop();
+//  vx0= 0; vy0= 0;
+//  vdx= DisplayWidth(osi.primWin->dis, 0);
+//  vdy= DisplayHeight(osi.primWin->dis, 0);
+  if(chatty) printf("virtual desktop size [%dx%d]\n", vdx, vdy);
+  
+  
   
   
   
@@ -1677,15 +1732,39 @@ void updateVirtualDesktop() {
   osi.display.vdx= osi.display.primary->dx;
   osi.display.vdy= osi.display.primary->dy;
   
+  #ifdef OS_LINUX
+  /// linux has _NET_WM_FULLSCREEN_MONITORS (http://standards.freedesktop.org/wm-spec/wm-spec-latest.html)
+  /// top, bottom, left, right monitors are all Xinerama monitor IDs, and must be found here
+  osi.display.left= osi.display.top= osi.display.primary->XineramaID;
+  osi.display.right= osi.display.bottom= osi.display.primary->XineramaID;
+  #endif 
+  
+  
   for(short a= 0; a< osi.display.nrMonitors; a++) {                             /// for each monitor
-    if(osi.display.monitor[a].x0< osi.display.vx0)                              /// <<
+    if(osi.display.monitor[a].x0< osi.display.vx0) {                            /// <<
       osi.display.vx0= osi.display.monitor[a].x0;
-    if(osi.display.monitor[a].y0< osi.display.vy0)                              /// ^^
+      #ifdef OS_LINUX
+      osi.display.left= osi.display.monitor[a].XineramaID;
+      #endif
+    }
+    if(osi.display.monitor[a].y0< osi.display.vy0) {                            /// ^^
       osi.display.vy0= osi.display.monitor[a].y0;
-    if(osi.display.monitor[a].x0+ osi.display.monitor[a].dx> osi.display.vdx)   /// >>
+      #ifdef OS_LINUX
+      osi.display.top= osi.display.monitor[a].XineramaID;
+      #endif
+    }
+    if(osi.display.monitor[a].x0+ osi.display.monitor[a].dx> osi.display.vdx) { /// >>
       osi.display.vdx= osi.display.monitor[a].x0+ osi.display.monitor[a].dx;
-    if(osi.display.monitor[a].y0+ osi.display.monitor[a].dy> osi.display.vdy)   /// vv
+      #ifdef OS_LINUX
+      osi.display.right= osi.display.monitor[a].XineramaID;
+      #endif
+    }
+    if(osi.display.monitor[a].y0+ osi.display.monitor[a].dy> osi.display.vdy) { /// vv
       osi.display.vdy= osi.display.monitor[a].y0+ osi.display.monitor[a].dy;
+      #ifdef OS_LINUX
+      osi.display.bottom= osi.display.monitor[a].XineramaID;
+      #endif
+    }
   } /// for each monitor
 }
 

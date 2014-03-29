@@ -26,7 +26,7 @@
 #define MAX_KEYBOARD_KEYS 256
 #define MAX_MOUSE_BUTTONS 16
 #define MAX_JOYSTICK_BUTTONS 32
-#define MAX_KEYS_LOGGED 8
+#define MAX_KEYS_LOGGED 16
 #define MAX_JOYSTICKS 20          /// nr of maximum joysticks/gamepads/gamewheels, NOT JUST JOYSTICKS
 
 
@@ -89,86 +89,78 @@ private:
 
 // --------------============= KEYBOARD CLASS ============--------------
 class Keyboard {
-  uchar buffer1[MAX_KEYBOARD_KEYS], buffer2[MAX_KEYBOARD_KEYS];   /// used for the key / lastCheck. buffers are swapped with pointers, so no copying is involved
-
-//  ulong charBuffer[256];        /// character buffer - used for input - strings / single chars
-//  short nrCharsInBuffer;        /// nr of chars in charBuffer[]
-//  ulong manipBuffer[256];       /// string manip char buffer - arrow keys, delete backspace, enter etc
-//  short nrManipsInBuffer;       /// nr of chars in manipBuffer[]
-
 public:
-  bool init(short mode= 1);     // [MODE1]: OS events (default)  [MODE2]: manual update()  [MODE3]: directinput  [MODE4]: windows raw data
+  short mode;                   // [MODE1]: OS events (default)  [MODE2]: manual update()  [MODE3]: directinput  [MODE4]: windows raw data
+  
   void update();                /// MAIN LOOP FUNC: updates keys pressed array (key[] / lastCheck[])  (maybe toggle the locks? - N/A ATM)
 
-  short mode;                   // [MODE1]: OS events (default)  [MODE2]: manual update()  [MODE3]: directinput  [MODE4]: windows raw data
+  /// use Input::Kv structure if you need to find a certain key. EX: in.k.key[Kv.enter] is the enter key status (pressed or not pressed)
   uchar *key;                   // all keys button status - it points to buffer1/buffer2. there is a clever swap between the two buffers, so there is no copying involved
   uint64 keyTime[256];          /// time @ key started to be pressed
   uchar *lastCheck;             /// holds what the last time the keys were checked button press info - points to 1 of the buffers
-  bool capsLock, scrollLock, numLock;     /// the 3 toggle locks
-
+  bool capsLock, scrollLock, numLock;     /// the 3 toggle locks <<< there are other 'locks'... on foreign keyboards
+  
+  
   struct KeyPressed {
-    int code;                   /// scan code of the keyboard key. hopefully, these codes are os independant
-    bool checked;               /// checked & lastKey[] used for mortal kombat style of keyboard check (3 buffer keys for slow pc/ unhandled drop in framerate)
-    uint64 timeDown, timeUp, timeDT;   /// if a key is down, it has a time& timeDown is not 0 (same with timeUp) timeDT= time delta
+    int code;                   /// scan code of the keyboard key (Input::Kv structure has all the keyboard key codes for each os)
+    bool checked;               /// checked & lastKey[] used for mortal kombat style of keyboard check
+    uint64 timeDown, timeUp, timeDT;   /// when the key was pressed & released and for how long it was pressed (timeDT) (timeUp & timeDT can be 0, indicating the key is still down)
+    
     KeyPressed(const KeyPressed &o): code(o.code), checked(o.checked), timeDown(o.timeDown), timeUp(o.timeUp), timeDT(o.timeDT) {};
-    KeyPressed() {code= 0; checked= false; timeDown= timeUp= timeDT= 0; }
-  }lastKey[MAX_KEYS_LOGGED];     /// history of keys pressed
-
-
-// to be or not to be - THIS REALLY SEEMS ARE USELESS (31.01.2014)
-//  uint repeat[256];             /// how many times a character was repeated (usually this is done with WM_CHAR. if linux dont have a WM_CHAR, it might be used)
-//  inline int getRepeat(int key) { uint t= repeat[key]; repeat[key]= 0; return t; }
-// these might be useless ^^^
-
-
+    KeyPressed(): code(0), checked(false), timeDown(0), timeUp(0), timeDT(0) {}
+  }lastKey[MAX_KEYS_LOGGED];     /// history of keys pressed - using this history, it is possible to make a Mortal Kombat combo check - like game (it has every needed variable & time for each key press&release)
 
 // character input/ character manipulation keys (enter/arrows/del/etc)
-  class chTyped:public segData {/// uses the segment chainlist, check constructor in Keyboard()
+  class chTyped:public segData {/// uses the segment chainlist class(segList.cpp/h), check constructor in Keyboard()
   public:
-    ulong c;
-    uint64 time;
+    ulong c;                    /// character typed (unicode); call getChar() to get the first character typed (it removes it from the list too)
+    uint64 time;                /// time when the character was typed
   };
 
-// in charTyped.nrNodes / manipTyped.nrNodes is the nr of chars waiting to be processed (they get auto-del after 1-2 secs if not processed)
+  /// in charTyped.nrNodes / manipTyped.nrNodes is the nr of chars waiting to be processed (they get auto-del after 1-2 secs if not processed)
   segList charTyped;            /// list with chars typed. charTyped::nrNodes has nr of chars waiting to be 'read'. dimensions: [size:32, unitsize sizeof(chTyped)];
   segList manipTyped;           /// list with string manip chars (arrow keys, backspace, del, enter, etc)
 
-// the main functions to call to get a char / string manip char
-  ulong getChar();              /// returns a character typed @ keyboard or null or nothing is typed. (call it until it returns 0, or for each charTyped.nrNodes)
-  ulong getManip();             /// returns a str manip key press. call it until (call it until it returns 0, or for each charTyped.nrNodes)
-  void clearTypedBuffer();      /// clear both typed chars buffers (might want to clear them before a new input box, dunno) CLEAR THEM ON ALT-TAB TOO!!!!!!!!
-
-
-// --- nothing to bother from this point on (usually) ---
-  void addChar(ulong c, uint64 *time);  /// internal. used in WM_CHAR message... nothing to bother
-  void addManip(ulong c, uint64 *time); /// internal. string manipulation keys - enter/del/arrow keys/etc
-  void doManip();                       /// internal, OSchar.cpp. checks if current keys pressed form a char manip, if they do, calls addManip() 
-
-  inline void swapBuffers();    /// swaps what key and lastKey point to (so no copying is involved)
-
-
-/// more keyboard funcs, usually nothing to bother here, these are being used by OSInteraction
+  /// the main functions to call to get a char / string manip char
+  ulong getChar();              /// returns a character typed @ keyboard or null if nothing is typed. (call it until it returns 0, or for each charTyped.nrNodes)
+  ulong getManip();             /// returns a str manip key press. (call it until it returns 0, or for each manipTyped.nrNodes)
+  void clearTypedBuffer();      /// clears all character buffers, ususally called when switching to a new/ existing input box / control
+  
+// useful functions
+  void resetButtons();          /// call after losing program focus / need to reset all keys / fixes history of pressed keys too (lastkey[])
   bool aquire();                /// call after gaining focus (alt-tab...)
   bool unaquire();              /// call after losing focus (alt-tab...)
-  void resetButtons();          /// call after losing focus too... if a key is pushed while alt-tabbing or somthing else, all keys that are pressed get messed up
-  void updateLocks();           /// updates all the locks (caps, num, scroll)
+  void updateLocks();           /// updates all the locks (caps, num, scroll) - autocalled by system event handler, but can be called when manually updating keyboard
+  // <<< ON SOME KEYBOARDS THIS MUST BE UPDATED TO HANDLE SPECIAL LOCK KEYS >>>
+  
+// --- NOTHING TO BOTHER from this point on (usually) ---
+  bool init(short mode= 1);      // see 'mode' var; can be used to initialize direct input, otherwize, use Input::init()
+  void log(const KeyPressed &); /// [internal] just puts the last key in the last key-history (it logs imediatly when a key is down)
+  void addChar(ulong c, uint64 *time);  /// [internal] used in WM_CHAR message... nothing to bother
+  void addManip(ulong c, uint64 *time); /// [internal] string manipulation keys - enter/del/arrow keys/etc
+  void doManip();                       /// [internal] OSchar.cpp. checks if current keys pressed form a char manip, if they do, calls addManip() 
+  inline void swapBuffers();    /// swaps what key and lastKey point to (so no copying is involved)
 
-  void log(const KeyPressed &); /// used internally, just puts the last key in the last key-history (it logs imediatly when a key is down)
-  //void logd(const KeyDown &);   /// used internally, puts keydown in keydown history
-
-
-  // TESTING
-  short getFirstKey();
-  void printPressed();
-
-
+  Keyboard();
+  ~Keyboard();
+  void delData();               /// standard dealloc func / called by destroyer
+  
+private:
+  uchar buffer1[MAX_KEYBOARD_KEYS], buffer2[MAX_KEYBOARD_KEYS];   /// used for the key / lastCheck. buffers are swapped with pointers, so no copying is involved
+  
   #ifdef USING_DIRECTINPUT
   LPDIRECTINPUTDEVICE8 diDevice;
   #endif /// USING_DIRECTINPUT
 
-  Keyboard();
-  ~Keyboard();
-  void delData();
+// TESTING 
+  short getFirstKey();
+  void printPressed();
+  
+// to be or not to be - THIS REALLY SEEMS ARE USELESS (31.01.2014) maybe if extending to ps4/xbone...
+//  uint repeat[256];             /// how many times a character was repeated
+//  inline int getRepeat(int key) { uint t= repeat[key]; repeat[key]= 0; return t; }
+// these might be useless ^^^
+// /TESTING
 };
 
 
@@ -213,7 +205,7 @@ public:
 
 // functions
 
-  void update();                  /// main update func
+  void update(short id);          /// MAIN UPDATE FUNC (for every type of stick/pad/wheel)
   void aquire();                  /// exclusive control of the device (if possible)
   void unaquire();                /// lose exclusive control of the device
   void resetButtons();            /// clears all button buffers & resets logged buttons (used in case of alt-tab or something similar)

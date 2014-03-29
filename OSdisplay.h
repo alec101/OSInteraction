@@ -31,6 +31,7 @@ public:
 // ---------------==============DISPLAY CLASS=================--------------- //
 ///--------------------------------------------------------------------------///
 class OSIDisplay {
+  friend class OSInteraction;
 public:
 // call this at PROGRAM START
   void populate(OSInteraction *t);       // call this once to populate everything
@@ -55,11 +56,15 @@ public:
   bool changePrimary(short dx, short dy, int8 bpp, short freq= 0);      /// change primary display& primary monitor resolution (calls changeRes, nothing more)
   void restorePrimary();
 
-  bool isRendererInUse(uint glRender);            /// WIP check if the renderer is in use on other windows (if not in use anymore, it can be destroyed)
+  bool isRendererInUse(uint glRender);  /// WIP check if the renderer is in use on other windows (if not in use anymore, it can be destroyed)
  
   OSIDisplay();
   ~OSIDisplay();
-  void delData();             // called by destroyer -standard
+  void delData();                       // called by destroyer -standard
+
+  #ifdef OS_LINUX
+  int top, bottom, left, right;         /// [internal] used for _NET_WM_FULLSCREEN_MONITORS. check populate(), end of linux part
+  #endif /// OS_LINUX
 };
 
 
@@ -115,6 +120,7 @@ struct OSIMonitor {
 
   #ifdef OS_LINUX
   GLXContext glRenderer;    /// oGL rendering context      <<<<<THIS NEEDS A PROPER CODE POSITION>>>>> here might be too obscured
+  int XineramaID;           /// [internal] used only for _NET_WM_FULLSCREEN_MONITORS, it is found in display.populate() @ end of linux part
   #endif /// OS_LINUX
 
   #ifdef OS_MAC

@@ -240,10 +240,10 @@ int main() {
   
   osi.display.populate(&osi);     // check all monitors/ resolutions/ etc
 
-  //osi.createGLWindow(&osi.win[0], &osi.display.monitor[0], "window 0", 400, 400, 32, 1);
+  osi.createGLWindow(&osi.win[0], &osi.display.monitor[0], "window 0", 400, 400, 32, 1);
   //osi.createGLWindow(&osi.win[0], &osi.display.monitor[0], "window 0", 1024, 768, 32, 2);
   //osi.createGLWindow(&osi.win[1], &osi.display.monitor[0], "window 2", 400, 400, 32, 3);
-  osi.createGLWindow(&osi.win[0], &osi.display.monitor[0], "window 0", 400, 400, 32, 4);
+  //osi.createGLWindow(&osi.win[0], &osi.display.monitor[1], "window 0", 400, 400, 32, 4);
 
   //osi.createGLWindow(&osi.win[2], &osi.display.monitor[1], "window 3", 400, 400, 32, 1);
 
@@ -276,12 +276,10 @@ int main() {
     //in.k.update();   /// keyboard update
     //in.k.updateLocks();
 
-    //in.j[0].update();
+//    in.j[0].update();
 
-    //    in.update();
+    in.update();
 
-    if(osi.flags.exit)
-      break;
 
     if(osi.flags.haveFocus)
       for(short a= 0; a< MAX_WINDOWS; a++)
@@ -295,20 +293,24 @@ int main() {
     
     if(in.k.key[in.Kv.esc] || (in.k.key[in.Kv.lalt] && in.k.key[in.Kv.f4]))
       osi.exit(0);
+    if(osi.flags.exit)
+      osi.exit(0);
 
+      
     #ifdef OS_WIN
     COORD pos= {0,0};
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), pos);
     #else /// OS_LINUX & OS_MAC
-    //printf("\x1b[H");      // should set cursor position to '0,0' or whatever home means
+    printf("\x1b[H");      // should set cursor position to '0,0' or whatever home means
     #endif /// OS_LINUX & MAC
+    
     /*
     ulong c= in.k.getChar();
     if(c) {
       string s(c);
       printf("%s ", s.d);
     }
-    
+    */
     
     printf("mouse: %05dx %05dy %dl %dr %dm %dx1 %dx2 % dw %d %d %d %d \n", in.m.x, in.m.y, in.m.b[0].down, in.m.b[1].down, in.m.b[2].down, in.m.b[3].down, in.m.b[4].down, in.m.getWheelDu(), in.m.b[5].down, in.m.b[6].down, in.m.b[7].down, in.m.b[8].down);
     printf("last keyboard keys: %03d %03d %03d\n", in.k.lastKey[0].code, in.k.lastKey[1].code, in.k.lastKey[2].code);
@@ -330,7 +332,7 @@ int main() {
     
     printf("\n");
     //    printf("ZE QUESTION: [%d] [%d]\n", osi.display.monitor[0].glRenderer, osi.display.monitor[1].glRenderer);
-    */
+    
     
     #ifdef OS_LINUX
     /*
@@ -787,27 +789,30 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
     //   with  _NET_WM_STATE_SKIP_TASKBAR
 
   }
-
+  
   /// fullscreen mode linux specific msgs settings
   //XMoveWindow(w->dis, w->win, w->x0, w->y0);
-  if((mode== 2) || (mode== 3))
+  if((mode== 2) || (mode== 3) || (mode== 4))
     w->setWMstate(1, "_NET_WM_STATE_FULLSCREEN");
+  
   if(mode== 4) {
     Atom fullmons = XInternAtom(w->dis, "_NET_WM_FULLSCREEN_MONITORS", False);
     XEvent xev;
-    for(short a= 0; a< sizeof(xev); a++) ((char*)(&xev))[a]= 0;
+    for(short a= 0; a< sizeof(xev); a++) ((char*)&xev)[a]= 0;
     xev.type = ClientMessage;
     xev.xclient.window= w->win;
     xev.xclient.message_type = fullmons;
     xev.xclient.format = 32;
-    xev.xclient.data.l[0] = 0; // your topmost monitor number
-    xev.xclient.data.l[1] = 0; // bottommost
-    xev.xclient.data.l[2] = 0; // leftmost
-    xev.xclient.data.l[3] = 0; // rightmost
-    xev.xclient.data.l[4] = 0; // source indication
     
-    WIP
-      
+    /// the next values are found in OSdisplay.cpp, updateVirtualDesktop() (back of file)
+    /// Xinerama IDs are found in display.populate(), linux part, at the end
+    xev.xclient.data.l[0]= display.top;     /// topmost monitor number (Xinerama monitor ID)
+    xev.xclient.data.l[1]= display.bottom;  /// bottommost
+    xev.xclient.data.l[2]= display.left;    /// leftmost
+    xev.xclient.data.l[3]= display.right;   /// rightmost
+    printf("top[%d] left[%d] bottom[%d] right[%d]\n", display.top, display.left, display.bottom, display.right);
+    xev.xclient.data.l[4]= 1;               /// source indication (1 for normal applications, 2 for pagers and other Clients that represent direct user actions)
+    
     XSendEvent (w->dis, DefaultRootWindow(w->dis), False,
                     SubstructureRedirectMask | SubstructureNotifyMask, &xev);
   }
@@ -1481,6 +1486,7 @@ void OSInteraction::processMSG()  {
 
 // ############################ KEYBOARD EVENTS ############################# //
 
+// ---------------================ KEY PRESS ================-------------------
     } else if(event.type == KeyPress) {
       if(in.k.mode!= 1) continue;         /// only keyboard in [mode 1]
       
@@ -1733,6 +1739,8 @@ void OSInteraction::processMSG()  {
                 flags.minimized= true;
               }
             } /// if window is created
+        
+        /// clear every button / key buffer / fix history for every button
         in.k.clearTypedBuffer();
         in.resetPressedButtons();
         

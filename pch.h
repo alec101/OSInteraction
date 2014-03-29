@@ -7,7 +7,7 @@
 
 // put [..] [../source] [../../!utilClasses] in your include directories
 
-// LINUX libraries: [GL] [GLU] [Xrandr]    ([Xi] is scraped)
+// LINUX libraries: [GL] [GLU] [Xrandr] [Xinerama]   ([Xi] is scraped)
 // WIN libs: [opengl32] [glu32] 
 //           [winmm]:            crude windows joystick support
 //           [dinput8] [dxguid]: if using direct input (+ #define USING_DIRECTINPUT)
@@ -26,26 +26,27 @@
 // sudo apt-get install libglu1-mesa-dev   GL/glu.h - openGL simple utils (glut should be avoided)
 //   or the freeglu one
 // sudo apt-get install libxrandr-dev      used for resolution changes
-// !NOT USED! sudo apt-get install libxi-dev          !NOT USED! (used for joysticks but it is too old)
+// sudo apt-get install libxinerama-dev    used just for monitor numbers on _NET_WM_FULLSCREEN_MONITORS. maybe there's another way to find these numbers...
+// !NOT USED! sudo apt-get install libxi-dev          !NOT USED! (might be used for joysticks but it is too old)
 
 #pragma once
 
 #ifdef OS_WIN
-  #define USING_DIRECTINPUT 1
-  #define USING_XINPUT
+#define USING_DIRECTINPUT 1
+#define USING_XINPUT
 //#define _WIN32_WINNT 0x05010000
 //#define WINVER 0x0501
 
-  #include "targetver.h"
-  #include <Windows.h>
-  #include <mmsystem.h>
-  #ifdef USING_DIRECTINPUT
-    #define DIRECTINPUT_VERSION 0x0800
-    #include <dinput.h>
-  #endif
-  #ifdef USING_XINPUT
-    #include <../../dxSDK2010j/Include/XInput.h>
-  #endif
+#include "targetver.h"
+#include <Windows.h>
+#include <mmsystem.h>
+#ifdef USING_DIRECTINPUT
+  #define DIRECTINPUT_VERSION 0x0800
+  #include <dinput.h>
+#endif
+#ifdef USING_XINPUT
+  #include <../../dxSDK2010j/Include/XInput.h>
+#endif
 #endif /// OS_WIN
 
 
@@ -63,22 +64,22 @@
 #endif 
 
 #ifdef OS_LINUX
-  #include <unistd.h>
-  #include <time.h>  
-//#include <locale.h>
-  #include <X11/X.h>
-  #include <X11/Xlib.h>
-  #include <X11/XKBlib.h>
-  #include <X11/keysym.h>
-  #include <X11/keysymdef.h>
-  #include <X11/extensions/Xrandr.h>
-//  #include <X11/extensions/XInput.h>
-//  #include <X11/extensions/XInput2.h>
+#include <unistd.h>
+#include <time.h>  
+#include <X11/X.h>
+#include <X11/Xlib.h>
+#include <X11/XKBlib.h>
+#include <X11/keysym.h>
+#include <X11/keysymdef.h>
+#include <X11/extensions/Xrandr.h>
+#include <X11/extensions/Xinerama.h>
+//#include <X11/extensions/XInput.h>
+//#include <X11/extensions/XInput2.h>
 
-  #include <linux/joystick.h>   // it's not x stuff... lots of crap added, keyboard/mouse, that is not needed. IT'S POSSIBLE TO AVOID THIS HEADER, only some function definitions are needed.
-  #include <fcntl.h>            // same with this. only some stuff is needed, needs doublechecking
+#include <linux/joystick.h>   // it's not x stuff... lots of crap added, keyboard/mouse, that is not needed. IT'S POSSIBLE TO AVOID THIS HEADER, only some function definitions are needed.
+#include <fcntl.h>            // same with this. only some stuff is needed, needs doublechecking
 
-  #include <GL/glx.h>
+#include <GL/glx.h>
 #endif /// OS_LINUX
 
 #ifdef OS_MAC

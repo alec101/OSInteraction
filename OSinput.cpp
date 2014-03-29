@@ -358,6 +358,10 @@ void Input::populate(bool scanMouseKeyboard) {
   nr.jOS= 0;
 
   #ifdef OS_WIN
+  /// disable all 
+  for(short a= 0; a< 8; a++)
+    j[a].mode= gp[a].mode= gw[a].mode= 0;
+  
   int b= joyGetNumDevs();
   if(joyGetNumDevs()) {     /// if this func doesn't return a positive number, there is no driver installed
     change me (max 8 joysticks)
@@ -413,6 +417,11 @@ void Input::populate(bool scanMouseKeyboard) {
   
   bool chatty= true;
   
+  /// set everything on 'DISABLED'
+  for(short a= 0; a< 8; a++)                          // <<< 8 limit
+    j[a].mode= gp[a].mode= gw[a].mode= 0;
+  
+  
   int f;
   int version, axes= 0, buttons= 0;
   char name[128];
@@ -462,14 +471,14 @@ void Input::populate(bool scanMouseKeyboard) {
   #endif /// OS_LINUX
   
   #ifdef OS_MAC
+  /// mac uses calback functions. check HIDadded() / HIDremoved() at the end of this file
   #endif /// OS_MAC
+
   
   /// all joys/gp/gw will have same directinput/xinput drivers
   // ---===GAMEPAD SCAN===---
 
   // ---===GAMEWHEEL SCAN===---
-
-
 }
 
 // resets all buttons for all devices- usually called on alt/tab - cmd/tab or something similar
@@ -486,190 +495,28 @@ void Input::resetPressedButtons() {
 
 
 void Input::update() {
-  //  getDIgp(0)->update();
-  // for (each gamepad if it is active, update?)
-  // same for everything else
-  // need an "active" or "inUse" bool
+  /// update mouse
+  if(m.mode!= 1)
+    m.update();
   
-  // !!!!
-  // types have changed, so same code can be used on every os
-  // a type should have a name (direct input/xinput/os blabla), to pass to the program
-  // !!!!
+  /// update keyboard
+  if(k.mode!= 1)
+    k.update();
   
-  #ifdef OS_LINUX
-  /// [MODE 1] joysticks/ gpads/ gwheels
-  int n= -1, nev;
-  js_event ev[64];
+  /// update system handled sticks/pads/wheels
+  if(nr.jOS)
+    for(short a= 0; a< 8; a++)
+      j[a].update(a);
   
-  for(short a= 0; a< nr.jOS; a++) {       // for all active joysticks
-
-ReadAgain:
-    /// read as many events as possible in 1 go
-    n= read(j[a].file, ev, sizeof(ev));
-      
-    if(n== -1)                            /// no event happened
-      continue;
-
-    nev= n/ sizeof(js_event);             /// nr of events read
-      
-    for(short b= 0; b< nev; b++) {         // for each event
-      ev[b].type&= ~JS_EVENT_INIT;        /// disable the init flag... no use i can think of ATM
-        
-        
-      if(ev[b].type == JS_EVENT_BUTTON) {  // ---=== button event ===---
-        j[a].b[ev[b].number]=  (uchar)ev[b].value;
-        gp[a].b[ev[b].number]= (uchar)ev[b].value;
-        gw[a].b[ev[b].number]= (uchar)ev[b].value;
-        
-        if(ev[b].value== 1) {             /// press
-          j[a].bTime[ev[b].number]= ev[b].time;
-          gp[a].bTime[ev[b].number]= ev[b].time;
-          gw[a].bTime[ev[b].number]= ev[b].time;
-        } else {                          /// release
-          /// put the button in history
-          ButPressed p;
-          p.b= ev[b].number;
-          p.checked= false;
-          p.timeDown= j[a].bTime[ev[b].number];
-          p.timeUp= ev[b].time;
-          p.timeDT= p.timeUp- p.timeDown;
-          
-          j[a].log(p);
-          gp[a].log(p);
-          gw[a].log(p);
-        }
-          
-      } /// button event
-        
-        
-        
-      if(ev[b].type== JS_EVENT_AXIS) {     // ---=== axis event ===---
-        /// axis order...
-        
-        // possible to make a[MAX_AXIS] and x/y/rudder/etc would be refrences to a[]
-        switch (ev[b].number) {
-                                          // [JOYSTICK]  / [GAMEPAD]   / [GAMEWHEEL]
-          case 0:                         // [X axis?]   / [l stick X] / [wheel???]
-            gp[a].lx= ev[b].value;
-            
-            break;
-          case 1:                         // [Y axis?]   / [l stick Y] / [wheel???]
-            gp[a].ly= ev[b].value;
-            
-            break;
-          case 2:                         // [Throttle?] / [r stick X] / [wheel???]
-            gp[a].rx= ev[b].value;
-            
-            break;
-          case 3:                         // [extra1 X?] / [l trigger] / [wheel???]
-            gp[a].lt= ev[b].value;
-            
-            break;
-          case 4:                         // [extra1 Y?] / [r trigger] / [wheel???]
-            gp[a].rt= ev[b].value;
-            
-            break;
-          case 5:                         // [Rudder?]   / [rStick Y]  / [wheel???]
-            gp[a].ry= ev[b].value;
-            
-            break;
-          case 6:                         // [POV X?]    / [POV X]     / [wheel???]
-          case 7:                         // [POV Y?]    / [POV Y]     / [wheel???]
-            long x, y;          // they gotta be integers for exact 0 degrees or 90 degrees, else there are problems
-            double pov;
-            
-            /// get axis from current pov position (wich is in degrees)
-            pov= j[a].pov;
-            x= y= 0;
-            
-            if(j[a].pov!= -1) {           /// ... only if it's not on -1 position (nothing selected)
-              x= (double)(32767.0* sin(j[a].pov* (M_PI/ 180.0)));
-              y= (double)(32767.0* cos(j[a].pov* (M_PI/ 180.0)));
-            }
-            
-            /// update from event
-            if(ev[b].number== 6)          /// x axis event
-              x= ev[b].value;
-            else                          /// y axis event
-              y= -ev[b].value;
-            
-            /// find pov in degrees; there have to be checks for each quadrant, unfortunatelly (bad for speed)
-            if(y> 0) {
-              if(x>= 0)
-                pov= (double) ((atan(x/ y))* (180.0/ M_PI));
-              else
-                pov= (double) ((2* M_PI+ atan(x/ y))* (180.0/ M_PI));
-            } else if(y< 0) {
-              pov= (double) (( M_PI+ atan(x/ y))* (180.0/ M_PI));
-              
-            } else if(y == 0) {
-              if(x== 0)
-                pov= -1;
-              else if(x> 0)
-                pov= 90;
-              else if(x< 0)
-                pov= 270;
-            }
-            
-            /// pov found @ this point
-            j[a].pov= pov;
-            gp[a].pov= pov;
-            // gw is not set<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-            
-            break;
-          case 8:                         // [u axis]    / [u axis]    / [u axis]
-            //gp[a].u= ev[b].value;
-            
-            break;
-          case 9:                         // [v axis]    / [v axis]    / [v axis]
-            //gp[a].v= ev[b].value;
-            
-          case 10:
-            gp[a].lx= ev[b].value;
-          case 11:
-            gp[a].ly= ev[b].value;
-          case 12:
-            gp[a].rx= ev[b].value;
-          case 13:
-            gp[a].ry= ev[b].value;
-            
-            break;
-            
-        }
-      } /// axis event
-
-    } /// for each event
-      
-    // did it actually read 64 events? read another 64 then...
-    if(nev == 64)
-      goto ReadAgain;
-    
-    
-  } /// for all active joysticks
+  /// update [type 2] sticks/pads/wheels
+  if(nr.jT2)
+    for(short a= 8; a< 16; a++)
+      j[a].update(a);
   
-  #endif /// OS_LINUX
-
-  #ifdef USING_XINPUT //          ---- msdn copy/paste ...
-  DWORD dwResult;    
-  for(DWORD i= 0; i< XUSER_MAX_COUNT; i++ ) {
-    XINPUT_STATE state;
-    ZeroMemory(&state, sizeof(XINPUT_STATE));
-
-    /// Simply get the state of the controller from XInput.  
-    dwResult= XInputGetState(i, &state);
-
-    if(dwResult == ERROR_SUCCESS)
-      printf("XInput controller %d CONNECTED\n", i);
-    else
-      printf("XInput controller %d NOT connected\n", i);
-  }
-  #endif /// USING_XINPUT
-
-  #ifdef USING_DIRECTINPUT
-  #endif /// USING_DIRECTINPUT
-  
-  // mac has callback functions for stick/pad/wheel updates, they are at the back of the file
-
+  /// update [type 3] sticks/pads/wheels
+  if(nr.jT3)
+    for(short a= 16; a< 20; a++)
+      j[a].update(a);
 }
 
 
@@ -681,7 +528,12 @@ BOOL CALLBACK diDevCallback(LPCDIDEVICEINSTANCE inst, LPVOID extra) {
   hr= in.dInput->CreateDevice(inst->guidInstance, &in.getDIj(n)->diDevice, NULL);
   if (FAILED(hr))
     return DIENUM_CONTINUE;
-
+  
+  
+  !!! this is not ok. find the first joystick not in use (9-16) and st mode to 2
+    also, if a stick is unplugged, then what? this do happen and must be handled
+      
+    
   in.getDIgp(n)->diDevice= in.getDIgw(n)->diDevice= in.getDIj(n)->diDevice;
 
   in.nr.jDI++;
@@ -841,10 +693,10 @@ void Mouse::update() {
 /// os events: nothing to update, atm (i cant think of anything anyways)
   if(mode== 1) {
 
-  }
+  
 
 /// manual update mode
-  if(mode== 2) {
+  } else if(mode== 2) {
     #ifdef OS_WIN
 
     /// mouse position
@@ -898,12 +750,13 @@ void Mouse::update() {
     #ifdef OS_MAC       // <-----------------------------------
 //    makeme
     #endif /// OS_MAC
-  }
 
-  /// direct input
-  #ifdef USING_DIRECTINPUT           /// skip some checks. only mode 1 works atm in linux
-  if(mode== 3) {
     
+    
+  } else if(mode== 3) {
+
+    /// direct input
+    #ifdef USING_DIRECTINPUT           /// skip some checks. only mode 1 works atm in linux
     diDevice->GetDeviceState(sizeof(DIMOUSESTATE2), (LPVOID)&diStats);
     /// mouse position
     oldx= x;
@@ -938,8 +791,8 @@ void Mouse::update() {
         b[a].down= t;
       }
     }
-  }
-  #endif /// USING_DIRECTINPUT
+    #endif /// USING_DIRECTINPUT
+  } /// pass thru all mouse modes
 }
 
 
@@ -1383,9 +1236,9 @@ bool Joystick::init(short mode) {
 
 // ############### JOYSTICK UPDATE #################
 // ATM, handles pads/wheels too. might be a good ideea to call this func if others are called, dunno
-void Joystick::update() {
-  // TYPE1 joysticks
-  if(mode== 1) {
+void Joystick::update(short id) {
+  
+  if(mode== 1) { // TYPE1 joysticks: OS handling
     #ifdef OS_WIN
     JOYINFOEX jinfo;
     jinfo.dwSize= sizeof(JOYINFOEX);
@@ -1407,33 +1260,154 @@ void Joystick::update() {
     v= jinfo.dwVpos;                  /// extra axis 6
     #endif /// OS_WIN
 
+  
     #ifdef OS_LINUX
+    /// [MODE 1] joysticks/ gpads/ gwheels
+    int n= -1, nev;
+    js_event ev[64];
+  
+    
+ReadAgain:
+    /// read as many events as possible in 1 go
+    n= read(file, ev, sizeof(ev));
 
-/*
-    js_event msg[64];
-    int n= -1;
-    
-    for(short a= 0; a< 8; a++) {
-      NOPE
-      n= read(   &msg, sizeof(msg), 1, jf);
-    
-      for(short a= 0; a< 16; a++) {
-        if(msg.value)
-          printf("%ud", msg.value);
-      }
-    } /// OS_LINUX
-  */  
-    
+    if(n== -1)                            /// no event happened
+      return;
+
+    nev= n/ sizeof(js_event);             /// nr of events read
+      
+    for(short b= 0; b< nev; b++) {         // for each event
+      ev[b].type&= ~JS_EVENT_INIT;        /// disable the init flag... no use i can think of ATM
+        
+      
+      
+      if(ev[b].type == JS_EVENT_BUTTON) {  // ---=== button event ===---
+        b[ev[b].number]=  (uchar)ev[b].value;
+        in.gp[id].b[ev[b].number]= (uchar)ev[b].value;
+        in.gw[id].b[ev[b].number]= (uchar)ev[b].value;
+        
+        if(ev[b].value== 1) {             /// press
+          bTime[ev[b].number]= ev[b].time;
+          in.gp[id].bTime[ev[b].number]= ev[b].time;
+          in.gw[id].bTime[ev[b].number]= ev[b].time;
+        } else {                          /// release
+          /// put the button in history
+          ButPressed p;
+          p.b= ev[b].number;
+          p.checked= false;
+          p.timeDown= bTime[ev[b].number];
+          p.timeUp= ev[b].time;
+          p.timeDT= p.timeUp- p.timeDown;
+          
+          log(p);
+          gp[id].log(p);
+          gw[id].log(p);
+        }
+        
+      } else if(ev[b].type== JS_EVENT_AXIS) {     // ---=== axis event ===---
+        /// axis order...
+        
+        // possible to make a[MAX_AXIS] and x/y/rudder/etc would be refrences to a[]
+        switch (ev[b].number) {
+                                          // [JOYSTICK]  / [GAMEPAD]   / [GAMEWHEEL]
+          case 0:                         // [X axis?]   / [l stick X] / [wheel???]
+            gp[id].lx= ev[b].value;
+            
+            break;
+          case 1:                         // [Y axis?]   / [l stick Y] / [wheel???]
+            gp[id].ly= ev[b].value;
+            
+            break;
+          case 2:                         // [Throttle?] / [r stick X] / [wheel???]
+            gp[id].rx= ev[b].value;
+            
+            break;
+          case 3:                         // [extra1 X?] / [l trigger] / [wheel???]
+            gp[id].lt= ev[b].value;
+            
+            break;
+          case 4:                         // [extra1 Y?] / [r trigger] / [wheel???]
+            gp[id].rt= ev[b].value;
+            
+            break;
+          case 5:                         // [Rudder?]   / [rStick Y]  / [wheel???]
+            gp[id].ry= ev[b].value;
+            
+            break;
+          case 6:                         // [POV X?]    / [POV X]     / [wheel???]
+          case 7:                         // [POV Y?]    / [POV Y]     / [wheel???]
+            long x, y;          // they gotta be integers for exact 0 degrees or 90 degrees, else there are problems
+            double tpov;
+            
+            /// get axis from current pov position (wich is in degrees)
+            tpov= pov;
+            tx= ty= 0;
+            
+            if(pov!= -1) {           /// ... only if it's not on -1 position (nothing selected)
+              tx= (double)(32767.0* sin(pov* (M_PI/ 180.0)));
+              ty= (double)(32767.0* cos(pov* (M_PI/ 180.0)));
+            }
+            
+            /// update from event
+            if(ev[b].number== 6)          /// x axis event
+              tx= ev[b].value;
+            else                          /// y axis event
+              ty= -ev[b].value;
+            
+            /// find pov in degrees; there have to be checks for each quadrant, unfortunatelly (bad for speed)
+            if(ty> 0) {
+              if(tx>= 0)
+                tpov= (double) ((atan(tx/ ty))* (180.0/ M_PI));
+              else
+                tpov= (double) ((2* M_PI+ atan(tx/ ty))* (180.0/ M_PI));
+            } else if(ty< 0) {
+              tpov= (double) ((M_PI+ atan(tx/ ty))* (180.0/ M_PI));
+              
+            } else if(ty == 0) {
+              if(tx== 0)
+                tpov= -1;
+              else if(tx> 0)
+                tpov= 90;
+              else if(tx< 0)
+                tpov= 270;
+            }
+            
+            /// pov found @ this point
+            pov= tpov;
+            gp[id].pov= pov;
+            // gw is not set<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+            
+            break;
+          case 8:                         // [u axis]    / [u axis]    / [u axis]
+            gp[a].u= ev[b].value;
+            break;
+          case 9:                         // [v axis]    / [v axis]    / [v axis]
+            gp[a].v= ev[b].value;
+            break;
+          default:
+            printf("unhandled axis event\n");
+        }
+      } else
+        printf("unhandled other joystick event\n");
+      start testing for unhandled things / set joystick / wheel axis
+        
+    } /// for each event
+      
+    // did it actually read 64 events? read another 64 then...
+    if(nev == 64)
+      goto ReadAgain;
+  
     #endif /// OS_LINUX
+
+    #ifdef OS_MAC
+    /// macs use callback functions. check HIDchange() at the end of this file
+    #endif /// OS_MAC
+
+  } else if(mode== 2) {       // win(DirectInput) linux(n/a) mac(n/a)
     
-    // mac has callback functions for stick/pad/wheel updates, they are at the back of the file
-  }
-  
-  // TYPE 2 JOYSTICKS
-  #ifdef USING_DIRECTINPUT           /// skip some checks. only mode 1 works atm in linux
-  if(mode== 2) {
-  
+    #ifdef USING_DIRECTINPUT
     diDevice->GetDeviceState(sizeof(DIJOYSTATE2), (LPVOID)&diStats);
+    do for gamepads/wheels
     /// left & right sticks
     x= diStats.lX;
     y= diStats.lY;
@@ -1447,17 +1421,32 @@ void Joystick::update() {
     /// extra axis
     u= diStats.rglSlider[0];
     v= diStats.rglSlider[1];
-  }
-  #endif /// USING_DIRECTINPUT
-  
-  // TYPE 3 JOYSTICKS
-  #ifdef USING_XINPUT           /// skip some checks. only mode 1 works atm in linux
-  if(mode== 3) {
-    makeme
-  }
-  #endif /// USING_XINPUT
 
-  
+    #endif /// USING_DIRECTINPUT
+
+  } else if(mode== 3) {       // win(XInput) linux(n/a) mac(n/a)
+    
+    #ifdef USING_XINPUT
+    //          ---- msdn copy/paste ...
+
+    this part should be put in populate();
+    DWORD dwResult;    
+    for(DWORD i= 0; i< XUSER_MAX_COUNT; i++ ) {
+      
+      XINPUT_STATE state;
+      ZeroMemory(&state, sizeof(XINPUT_STATE));
+
+      /// Simply get the state of the controller from XInput.  
+      dwResult= XInputGetState(i, &state);
+
+      if(dwResult == ERROR_SUCCESS)
+        printf("XInput controller %d CONNECTED\n", i);
+      else
+        printf("XInput controller %d NOT connected\n", i);
+      work needs to be done here. 
+    }
+    #endif /// USING_XINPUT
+  } /// pass thru all modes
 }
 
 
@@ -2072,6 +2061,16 @@ static void HIDremoved(void *context, IOReturn result, void *sender, IOHIDDevice
     error.simple("HIDremoved: can't find the requested device");
     return;
   }
+  
+  /// sticks/pads/wheels 'numbers'
+  in.nr.jFound--;  in.nr.jOS--;
+  in.nr.gpFound--; in.nr.gpOS--;
+  in.nr.gwFound--; in.nr.gwOS--;
+
+  j[a].mode= gp[a].mode= gw[a].mode= 0; /// mode 0 = DISABLED
+  j[a].name.delData();
+  gp[a].name.delData();
+  gw[a].name.delData();
   
   driver[a].delData();
   if(chatty) printf(" helper cleared\n");
