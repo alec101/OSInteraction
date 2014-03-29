@@ -21,7 +21,7 @@ Compiling on Windows:
 Compiling on Linux:
 
 1. Put OS_LINUX as a preprocesor definition (needs -DOS_LINUX if i remember correctly)
-2. libraries: [GL] [GLU] [Xrandr]
+2. libraries: [GL] [GLU] [Xrandr] [Xinerama]
  
 Compiling on Mac:
 
