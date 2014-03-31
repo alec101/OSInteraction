@@ -186,13 +186,14 @@ public:
                                    // [MODE3]: win(xinput)      / linux(n/a) / mac(n/a)
   string modeName;                /// holds the driver name ("Direct Input" or "Windows Native" or "Linux Native") >>>> NATIVE? or maybe DEFAULT? <<<<
   string name;                    /// joystick name (product name)
-  
+  int type;                       /// 0= default; 1= ps3 compatible; 2= xbone compatible
 // AXIS
   
   long x, y;                      /// main stick x and y axis
+  long x2, y2;                    /// second stick x and y axis (these are reserved as i don't think these are used atm)
   long throttle;                  /// 3rd axis usually throttle
   long rudder;                    /// 4th axis usually rudder
-  long u, v;                      /// fifth/ sixth axis
+  long u, v;                      /// fifth/ sixth axis (reserved, i guess, they might be used by some sticks tho)
   long pov;                       /// POV angle (multiplied by 100, so 35,900(max)= 359 degrees)
   
 // BUTTONS state / history / everything
@@ -236,8 +237,10 @@ private:
   #endif /// USING_XINPUT
 
   #ifdef OS_LINUX
-  int file;                       /// driver 'file'
-  short id;                       /// /dev/input/js[X]
+  int file;                       /// opened /dev/input/jsNNN  file
+  short id;                       /// /dev/input/jsNNN    NNN= id
+  int eventFile;                  /// opened /dev/input/eventNNN eventFile
+  short eventID;                  /// /dev/input/eventNNN NNN= eventID
   #endif
 };
 
@@ -246,6 +249,7 @@ private:
 // --------------============= GAMEPAD CLASS ============--------------
 class GamePad {
   friend class Input;
+  friend class Joystick;
 public:
   short mode;                      // [MODE0]: disabled, can check against this
                                    // [MODE1]: OS native
@@ -298,11 +302,12 @@ private:
   DIJOYSTATE2 diStats;
   LPDIRECTINPUTEFFECT vibration;
   #endif /// USING_DIRECTINPUT
-
+/*
   #ifdef OS_LINUX
   int file;                           /// driver 'file'
   short id;                           /// /dev/input/js[X] (shared between j/
   #endif
+ */
 };
 
 
@@ -310,6 +315,7 @@ private:
 // --------------============= GAMEWHEEL CLASS ============--------------
 class GameWheel {
   friend class Input;
+  friend class Joystick;
 public:
   short mode;                      // [MODE0]: disabled, can check against this
                                    // [MODE1]: OS native
@@ -356,11 +362,12 @@ private:
   LPDIRECTINPUTDEVICE8 diDevice;
   DIJOYSTATE2 diStats;
   #endif /// USING_DIRECTINPUT
-
+/*
   #ifdef OS_LINUX
   int file;
   short id;                           /// /dev/input/js[X] (shared between j/
   #endif
+ */
 };
 
 
@@ -452,6 +459,8 @@ public:
   
 // private (internal) stuff from here on
  private:
+   uint64 lastPopulate;
+   
   #ifdef USING_DIRECTINPUT
   LPDIRECTINPUT8 dInput;
   #endif

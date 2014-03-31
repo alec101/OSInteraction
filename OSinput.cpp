@@ -1,5 +1,9 @@
 #include "pch.h"
 
+// avoid including joystick.h, wich includes tons of unneeded stuff
+#define JS_EVENT_BUTTON   0x01	// button pressed/released */
+#define JS_EVENT_AXIS     0x02  // joystick moved */
+#define JS_EVENT_INIT     0x80
 
 //#include <sys/types.h>
 //#include <sys/stat.h>
@@ -335,6 +339,7 @@ bool Input::init(int mMode, int kMode) {
 
 
 void Input::populate(bool scanMouseKeyboard) {
+  lastPopulate= osi.present;
   //bool chatty= true;
   if(scanMouseKeyboard) {
 
@@ -415,59 +420,145 @@ void Input::populate(bool scanMouseKeyboard) {
 	//#ifdef JS_VERSION
 	//#if JS_VERSION > 0xsomething
   
-  bool chatty= true;
+  bool chatty= false;
   
-  /// set everything on 'DISABLED'
-  for(short a= 0; a< 8; a++)                          // <<< 8 limit
-    j[a].mode= gp[a].mode= gw[a].mode= 0;
-  
-  
+  /*
+  /// set everything on 'DISABLED' & close opened files
+  for(short a= 0; a< 8; a++) {                         // <<< 8 limit
+    // do not delete all data. only set mode to 0, and it will be updated to 1 if the stick is still present
+    
+    /// close all opened files
+    if(j[a].file!= -1)
+      close(j[a].file);
+    
+    if(j[a].eventFile!= -1)
+      close(j[a].eventFile);
+         j[a].file= -1;
+    j[a].eventFile= -1;
+
+    
+    /// disable all devices
+    //j[a].mode= gp[a].mode= gw[a].mode= 0;
+  }
+  */
+
+//  nr.jFound= nr.gpFound= nr.gwFound= 0; 
+//  nr.jOS=    nr.gpOS=    nr.gwOS=    0;
+
   int f;
   int version, axes= 0, buttons= 0;
   char name[128];
   short id= 0;
-  string s= "/dev/input/js";
+  bool found;
+  string s("/dev/input/js");
+  string s2;
   
   /// searching for 32 js[X] files
   for(short a= 0; a< 32; a++) {
     /// this limit to 8 can be changed if neccesary... can't predict what will happen in 10-20 years....
-    if(id== 8) {
-      error.simple("OSInput::init: Maximum number of jSticks/gPads/gWheels reached (where did you plug more than 8?)");
+    if(nr.jOS== 8) {
+      error.console("OSInput::init: Maximum number of jSticks/gPads/gWheels reached (where did you plug more than 8?)");
       break;
     }
-      
-    f= version= axes= buttons=0;
     
-    f= open(s+ (a+ 48ul), O_RDONLY| O_NONBLOCK);
+    s2.f("%s%d", s.d, a);
+    
+    /// search thru all joysticks for this id
+    found= false;
+    for(short b= 0; b< 8; b++) {
+      if(j[a].id== a)
+        found= true;
+    }
+    
+    /// if found, this file id is already open
+    if(found)
+      continue;
+    
+    /// if this id was not found in currently opened joysticks, 
+    name[0]= f= version= axes= buttons= 0;
+    
+    f= open(s2, O_RDONLY| O_NONBLOCK);
     if(f== -1) continue;
     
     ioctl(f, JSIOCGAXES, &axes);
     ioctl(f, JSIOCGBUTTONS, &buttons);
     ioctl(f, JSIOCGVERSION, &version);
     ioctl(f, JSIOCGNAME(sizeof(name)), &name);
-
+    
+    close(f); // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    
     /// check if the joystick is valid. I found out that there are mouses that report as joysticks...
     ///    but they report incredible amounts of axes and buttons...
     ///    still, can't rely only on this, FURTHER CHECKS SHOULD BE MADE  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     if((axes> 32) || (buttons> MAX_JOYSTICK_BUTTONS)) {
-      close(f);
+      // close(f); // <<<<<<<<<<<<<<<<<<<<<<<
       continue;
     }
-
+    
+    for(short b= 0; b< 8; b++)
+      if(!j[b].mode) {
+        id= b;
+        break;
+      }
+    
     /// all joysticks/gamepads/gamewheels share the same file (driver). 
     j[id].mode= gp[id].mode= gw[id].mode= 1;
-    j[id].id=   gp[id].id=   gw[id].id=   a;
-    j[id].file= gp[id].file= gw[id].file= f;
+    j[id].file= f; // gp[id].file= gw[id].file= f; // joystick class handles this
     j[id].name= gp[id].name= gw[id].name= name;
+    j[id].fileName= s2;
     
     /// better to have lots of vars. The other option would be having complicated search algorithms just to find out how many joysticks found that use driver N
     ///   the purpose is to have the same code run on every OS... game searches for driver type 1 (os driver), type 2(in win is directinput) etc...
     nr.jFound++;  nr.gpFound++; nr.gwFound++; 
     nr.jOS++;     nr.gpOS++;    nr.gwOS++;
     
-    id++;
     if(chatty) printf("Name: %s Axes: %d Buttons: %d Version: %d\n", name, axes, buttons, version);
   }
+
+  /// event files asociated with each stick
+  id= 0;
+  s= "/dev/input/event";
+  for(short a= 0; a< 32; a++) {
+    /// this limit to 8 can be changed if neccesary... can't predict what will happen in 10-20 years....
+    if(id== 8) {
+      error.simple("OSInput::init: Maximum number of jSticks/gPads/gWheels reached (where did you plug more than 8?)");
+      break;
+    }
+    f= version= axes= buttons= 0;
+    
+    s2.f("%s%d", s.d, a);
+    
+    f= open(s2, O_RDONLY| O_NONBLOCK);
+    if(f== -1) continue;
+    name[0]= 0;
+    ioctl(f, EVIOCGNAME(sizeof(name)), &name);
+    close(f); // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    
+    /// if it has no name, skip this. sticks return a name
+    if(!name[0]) {
+    //  close(f); // <<<<<<<<<<<<<<<<<<<<<<<<<<<<
+      continue;
+    }
+    
+    
+    search for this id in sticks. it's a new one?
+    search for first stick. it has no file/ add this to it.
+    happiness.  
+      
+      
+    /// if names of sticks match, event file belongs to it
+    if(j[id].name== name) {
+      j[id].eventFile= f;
+      j[id].eventName= s2;
+    } else {
+      // close(f); //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+      continue;
+    }
+    if(chatty) printf("event file: %s belongs to joystick %d\n", s2.d, id);
+    id++;
+  }
+
+  
   #endif /// OS_LINUX
   
   #ifdef OS_MAC
@@ -493,8 +584,15 @@ void Input::resetPressedButtons() {
 }
 
 
-
+///=============================================================================
+// ######################### MAIN INPUT UPDATE #################################
+///=============================================================================
 void Input::update() {
+  
+  /// scan for joysticks every second (? maybe 2 secs or 3?)
+  if(osi.present- lastPopulate> 1000000000)
+    populate();
+  
   /// update mouse
   if(m.mode!= 1)
     m.update();
@@ -506,17 +604,20 @@ void Input::update() {
   /// update system handled sticks/pads/wheels
   if(nr.jOS)
     for(short a= 0; a< 8; a++)
-      j[a].update(a);
+      if(j[a].mode)
+        j[a].update(a);
   
   /// update [type 2] sticks/pads/wheels
   if(nr.jT2)
     for(short a= 8; a< 16; a++)
-      j[a].update(a);
+      if(j[a].mode)
+        j[a].update(a);
   
   /// update [type 3] sticks/pads/wheels
   if(nr.jT3)
     for(short a= 16; a< 20; a++)
-      j[a].update(a);
+      if(j[a].mode)
+        j[a].update(a);
 }
 
 
@@ -1163,6 +1264,9 @@ Joystick::Joystick() {
   
   #ifdef OS_LINUX
   file= -1;
+  eventFile= -1;
+  id= -1;
+  eventID= -1;
   #endif /// OS_LINUX
 
   delData();
@@ -1183,8 +1287,9 @@ void Joystick::delData() {
   mode= 0;
   name.delData();
   
-  x= y= throttle= rudder= u= v= pov= 0;
-
+  x= y= throttle= rudder= u= v= 0;
+  pov= -1;
+  
   b= buffer1;
   lastCheck= buffer2;
 
@@ -1201,7 +1306,13 @@ void Joystick::delData() {
   #ifdef OS_LINUX
   if(file!= -1)
     close(file);
+  file= -1;
   id= -1;
+  
+  if(eventFile!= -1)
+    close(eventFile);
+  eventFile= -1;
+  eventID= -1;
   #endif /// OS_LINUX
 }
 
@@ -1235,8 +1346,10 @@ bool Joystick::init(short mode) {
 
 
 // ############### JOYSTICK UPDATE #################
-// ATM, handles pads/wheels too. might be a good ideea to call this func if others are called, dunno
+/// handles pads/wheels too. might be a good ideea to call this func if others are called, dunno (or just remove update() from gp/gw)
+
 void Joystick::update(short id) {
+  bool chatty= true;
   
   if(mode== 1) { // TYPE1 joysticks: OS handling
     #ifdef OS_WIN
@@ -1266,77 +1379,113 @@ void Joystick::update(short id) {
     int n= -1, nev;
     js_event ev[64];
   
-    
 ReadAgain:
     /// read as many events as possible in 1 go
     n= read(file, ev, sizeof(ev));
 
-    if(n== -1)                            /// no event happened
-      return;
+    if(n== -1) {                            /// no event happened / joystick unplugged
 
-    nev= n/ sizeof(js_event);             /// nr of events read
-      
-    for(short b= 0; b< nev; b++) {         // for each event
-      ev[b].type&= ~JS_EVENT_INIT;        /// disable the init flag... no use i can think of ATM
+      // check if the joystick was UNPLUGGED (read sets errno on EBADF: file does not exist anymore)
+      if(errno== EBADF) {
         
-      
-      
-      if(ev[b].type == JS_EVENT_BUTTON) {  // ---=== button event ===---
-        b[ev[b].number]=  (uchar)ev[b].value;
-        in.gp[id].b[ev[b].number]= (uchar)ev[b].value;
-        in.gw[id].b[ev[b].number]= (uchar)ev[b].value;
+        /// close opened file & set vars on -1
+        close(file);
+        file= -1;
+        id= -1;
+        eventFile= -1;
+        eventID= -1;
         
-        if(ev[b].value== 1) {             /// press
-          bTime[ev[b].number]= ev[b].time;
-          in.gp[id].bTime[ev[b].number]= ev[b].time;
-          in.gw[id].bTime[ev[b].number]= ev[b].time;
-        } else {                          /// release
+        /// update sticks numbers
+        nr.jFound--; nr.gpFound--; nr.gwFound--;
+        nr.jOS--; nr.gpOS--; nr.gwOS--;
+        
+        /// set this stick as DISABLED
+        gp[id].mode= gw[id].mode= mode= 0;
+      }
+      return;
+    }
+
+    nev= n/ sizeof(js_event);               /// nr of events read
+    
+    for(short a= 0; a< nev; a++) {           // for each event
+      //if(ev[a].type& JS_EVENT_INIT)
+        //continue;
+      //ev[a].type^= JS_EVENT_INIT;
+      
+      // --------------============= BUTTON EVENT ===============---------------
+      if(ev[a].type& JS_EVENT_BUTTON) {
+        
+        //if(ev[a].type& JS_EVENT_INIT)
+          //continue;
+        
+        b[ev[a].number]=  (uchar)ev[a].value;
+        in.gp[id].b[ev[a].number]= (uchar)ev[a].value;
+        in.gw[id].b[ev[a].number]= (uchar)ev[a].value;
+        
+        if(ev[a].value== 1) {                      /// button PRESS
+          bTime[ev[a].number]= ev[a].time;
+          in.gp[id].bTime[ev[a].number]= ev[a].time;
+          in.gw[id].bTime[ev[a].number]= ev[a].time;
+          if(chatty) printf("joystick %d button PRESS\n", id);
+        
+        } else if(ev[a].value== 0) {               /// button RELEASE
           /// put the button in history
           ButPressed p;
-          p.b= ev[b].number;
+          p.b= ev[a].number;
           p.checked= false;
-          p.timeDown= bTime[ev[b].number];
-          p.timeUp= ev[b].time;
+          p.timeDown= bTime[ev[a].number];
+          p.timeUp= ev[a].time;
           p.timeDT= p.timeUp- p.timeDown;
           
           log(p);
-          gp[id].log(p);
-          gw[id].log(p);
+          in.gp[id].log(p);
+          in.gw[id].log(p);
+          if(chatty) printf("joystick %d button RELEASE value[%d] number[%d]\n", id, ev[a].value, ev[a].number);
         }
-        
-      } else if(ev[b].type== JS_EVENT_AXIS) {     // ---=== axis event ===---
+
+      // --------------============== AXIS EVENT ================---------------
+      } else if(ev[a].type& JS_EVENT_AXIS) {
         /// axis order...
         
+        //printf("axis %d: [%d]\n", ev[a].number, ev[a].value);
+        //continue;
+        
         // possible to make a[MAX_AXIS] and x/y/rudder/etc would be refrences to a[]
-        switch (ev[b].number) {
+        switch (ev[a].number) {
                                           // [JOYSTICK]  / [GAMEPAD]   / [GAMEWHEEL]
           case 0:                         // [X axis?]   / [l stick X] / [wheel???]
-            gp[id].lx= ev[b].value;
-            
+            x= ev[a].value;
+            in.gp[id].lx= ev[a].value;
+            in.gw[id].a1= ev[a].value;
             break;
           case 1:                         // [Y axis?]   / [l stick Y] / [wheel???]
-            gp[id].ly= ev[b].value;
-            
+            y= ev[a].value;
+            in.gp[id].ly= ev[a].value;
+            in.gw[id].a2= ev[a].value;
             break;
           case 2:                         // [Throttle?] / [r stick X] / [wheel???]
-            gp[id].rx= ev[b].value;
-            
+            throttle= ev[a].value;
+            in.gp[id].rx= ev[a].value;
+            in.gw[id].a3= ev[a].value;
             break;
           case 3:                         // [extra1 X?] / [l trigger] / [wheel???]
-            gp[id].lt= ev[b].value;
-            
+            x2= ev[a].value;
+            in.gp[id].lt= 32767- ev[a].value;
+            in.gw[id].a5= ev[a].value;
             break;
           case 4:                         // [extra1 Y?] / [r trigger] / [wheel???]
-            gp[id].rt= ev[b].value;
-            
+            y2= ev[a].value;
+            in.gp[id].rt= 32767- ev[a].value;
+            // gw <<<<<<<<<<<<<<<<<<<<<<<<<<
             break;
           case 5:                         // [Rudder?]   / [rStick Y]  / [wheel???]
-            gp[id].ry= ev[b].value;
-            
+            rudder= ev[a].value;
+            in.gp[id].ry= ev[a].value;
+            in.gw[id].a4= ev[a].value;
             break;
           case 6:                         // [POV X?]    / [POV X]     / [wheel???]
           case 7:                         // [POV Y?]    / [POV Y]     / [wheel???]
-            long x, y;          // they gotta be integers for exact 0 degrees or 90 degrees, else there are problems
+            long tx, ty;          // they gotta be integers for exact 0 degrees or 90 degrees, else there are problems
             double tpov;
             
             /// get axis from current pov position (wich is in degrees)
@@ -1349,10 +1498,10 @@ ReadAgain:
             }
             
             /// update from event
-            if(ev[b].number== 6)          /// x axis event
-              tx= ev[b].value;
+            if(ev[a].number== 6)          /// x axis event
+              tx= ev[a].value;
             else                          /// y axis event
-              ty= -ev[b].value;
+              ty= -ev[a].value;
             
             /// find pov in degrees; there have to be checks for each quadrant, unfortunatelly (bad for speed)
             if(ty> 0) {
@@ -1374,29 +1523,32 @@ ReadAgain:
             
             /// pov found @ this point
             pov= tpov;
-            gp[id].pov= pov;
+            in.gp[id].pov= pov;
             // gw is not set<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
             
             break;
           case 8:                         // [u axis]    / [u axis]    / [u axis]
-            gp[a].u= ev[b].value;
+            
+            u= ev[a].value;
+            in.gp[id].u= ev[a].value;
             break;
           case 9:                         // [v axis]    / [v axis]    / [v axis]
-            gp[a].v= ev[b].value;
+            v= ev[a].value;
+            in.gp[id].v= ev[a].value;
             break;
           default:
-            printf("unhandled axis event\n");
+            printf("unhandled axis event!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
         }
       } else
-        printf("unhandled other joystick event\n");
-      start testing for unhandled things / set joystick / wheel axis
+        printf("unhandled other joystick event!!!!!!!!!!!!!!!!!!!!!\n");
+      
         
     } /// for each event
-      
+    
     // did it actually read 64 events? read another 64 then...
     if(nev == 64)
       goto ReadAgain;
-  
+    close(f);
     #endif /// OS_LINUX
 
     #ifdef OS_MAC
@@ -1511,10 +1663,12 @@ GamePad::GamePad() {
   #ifdef USING_DIRECTINPUT
   vibration= null;
   #endif
-
+/*
   #ifdef OS_LINUX
   file= -1;
   #endif /// OS_LINUX
+ */
+  
   delData();
 }
 
@@ -1546,7 +1700,7 @@ void GamePad::delData() {
   rx= ry= 0;
   lt= rt= 0;
   u= v= 0;
-  pov= 0;
+  pov= -1;
 
 
   b= buffer1;
@@ -1561,12 +1715,13 @@ void GamePad::delData() {
   /// mark initial history buttons as checked, so they get ignored
   for(short a= 0; a< MAX_KEYS_LOGGED; a++)
     lastBut[a].checked= true;
-  
+  /*
   #ifdef OS_LINUX
   if(file!= -1)
     close(file);
   id= -1;
   #endif /// OS_LINUX
+   */
 }
 
 
@@ -1708,11 +1863,12 @@ bool GamePad::unaquire() {
 
 GameWheel::GameWheel() {
   mode= 0;
-  
+  /*
   #ifdef OS_LINUX
   id= -1;
   file= null;
   #endif /// OS_LINUX
+   */
   delData();
 }
 
@@ -1737,7 +1893,7 @@ void GameWheel::delData() {
   /// clear axis
   wheel= 0;
   a1= a2= a3= a4= a5= 0;      // THIS NEEDS MORE WORK
-
+  // pov starts on -1, off state
 
   b= buffer1;
   lastCheck= buffer2;
@@ -1751,12 +1907,13 @@ void GameWheel::delData() {
   /// mark initial history buttons as checked, so they get ignored
   for(short a= 0; a< MAX_KEYS_LOGGED; a++)
     lastBut[a].checked= true;
-
+/*
   #ifdef OS_LINUX
   if(file!= -1)
     close(file);
   id= -1;
   #endif /// OS_LINUX
+ */
 }
 
 

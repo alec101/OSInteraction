@@ -65,6 +65,7 @@
 
 #ifdef OS_LINUX
 #include <unistd.h>
+#include <errno.h>
 #include <time.h>  
 #include <X11/X.h>
 #include <X11/Xlib.h>

@@ -304,13 +304,6 @@ int main() {
     printf("\x1b[H");      // should set cursor position to '0,0' or whatever home means
     #endif /// OS_LINUX & MAC
     
-    /*
-    ulong c= in.k.getChar();
-    if(c) {
-      string s(c);
-      printf("%s ", s.d);
-    }
-    */
     
     printf("mouse: %05dx %05dy %dl %dr %dm %dx1 %dx2 % dw %d %d %d %d \n", in.m.x, in.m.y, in.m.b[0].down, in.m.b[1].down, in.m.b[2].down, in.m.b[3].down, in.m.b[4].down, in.m.getWheelDu(), in.m.b[5].down, in.m.b[6].down, in.m.b[7].down, in.m.b[8].down);
     printf("last keyboard keys: %03d %03d %03d\n", in.k.lastKey[0].code, in.k.lastKey[1].code, in.k.lastKey[2].code);
@@ -394,14 +387,18 @@ void drawSomething() {
 
 
 
+
+
+
 OSInteraction::OSInteraction() {
   flags.exit= false;
   flags.haveFocus= false;
   flags.minimized= false;
   flags.buttonPress= false;
   flags.keyPress= false;
-
-  primWin= &win[0];
+  
+  getNanosecs(&present);                     /// start with updated present time variable
+  primWin= &win[0];                          /// primWin pointer, always to &win[0]
 
   #ifdef OS_WIN
   QueryPerformanceFrequency(&timerFreq);     /// read cpu frequency. used for high performance timer (querryPerformanceBlaBla)
@@ -1783,7 +1780,9 @@ void OSInteraction::processMSG()  {
 
 bool OSInteraction::checkMSG() {
   bool ret= false;
-
+  
+  getNanosecs(&present);       // current time, or 'present' variable updated here <<<
+  
   #ifdef OS_WIN
   while(1)    // loop thru ALL msgs... i used to peek thru only 1 msg, that was baaad... biig LAG
     if(PeekMessage(&win[0].msg, NULL, 0, 0, PM_REMOVE)) {	// Is There A Message Waiting?
