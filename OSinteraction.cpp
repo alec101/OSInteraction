@@ -137,16 +137,16 @@ _NET_CLOSE_WINDOW
   #endif
 #endif /// OS_WIN
 
-
+OSInteraction osi;
+ErrorHandling error;
+Input in;
 
 
 // ################
 // Testing purposes
 // ################
 
-OSInteraction osi;
-ErrorHandling error;
-Input in;
+
 
 /*
 double pov(double x, double y)
@@ -205,7 +205,7 @@ int main() {
   return 0;
   */
 
-
+  
 /*
   // some string + time tests
   uint64 t1, t2;
