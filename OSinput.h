@@ -31,7 +31,9 @@
 
 
 // --------------============= MOUSE CLASS ============--------------
+///==================================================================
 class Mouse {
+  friend class Input;
 public:
 // USAGE / settings
   
@@ -88,7 +90,9 @@ private:
 
 
 // --------------============= KEYBOARD CLASS ============--------------
+///=====================================================================
 class Keyboard {
+  friend class Input;
 public:
   short mode;                   // [MODE1]: OS events (default)  [MODE2]: manual update()  [MODE3]: directinput  [MODE4]: windows raw data
   
@@ -176,6 +180,7 @@ struct ButPressed {
 
 
 // --------------============= JOYSTICK CLASS ============--------------
+///=====================================================================
 class Joystick {
   friend class Input;
   friend class OSInteraction;
@@ -187,7 +192,7 @@ public:
                                    // [MODE1]: OS native
                                    // [MODE2]: win(directinput) / linux(n/a) / mac(n/a)
                                    // [MODE3]: win(xinput)      / linux(n/a) / mac(n/a)
-  string modeName;                /// holds the driver name ("Direct Input" or "Windows Native" or "Linux Native") >>>> NATIVE? or maybe DEFAULT? <<<<
+  //string modeName;                /// holds the driver name ("Direct Input" or "Windows Native" or "Linux Native") >>>> NATIVE? or maybe DEFAULT? <<<<
   string name;                    /// joystick name (product name)
   short maxButtons;               /// nr of buttons the gameWheel has
 // AXIS
@@ -232,7 +237,9 @@ private:
   #endif /// OS_WIN
 
   #ifdef USING_DIRECTINPUT         // primary
+  friend BOOL CALLBACK diDevCallback(LPCDIDEVICEINSTANCE, LPVOID);
   LPDIRECTINPUTDEVICE8 diDevice;
+  LPCDIDEVICEINSTANCE diID;       /// ID of the device; if a new one is plugged, it will differ from current IDs
   DIJOYSTATE2 diStats;
   #endif /// USING_DIRECTINPUT
 
@@ -250,6 +257,7 @@ private:
 
 
 // --------------============= GAMEPAD CLASS ============--------------
+///====================================================================
 class GamePad {
   friend class Input;
   friend class Joystick;
@@ -261,7 +269,7 @@ public:
                                    // [MODE1]: OS native
                                    // [MODE2]: win(directinput) / linux(n/a) / mac(n/a)
                                    // [MODE3]: win(xinput)      / linux(n/a) / mac(n/a)
-  string modeName;                /// holds the driver name ("Direct Input" or "Windows Native" or "Linux Native") >>>> NATIVE? or maybe DEFAULT? <<<<
+  //string modeName;                /// holds the driver name ("Direct Input" or "Windows Native" or "Linux Native") >>>> NATIVE? or maybe DEFAULT? <<<<
   string name;                    /// gamepad name (product name)
   short type;                     /// 0= = ps3 compatible; 1= xbone compatible - COULD BE CHANGED by user in-game, and it will work to update the right axis!!!
   short maxButtons;               /// nr of buttons the gamePad has
@@ -321,6 +329,7 @@ private:
 
 
 // --------------============= GAMEWHEEL CLASS ============--------------
+///======================================================================
 class GameWheel {
   friend class Input;
   friend class Joystick;
@@ -332,7 +341,7 @@ public:
                                    // [MODE1]: OS native
                                    // [MODE2]: win(directinput) / linux(n/a) / mac(n/a)
                                    // [MODE3]: win(xinput)      / linux(n/a) / mac(n/a)
-  string modeName;                /// holds the driver name ("Direct Input" or "Windows Native" or "Linux Native") >>>> NATIVE? or maybe DEFAULT? <<<<
+  //string modeName;                /// holds the driver name ("Direct Input" or "Windows Native" or "Linux Native") >>>> NATIVE? or maybe DEFAULT? <<<<
   string name;                    /// wheel name (product name)
   short  maxButtons;              /// nr of buttons the gameWheel has
   
@@ -424,6 +433,8 @@ BOOL CALLBACK diDevCallback(LPCDIDEVICEINSTANCE, LPVOID); /// no, i did not crea
 
 class Input {
   friend class OSInteraction;
+  friend class Mouse;
+  friend class Keyboard;
 public:
   Mouse m;                      /// more than 1 mouse?
   Keyboard k;                   /// more than 1 keyboard?
@@ -479,6 +490,7 @@ public:
    uint64 lastPopulate;
    
   #ifdef USING_DIRECTINPUT
+  friend BOOL CALLBACK diDevCallback(LPCDIDEVICEINSTANCE, LPVOID);
   LPDIRECTINPUT8 dInput;
   #endif
 

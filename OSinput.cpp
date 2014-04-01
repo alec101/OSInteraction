@@ -53,7 +53,9 @@ void checkGamepadType(string *name, GamePad *p);  // it is found in the gamepad 
 /* TODO:
  *
  * [win][mac] gamepad unification - check linux version
- * 
+ *
+ * [all]: pov must be in degrees * 100
+ *
  * every COORDONATE UNIFICATION: x0,y0 -> left,bottom (as in OpenGL, MAC.  NOT AS IN: windows, (i think linux too)
       this includes mouseWheel (+y means UP, as in the real cood system)
  * 
@@ -291,6 +293,7 @@ bool Input::init(int mMode, int kMode) {
   /// Kv struct has (almost) all keyboard keys. It has to 'populate' all vars @ start
   Kv.populate();
 
+  /*
   #ifdef USING_DIRECTINPUT
   for(short a= 0; a< nr.jT2; a++) {
     getT2j(a)->init(2);     /// 1 init for all 3 HIDs (it is an option how to use the device data, as a wheel/gamepad/joystick)
@@ -306,14 +309,15 @@ bool Input::init(int mMode, int kMode) {
     getT3gw(a)->mode= 3;
   }
   #endif /// USING_XINPUT
-  
+  */
+
   #ifdef OS_MAC
   
   in.manager= IOHIDManagerCreate(kCFAllocatorDefault, kIOHIDOptionsTypeNone);
-  
+
+  // https://developer.apple.com/library/mac/technotes/tn2187/_index.html
   // COPY PASTE from apple 'documentation'
-  
-  
+
   /// create an array of matching dictionaries
   CFMutableArrayRef arr= CFArrayCreateMutable(kCFAllocatorDefault, 0, &kCFTypeArrayCallBacks);
   
@@ -353,8 +357,7 @@ bool Input::init(int mMode, int kMode) {
   IOHIDManagerRegisterInputValueCallback(manager, HIDchange, NULL);  // this... works... if u have the enigma codebreaker (the one that didn't have the actual machine to crack the enigma code)
   //  IOHIDManagerRegisterInputReportCallback(manager, HIDchange, NULL);  // TRY REPORTS
   
-  
-  //continue from https://developer.apple.com/library/mac/technotes/tn2187/_index.html
+  //continue from 
   
   #endif /// OS_MAC
   
@@ -372,7 +375,7 @@ void Input::populate(bool scanMouseKeyboard) {
   bool chatty= true;
   if(scanMouseKeyboard) {
 
-    // ---===MOUSE SCAN===---
+    // ---=== MOUSE SCAN ===---
     if(m.mode== 3) {
       m.delData();
       if(!m.init(3))        /// try to use direct input
@@ -380,7 +383,7 @@ void Input::populate(bool scanMouseKeyboard) {
     } else
       m.init(m.mode);
 
-    // ---===KEYBOARD SCAN===---
+    // ---=== KEYBOARD SCAN ===---
     if(k.mode== 3) {
       k.delData();
       if(!k.init(3))
@@ -388,33 +391,49 @@ void Input::populate(bool scanMouseKeyboard) {
     }
   } /// scanMouseKeyboard
 
-  // ---===JOYSTICK SCAN===---
-  // nr.jOS= 0; THIS BROKE LINUX PART
-
+  
+  // ---=== MODE 1 JOYSTICKS ===---
   #ifdef OS_WIN
+  
+  /// start with 0, update on the way
+  nr.jOS= 0;                    /// set to 0 & rescan for sticks
+  /// update the numbers without nr.jOS
+  nr.jFound= nr.jT2+ nr.jT3;    
+  nr.gpFound= nr.gpT2+ nr.gpT3;
+  nr.gwFound= nr.gwT2+ nr.gwT3;
+
   /// disable all 
   for(short a= 0; a< 8; a++)
     j[a].mode= gp[a].mode= gw[a].mode= 0;
   
-  int b= joyGetNumDevs();
-  if(joyGetNumDevs()) {     /// if this func doesn't return a positive number, there is no driver installed
-    change me (max 8 joysticks)
-/// search normal driver joysticks
+  /// get the number of joysticks windows found
+  int n= joyGetNumDevs();       /// if this func doesn't return a positive number, there is no driver installed
+  if(n> 0) {
+    /// search normal driver joysticks
     JOYINFOEX jinfo;
     jinfo.dwSize= sizeof(JOYINFOEX);
-    if(b> 16) b= 16;          // limit to 16 detectable joysticks
-    for(uint a= 0; a< joyGetNumDevs(); a++)
+    if(n> 8) { 
+      error.console("found more than 8 joysticks...");
+      n= 8;                     /// limit to 8 detectable joysticks
+    }
+    for(short a= 0; a< n; a++)
       if(joyGetPosEx(a, &jinfo) != JOYERR_UNPLUGGED) {        /// if it's plugged in-> found a joystick
+        /// joystick class will handle the updates for gamepads& wheels too
         j[nr.jOS].id= a;
+        /// pads & wheels will use same driver; they'll differ ini what they do with read data
         j[nr.jOS].mode= 1;
+        gp[nr.jOS].mode= 1;
+        gw[nr.jOS].mode= 1;
+
         nr.jOS++;
       }
   }
+  /// update the numbers
+  nr.gpOS= nr.gwOS= nr.jOS;
+  nr.jFound+= nr.jOS;
+  nr.gpFound+= nr.jOS;
+  nr.gwFound+= nr.jOS;
   #endif /// OS_WIN
-
-  #ifdef USING_DIRECTINPUT
-  dInput->EnumDevices(DI8DEVCLASS_GAMECTRL, diDevCallback, NULL, DIEDFL_ATTACHEDONLY);
-  #endif /// USING_DIRECTINPUT
 
   #ifdef OS_LINUX
 
@@ -549,11 +568,16 @@ void Input::populate(bool scanMouseKeyboard) {
   /// mac uses calback functions. check HIDadded() / HIDremoved() at the end of this file
   #endif /// OS_MAC
 
-  
-  /// all joys/gp/gw will have same directinput/xinput drivers
-  // ---===GAMEPAD SCAN===---
 
-  // ---===GAMEWHEEL SCAN===---
+  // ---=== MODE 2 JOYSTICKS ===---
+  #ifdef USING_DIRECTINPUT
+  dInput->EnumDevices(DI8DEVCLASS_GAMECTRL, diDevCallback, NULL, DIEDFL_ATTACHEDONLY);
+  #endif /// USING_DIRECTINPUT
+  // ---=== MODE 3 JOYSTICKS ===---
+
+
+
+  /// all joys/gp/gw will have same directinput/xinput/os drivers
 }
 
 // resets all buttons for all devices- usually called on alt/tab - cmd/tab or something similar
@@ -607,29 +631,70 @@ void Input::update() {
 
 #ifdef USING_DIRECTINPUT
 BOOL CALLBACK diDevCallback(LPCDIDEVICEINSTANCE inst, LPVOID extra) {
-  HRESULT hr;
-  short n= in.nr.jDI;
+  bool chatty= true;
 
-  hr= in.dInput->CreateDevice(inst->guidInstance, &in.getDIj(n)->diDevice, NULL);
-  if (FAILED(hr))
+  /// can't handle more than 8 direct input sticks (don't think this will change very soon)
+  if(in.nr.jT2== 8)
     return DIENUM_CONTINUE;
-  
-  
-  !!! this is not ok. find the first joystick not in use (9-16) and st mode to 2
-    also, if a stick is unplugged, then what? this do happen and must be handled
-      
-    
-  in.getDIgp(n)->diDevice= in.getDIgw(n)->diDevice= in.getDIj(n)->diDevice;
 
-  in.nr.jDI++;
-  in.nr.gpDI++;
-  in.nr.gwDI++;
+  /// check if this device is already active
+  for(short a= 8; a< 16; a++) {
+    //inst->guidInstance - try this if diID is not working
+    if(in.j[a].diID== inst)
+      return DIENUM_CONTINUE;
+  }
   
+  /// find a free joystick class
+  short id;
+  for(id= 8; id< 16; id++)
+    if(!in.j[id].mode)
+      break;
+
+  /// create the direct input device
+  bool fail= false;
+  if(in.dInput->CreateDevice(inst->guidInstance, &in.j[id].diDevice, NULL)                     != DI_OK) fail= true;
+  if(in.j[id].diDevice->SetDataFormat(&c_dfDIJoystick2)                                        != DI_OK) fail= true;
+  if(in.j[id].diDevice->SetCooperativeLevel(osi.win[0].hWnd, DISCL_EXCLUSIVE| DISCL_FOREGROUND)!= DI_OK) fail= true;
+
+  if(fail) {
+    error.console("diDevCallback(): couldn't add the new device");
+    if(in.j[id].diDevice)
+      in.j[id].diDevice->Release();
+    in.j[id].diDevice= null;
+    return DIENUM_CONTINUE;
+  }
+
+  in.j[id].diID= inst;                        /// this is used to distinguish between new sticks and already in use sticks
+
+  /// device capabilities 
+  // http://msdn.microsoft.com/en-us/library/windows/desktop/microsoft.directx_sdk.reference.didevcaps(v=vs.85).aspx
+  DIDEVCAPS caps;
+  caps.dwSize= sizeof(DIDEVCAPS);
+  in.j[id].diDevice->GetCapabilities(&caps);
+  //(FORCE FEEDBACK FLAG? maybe?)<<<<<<<<<
+
+  in.j[id].maxButtons= (short)caps.dwButtons; /// number of buttons device has
+  in.gp[id].maxButtons= in.j[id].maxButtons;
+  in.gw[id].maxButtons= in.j[id].maxButtons;
+
+  in.j[id].mode= 2;                           /// set it's mode to DirectInput mode
+  in.gp[id].mode= 2;
+  in.gw[id].mode= 2;
+  
+  in.j[id].name= inst->tszProductName;        /// stick name
+  in.gp[id].name= in.j[id].name;
+  in.gw[id].name= in.j[id].name;
+  
+  in.nr.jT2++;                                /// update sticks numbers
+  in.nr.gpT2++;
+  in.nr.gwT3++;
   in.nr.jFound++;
   in.nr.gpFound++;
   in.nr.gwFound++;
+  
+  if(chatty) printf("found joystick[%d]: %s axes[%d] buttons[%d]\n", id, in.j[id].name.d, caps.dwAxes, caps.dwButtons);
 
-  return DIENUM_CONTINUE;
+  return DIENUM_CONTINUE;         /// DIENUM_CONTINUE to continue enumerating devices; else it will stop enumerating
 }
 #endif /// USING_DIRECTINPUT
 
@@ -934,6 +999,10 @@ bool Keyboard::init(short mode) {
   if(mode== 2)
     return true;
   if(mode== 3) {
+
+
+
+    // MOVE ALL THIS? SCRAP INIT????? <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     #ifdef USING_DIRECTINPUT
     long hr= 0;
         
@@ -976,7 +1045,7 @@ void Keyboard::update() {
   if(mode== 3) {
     #ifdef USING_DIRECTINPUT
     swapBuffers();
-    /*if(*/ diDevice->GetDeviceState(MAX_KEYBOARD_KEYS, key); //== DIERR_INPUTLOST) { setActive(); return; } // alien engine
+    diDevice->GetDeviceState(MAX_KEYBOARD_KEYS, key);
     /// do not return
     #endif
   }
@@ -1244,8 +1313,15 @@ void Keyboard::printPressed() {
 ///========================================================================///
 
 Joystick::Joystick() {
-  mode= 0;
-  
+  mode= 0;                    /// mode set to 0 = DISABLED
+
+  #ifdef OS_WIN
+  #ifdef USING_DIRECTINPUT
+  diDevice= null;
+  diID= null;
+  #endif
+  #endif
+
   #ifdef OS_LINUX
   jsFile= -1;
   eventFile= -1;
@@ -1258,13 +1334,6 @@ Joystick::Joystick() {
 
 Joystick::~Joystick() {
   delData();
-  #ifdef USING_DIRECTINPUT
-  if(diDevice) {
-    diDevice->Unacquire();
-    diDevice->Release();
-    diDevice= null;
-  }
-  #endif
 }
 
 void Joystick::delData() {
@@ -1286,15 +1355,27 @@ void Joystick::delData() {
   /// mark initial history buttons as checked, so they get ignored
   for(short a= 0; a< MAX_KEYS_LOGGED; a++)
     lastBut[a].checked= true;
-  
+
+  #ifdef OS_WIN
+  #ifdef USING_DIRECTINPUT
+  if(diDevice) {
+    diDevice->Unacquire();
+    diDevice->Release();
+    diDevice= null;
+  }
+  diID= null;
+  #endif /// USING_DIRECTINPUT
+  #endif /// OS_WIN
+
   #ifdef OS_LINUX
+  /// close driver files if currently opened
   if(jsFile!= -1)
     close(jsFile);
-  jsFile= -1;
-  jsID= -1;
-  
   if(eventFile!= -1)
     close(eventFile);
+
+  jsFile= -1;
+  jsID= -1;
   eventFile= -1;
   eventID= -1;
   #endif /// OS_LINUX
@@ -1310,11 +1391,6 @@ bool Joystick::init(short mode) {
   
   if(mode== 2) {
     #ifdef USING_DIRECTINPUT
-    if(diDevice->SetDataFormat(&c_dfDIJoystick2)== DI_OK) {
-      if(diDevice->SetCooperativeLevel(osi.win[0].hWnd, DISCL_EXCLUSIVE| DISCL_FOREGROUND)!= DI_OK)
-        error.simple("cant set cooperative level");
-      return true;
-    }
     #endif /// USING_DIRECTINPUT
   }
   
@@ -1337,6 +1413,8 @@ void Joystick::update(short id) {
   
   if(mode== 1) { // TYPE1 joysticks: OS handling
     #ifdef OS_WIN
+    // ---=== JOYSTICK ===---
+
     JOYINFOEX jinfo;
     jinfo.dwSize= sizeof(JOYINFOEX);
     joyGetPosEx(id, &jinfo);
@@ -1355,6 +1433,13 @@ void Joystick::update(short id) {
 
     u= jinfo.dwUpos;                  /// extra axis 5
     v= jinfo.dwVpos;                  /// extra axis 6
+    // ---=== GAMEPAD ===---
+    in.gp[id].lx= jinfo.dwXpos;
+    in.gp[id].ly= jinfo.dwYpos;
+    in.
+
+
+    // ---=== GAMEWHEEL ===---
     #endif /// OS_WIN
 
   
@@ -1372,22 +1457,16 @@ ReadAgain:
       // check if the joystick was UNPLUGGED (read sets errno on EBADF: file does not exist anymore)
       //printf("e[%d]", errno);
       if(errno== ENODEV) {
-        
-        /// close opened files & set vars on -1
         if(chatty) printf("joystick[%d] %s REMOVED\n", id, name.d);
-        close(jsFile);
-        close(eventFile);
-        jsFile= -1;
-        jsID= -1;
-        eventFile= -1;
-        eventID= -1;
-        
+
+        /// set stick as DISABLED & close all opened driver files
+        delData();
+        gp[id].delData();
+        gw[id].delData();
+
         /// update sticks numbers
         in.nr.jFound--; in.nr.gpFound--; in.nr.gwFound--;
         in.nr.jOS--;    in.nr.gpOS--;    in.nr.gwOS--;
-        
-        /// set this stick as DISABLED
-        in.gp[id].mode= in.gw[id].mode= mode= 0;
       } /// if the file is not found (stick disconnected)
       return;
     } /// if nothing read
@@ -1593,7 +1672,8 @@ ReadAgain:
     
     #ifdef USING_DIRECTINPUT
     diDevice->GetDeviceState(sizeof(DIJOYSTATE2), (LPVOID)&diStats);
-    do for gamepads/wheels
+
+    // ---=== JOYSTICK dinput update ===---
     /// left & right sticks
     x= diStats.lX;
     y= diStats.lY;
@@ -1607,6 +1687,13 @@ ReadAgain:
     /// extra axis
     u= diStats.rglSlider[0];
     v= diStats.rglSlider[1];
+
+    // ---=== GAMEPAD ===---
+
+    //in.gp[id].
+
+    // ---=== GAMEWHEEL ===---
+
 
     #endif /// USING_DIRECTINPUT
 
