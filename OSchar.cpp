@@ -13,6 +13,8 @@
  * 30/01/2014 - Alec
  */
 
+// TODO: windows version
+
 extern OSInteraction osi;
 
 #ifdef OS_LINUX
@@ -1461,7 +1463,6 @@ void _Kv::populate() {
   #ifdef OS_LINUX
   esc= XKeysymToKeycode(osi.primWin->dis, XK_Escape);
   enter= XKeysymToKeycode(osi.primWin->dis, XK_Return);
-  kpenter= XKeysymToKeycode(osi.primWin->dis, XK_KP_Enter);
   tab= XKeysymToKeycode(osi.primWin->dis, XK_Tab);
   space= XKeysymToKeycode(osi.primWin->dis, XK_space);
   backspace= XKeysymToKeycode(osi.primWin->dis, XK_BackSpace);
@@ -1471,12 +1472,6 @@ void _Kv::populate() {
   end= XKeysymToKeycode(osi.primWin->dis, XK_End);
   pgup= XKeysymToKeycode(osi.primWin->dis, XK_Page_Up);
   pgdown= XKeysymToKeycode(osi.primWin->dis, XK_Page_Down);
-  kpinsert= XKeysymToKeycode(osi.primWin->dis, XK_KP_Insert);
-  kpdel= XKeysymToKeycode(osi.primWin->dis, XK_KP_Delete);
-  kphome= XKeysymToKeycode(osi.primWin->dis, XK_KP_Home);
-  kpend= XKeysymToKeycode(osi.primWin->dis, XK_KP_End);
-  kppgup= XKeysymToKeycode(osi.primWin->dis, XK_KP_Page_Up);
-  kppgdown= XKeysymToKeycode(osi.primWin->dis, XK_KP_Page_Down);
   rshift= XKeysymToKeycode(osi.primWin->dis, XK_Shift_R);
   lshift= XKeysymToKeycode(osi.primWin->dis, XK_Shift_L);
   rctrl= XKeysymToKeycode(osi.primWin->dis, XK_Control_R);
@@ -1499,10 +1494,6 @@ void _Kv::populate() {
   up= XKeysymToKeycode(osi.primWin->dis, XK_Up);
   right= XKeysymToKeycode(osi.primWin->dis, XK_Right);
   down= XKeysymToKeycode(osi.primWin->dis, XK_Down);
-  kpleft= XKeysymToKeycode(osi.primWin->dis, XK_KP_Left);
-  kpup= XKeysymToKeycode(osi.primWin->dis, XK_KP_Up);
-  kpright= XKeysymToKeycode(osi.primWin->dis, XK_KP_Right);
-  kpdown= XKeysymToKeycode(osi.primWin->dis, XK_KP_Down);
   prtsc= XKeysymToKeycode(osi.primWin->dis, XK_Print);
   pause= XKeysymToKeycode(osi.primWin->dis, XK_Pause);
   capslock= XKeysymToKeycode(osi.primWin->dis, XK_Caps_Lock);
@@ -1545,7 +1536,7 @@ void _Kv::populate() {
   n9= XKeysymToKeycode(osi.primWin->dis, XK_9);
   n0= XKeysymToKeycode(osi.primWin->dis, XK_0);
   minus= XKeysymToKeycode(osi.primWin->dis, XK_minus);
-  plus= XKeysymToKeycode(osi.primWin->dis, XK_plus);
+  equal= XKeysymToKeycode(osi.primWin->dis, XK_equal);
   backslash= XKeysymToKeycode(osi.primWin->dis, XK_backslash);
   lbracket= XKeysymToKeycode(osi.primWin->dis, XK_bracketleft);
   rbracket= XKeysymToKeycode(osi.primWin->dis, XK_bracketright);
@@ -1555,18 +1546,26 @@ void _Kv::populate() {
   dot= XKeysymToKeycode(osi.primWin->dis, XK_period);
   slash= XKeysymToKeycode(osi.primWin->dis, XK_slash);
   grave= XKeysymToKeycode(osi.primWin->dis, XK_grave);
+  kp1= XKeysymToKeycode(osi.primWin->dis, XK_KP_1);
+  kp2= XKeysymToKeycode(osi.primWin->dis, XK_KP_2);
+  kp3= XKeysymToKeycode(osi.primWin->dis, XK_KP_3);
+  kp4= XKeysymToKeycode(osi.primWin->dis, XK_KP_4);
+  kp5= XKeysymToKeycode(osi.primWin->dis, XK_KP_5);
+  kp6= XKeysymToKeycode(osi.primWin->dis, XK_KP_6);
+  kp7= XKeysymToKeycode(osi.primWin->dis, XK_KP_7);
+  kp8= XKeysymToKeycode(osi.primWin->dis, XK_KP_8);
+  kp9= XKeysymToKeycode(osi.primWin->dis, XK_KP_9);
+  kp0= XKeysymToKeycode(osi.primWin->dis, XK_KP_0);
+  kpequal= XKeysymToKeycode(osi.primWin->dis, XK_KP_Equal);
   kpslash= XKeysymToKeycode(osi.primWin->dis, XK_KP_Divide);
   kpmultiply= XKeysymToKeycode(osi.primWin->dis, XK_KP_Multiply);
   kpminus= XKeysymToKeycode(osi.primWin->dis, XK_KP_Subtract);
   kpplus= XKeysymToKeycode(osi.primWin->dis, XK_KP_Add);
+  kpenter= XKeysymToKeycode(osi.primWin->dis, XK_KP_Enter);
+  kpdel= XKeysymToKeycode(osi.primWin->dis, XK_KP_Delete);
   lOS= XKeysymToKeycode(osi.primWin->dis, XK_Super_L);           // left win
-  rOS= XKeysymToKeycode(osi.primWin->dis, XK_Super_R);          // right win
-
-  menu= XKeysymToKeycode(osi.primWin->dis, XK_Menu);           // menu/propr
-  
-  added kpequals <<<<<
-  added kp 5!!!
-  keypad changed to numbers (from home-end-pgblablabla)
+  rOS= XKeysymToKeycode(osi.primWin->dis, XK_Super_R);           // right win
+  menu= XKeysymToKeycode(osi.primWin->dis, XK_Menu);             // menu/propr
   
   #endif /// OS_LINUX
     

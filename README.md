@@ -1,14 +1,16 @@
-TODO: dropbox for devs configuration !!!!!!!!!!!!!!!!!!!!!!!!!!
-!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 It uses classes from https://github.com/alec101/-utilClasses 
 
-check out https://github.com/alec101/OSInteraction/wiki for more info about this project
+check out the wiki (https://github.com/alec101/OSInteraction/wiki) for more info about this project
 
-check out pch.h for further compiling instructions
+This is a setup for netbeans/xcode/visual studio/code blocks/codelite :
+https://www.dropbox.com/s/gze6yepuhwn278k/OSInteraction.zip
 
 
-Compiling in Windows:
+
+check out pch.h for further compiling instructions & other info
+
+
+Compiling on Windows:
 
 1. Put OS_WIN as a preprocesor definition ( _CRT_SECURE_NO_WARNINGS is a nice addition, too)
 2. WIN libs: [opengl32] [glu32]: openGL libraries 
@@ -16,12 +18,12 @@ Compiling in Windows:
              [dinput8] [dxguid]: if using direct input (+ #define USING_DIRECTINPUT)
              [xinput]:           xinput 1.3, from dxsdk, maybe a path to it, too (+ #define USING_XINPUT)
 
-Compiling in Linux:
+Compiling on Linux:
 
 1. Put OS_LINUX as a preprocesor definition (needs -DOS_LINUX if i remember correctly)
-2. libraries: [GL] [GLU] [Xrandr]
+2. libraries: [GL] [GLU] [Xrandr] [Xinerama]
  
-Compiling in Mac:
+Compiling on Mac:
 
 1. Put OS_MAC as a preprocessor definition ( -DOS_MAC )
 2. frameworks: [-framework Opengl]: opengl library, basically
@@ -33,7 +35,7 @@ Compiling in Mac:
 
 
 
-A nice way to place the source (this is how i got setup thigs):
+A nice way to arrange the source (this is how i got setup thigs):
 
 devYourDir/!utilClasses: https://github.com/alec101/-utilClasses 
 

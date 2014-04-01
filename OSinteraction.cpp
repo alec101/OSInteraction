@@ -12,36 +12,31 @@
  * gamepad vibration under directinput (it is possible) & force feedback (MUST HAVE A VIBRATION GAMEPAD FIRST...)
  * OSX emulator? to test stuf under osx?
  *
- * test keyboard locks under linux
  * test mouse grab under linux
  * test keyboard grab under linux (first make shure it is possible to exit program)
  *
  * in linux, if messing with visual variables, the black screen flash can go away
  *  therefore, in windows, pfd must be messed with to get rid of the black flash
  *
- * linux keboard manipChars
- *
- * win+linux joystick, xbox controller, wheel (BUY THEM first)
- *
- * win test japanese keyboard, see what chars shows... or print to a file at least
- * win Kv structure
- * linux test Kv structure that is actually working on a arabic (for example) keyboard
- * mac test Kv structure on a complex language keyboards
+ * - [win+linux] joystick, wheel (BUY THEM first)
+ * - [win] xbox controller
+ * - [win] test japanese keyboard, see what chars shows... or print to a file at least
+ * - [win] Kv structure
+ * - [mac] test Kv structure on a complex language keyboards
  * - create a loading window, in the center of the screen? eventually to have image of the game
  *
- * - set an icon for the window
+ * - set an icon for the window;  [win] WHEN dealing with icons, must remember to develop WM_GETICON too
+ * - [WIN] WM_SETFOCUS & WM_KILLFOCUS - develop these? WM_ACTIVATE handles focus change atm.
  * - system to create a glRenderer for each graphic card (MUST install a second grcard on a computer) (THIS IS A MUST)
  * - threads!
  * - if there is 1 glRenderer per window, glShareLists knows not to make duplicates if in the same graphics card??? THIS IS THE QUESTION.
  *
- * - extensive testings on program exit. something crashes!!!! ... hardt to find but MUST find it
  * - Linux: test monitors on duplicate (on mirror, on whatever crap the os calls them)
  *
  * - window to change a monitor without problems (unplug?)
  *   but on multiple monitor mode, mark it as closed? something like this... notify the program somehow, so a rearrangement will be done
 
-// CHANGE THE STYLE I PROGRAM, "void getBla(retval)", not "retval getBla();"
-// faster this way ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 */
 
@@ -137,15 +132,17 @@ _NET_CLOSE_WINDOW
   #endif
 #endif /// OS_WIN
 
+
+
 OSInteraction osi;
 ErrorHandling error;
 Input in;
 
 
+
 // ################
 // Testing purposes
 // ################
-
 
 
 /*
@@ -205,7 +202,7 @@ int main() {
   return 0;
   */
 
-  
+
 /*
   // some string + time tests
   uint64 t1, t2;
@@ -235,12 +232,13 @@ int main() {
 
   error.useWindowsFlag= true;
   //error.window("test");
-
+  
   osi.display.populate(&osi);     // check all monitors/ resolutions/ etc
 
-
-  osi.createGLWindow(&osi.win[0], &osi.display.monitor[0], "window 0", 400, 400, 32, 3);
-  //osi.createGLWindow(&osi.win[1], &osi.display.monitor[1], "window 2", 400, 400, 32, 3);
+  osi.createGLWindow(&osi.win[0], &osi.display.monitor[0], "window 0", 400, 400, 32, 1);
+  //osi.createGLWindow(&osi.win[0], &osi.display.monitor[0], "window 0", 1024, 768, 32, 2);
+  //osi.createGLWindow(&osi.win[1], &osi.display.monitor[0], "window 2", 400, 400, 32, 3);
+  //osi.createGLWindow(&osi.win[0], &osi.display.monitor[1], "window 0", 400, 400, 32, 4);
 
   //osi.createGLWindow(&osi.win[2], &osi.display.monitor[1], "window 3", 400, 400, 32, 1);
 
@@ -273,12 +271,10 @@ int main() {
     //in.k.update();   /// keyboard update
     //in.k.updateLocks();
 
-    //in.j[0].update();
+//    in.j[0].update();
 
-    //    in.update();
+    in.update();
 
-    if(osi.flags.exit)
-      break;
 
     if(osi.flags.haveFocus)
       for(short a= 0; a< MAX_WINDOWS; a++)
@@ -289,16 +285,22 @@ int main() {
             osi.swapBuffers(&osi.win[a]);
           }
     }
+    
+    if(in.k.key[in.Kv.esc] || (in.k.key[in.Kv.lalt] && in.k.key[in.Kv.f4]))
+      osi.exit(0);
+    if(osi.flags.exit)
+      osi.exit(0);
 
+    bool showPanel= true; // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    if(showPanel) {  
     #ifdef OS_WIN
     COORD pos= {0,0};
-    //pos.X= 0; pos.Y= 0;
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), pos);
-    #endif /// OS_WIN
-    #ifdef OS_LINUX
+    #else /// OS_LINUX & OS_MAC
     printf("\x1b[H");      // should set cursor position to '0,0' or whatever home means
-    #endif /// OS_LINUX
-/*
+    #endif /// OS_LINUX & MAC
+    
+    
     printf("mouse: %05dx %05dy %dl %dr %dm %dx1 %dx2 % dw %d %d %d %d \n", in.m.x, in.m.y, in.m.b[0].down, in.m.b[1].down, in.m.b[2].down, in.m.b[3].down, in.m.b[4].down, in.m.getWheelDu(), in.m.b[5].down, in.m.b[6].down, in.m.b[7].down, in.m.b[8].down);
     printf("last keyboard keys: %03d %03d %03d\n", in.k.lastKey[0].code, in.k.lastKey[1].code, in.k.lastKey[2].code);
     printf("nr: joysticks(%d) gamepads(%d) gamewheels(%d)\n", in.nr.jFound, in.nr.gpFound, in.nr.gwFound);
@@ -313,20 +315,26 @@ int main() {
     printf("typed char buffer[%d]:", in.k.charTyped.nrNodes);
     for(short a= 0; a< 32; a++) {
       ulong c= (in.k.charTyped.nrNodes> a)? ((Keyboard::chTyped*)in.k.charTyped.get(a))->c: L' ';
-      printf("%lc", c);
+      
+      printf("%lc", (wchar_t)c);
+      printf("%d", c);
+      //printf("%lc", c);
       //printf("% c", (in.k.charTyped.nrNodes> a)? ((Keyboard::chTyped*)in.k.charTyped.get(a))->c: ' ');
     }
-    printf("\n");
-    printf("ZE QUESTION: [%d] [%d]\n", osi.display.monitor[0].glRenderer, osi.display.monitor[1].glRenderer);
-*/
+    printf("\ncaps[%d] num[%d] scroll[%d]\n", in.k.capsLock, in.k.numLock, in.k.scrollLock);
+    
+    //    printf("ZE QUESTION: [%d] [%d]\n", osi.display.monitor[0].glRenderer, osi.display.monitor[1].glRenderer);
+    
     
     #ifdef OS_LINUX
+    /*
     for(short a= 0; a< 256; a++) {
       if(in.k.key[a])
-        printf("keydown: keycode[%02lu], keysym[%06x]\n", a, XkbKeycodeToKeysym(osi.primWin->dis, a, null, 0));
+        printf("keydown: keycode[%02d], keysym[%06lx]\n", a, XkbKeycodeToKeysym(osi.primWin->dis, a, null, 0));
     }
+    */
     #endif /// OS_LINUX
-
+    }
 
     osi.checkMSG();		/// operating system messages handling
   }
@@ -378,21 +386,26 @@ void drawSomething() {
 
 
 
+
+
+
 OSInteraction::OSInteraction() {
   flags.exit= false;
   flags.haveFocus= false;
   flags.minimized= false;
   flags.buttonPress= false;
   flags.keyPress= false;
-
-  primWin= &win[0];
+  
+  getNanosecs(&present);                     /// start with updated present time variable
+  primWin= &win[0];                          /// primWin pointer, always to &win[0]
 
   #ifdef OS_WIN
   QueryPerformanceFrequency(&timerFreq);     /// read cpu frequency. used for high performance timer (querryPerformanceBlaBla)
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
-  //  setlocale(LC_ALL, ""); // can't rely on setlocale. everything is different on each os. rely on StringClass32/8 and that's that.
+/// printf won't work without setlocale. but hopefully it won't be needed.
+//    setlocale(LC_ALL, ""); // can't rely on setlocale. everything is different on each os. rely on StringClass32/8 and that's that.
 //  setlocale(LC_CTYPE, "");
   primWin->dis= XOpenDisplay(null);          // DISPLAY CONNECTION TO XSERVER can be something like ":0.0" :displayNr.screenNr
   if(primWin->dis == NULL)
@@ -667,6 +680,8 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
   if(mode == 2)
     if(!display.changeRes(w, m, dx, dy, bpp, freq)) {
       error.simple("osi:createGLwindow: cant change to selected resolution");
+      w->dx= m->dx;
+      w->dy= m->dy;
       mode= 3;
     }
 
@@ -771,11 +786,34 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
     //   with  _NET_WM_STATE_SKIP_TASKBAR
 
   }
-
+  
   /// fullscreen mode linux specific msgs settings
   //XMoveWindow(w->dis, w->win, w->x0, w->y0);
-  if((mode==2) || (mode==3))
+  if((mode== 2) || (mode== 3) || (mode== 4))
     w->setWMstate(1, "_NET_WM_STATE_FULLSCREEN");
+  
+  if(mode== 4) {
+    Atom fullmons = XInternAtom(w->dis, "_NET_WM_FULLSCREEN_MONITORS", False);
+    XEvent xev;
+    for(short a= 0; a< sizeof(xev); a++) ((char*)&xev)[a]= 0;
+    xev.type = ClientMessage;
+    xev.xclient.window= w->win;
+    xev.xclient.message_type = fullmons;
+    xev.xclient.format = 32;
+    
+    /// the next values are found in OSdisplay.cpp, updateVirtualDesktop() (back of file)
+    /// Xinerama IDs are found in display.populate(), linux part, at the end
+    xev.xclient.data.l[0]= display.top;     /// topmost monitor number (Xinerama monitor ID)
+    xev.xclient.data.l[1]= display.bottom;  /// bottommost
+    xev.xclient.data.l[2]= display.left;    /// leftmost
+    xev.xclient.data.l[3]= display.right;   /// rightmost
+    printf("top[%d] left[%d] bottom[%d] right[%d]\n", display.top, display.left, display.bottom, display.right);
+    xev.xclient.data.l[4]= 1;               /// source indication (1 for normal applications, 2 for pagers and other Clients that represent direct user actions)
+    
+    XSendEvent (w->dis, DefaultRootWindow(w->dis), False,
+                    SubstructureRedirectMask | SubstructureNotifyMask, &xev);
+  }
+  
   w->setWMstate(1, "_NET_WM_STATE_ABOVE");
 
   XMapWindow(w->dis, w->win);
@@ -1337,6 +1375,7 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       } case WM_KILLFOCUS: { printf("WM_KILLFOCUS %s 0x%x %d %d\n", osi.getWinName(hWnd), m, wParam, lParam); goto ret;     /// keyboard focus i think
       } case WM_NCACTIVATE: { printf("WM_NCACTIVATE %s 0x%x %d %d\n", osi.getWinName(hWnd), m, wParam, lParam); goto ret;
       } case WM_GETICON: { goto ret;              /// usually is used when alt-tabbing, gets an icon for the mini alt-tab list
+        // WHEN dealing with icons, must remember to develop WM_GETICON too
       } case WM_IME_NOTIFY: {	goto ret;
       } case WM_IME_SETCONTEXT: {	goto ret;
       } case WM_NCHITTEST: { goto ret;            /// something to do with mouse placement
@@ -1358,371 +1397,392 @@ ret:
 
 #ifdef OS_LINUX
 void OSInteraction::processMSG()  {
-  bool chatty= false;      // used for debugs, prints stuff in every message
+  bool chatty= true;      // used for debugs, prints stuff in every message
 
   XEvent event;
   OSIWindow *w= null;
 
-  XNextEvent(primWin->dis, &event);
-  
-  // returns must be switched with continues when the proc will be changed!!!!!!!!!
-  
-  
-// ---------------============== EXPOSE EVENT ===============-------------------
-  if(event.type == Expose) {
+  while(XPending(primWin->dis)) {       /// while there are messages in queue, loop thru them
+    XNextEvent(primWin->dis, &event);
+    
+// ########################### MOUSE EVENTS ################################# //
+      
+// ---------------============ MOUSE MOVEMENT ===============-------------------
+    if(event.type == MotionNotify) { /// this is the first event handled, because it is spammed
+      in.m.oldx= in.m.x;
+      in.m.oldy= in.m.y;
+      in.m.x= event.xmotion.x_root;
+      in.m.y= event.xmotion.y_root;
+      if(in.m.useDelta) {
+        in.m.dx+= in.m.x- in.m.oldx;
+        in.m.dy+= in.m.y- in.m.oldy;
+      }
+      continue;
 
-    // IS ANYTHING HERE GOOD FOR ANYTHING????????????????
-    // SUBJECT OF DELETION
-    w= getWin(&event.xexpose.window);
+// ---------------============ BUTTON PRESS =================-------------------
+    } else if(event.type == ButtonPress) {
+      flags.buttonPress= true;
+      eventTime= event.xbutton.time;          /// compatible with getMillisecs()
 
-    if(w->isMapped)
-      XGetWindowAttributes(w->dis, w->win, &w->gwa); // update gwa window size / attributes
+      if(event.xbutton.button== 4) {          // wheel up
+        in.m.wheel+= 1;
+        continue;
+      }
+      if(event.xbutton.button== 5) {          // wheel down
+        in.m.wheel-= 1;
+        continue;
+      }
 
-    return;
-//  } else if(event.type == NoExpose) {
-//    return;
-// ---------------=========== MAP NOTIFY EVENT ==============-------------------
-  } else if(event.type == MapNotify) {
+      short a;
+      if(event.xbutton.button< 4) {           // first 3 buttons
+        a= event.xbutton.button- 1;
+        /// of course in windows there is another button order than in linux
+        if(a== 1)
+          a= 2;
+        else if(a== 2)
+          a= 1;
+      } else                                  /// the rest of buttons are located after the mouse wheel
+        a= event.xbutton.button- 3;
 
-    // IS ANYTHING HERE GOOD FOR ANYTHING????????????????
-    // SUBJECT OF DELETION
+      in.m.b[a].down= true;
+      in.m.b[a].timeStart= eventTime;
+      continue;
 
-    w= getWin(&event.xmap.event);
-    w->isMapped= true;
-    /*
-    printf("%s mapped\n", w->name.d);
-    if(primWin->isMapped)
-      for(short a= 1; a< MAX_WINDOWS; a++)
-        if(win[a].isCreated && !win[a].isMapped) {
-          XMapWindow(primWin->dis, win[a].win);
-          printf("window nr %d mapped\n", a);
-          win[a].isMapped= true;
+// ---------------============ BUTTON RELEASE ===============-------------------
+    } else if(event.type == ButtonRelease) {
+      eventTime= event.xbutton.time;          /// compatible with getMillisecs()
+      flags.buttonPress= false;
 
-          XStoreName(w->display, w->win, w->name);
+      /// ignore mouse wheel up msgs (linux sends them @ same time as button press)
+      if((event.xbutton.button== 4) || (event.xbutton.button== 5))
+        continue;
 
-        ///  handle the close button WM
-          Atom wmDelete= XInternAtom(w->display, "WM_DELETE_WINDOW", True);
-          XSetWMProtocols(w->display, w->win, &wmDelete, 1);
-        }
-*/
-    return;
-// ---------------=========== UNMAP NOTIFY EVENT ============-------------------
-  } else if(event.type == UnmapNotify) {
+      short a;
+      if(event.xbutton.button< 4) {           /// first 3 buttons?
+        a= event.xbutton.button- 1;
+        // of course in windows there is another button order than in linux
+        if(a== 1)
+          a= 2;
+        else if(a== 2)
+          a= 1;
+      } else                                  /// the rest of buttons are located after the mouse wheel
+        a= event.xbutton.button- 3;
 
-    // IS ANYTHING HERE GOOD FOR ANYTHING????????????????
-    // SUBJECT OF DELETION
+      if(in.m.b[a].down) {                    /// an alt-bab might mess stuff...
+        in.m.b[a].lastTimeStart= in.m.b[a].timeStart;
+        in.m.b[a].lastTimeEnded= eventTime;
+        in.m.b[a].lastDT= in.m.b[a].lastTimeEnded- in.m.b[a].lastTimeStart;
+      } else {                                /// an alt-tab? might mess stuff
+        in.m.b[a].lastTimeEnded= eventTime;
+        in.m.b[a].lastTimeStart= eventTime- 1;
+        in.m.b[a].lastDT= 1;
+      }
+      in.m.b[a].down= false;
 
-    w= getWin(&event.xexpose.window);
-    w->isMapped= false;
-    if(chatty) printf("window UNmapped [%s]\n", w->name.d);
-    return;
+      continue;
 
 // ############################ KEYBOARD EVENTS ############################# //
 
-// ---------------=============== KEY PRESS =================-------------------
-  } else if(event.type == KeyPress) {
-    flags.keyPress= true;               /// osi main flags
-    
-    // repeat? THIS NEEDS MORE WORK<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    
-    // keyboard [MODE 1]
-    if(in.k.mode== 1) {
-      getMillisecs(&eventTime);
+// ---------------================ KEY PRESS ================-------------------
+    } else if(event.type == KeyPress) {
+      if(in.k.mode!= 1) continue;         /// only keyboard in [mode 1]
+      
+      flags.keyPress= true;               /// osi main flags
+      eventTime= event.xkey.time;         /// compatible with getMillisecs()
+      bool repeat= false;                 /// this will hold if it is a repeat character typed
       uint code= event.xkey.keycode;
-      in.k.updateLocks();              /// update keyboard leds
-
-      /// find the linux keysym (damn crap). still needs more work
+      
+      /// if the key is already down, this is a repeat message
+      if(in.k.key[code]== 128)
+        repeat= true;
+      
+      /// characters handling
+      
+      /// find the linux keysym
       KeySym ks;
       uint mods;
-      string8 err;
       XkbLookupKeySym(primWin->dis, code, event.xkey.state, &mods, &ks);
-
-      //if(mods)
-        //error.console( (err.f("there are still mods not applied to key %d\n", code)) );
+      
+      /* THERE ARE MODS THAT I CAN'T FIND WHAT THEY DO
+      if(mods)
+        error.console( (string8("").f("there are still mods not applied to key %d\n", code)).d)
+      */
 
       /// if the keysym can be a character, update the keyboard char stream
       ulong ch;
       in.getUnicode(&ks, &ch);
       if(ch)
-        in.k.addChar(ch);
+        in.k.addChar(ch, &eventTime);
       
-      
-      
-      string s;
+      /// if this is a real key press, log it and set vars
+      if(!repeat) {
+        if(chatty) printf("key PRESS code=%d \n", code);
+        Keyboard::KeyPressed k;
 
-      Keyboard::KeyPressed k;
-      if(chatty) printf("key PRESS code=%d \n", code);
-
-      /// log the key
-      k.code= code;
-      k.checked= false;
-      k.timeDown= eventTime;
-      in.k.log(k);
-      /// set the key as pressed & other needed vars
-      in.k.key[code]= 128;
-      in.k.keyTime[code]= eventTime;
+        /// log the key
+        k.code= code;
+        k.checked= false;
+        k.timeDown= eventTime;
+        in.k.log(k);
+        /// set the key as pressed & other needed vars
+        in.k.key[code]= 128;
+        in.k.keyTime[code]= eventTime;
+        // in.k.repeat[code]= 128;        /// a new key press, sets repeat to 128  // MIGHT BE DELETED
+      } /// if it's not a repeat
       
-      in.k.addManip(); must be placed here <<<<<<<<<<<<<<<<
+      in.k.updateLocks();                 /// update keyboard leds (repeat or not)
+      in.k.doManip();                     /// check & handle if pressed keys form a manip char
       
-      //      in.k.repeat[code]= 1;                  /// a new key press, sets repeat to 1  // MIGHT BE DELETED
-    } /// [MODE 1]
-
-    return;
+      continue;
+      
 // ---------------=============== KEY RELEASE ===============-------------------
-  } else if(event.type == KeyRelease) {
-    getMillisecs(&eventTime);
-    flags.keyPress= false;
-    in.k.updateLocks();
-    uint code= event.xkey.keycode;
-    if(chatty) printf("key RELEASE code=%d\n", code);
-
-    /// log the key in history
-    bool found= false;
-    for(short a= 0; a< MAX_KEYS_LOGGED; a++)
-      if(in.k.lastKey[a].code== code) {
-        in.k.lastKey[a].timeUp= eventTime;
-        in.k.lastKey[a].timeDT= in.k.lastKey[a].timeUp- in.k.lastKey[a].timeDown;
-        found= true;
-        break;
+    } else if(event.type == KeyRelease) {
+      if(in.k.mode!= 1) continue;             /// only keyboard in [mode 1]
+      
+      /// check if this is a repeat message (xlib sends key releases for repeats too...)
+      if(XPending(primWin->dis)) {
+        XEvent next;
+        XPeekEvent(primWin->dis, &next);
+        if(next.type== KeyPress)
+          if(next.xkey.keycode== event.xkey.keycode)
+            if(next.xkey.time== event.xkey.time)
+              continue;
       }
-    /// in case the key was not found in history, add a hist-log with insta-keydown-keyup
-    if(!found)  {
-      Keyboard::KeyPressed k;
-      k.code= code;
-      k.checked= false;
-      k.timeUp= eventTime;
-      k.timeDown= kTimeUp- 1;           /// 1 milisecond before the keyup
-      k.timeDT= 1;                      /// timeUp- timeDown
-      in.k.log(k);
-    }
+      
+      eventTime= event.xkey.time;             /// compatible with getMillisecs()
+      flags.keyPress= false;
+      uint code= event.xkey.keycode;
+      
+      in.k.updateLocks();
+      
+      if(chatty) printf("key RELEASE code=%d\n", code);
 
-    /// set the key as pressed & other vars
-    in.k.key[code]= 0;
-    in.k.keyTime[code]= 0;
-    //    in.k.repeat[code]= 0;
+      /// log the key in history
+      bool found= false;
+      for(short a= 0; a< MAX_KEYS_LOGGED; a++)
+        if(in.k.lastKey[a].code== code) {
+          in.k.lastKey[a].timeUp= eventTime;
+          in.k.lastKey[a].timeDT= in.k.lastKey[a].timeUp- in.k.lastKey[a].timeDown;
+          found= true;
+          break;
+        }
+      
+      /// in case the key was not found in history, add a hist-log with insta-keydown-keyup
+      if(!found)  {
+        Keyboard::KeyPressed k;
+        k.code= code;
+        k.checked= false;
+        k.timeUp= eventTime;
+        k.timeDown= k.timeUp- 1;              /// 1 milisecond before the keyup
+        k.timeDT= 1;                          /// timeUp- timeDown
+        in.k.log(k);
+      }
 
-    return;
+      /// set the key as de-pressed & other vars
+      in.k.key[code]= 0;
+      in.k.keyTime[code]= 0;
+      // in.k.repeat[code]= 0;  <<< DELETE ??? (not using)
+
+      continue;
 
 
-// ########################### MOUSE EVENTS ################################# //
 
-// ---------------============ BUTTON PRESS =================-------------------
-  } else if(event.type == ButtonPress) {
-    flags.buttonPress= true;
-    getMillisecs(&eventTime);
+// ###################### WINDOW HANDLING / FOCUS ########################### //
+      
+// ---------------============== EXPOSE EVENT ===============-------------------
+    } else if(event.type == Expose) {
 
-    if(event.xbutton.button== 4) {          // wheel up
-      in.m.wheel+= 1;
-      return;
-    }
-    if(event.xbutton.button== 5) {          // wheel down
-      in.m.wheel-= 1;
-      return;
-    }
+      // IS ANYTHING HERE GOOD FOR ANYTHING????????????????
+      // SUBJECT OF DELETION
+      w= getWin(&event.xexpose.window);
 
-    short a;
-    if(event.xbutton.button< 4) {           // first 3 buttons
-      a= event.xbutton.button- 1;
-      /// of course in windows there is another button order than in linux
-      if(a== 1)
-        a= 2;
-      else if(a== 2)
-        a= 1;
-    } else                                  /// the rest of buttons are located after the mouse wheel
-      a= event.xbutton.button- 3;
+      if(w->isMapped)
+        XGetWindowAttributes(w->dis, w->win, &w->gwa); // update gwa window size / attributes
 
-    in.m.b[a].down= true;
-    in.m.b[a].timeStart= eventTime;
-    return;
+      continue;
+//    } else if(event.type == NoExpose) {
+//      continue;
+            
+// ---------------=========== MAP NOTIFY EVENT ==============-------------------
+    } else if(event.type == MapNotify) {
 
-// ---------------============ BUTTON RELEASE ===============-------------------
-  } else if(event.type == ButtonRelease) {
-    getMillisecs(&eventTime);
-    flags.buttonPress= false;
+      // IS ANYTHING HERE GOOD FOR ANYTHING????????????????
+      // SUBJECT OF DELETION
 
-    /// ignore mouse wheel up msgs (linux sends them @ same time as button press)
-    if((event.xbutton.button== 4) || (event.xbutton.button== 5))
-      return;
+      w= getWin(&event.xmap.event);
+      w->isMapped= true;
+      /*
+      printf("%s mapped\n", w->name.d);
+      if(primWin->isMapped)
+        for(short a= 1; a< MAX_WINDOWS; a++)
+          if(win[a].isCreated && !win[a].isMapped) {
+            XMapWindow(primWin->dis, win[a].win);
+            printf("window nr %d mapped\n", a);
+            win[a].isMapped= true;
 
-    short a;
-    if(event.xbutton.button< 4) {           /// first 3 buttons?
-      a= event.xbutton.button- 1;
-      // of course in windows there is another button order than in linux
-      if(a== 1)
-        a= 2;
-      else if(a== 2)
-        a= 1;
-    } else                                  /// the rest of buttons are located after the mouse wheel
-      a= event.xbutton.button- 3;
+            XStoreName(w->display, w->win, w->name);
 
-    if(in.m.b[a].down) {                    /// an alt-bab might mess stuff...
-      in.m.b[a].lastTimeStart= in.m.b[a].timeStart;
-      in.m.b[a].lastTimeEnded= eventTime;
-      in.m.b[a].lastDT= in.m.b[a].lastTimeEnded- in.m.b[a].lastTimeStart;
-    } else {                                /// an alt-tab? might mess stuff
-      in.m.b[a].lastTimeEnded= eventTime;
-      in.m.b[a].lastTimeStart= eventTime- 1;
-      in.m.b[a].lastDT= 1;
-    }
-    in.m.b[a].down= false;
+          ///  handle the close button WM
+            Atom wmDelete= XInternAtom(w->display, "WM_DELETE_WINDOW", True);
+            XSetWMProtocols(w->display, w->win, &wmDelete, 1);
+          }
+  */
+      continue;
+      
+// ---------------=========== UNMAP NOTIFY EVENT ============-------------------
+    } else if(event.type == UnmapNotify) {
 
-    return;
+      // IS ANYTHING HERE GOOD FOR ANYTHING????????????????
+      // SUBJECT OF DELETION
 
-// ---------------============ MOUSE MOVEMENT ===============-------------------
-  } else if(event.type == MotionNotify) {
-    in.m.oldx= in.m.x;
-    in.m.oldy= in.m.y;
-    in.m.x= event.xmotion.x_root;
-    in.m.y= event.xmotion.y_root;
-    if(in.m.useDelta) {
-      in.m.dx+= in.m.x- in.m.oldx;
-      in.m.dy+= in.m.y- in.m.oldy;
-    }
-
-// ########################### WINDOW FOCUS ################################# //
-
+      w= getWin(&event.xexpose.window);
+      w->isMapped= false;
+      if(chatty) printf("window UNmapped [%s]\n", w->name.d);
+      continue;
+      
 // ---------------============ ENTER NOTIFY =================-------------------
 /// mouse moves to a certain window... might be usefull in the future
-  } else if(event.type == EnterNotify) {
-    if((event.xcrossing.mode== NotifyGrab)|| (event.xcrossing.mode==NotifyUngrab)) /// ignore
-      return;
+    } else if(event.type == EnterNotify) {
+      if((event.xcrossing.mode== NotifyGrab)|| (event.xcrossing.mode==NotifyUngrab)) /// ignore
+        continue;
 
-    if(event.xcrossing.mode== NotifyNormal)
-      return;
+      if(event.xcrossing.mode== NotifyNormal)
+        continue;
 
 // ---------------============ LEAVE NOTIFY =================-------------------
 /// mouse leaves a certain window... might be usefull in the future
-  } else if(event.type == LeaveNotify) {
-    if((event.xcrossing.mode== NotifyGrab)|| (event.xcrossing.mode==NotifyUngrab)) /// ignore grabs
-      return;
+    } else if(event.type == LeaveNotify) {
+      if((event.xcrossing.mode== NotifyGrab)|| (event.xcrossing.mode==NotifyUngrab)) /// ignore grabs
+        continue;
 
-    if(event.xcrossing.mode== NotifyNormal)
-      return;
+      if(event.xcrossing.mode== NotifyNormal)
+        continue;
 
 // ---------------=============== FOCUS IN ==================-------------------
 
-/// once a window is mapped, it is in the hands of WM (window manager)
-/// so use only window manager messages ("_NET_BLABLA")
-  } else if(event.type == FocusIn) { // these are spammed
-    if(chatty) printf("focusIn\n");
+    /// once a window is mapped, it is in the hands of WM (window manager)
+    /// so use only window manager messages ("_NET_BLABLA")
+    } else if(event.type == FocusIn) { // these are spammed
+      if(chatty) printf("focusIn\n");
 
-    if(event.xfocus.mode== NotifyNormal) {
-      if(flags.haveFocus) {                    // ignore if already focused
-        if(chatty) printf("FocusIn:IGNORED: xchange focus between internal program windows\n");
-        return;
-      }
+      if(event.xfocus.mode== NotifyNormal) {
+        if(flags.haveFocus) {                    // ignore if already focused
+          if(chatty) printf("FocusIn:IGNORED: xchange focus between internal program windows\n");
+          continue;
+        }
 
-    if(chatty) printf("FocusIn:NotifyNormal, haveFocus=%d\n", flags.haveFocus);
+      if(chatty) printf("FocusIn:NotifyNormal, haveFocus=%d\n", flags.haveFocus);
 
+        /// fullscreen
+        if(primWin->mode== 2|| primWin->mode== 3|| primWin->mode== 4)
+          for(short a= 0; a< MAX_WINDOWS; a++)  /// for each (created) window
+            if(win[a].isCreated) {
+              /// [mode 2] resolution change
+              if(win[a].mode== 2) {
+                if(chatty) printf("Changing resolution for window [%d]\n", a);
+                display.changeRes(&win[a], win[a].monitor, win[a].dx, win[a].dy, win[a].bpp, win[a].freq);
+              }
+              /// set the window 'on top' of everything
+              win[a].setWMstate(1, "_NET_WM_STATE_ABOVE");
+              win[a].setWMstate(0, "_NET_WM_STATE_BELOW");
+              //setFullScreen(&win[a], true); // THIS IS A POSSIBILITY
+            } /// is window created
 
-/// fullscreen CHANGING RESOLUTIONS IS NOT WORKING FOR MULTIPLE MONITORS ATM (single monitor works)
-      if(primWin->mode== 2)
-//        for(short a= 0; a< MAX_WINDOWS; a++)  /// for each (created) window
-          if(win[0].isCreated) {
-            if(chatty) printf("Changing resolution for window primary\n"); //[%d]\n", a);
-//            display.changeRes(&win[a], win[a].monitor, win[a].dx, win[a].dy, win[a].bpp, win[a].freq);
-            display.changeRes(&win[0], win[0].monitor, win[0].dx, win[0].dy, win[0].bpp, win[0].freq);
-          } /// is window created
+        flags.minimized= false;
+        flags.haveFocus= true;
+      } /// NotifyNormal
 
-/// fullscreen window
-      if(primWin->mode== 3)
-        for(short a= 0; a< MAX_WINDOWS; a++)
-          if(win[a].isCreated) {
-            win[a].setWMstate(1, "_NET_WM_STATE_ABOVE");
-            win[a].setWMstate(0, "_NET_WM_STATE_BELOW");
-            //setFullScreen(&win[a], true); // THIS IS A POSSIBILITY
-          }
-
-      flags.minimized= false;
-      flags.haveFocus= true;
-    } /// NotifyNormal
-
-    return;
+      continue;
 
 // ---------------=============== FOCUS OUT =================-------------------
 
-  /// once a window is mapped, it is in the hands of WM (window manager)
-  /// so use only window manager messages ("_NET_BLABLA")
-  /// XIconify i think uses WM messages, so it works
-  } else if(event.type == FocusOut) { // these are spammed
-    if(chatty) printf("focusOut\n");
+    /// once a window is mapped, it is in the hands of WM (window manager)
+    /// so use only window manager messages ("_NET_BLABLA")
+    /// XIconify i think uses WM messages, so it works
+    } else if(event.type == FocusOut) { // these are spammed
+      if(chatty) printf("focusOut\n");
 
-    if(event.xfocus.mode== NotifyNormal) {      /// it can be a grab or something
-      /// if next event is a focus in, there's only a change of focus between program windows,
-      /// so this focus is ignored (same as the next, cuz already have focus)
-      if(XPending(primWin->dis)) {
-        XEvent tmp;
-        XPeekEvent(primWin->dis, &tmp);
-        if((tmp.type == FocusIn)&& (tmp.xfocus.mode== NotifyNormal)) {
-          if(chatty) printf("FocusOut:IGNORED: xchange focus between internal program windows\n");
-          return;
-        }
-      }
-
-      if(chatty) printf("FocusOut:NotifyNormal, haveFocus=%d\n", flags.haveFocus);
-
-      if(!flags.haveFocus)                      /// ignore if already not focused
-        return;
-
-      /// fullscreen CHANGING RESOLUTIONS IS NOT WORKING FOR MULTIPLE MONITORS ATM (single works)
-      if(primWin->mode== 2)                      /// if fullscreen only
-//        for(short a= 0; a< MAX_WINDOWS; a++)     /// for each (created) window
-          if(win[0].isCreated) {
-//            XIconifyWindow(win[0].dis, win[a].win, win[a].monitor->screen);
-            XIconifyWindow(win[0].dis, win[0].win, win[0].monitor->screen);
-//            display.restoreRes(&win[a], win[a].monitor);
-            display.restoreRes(&win[0], win[0].monitor);
-            flags.minimized= true;
-            if(chatty) printf("Changing to original resolution for window primary\n"); //[%d]\n", a);
-          } /// if window is created
-
-      /// fullscreen window
-      if(primWin->mode== 3)
-        for(short a= 0; a< MAX_WINDOWS; a++)    /// for each (created) window
-          if(win[a].isCreated) {
-            win[a].setWMstate(0, "_NET_WM_STATE_ABOVE");
-            win[a].setWMstate(1, "_NET_WM_STATE_BELOW");
-            // setFullScreen(&win[a], false); // THIS IS A POSIBILITY
+      if(event.xfocus.mode== NotifyNormal) {      /// it can be a grab or something
+        /// if next event is a focus in, there's only a change of focus between program windows,
+        /// so this focus is ignored (same as the next, cuz already have focus)
+        if(XPending(primWin->dis)) {
+          XEvent tmp;
+          XPeekEvent(primWin->dis, &tmp);
+          if((tmp.type == FocusIn)&& (tmp.xfocus.mode== NotifyNormal)) {
+            if(chatty) printf("FocusOut:IGNORED: xchange focus between internal program windows\n");
+            continue;
           }
+        }
 
-      flags.haveFocus= false;
-    } /// if FocusOut:NotifyNormal
+        if(chatty) printf("FocusOut:NotifyNormal, haveFocus=%d\n", flags.haveFocus);
 
-    return;
+        if(!flags.haveFocus)                      /// ignore if already not focused
+          continue;
+
+        /// fullscreen
+        if(primWin->mode== 2|| primWin->mode== 3|| primWin->mode== 4)
+          for(short a= 0; a< MAX_WINDOWS; a++)     /// for each (created) window
+            if(win[a].isCreated) {
+              /// set the window 'below' every other windows
+              win[a].setWMstate(0, "_NET_WM_STATE_ABOVE");
+              win[a].setWMstate(1, "_NET_WM_STATE_BELOW");
+              // setFullScreen(&win[a], false); // THIS IS A POSIBILITY
+
+              /// [mode 2] resolution change & window iconification
+              if(win[a].mode== 2) {
+                if(chatty) printf("Changing to original resolution for window [%d]\n", a);
+                XIconifyWindow(win[0].dis, win[a].win, win[a].monitor->screen);
+                display.restoreRes(&win[a], win[a].monitor);
+                flags.minimized= true;
+              }
+            } /// if window is created
+        
+        /// clear every button / key buffer / fix history for every button
+        in.k.clearTypedBuffer();
+        in.resetPressedButtons();
+        
+        flags.haveFocus= false;
+      } /// if FocusOut:NotifyNormal
+
+      continue;
 
 // ---------------============ CLOSE BUTTON PRESS ===========-------------------
     /// ... it is defined in createGLWindow() as a custom i guess
     /// i think this needs more testing, cuz it seems ALL client msgs are treated
     /// as the close message ATM
-  } else if(event.type == ClientMessage) {
-    flags.exit= true;
-    return;
+    } else if(event.type == ClientMessage) {
+      flags.exit= true;
+      continue;
 
 // ---------------============== DESTROY NOTIFY =============-------------------
-  } else if(event.type == DestroyNotify) {
-    error.simple("destroy notify not handled");
-    return;
+    } else if(event.type == DestroyNotify) {
+      error.simple("destroy notify not handled");
+      continue;
 
-  } else if(event.type == CirculateNotify) {
-    if(chatty) printf("circulate notify\n");
-  }
+    } else if(event.type == CirculateNotify) {
+      if(chatty) printf("circulate notify\n");
+    }
 
-  //} else
-  //  XFlush(win[0].display); // why flush msgs? pass thru all, right?
-
-} // OSInteraction::processMSG
+    //} else
+    //  XFlush(win[0].display); // why flush msgs? pass thru all, right?
+  
+  } /// while there are messages in queue
+  
+} // OSInteraction::processMSG ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #endif /// OS_LINUX
 
 
 #ifdef OS_MAC
-// MAC variant of processMSG is in OScocoa.mm. there are Objective-C specific stuff
+// MAC variant of processMSG is in OScocoa.mm. there is Objective-C specific stuff
 #endif /// OS_MAC
 
 
 
 bool OSInteraction::checkMSG() {
   bool ret= false;
-
+  
+  getNanosecs(&present);       // current time, or 'present' variable updated here <<<
+  
   #ifdef OS_WIN
   while(1)    // loop thru ALL msgs... i used to peek thru only 1 msg, that was baaad... biig LAG
     if(PeekMessage(&win[0].msg, NULL, 0, 0, PM_REMOVE)) {	// Is There A Message Waiting?
@@ -1738,13 +1798,8 @@ bool OSInteraction::checkMSG() {
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
-
-  // CHANGE THIS TO BE JUST 1 FUNCTION CALL FFS <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-  while(XPending(primWin->dis)) {
-    processMSG();
-    ret= true;
-  }
+  processMSG();
+  ret= true;
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
@@ -1951,7 +2006,7 @@ void OSInteraction::getNanosecs(uint64 *out) {
   #ifdef OS_LINUX
   timespec t;
   clock_gettime(CLOCK_MONOTONIC, &t);
-  *out= (t.tv_sec* 1 000 000 000)+ t.tv_nsec;
+  *out= (t.tv_sec* 1000000000)+ t.tv_nsec;
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
@@ -1997,7 +2052,20 @@ void OSInteraction::getMillisecs(uint64 *out) {
   #endif /// OS_MAC
 }
 
+void OSInteraction::exit(int retVal) {
+  display.restoreAllRes();
+  #ifdef OS_WIN
+  exit(retVal);
+  #endif /// OS_WIN
 
+  #ifdef OS_LINUX
+  _exit(retVal);
+  #endif /// OS_LINUX
+
+  #ifdef OS_MAC
+  _exit(retVal);
+  #endif /// OS_MAC
+}
 
 
 

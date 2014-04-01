@@ -59,7 +59,6 @@
  
  */
 
-// direct call with extern "C"
 
 OSIcocoa cocoa;
 
@@ -108,7 +107,7 @@ OSIcocoa cocoa;
 }
 */
 - (BOOL) canBecomeKeyWindow {
-  printf("%s\n", __FUNCTION__);  
+  // printf("%s\n", __FUNCTION__);  // << this one is spammed... there might be a setCanBecome, so this is not spammed anymore
   return YES;
 }
 
@@ -128,18 +127,19 @@ OSIcocoa cocoa;
     name:NSWindowWillCloseNotification
     object:self];
 
-  [[NSNotificationCenter defaultCenter]
-   addObserver:self
-   selector:@selector(windowDidBecomeKey:)
-   name:NSWindowDidBecomeKeyNotification
-   object:self];
 
   [[NSNotificationCenter defaultCenter]
    addObserver:self
    selector:@selector(windowDidResignKey:)
    name:NSWindowDidResignKeyNotification
    object:self];
-  
+
+  [[NSNotificationCenter defaultCenter]
+   addObserver:self
+   selector:@selector(windowDidBecomeKey:)
+   name:NSWindowDidBecomeKeyNotification
+   object:self];
+
   
   [self setAcceptsMouseMovedEvents:YES];
   
@@ -153,35 +153,87 @@ OSIcocoa cocoa;
 - (void) windowDidResize: (NSNotification *)notification {
 }
 
+
 // window close - PROGRAM EXIT
 - (void) windowWillClose: (NSNotification *)notification {
   osi.flags.exit= true;
   [NSApp terminate:nil];    // <<<< program exit. is this ok? a close button is pressed... i guess program must exit...
 }
 
+// --------------------->>>> WINDOW FOCUS IN <<<<------------------------
 - (void)windowDidBecomeKey:(NSNotification *)notification{
-  printf("%s\n", __FUNCTION__);
-  
-  // maybe maximize?
-  
-  /// set window as topmost/shielded for fullscreen mode
+  bool chatty= true;
+  if(chatty) printf("%s\n", __FUNCTION__);
+
+  /// set the hasFocus flag of the window that become key to true
   OSIWindow *w= osi.getWin(self);
-  if(w->mode== 2|| w->mode== 3)
-    [self setLevel:CGShieldingWindowLevel()];
+  w->hasFocus= true;
+  
+  /// the program was not active/ just started?
+  if(!osi.flags.haveFocus) {
+    if([NSApp isActive]) {    /// app just became active
+      osi.flags.haveFocus= true;
+      if(chatty) printf("program is ACTIVE\n");
+      
+      /// loop thru all created windows
+      for(short a= 0; a< MAX_WINDOWS; a++)
+        if(osi.win[a].isCreated) {
+
+          /// set all created windows below the current window, if the program just activated
+          /// avoids to have some windows behind other applications, if this program just got active
+          if(osi.win[a].mode== 1) {
+            if(osi.win[a].win!= w->win)
+              [((MacGLWindow *)osi.win[a].win) orderWindow:NSWindowBelow relativeTo: [((MacGLWindow *)w->win) windowNumber]];
+          }
+          
+          // UNHIDE (maximize) is set in createWindow, easyer: [win setHidesOnDeactivate:YES];
+
+          /// in full screen, change monitor resolution to 'program resolution'
+          if(osi.win[a].mode== 2)
+            osi.display.changeRes(&osi.win[a], osi.win[a].monitor, osi.win[a].dx, osi.win[a].dy, osi.win[a].bpp, osi.win[a].freq);              
+            
+          /// in full screen & full screen window, set the windows level to top (shilding level)
+          if(osi.win[a].mode== 2 || osi.win[a].mode== 3|| osi.win[a].mode== 4)
+            [((MacGLWindow *)osi.win[a].win) setLevel:CGShieldingWindowLevel()];
+
+        } /// if the window is created
+      
+    } else {                  /// impossible...
+      osi.flags.haveFocus= true;
+      // but the program is NOT ACTIVE... so this is not possible
+      printf("black hole sun!\n");
+    }
+  } /// if osi.haveFocus is false
 }
 
+
+// ------------------>>>> WINDOW FOCUS OUT <<<<----------------------
 - (void)windowDidResignKey:(NSNotification *)notification{
-  printf("%s\n", __FUNCTION__);
+  bool chatty= true;
+  if(chatty) printf("%s\n", __FUNCTION__);
   
-  // maybe minimize? dunno
-  
-  /// lose the 'shielded' atribute
+  /// set the hasFocus flag of the window as false
   OSIWindow *w= osi.getWin(self);
-  if(w->mode== 2|| w->mode== 3)
-    [self setLevel:kCGNormalWindowLevel];
+  w->hasFocus= false;
+
+  if(![NSApp isActive]) {   /// the program is NOT active anymore
+    if(chatty) printf("app is NOT ACTIVE\n");
+    osi.flags.haveFocus= false;
+    
+    /// loop thru all created windows
+    for(short a= 0; a< MAX_WINDOWS; a++)
+      if(osi.win[a].isCreated) {
+        
+        /// restore original monitor resolution
+        if(osi.win[a].mode== 2)
+          osi.display.restoreRes(&osi.win[a], osi.win[a].monitor);
+        
+        /// lose the 'shielded' atribute (move to back)
+        if(w->mode== 2|| w->mode== 3|| osi.win[a].mode== 4)
+          [((MacGLWindow *)osi.win[a].win) setLevel:kCGNormalWindowLevel- 1];
+      } /// if this is a created window
+  } /// if the program is not active anymore
 }
-
-
 
 @end
 
@@ -207,6 +259,13 @@ OSIcocoa cocoa;
 }
 */
 
+/*
+- (BOOL) wantsBestResolutionOpenGLSurface {
+  // this might be overkill; rendering @ more than a pixel resolution... this might be way too gpu unfriendly; UNTESTED
+  // see https://developer.apple.com/library/mac/documentation/graphicsimaging/conceptual/OpenGL-MacProgGuide/EnablingOpenGLforHighResolution/EnablingOpenGLforHighResolution.html#//apple_ref/doc/uid/TP40001987-CH1001-SW5
+  return YES;
+}
+*/
 
 -(void) drawRect: (NSRect) bounds {
   printf("%s\n", __FUNCTION__);
@@ -231,7 +290,7 @@ OSIcocoa cocoa;
 
 
 
-// --------------------------- KEYBOARD EVENTS ------------------------------ //
+// ########################### KEYBOARD EVENTS ############################## //
 
 /* research:
 NSUInteger flags = [theEvent modifierFlags] & NSDeviceIndependentModifierFlagsMask;
@@ -243,16 +302,20 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 
 
 
-// caps/shift/ctrl/alt/ these kind of keys have this func... who knows how to distinguish between a press and a depress...
+// -----------============= caps/shift/ctrl/alt/etc =============------------ //
 - (void) flagsChanged: (NSEvent *)theEvent {
   // find out all flagsChanged!!!!!!!!!!
   
-  bool chatty= true;
+  bool chatty= FALSE;
   ulong flags= [theEvent modifierFlags];
   uchar code= [theEvent keyCode];
   
+  
+  test this, first.
+  WRONG !!! cocoa uses mach too, this is useless call to getMillisecs
   osi.getMillisecs(&osi.eventTime);
-  printf("event!!\n");
+  
+  if(chatty) printf("event!!\n");
   //MUST TEST THIS, it is INPOSSIBLE OTHERWISE...
   /// caps lock
   uchar press= 0;
@@ -264,7 +327,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
       in.k.capsLock= false; // not shure about this
 
     }
-    printf("capsLock[%s]\n", in.k.capsLock? "true": "false");
+    if(chatty) printf("capsLock[%s]\n", in.k.capsLock? "true": "false");
   }
   // TEST ^^^ no clue if macs actually have a true 'lock'
 
@@ -345,11 +408,11 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
   // NSDeviceIndependentModifierFlagsMask
 }
 
-// ---------------================ KEY DOWN =================-------------------
+// ---------------================ KEY DOWN =================---------------- //
 - (void) keyDown:(NSEvent *)theEvent {
   // string UCKeytranslate(b,a,c);<< this one is "very low". hopefully, everything is ok with what cocoa has as a basic.
   
-  bool chatty= true;
+  bool chatty= false;
   uchar code= [theEvent keyCode];
   
   /// different vars that might be needed some day (atm, everything seems set with keyboard, tho):
@@ -358,6 +421,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
   // NSString *chrs= [theEvent characters];
   // NSString *chrsNoMod= [theEvent charactersIgnoringModifiers];
 
+  WRONG !!! cocoa uses mach too, this is useless call to getMillisecs
   osi.getMillisecs(&osi.eventTime);       /// event time. can't rely on what cocoa passes, it must match with osi.getMilisecs()
   
   osi.flags.keyPress= false;
@@ -385,8 +449,9 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 
 // ---------------================= KEY UP ==================-------------------
 - (void) keyUp:(NSEvent *)theEvent {
-  bool chatty= true;
+  bool chatty= false;
   
+  WRONG !!! cocoa uses mach too, this is useless call to getMillisecs
   osi.getMillisecs(&osi.eventTime);
   osi.flags.keyPress= false;
   
@@ -464,6 +529,9 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 - (void) mouseDown:(NSEvent *)theEvent {
   bool chatty= false;
   osi.flags.buttonPress= true;
+  
+  test this (simple print)
+  WRONG !!! cocoa uses mach too, this is useless call to getMillisecs
   osi.getMillisecs(&osi.eventTime);
   
   in.m.b[0].down= true;
@@ -474,6 +542,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 // ---------------============= LEFT BUTTON UP ==============-------------------
 - (void) mouseUp:(NSEvent *)theEvent {
   bool chatty= false;
+  WRONG !!! cocoa uses mach too, this is useless call to getMillisecs
   osi.getMillisecs(&osi.eventTime);
   osi.flags.buttonPress= false;      /// it's not accurate, needs further testing against other buttons, but...
   
@@ -494,6 +563,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 - (void) rightMouseDown:(NSEvent *)theEvent {
   bool chatty= false;
   osi.flags.buttonPress= true;
+  WRONG !!! cocoa uses mach too, this is useless call to getMillisecs
   osi.getMillisecs(&osi.eventTime);
   
   in.m.b[1].down= true;
@@ -504,6 +574,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 // ---------------============ RIGHT BUTTON UP ==============-------------------
 - (void) rightMouseUp:(NSEvent *)theEvent {
   bool chatty= false;
+  WRONG !!! cocoa uses mach too, this is useless call to getMillisecs
   osi.getMillisecs(&osi.eventTime);
   osi.flags.buttonPress= false;      /// it's not accurate, needs further testing against other buttons, but...
   
@@ -527,6 +598,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
   int b= (int)theEvent.buttonNumber; /// this seems ok: 2= middle; 3, 4= extra butotns
   
   osi.flags.buttonPress= true;
+  WRONG !!! cocoa uses mach too, this is useless call to getMillisecs
   osi.getMillisecs(&osi.eventTime);
   
   in.m.b[b].down= true;
@@ -539,7 +611,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
   bool chatty= false;
   
   int b= (int)theEvent.buttonNumber; /// this seems ok. 2=middle; 3, 4= extra butotns
-  
+  WRONG !!! cocoa uses mach too, this is useless call to getMillisecs
   osi.getMillisecs(&osi.eventTime);
   osi.flags.buttonPress= false;      /// it's not accurate, needs further testing against other buttons, but...
   
@@ -558,7 +630,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 
 // ---------------============== MOUSE WHEEL ================-------------------
 - (void) scrollWheel:(NSEvent *)theEvent {
-  bool chatty= true;
+  bool chatty= false;
   if(theEvent.scrollingDeltaY> 0)
     in.m.wheel++;
   else
@@ -620,17 +692,17 @@ OSIcocoa::OSIcocoa() {
   [delegate init];
   [NSApp setDelegate: delegate];
   
-  // ICON MUST BE PLACED SOMEWHERE AROUND HERE or after finishLaunching();
+  /// ICON MUST BE PLACED SOMEWHERE AROUND HERE or after finishLaunching();
   //myImage = [NSImage imageNamed: @"ChangedIcon"];
   //  [NSApp setApplicationIconImage: myImage];
   
   [NSApp finishLaunching]; // <<<<---- after finish launching settings from here 
   
   /// this seems to disable the crappy momentum scrolling. Thing is, there won't be any scrolling involved, tho
-  //  NSDictionary *appDefaults = [NSDictionary dictionaryWithObject:@"NO" forKey:@"AppleMomentumScrollSupported"];
-  //  [[NSUserDefaults standardUserDefaults] registerDefaults:appDefaults];
+  NSDictionary *appDefaults = [NSDictionary dictionaryWithObject:@"NO" forKey:@"AppleMomentumScrollSupported"];
+  [[NSUserDefaults standardUserDefaults] registerDefaults:appDefaults];
 
-  // this doesn't seem to work atm - SDL REF
+  // this doesn't seem to work atm - SDL REF; maybe add these menu items after the window is created?
   /// Create the window menu
   NSMenu *windowMenu= [[NSMenu alloc] initWithTitle:@"Window"];
   [windowMenu addItemWithTitle:@"Minimize" action:@selector(performMiniaturize:) keyEquivalent:@"m"];
@@ -640,7 +712,6 @@ OSIcocoa::OSIcocoa() {
   
 
   [NSApp activateIgnoringOtherApps: YES];
-  
   [pool release];
 }
 
@@ -660,87 +731,10 @@ void OSIcocoa::setProgramPath() {
 	[pool release];
 }
 
-// various types MENUS that macs have. None is usefull but windowMenu, i think
- /*
-  NSMenu *appleMenu;
-  NSMenu *serviceMenu;
-  NSMenu *windowMenu;
-  NSMenuItem *menuItem;
-  
-  if (NSApp == nil) {
-    return;
-  }
-  
-  // Create the main menu bar 
-  [NSApp setMainMenu:[[NSMenu alloc] init]];
-  
-  // Create the application menu
-  appName = GetApplicationName();
-  appleMenu = [[NSMenu alloc] initWithTitle:@""];
-  
-  // Add menu items 
-  title = [@"About " stringByAppendingString:appName];
-  [appleMenu addItemWithTitle:title action:@selector(orderFrontStandardAboutPanel:) keyEquivalent:@""];
-  
-  [appleMenu addItem:[NSMenuItem separatorItem]];
-  
-  [appleMenu addItemWithTitle:@"Preferences…" action:nil keyEquivalent:@","];
-  
-  [appleMenu addItem:[NSMenuItem separatorItem]];
-  
-  serviceMenu = [[NSMenu alloc] initWithTitle:@""];
-  menuItem = (NSMenuItem *)[appleMenu addItemWithTitle:@"Services" action:nil keyEquivalent:@""];
-  [menuItem setSubmenu:serviceMenu];
-  
-  [NSApp setServicesMenu:serviceMenu];
-  [serviceMenu release];
-  
-  [appleMenu addItem:[NSMenuItem separatorItem]];
-  
-  title = [@"Hide " stringByAppendingString:appName];
-  [appleMenu addItemWithTitle:title action:@selector(hide:) keyEquivalent:@"h"];
-  
-  menuItem = (NSMenuItem *)[appleMenu addItemWithTitle:@"Hide Others" action:@selector(hideOtherApplications:) keyEquivalent:@"h"];
-  [menuItem setKeyEquivalentModifierMask:(NSAlternateKeyMask|NSCommandKeyMask)];
-  
-  [appleMenu addItemWithTitle:@"Show All" action:@selector(unhideAllApplications:) keyEquivalent:@""];
-  
-  [appleMenu addItem:[NSMenuItem separatorItem]];
-  
-  title = [@"Quit " stringByAppendingString:appName];
-  [appleMenu addItemWithTitle:title action:@selector(terminate:) keyEquivalent:@"q"];
-  
-  // Put menu into the menubar
-  menuItem = [[NSMenuItem alloc] initWithTitle:@"" action:nil keyEquivalent:@""];
-  [menuItem setSubmenu:appleMenu];
-  [[NSApp mainMenu] addItem:menuItem];
-  [menuItem release];
-  
-  // Tell the application object that this is now the application menuß
-  [NSApp setAppleMenu:appleMenu];
-  [appleMenu release];
-  
-  
-  // Create the window menu
-  windowMenu = [[NSMenu alloc] initWithTitle:@"Window"];
-  
-  // Add menu items
-  [windowMenu addItemWithTitle:@"Minimize" action:@selector(performMiniaturize:) keyEquivalent:@"m"];
-  
-  [windowMenu addItemWithTitle:@"Zoom" action:@selector(performZoom:) keyEquivalent:@""];
-  
-  // Put menu into the menubar
-  menuItem = [[NSMenuItem alloc] initWithTitle:@"Window" action:nil keyEquivalent:@""];
-  [menuItem setSubmenu:windowMenu];
-  [[NSApp mainMenu] addItem:menuItem];
-  [menuItem release];
-  
-  // Tell the application object that this is now the window menu
-  [NSApp setWindowsMenu:windowMenu];
-  [windowMenu release];
-}
-*/
 
+///================================================================///
+// -------------------->>> CREATE WINDOW <<<----------------------- //
+///================================================================///
 bool OSIcocoa::createWindow(OSIWindow *w) {
   NSAutoreleasePool *pool= [[NSAutoreleasePool alloc] init];
   
@@ -748,6 +742,10 @@ bool OSIcocoa::createWindow(OSIWindow *w) {
   
   MacGLWindow *win= NULL;
   MacGLview *view= NULL;
+  
+  /// change monitor resolution
+  if(w->mode== 2)
+    osi.display.changeRes(w, w->monitor, w->dx, w->dy, w->bpp, w->freq);
   
   /// window size
   NSRect contRect;
@@ -761,7 +759,7 @@ bool OSIcocoa::createWindow(OSIWindow *w) {
       NSClosableWindowMask|
       NSMiniaturizableWindowMask|
       NSResizableWindowMask;
-  if(w->mode== 3 || w->mode== 2)      /// fullscreen / fullscreen window style
+  if(w->mode== 3 || w->mode== 2 || w->mode== 4)      /// fullscreen / fullscreen window style / extended on all monitors
     winStyle=
     //      NSTitledWindowMask|
       NSClosableWindowMask|
@@ -775,6 +773,7 @@ bool OSIcocoa::createWindow(OSIWindow *w) {
     styleMask: winStyle
     backing: NSBackingStoreBuffered 
     defer: NO];
+  //screen:X]; /// a screen number can be placed here <<<
   
   // see http://www.mikeash.com/pyblog/nsopenglcontext-and-one-shot.html
   /// prevent window deletion when hidden
@@ -809,15 +808,19 @@ bool OSIcocoa::createWindow(OSIWindow *w) {
     [win setTitle:[NSString stringWithUTF8String: w->name.d]];
     [win setLevel:kCGNormalWindowLevel];
   /// fullscreen / fullscreen window
-  } else if(w->mode== 2|| w->mode== 3) {
+  } else if(w->mode== 2|| w->mode== 3|| w->mode== 4) {
     [win setLevel:CGShieldingWindowLevel()];
+    [win setOpaque:YES];              /// no clue what this has in advantages, but documentation sets this; no other info found on oficial doc
+    
+    //        if(w->mode== 2)
+    //      [win setHidesOnDeactivate:YES]; /// using this for fullscreen... TEST IF CHANGING RES IS OK WITH JUST MOVING THE WINDOW TO THE BACK
   }
+  //see https://developer.apple.com/library/mac/documentation/graphicsimaging/conceptual/OpenGL-MacProgGuide/EnablingOpenGLforHighResolution/EnablingOpenGLforHighResolution.html#//apple_ref/doc/uid/TP40001987-CH1001-SW5  
   
-  more fullscreen research & changing resolutions for each monitor
   
   [win makeKeyAndOrderFront: nil];
   
-  /* this crashes, dunno why
+  /* this crashes cocoa, dunno why
   if(w== &osi.win[0])
     [win makeMainWindow];
    */
@@ -844,6 +847,10 @@ void OSIcocoa::getWindowSize(OSIWindow *w, int *dx, int *dy) {
 }
 
 
+
+///=================================================================///
+// -------------------->>> PROCESS MSGS <<<------------------------- //
+///=================================================================///
 void processMSG(void) {
   NSAutoreleasePool *pool=[[NSAutoreleasePool alloc] init];
 
@@ -873,7 +880,20 @@ void processMSG(void) {
 	[pool release];	
 }
 
-// TIME... ? <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+
+
+void OSIcocoa::swapBuffers(OSIWindow *w) {
+  [[(MacGLview *)w->view openGLContext] flushBuffer];
+}
+
+
+void OSIcocoa::makeCurrent(OSIWindow *w) {
+  [[(MacGLview *)w->view openGLContext] makeCurrentContext];
+}
+
+
+// SLEEP FUNCTION... ? <<<<<<<<<<<<<<<<<<
 void OSIcocoa::sleep(int ms) {
   if(ms> 0) {
     double sec;
@@ -882,44 +902,8 @@ void OSIcocoa::sleep(int ms) {
   }
 }
 
-/*
-int passedTime(void) {
-  int ms;
 
-  NSAutoreleasePool *pool= [[NSAutoreleasePool alloc] init];
-
-  static NSTimeInterval last= 0.0;
-  NSTimeInterval now;
-
-  now= [[NSDate date] timeIntervalSince1970];
-
-  NSTimeInterval passed;
-  passed= now- last;
-  ms= (int)(1000.0* passed);
-
-  if(ms< 0)
-    ms= 1;
-
-  last= now;
-
-  [pool release];	
-
-  return ms;
-}
-*/
-
-
-void OSIcocoa::swapBuffers(OSIWindow *w) {
-  //MacGLview *view= (MacGLview *)w->view;
-  //[[view openGLContext] flushBuffer];
-  [[(MacGLview *)w->view openGLContext] flushBuffer];
-}
-
-void OSIcocoa::makeCurrent(OSIWindow *w) {
-  //  (((MacGLview *)w->view).openGLContext.makeCurrentContext(); //<< something like this can be done
-  [[(MacGLview *)w->view openGLContext] makeCurrentContext];
-}
-
+// INTERNAL- monitor name - and ofc, a func just got deprecated !
 bool OSIcocoa::displayName(unsigned long id, string8 *out) {
   bool ret= false;
   out->delData();
