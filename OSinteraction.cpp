@@ -12,20 +12,16 @@
  * gamepad vibration under directinput (it is possible) & force feedback (MUST HAVE A VIBRATION GAMEPAD FIRST...)
  * OSX emulator? to test stuf under osx?
  *
- * test keyboard locks under linux
  * test mouse grab under linux
  * test keyboard grab under linux (first make shure it is possible to exit program)
  *
  * in linux, if messing with visual variables, the black screen flash can go away
  *  therefore, in windows, pfd must be messed with to get rid of the black flash
  *
- * linux keboard manipChars
- *
- * - [win+linux] joystick, xbox controller, wheel (BUY THEM first)
- *
+ * - [win+linux] joystick, wheel (BUY THEM first)
+ * - [win] xbox controller
  * - [win] test japanese keyboard, see what chars shows... or print to a file at least
  * - [win] Kv structure
- * - [linux] test Kv structure that is actually working on a arabic (for example) keyboard
  * - [mac] test Kv structure on a complex language keyboards
  * - create a loading window, in the center of the screen? eventually to have image of the game
  *
@@ -40,8 +36,7 @@
  * - window to change a monitor without problems (unplug?)
  *   but on multiple monitor mode, mark it as closed? something like this... notify the program somehow, so a rearrangement will be done
 
-// CHANGE THE STYLE I PROGRAM, "void getBla(retval)", not "retval getBla();"
-// faster this way ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 */
 
@@ -296,7 +291,8 @@ int main() {
     if(osi.flags.exit)
       osi.exit(0);
 
-      
+    bool showPanel= true; // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    if(showPanel) {  
     #ifdef OS_WIN
     COORD pos= {0,0};
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), pos);
@@ -319,11 +315,14 @@ int main() {
     printf("typed char buffer[%d]:", in.k.charTyped.nrNodes);
     for(short a= 0; a< 32; a++) {
       ulong c= (in.k.charTyped.nrNodes> a)? ((Keyboard::chTyped*)in.k.charTyped.get(a))->c: L' ';
-      printf("%lc", c);
+      
+      printf("%lc", (wchar_t)c);
+      printf("%d", c);
+      //printf("%lc", c);
       //printf("% c", (in.k.charTyped.nrNodes> a)? ((Keyboard::chTyped*)in.k.charTyped.get(a))->c: ' ');
     }
+    printf("\ncaps[%d] num[%d] scroll[%d]\n", in.k.capsLock, in.k.numLock, in.k.scrollLock);
     
-    printf("\n");
     //    printf("ZE QUESTION: [%d] [%d]\n", osi.display.monitor[0].glRenderer, osi.display.monitor[1].glRenderer);
     
     
@@ -335,7 +334,7 @@ int main() {
     }
     */
     #endif /// OS_LINUX
-
+    }
 
     osi.checkMSG();		/// operating system messages handling
   }
@@ -405,7 +404,8 @@ OSInteraction::OSInteraction() {
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
-  //  setlocale(LC_ALL, ""); // can't rely on setlocale. everything is different on each os. rely on StringClass32/8 and that's that.
+/// printf won't work without setlocale. but hopefully it won't be needed.
+//    setlocale(LC_ALL, ""); // can't rely on setlocale. everything is different on each os. rely on StringClass32/8 and that's that.
 //  setlocale(LC_CTYPE, "");
   primWin->dis= XOpenDisplay(null);          // DISPLAY CONNECTION TO XSERVER can be something like ":0.0" :displayNr.screenNr
   if(primWin->dis == NULL)

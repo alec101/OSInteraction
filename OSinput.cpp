@@ -1,15 +1,27 @@
 #include "pch.h"
 
+#ifdef OS_LINUX
+//#include <linux/joystick.h>   // it's not x stuff... lots of crap added, keyboard/mouse, that is not needed. IT'S POSSIBLE TO AVOID THIS HEADER, only some function definitions are needed.
+#include <fcntl.h>
+#include <sys/ioctl.h>
+
 // avoid including joystick.h, wich includes tons of unneeded stuff
-#define JS_EVENT_BUTTON   0x01	// button pressed/released */
-#define JS_EVENT_AXIS     0x02  // joystick moved */
-#define JS_EVENT_INIT     0x80
-
-//#include <sys/types.h>
-//#include <sys/stat.h>
-
-//#include <X11/extensions/XInput.h>
-
+typedef unsigned char __u8;
+#define JS_EVENT_BUTTON 0x01                              // button pressed/released
+#define JS_EVENT_AXIS   0x02                              // joystick moved
+#define JS_EVENT_INIT   0x80
+#define JSIOCGVERSION		_IOR('j', 0x01, __u8)             // get driver version
+#define JSIOCGAXES      _IOR('j', 0x11, __u8)             // get number of axes
+#define JSIOCGBUTTONS   _IOR('j', 0x12, __u8)             // get number of buttons
+#define JSIOCGNAME(len) _IOC(_IOC_READ, 'j', 0x13, len)   // get identifier string
+#define EVIOCGNAME(len)		_IOC(_IOC_READ, 'E', 0x06, len) // get device name
+struct js_event {
+  unsigned int time;    // event timestamp in milliseconds
+  short value;          // value
+  unsigned char type;   // event type
+  unsigned char number;	// axis/button number
+};
+#endif /// OS_LINUX
 
 /// if not using precompiled header use the following
 /*
@@ -35,21 +47,20 @@
 #include "OSinput.h"
 */
 
-
-
+// private funcs
+void checkGamepadType(string *name, GamePad *p);  // it is found in the gamepad area, at the end
+  
 /* TODO:
  *
+ * [win][mac] gamepad unification - check linux version
+ * 
  * every COORDONATE UNIFICATION: x0,y0 -> left,bottom (as in OpenGL, MAC.  NOT AS IN: windows, (i think linux too)
       this includes mouseWheel (+y means UP, as in the real cood system)
  * 
  * could set, that if program chooses Direct Input mode, under linux/mac to choose MODE 1 <<<<<<<<<
  *   or basically, if a mode is unavaible, go for mode 1 - maybe m.update() / k.update() to simply return under linux/mac (if cant make mode 2/3 work
- 
- 
- * joystick button history
  * 
- * name the TYPE2 / TYPE3 driver (osi must handle at least that)
- *
+ * 
  * i think every time variable should be int64... dunno for shure. nanosecs are int64, mili= nano* 1,000,000... still way more data to hold in a int64
  *    they may be a little slower... dunno, but not by much
  *
@@ -206,14 +217,27 @@ Input::Input() {
   nr.jT2= nr.gpT2= nr.gwT2= 0;
   nr.jT3= nr.gpT3= nr.gwT3= 0;
   
+  mode1Name= "System Default";        /// 'driver' name / description
+  
+  #ifdef OS_WIN
+  mode2Name= "Direct Input";
+  mode3Name= "XInput";
+  #endif /// OS_WIN
+
+  #ifdef OS_LINUX
+  mode2Name= mode3Name= "Not Used";
+  #endif /// OS_LINUX
+
+  #ifdef OS_MAC
+  mode2Name= mode3Name= "Not Used";
+  k.numLock= true;    /// macs don't handle num locks. this will always be on
+  #endif /// OS_MAC
+
   #ifdef USING_DIRECTINPUT
   m.diDevice= null;
   dInput= null;
   #endif /// USING_DIRECTINPUT
-  
-  #ifdef OS_MAC
-  k.numLock= true;    /// macs don't handle num locks. this will always be on
-  #endif /// OS_MAC
+
 }
 
 Input::~Input() {
@@ -339,8 +363,13 @@ bool Input::init(int mMode, int kMode) {
 
 
 void Input::populate(bool scanMouseKeyboard) {
+  
+  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  // POPULATE MUST BE REDONE (linux is ok) IT IS CALLED EACH SECOND, TO SCAN FOR STICKS
+  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  
   lastPopulate= osi.present;
-  //bool chatty= true;
+  bool chatty= true;
   if(scanMouseKeyboard) {
 
     // ---===MOUSE SCAN===---
@@ -360,7 +389,7 @@ void Input::populate(bool scanMouseKeyboard) {
   } /// scanMouseKeyboard
 
   // ---===JOYSTICK SCAN===---
-  nr.jOS= 0;
+  // nr.jOS= 0; THIS BROKE LINUX PART
 
   #ifdef OS_WIN
   /// disable all 
@@ -389,69 +418,19 @@ void Input::populate(bool scanMouseKeyboard) {
 
   #ifdef OS_LINUX
 
-  // xlib xinput ... after some research, found nothing
-  /*
-  int ndev;
+  // xlib xinput research: ... after some time, found nothing. TOO OLD LIB?
 
-  XDeviceInfo *dev= XListInputDevices(osi.primWin->dis, &ndev);
-  
-  for(short a= 0; a< ndev; a++) {
-    printf("dev[%d] id[%d] [%s] use[%d]\n", a, dev[a].id, dev[a].name, dev[a].use);
-  }
-  */
-  
   // linux [MODE 1] using "linux/joystick.h". system driver
   
-  
-  // NOT DONE, must use JSIOGCVERSION
-  /*
-    JSIOGCVERSION is a good way to check in run-time whether the running
-      driver is 1.0+ and supports the event interface. If it is not, the
-      IOCTL will fail. For a compile-time decision, you can test the
-      JS_VERSION symbol
-   
-   * just set the joysticks/gpads/gwheels on mode 0, so they are disabled if OS is not using joy driver
-  */
-  
-  
-  
-  
-  
-	//#ifdef JS_VERSION
-	//#if JS_VERSION > 0xsomething
-  
-  bool chatty= false;
-  
-  /*
-  /// set everything on 'DISABLED' & close opened files
-  for(short a= 0; a< 8; a++) {                         // <<< 8 limit
-    // do not delete all data. only set mode to 0, and it will be updated to 1 if the stick is still present
-    
-    /// close all opened files
-    if(j[a].file!= -1)
-      close(j[a].file);
-    
-    if(j[a].eventFile!= -1)
-      close(j[a].eventFile);
-         j[a].file= -1;
-    j[a].eventFile= -1;
-
-    
-    /// disable all devices
-    //j[a].mode= gp[a].mode= gw[a].mode= 0;
-  }
-  */
-
-//  nr.jFound= nr.gpFound= nr.gwFound= 0; 
-//  nr.jOS=    nr.gpOS=    nr.gwOS=    0;
-
   int f;
   int version, axes= 0, buttons= 0;
   char name[128];
-  short id= 0;
+  //short id= 0;
+  bool addEventFile= false;
   bool found;
-  string s("/dev/input/js");
-  string s2;
+  static string s1("/dev/input/js");
+  static string s2("/dev/input/event");
+  string s3;
   
   /// searching for 32 js[X] files
   for(short a= 0; a< 32; a++) {
@@ -460,103 +439,108 @@ void Input::populate(bool scanMouseKeyboard) {
       error.console("OSInput::init: Maximum number of jSticks/gPads/gWheels reached (where did you plug more than 8?)");
       break;
     }
-    
-    s2.f("%s%d", s.d, a);
-    
-    /// search thru all joysticks for this id
+    /// check if this id is already in use by some joystick struct
     found= false;
     for(short b= 0; b< 8; b++) {
-      if(j[a].id== a)
+      if(j[b].jsID== a)
         found= true;
     }
-    
-    /// if found, this file id is already open
-    if(found)
-      continue;
-    
-    /// if this id was not found in currently opened joysticks, 
+    if(found) continue;                         /// if found, this file id is already open
+
+    /// if this id was not found in currently opened joysticks, check if exists this '/dev/input/js[a]' file
     name[0]= f= version= axes= buttons= 0;
+    s3.f("%s%d", s1.d, a);                       /// '/dev/input/js[a]'
     
-    f= open(s2, O_RDONLY| O_NONBLOCK);
-    if(f== -1) continue;
+    f= open(s3, O_RDONLY| O_NONBLOCK);
+    if(f== -1) continue;                        /// the file does not exist (do not break for!)
     
-    ioctl(f, JSIOCGAXES, &axes);
-    ioctl(f, JSIOCGBUTTONS, &buttons);
-    ioctl(f, JSIOCGVERSION, &version);
-    ioctl(f, JSIOCGNAME(sizeof(name)), &name);
-    
-    close(f); // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    ioctl(f, JSIOCGVERSION, &version);          /// JSIOCG version, i think - driver version or something
+    // FURTHER TESTS MUST BE DONE WITH VERSION. it must be over 1.0
+    ioctl(f, JSIOCGAXES, &axes);                /// number of axis this stick has
+    ioctl(f, JSIOCGBUTTONS, &buttons);          /// number of buttons this stick has
+    ioctl(f, JSIOCGNAME(sizeof(name)), &name);  /// stick name or product name
     
     /// check if the joystick is valid. I found out that there are mouses that report as joysticks...
     ///    but they report incredible amounts of axes and buttons...
     ///    still, can't rely only on this, FURTHER CHECKS SHOULD BE MADE  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     if((axes> 32) || (buttons> MAX_JOYSTICK_BUTTONS)) {
-      // close(f); // <<<<<<<<<<<<<<<<<<<<<<<
+      close(f);
       continue;
     }
     
+    /// search for an unused joystick struct
     for(short b= 0; b< 8; b++)
       if(!j[b].mode) {
-        id= b;
+        /// all joysticks/gamepads/gamewheels share the same file (driver). 
+        j[b].mode= gp[b].mode= gw[b].mode= 1;   /// mode 1 sticks = system handled (the only type atm in linux)
+        j[b].jsFile= f;                         /// joystick class handles this
+        j[b].jsID= a;                           /// joystick class handles this
+        j[b].name= gp[b].name= gw[b].name= name;/// stick name / product name
+        j[b].maxButtons= 
+          gp[b].maxButtons= 
+          gw[b].maxButtons= (short)buttons;     /// nr of buttons the stick has
+        
+        addEventFile= true;                     /// set flag to search for it's event file too
+    
+        /// better to have lots of vars. The other option would be having complicated search algorithms just to find out how many joysticks found that use driver N
+        ///   the purpose is to have the same code run on every OS... game searches for driver type 1 (os driver), type 2(in win is directinput) etc...
+        nr.jFound++;  nr.gpFound++; nr.gwFound++; 
+        nr.jOS++;     nr.gpOS++;    nr.gwOS++;
+        
+        checkGamepadType(&gp[b].name, &gp[b]);   /// check if it is ps3/ xbone compatible
+        
+        if(chatty) printf("joystick[%d] %s Axes: %d Buttons: %d Version: %d CONNECTED\n", b, name, axes, buttons, version);
         break;
       }
     
-    /// all joysticks/gamepads/gamewheels share the same file (driver). 
-    j[id].mode= gp[id].mode= gw[id].mode= 1;
-    j[id].file= f; // gp[id].file= gw[id].file= f; // joystick class handles this
-    j[id].name= gp[id].name= gw[id].name= name;
-    j[id].fileName= s2;
-    
-    /// better to have lots of vars. The other option would be having complicated search algorithms just to find out how many joysticks found that use driver N
-    ///   the purpose is to have the same code run on every OS... game searches for driver type 1 (os driver), type 2(in win is directinput) etc...
-    nr.jFound++;  nr.gpFound++; nr.gwFound++; 
-    nr.jOS++;     nr.gpOS++;    nr.gwOS++;
-    
-    if(chatty) printf("Name: %s Axes: %d Buttons: %d Version: %d\n", name, axes, buttons, version);
   }
+  
+  /// if no event file needs to be found, just return
+  if(!addEventFile)
+    return;
+  
+  // event files asociated with each stick
+  
+  for(short a= 0; a< 32; a++) {                     /// search thru event0-> event31
+    /// search thru all joysticks for this id
+    found= false;
+    for(short b= 0; b< 8; b++) {
+      if(j[b].eventID== a)
+        found= true;
+    }
+    if(found) continue;                             /// if found, this file is already open
 
-  /// event files asociated with each stick
-  id= 0;
-  s= "/dev/input/event";
-  for(short a= 0; a< 32; a++) {
-    /// this limit to 8 can be changed if neccesary... can't predict what will happen in 10-20 years....
-    if(id== 8) {
-      error.simple("OSInput::init: Maximum number of jSticks/gPads/gWheels reached (where did you plug more than 8?)");
-      break;
-    }
-    f= version= axes= buttons= 0;
+    /// try to open this file & read what joystick it belongs to    
+    f= version= axes= buttons= name[0]= 0;
+    s3.f("%s%d", s2.d, a);                           /// '/dev/input/event[a]'
     
-    s2.f("%s%d", s.d, a);
+    f= open(s3, O_RDONLY| O_NONBLOCK);
+    if(f== -1) continue;                            /// file not found- next!
     
-    f= open(s2, O_RDONLY| O_NONBLOCK);
-    if(f== -1) continue;
-    name[0]= 0;
-    ioctl(f, EVIOCGNAME(sizeof(name)), &name);
-    close(f); // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    ioctl(f, EVIOCGNAME(sizeof(name)), &name);      /// read joystick name this event file belongs to
     
-    /// if it has no name, skip this. sticks return a name
+    /// if it has no name, skip this; sticks return a name
     if(!name[0]) {
-    //  close(f); // <<<<<<<<<<<<<<<<<<<<<<<<<<<<
+      close(f);
       continue;
     }
     
+    /// search for a joystick struct that has no 'event' file & check if name matches with 'event' file's joystick name
+    found= false;
+    for(short b= 0; b< 8; b++)
+      if(j[b].jsFile!= -1)                          /// joystick struct must have a js file
+        if((j[b].eventFile== -1) && (j[b].name== name)) {
+          j[b].eventFile= f;
+          j[b].eventID= a;
+          if(chatty) printf("event file: %s belongs to joystick %d\n", s2.d, b);
+          found= true;
+          break;
+        }
     
-    search for this id in sticks. it's a new one?
-    search for first stick. it has no file/ add this to it.
-    happiness.  
-      
-      
-    /// if names of sticks match, event file belongs to it
-    if(j[id].name== name) {
-      j[id].eventFile= f;
-      j[id].eventName= s2;
-    } else {
-      // close(f); //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-      continue;
-    }
-    if(chatty) printf("event file: %s belongs to joystick %d\n", s2.d, id);
-    id++;
-  }
+    /// no match found? close the file; must be part of something else
+    if(!found)
+      close(f);
+  } /// for each possible 'event' file
 
   
   #endif /// OS_LINUX
@@ -1047,9 +1031,9 @@ void Keyboard::updateLocks() {
   #ifdef OS_LINUX
   uint n;
   XkbGetIndicatorState(osi.primWin->dis, XkbUseCoreKbd, &n);
-  capsLock=   (n& 0x01) == 1;
-  numLock=    (n& 0x02) == 1;
-  scrollLock= (n& 0x04) == 1;
+  capsLock=   (n& 0x01);
+  numLock=    (n& 0x02);
+  scrollLock= (n& 0x04);
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
@@ -1263,9 +1247,9 @@ Joystick::Joystick() {
   mode= 0;
   
   #ifdef OS_LINUX
-  file= -1;
+  jsFile= -1;
   eventFile= -1;
-  id= -1;
+  jsID= -1;
   eventID= -1;
   #endif /// OS_LINUX
 
@@ -1304,10 +1288,10 @@ void Joystick::delData() {
     lastBut[a].checked= true;
   
   #ifdef OS_LINUX
-  if(file!= -1)
-    close(file);
-  file= -1;
-  id= -1;
+  if(jsFile!= -1)
+    close(jsFile);
+  jsFile= -1;
+  jsID= -1;
   
   if(eventFile!= -1)
     close(eventFile);
@@ -1381,29 +1365,32 @@ void Joystick::update(short id) {
   
 ReadAgain:
     /// read as many events as possible in 1 go
-    n= read(file, ev, sizeof(ev));
+    n= read(jsFile, ev, sizeof(ev));
 
     if(n== -1) {                            /// no event happened / joystick unplugged
 
       // check if the joystick was UNPLUGGED (read sets errno on EBADF: file does not exist anymore)
-      if(errno== EBADF) {
+      //printf("e[%d]", errno);
+      if(errno== ENODEV) {
         
-        /// close opened file & set vars on -1
-        close(file);
-        file= -1;
-        id= -1;
+        /// close opened files & set vars on -1
+        if(chatty) printf("joystick[%d] %s REMOVED\n", id, name.d);
+        close(jsFile);
+        close(eventFile);
+        jsFile= -1;
+        jsID= -1;
         eventFile= -1;
         eventID= -1;
         
         /// update sticks numbers
-        nr.jFound--; nr.gpFound--; nr.gwFound--;
-        nr.jOS--; nr.gpOS--; nr.gwOS--;
+        in.nr.jFound--; in.nr.gpFound--; in.nr.gwFound--;
+        in.nr.jOS--;    in.nr.gpOS--;    in.nr.gwOS--;
         
         /// set this stick as DISABLED
-        gp[id].mode= gw[id].mode= mode= 0;
-      }
+        in.gp[id].mode= in.gw[id].mode= mode= 0;
+      } /// if the file is not found (stick disconnected)
       return;
-    }
+    } /// if nothing read
 
     nev= n/ sizeof(js_event);               /// nr of events read
     
@@ -1414,33 +1401,67 @@ ReadAgain:
       
       // --------------============= BUTTON EVENT ===============---------------
       if(ev[a].type& JS_EVENT_BUTTON) {
+        /*
+        * gamepad buttons are messy. there should be an order in buttons, done by osi, i think, for GAMEPAD UNIFICATION
+        *   the first 10 buttons are on all gamepads
+        *   the rest of buttons shuld be 'extra' buttons, (including the xbox button), and arranged after button 10
+        *   there has to be a variable that holds the total number of buttons the stick has
+        *   thrustmaster pad's extra buttons are on 7-> n
+        *   xbox 'xbox button' is on 9 ...
+        */
         
-        //if(ev[a].type& JS_EVENT_INIT)
-          //continue;
+        short but, extra;
+        but= ev[a].number;
+        /// gamepad buttons unification. extra buttons (including xbox main button are set after button 10)
         
-        b[ev[a].number]=  (uchar)ev[a].value;
-        in.gp[id].b[ev[a].number]= (uchar)ev[a].value;
-        in.gw[id].b[ev[a].number]= (uchar)ev[a].value;
+        /// ps3 compatible pad
+        if(in.gp[a].type== 0) {
+          extra= in.gp[a].maxButtons- 10; /// normal ps3 has 10 buttons. the rest are extra, on modified ps3 pads
+          
+          /// is it an extra button?
+          if(extra && (ev[a].number>= 6) && (ev[a].number< 6+ extra)) {
+            but+= 4;                      /// moved on position 11+
+          /// all buttons above extra buttons, moved back
+          } else if(extra && (ev[a].number>= 6+ extra)) {
+            but-= extra;                  /// moved on 7+
+          }
+        /// xbox compatible pad
+        } else if(in.gp[a].type== 1) {
+          extra= in.gp[a].maxButtons- 11; /// normal xbone has 11 buttons. rest are extra, but i have no clue where they would go... don't have such pad
+          
+          /// is it the xbox button?
+          if(ev[a].number== 8)
+            but= 10;                      /// move it on position 11, with the extra buttons
+          else if(ev[a].number>=9 && ev[a].number<= 10)
+            but-= 1;                      /// move start & back to positions 9 & 10
+        }
+
+                  
+        
+        b[but]=  (uchar)ev[a].value;
+        
+        in.gp[id].b[but]= (uchar)ev[a].value;
+        in.gw[id].b[but]= (uchar)ev[a].value;
         
         if(ev[a].value== 1) {                      /// button PRESS
-          bTime[ev[a].number]= ev[a].time;
-          in.gp[id].bTime[ev[a].number]= ev[a].time;
-          in.gw[id].bTime[ev[a].number]= ev[a].time;
+          bTime[but]= ev[a].time;
+          in.gp[id].bTime[but]= ev[a].time;
+          in.gw[id].bTime[but]= ev[a].time;
           if(chatty) printf("joystick %d button PRESS\n", id);
         
         } else if(ev[a].value== 0) {               /// button RELEASE
           /// put the button in history
           ButPressed p;
-          p.b= ev[a].number;
+          p.b= but;
           p.checked= false;
-          p.timeDown= bTime[ev[a].number];
+          p.timeDown= bTime[but];
           p.timeUp= ev[a].time;
           p.timeDT= p.timeUp- p.timeDown;
           
           log(p);
           in.gp[id].log(p);
           in.gw[id].log(p);
-          if(chatty) printf("joystick %d button RELEASE value[%d] number[%d]\n", id, ev[a].value, ev[a].number);
+          if(chatty) printf("joystick %d button RELEASE value[%d] number[%d] arranged number[%d]\n", id, ev[a].value, ev[a].number, but);
         }
 
       // --------------============== AXIS EVENT ================---------------
@@ -1465,22 +1486,35 @@ ReadAgain:
             break;
           case 2:                         // [Throttle?] / [r stick X] / [wheel???]
             throttle= ev[a].value;
-            in.gp[id].rx= ev[a].value;
+            if(in.gp[id].type== 0)
+              in.gp[id].rx= ev[a].value;        /// ps3 pad   [right stick]
+            else
+              in.gp[id].lt= 32767+ ev[a].value; /// xbone pad [left trigger]
+            
             in.gw[id].a3= ev[a].value;
             break;
           case 3:                         // [extra1 X?] / [l trigger] / [wheel???]
             x2= ev[a].value;
-            in.gp[id].lt= 32767- ev[a].value;
+            if(in.gp[id].type== 0)
+              in.gp[id].lt= 32767- ev[a].value; /// ps3   [left trigger]
+            else
+              in.gp[id].rx= ev[a].value;        /// xbone [right stick X]
             in.gw[id].a5= ev[a].value;
             break;
           case 4:                         // [extra1 Y?] / [r trigger] / [wheel???]
             y2= ev[a].value;
-            in.gp[id].rt= 32767- ev[a].value;
+            if(in.gp[id].type== 0)
+              in.gp[id].rt= 32767- ev[a].value; /// ps3   [right trigger]
+            else
+              in.gp[id].ry= ev[a].value;        /// xbone [right stick Y]
             // gw <<<<<<<<<<<<<<<<<<<<<<<<<<
             break;
           case 5:                         // [Rudder?]   / [rStick Y]  / [wheel???]
             rudder= ev[a].value;
-            in.gp[id].ry= ev[a].value;
+            if(in.gp[id].type== 0)
+              in.gp[id].ry= ev[a].value;        /// ps3   [right stick Y]
+            else
+              in.gp[id].rt= 32767+ ev[a].value; /// xbone [right trigger]
             in.gw[id].a4= ev[a].value;
             break;
           case 6:                         // [POV X?]    / [POV X]     / [wheel???]
@@ -1548,7 +1582,7 @@ ReadAgain:
     // did it actually read 64 events? read another 64 then...
     if(nev == 64)
       goto ReadAgain;
-    close(f);
+    
     #endif /// OS_LINUX
 
     #ifdef OS_MAC
@@ -1659,7 +1693,8 @@ BOOL CALLBACK EnumEffectsCallback(LPCDIEFFECTINFO di, LPVOID pvRef)
 // ========================================================================
 
 GamePad::GamePad() {
-  mode= 0;
+  mode= 0;                          // 0= DISABLED
+  type= 0;                          // 0= ps3; 1= xbone - changing this in game would work
   #ifdef USING_DIRECTINPUT
   vibration= null;
   #endif
@@ -1692,7 +1727,9 @@ GamePad::~GamePad() {
 }
 
 void GamePad::delData() {
-  mode= 0;
+  mode= 0;                          // 0= DISABLED
+  type= 0;                          // 0= ps3; 1= xbone - changing this in game would work
+  
   name.delData();
   
   /// clear axis
@@ -1854,7 +1891,21 @@ bool GamePad::unaquire() {
   return false;
 }
 
-
+void checkGamepadType(string *name, GamePad *p) {
+  /// ps3 compatible devices won't be searched; they default on type 0
+  p->type= 0;
+  #ifdef OS_WIN
+  #endif /// OS_WIN
+  
+  #ifdef OS_LINUX
+  if(*name== "Microsoft X-Box 360 pad")
+    p->type= 1;
+  #endif /// OS_LINU
+  
+  #ifdef OS_MAC
+  #endif /// OS_MAC
+  // well, this list must be updated i guess; per OS, too
+}
 
 
 ///========================================================================///

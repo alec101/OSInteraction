@@ -28,7 +28,6 @@
  * WIN: move getMonitorPos in populate(). it's win only, and small, used only in populate() anyways
  * xrand has some event handling, must be checked
  *  
- * LINUX: primary monitor: who the heck is it? 0, 0!
  * 
  
 

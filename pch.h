@@ -74,11 +74,9 @@
 #include <X11/keysymdef.h>
 #include <X11/extensions/Xrandr.h>
 #include <X11/extensions/Xinerama.h>
-//#include <X11/extensions/XInput.h>
-//#include <X11/extensions/XInput2.h>
-
-#include <linux/joystick.h>   // it's not x stuff... lots of crap added, keyboard/mouse, that is not needed. IT'S POSSIBLE TO AVOID THIS HEADER, only some function definitions are needed.
-#include <fcntl.h>            // same with this. only some stuff is needed, needs doublechecking
+//#include <X11/extensions/XInput.h>        // too old stuff, maybe go thru it again, but...
+//#include <X11/extensions/XInput2.h>       // too old stuff, maybe go thru it again, but...
+//#include <locale.h> printf won't work without locale, to print unicode chars...
 
 #include <GL/glx.h>
 #endif /// OS_LINUX

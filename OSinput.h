@@ -180,13 +180,16 @@ class Joystick {
   friend class Input;
   friend class OSInteraction;
 public:
+  
+// CONFIGURATION
+  
   short mode;                      // [MODE0]: disabled, can check against this
                                    // [MODE1]: OS native
                                    // [MODE2]: win(directinput) / linux(n/a) / mac(n/a)
                                    // [MODE3]: win(xinput)      / linux(n/a) / mac(n/a)
   string modeName;                /// holds the driver name ("Direct Input" or "Windows Native" or "Linux Native") >>>> NATIVE? or maybe DEFAULT? <<<<
   string name;                    /// joystick name (product name)
-  int type;                       /// 0= default; 1= ps3 compatible; 2= xbone compatible
+  short maxButtons;               /// nr of buttons the gameWheel has
 // AXIS
   
   long x, y;                      /// main stick x and y axis
@@ -237,8 +240,8 @@ private:
   #endif /// USING_XINPUT
 
   #ifdef OS_LINUX
-  int file;                       /// opened /dev/input/jsNNN  file
-  short id;                       /// /dev/input/jsNNN    NNN= id
+  int jsFile;                     /// opened /dev/input/jsNNN  file
+  short jsID;                     /// /dev/input/jsNNN    NNN= id
   int eventFile;                  /// opened /dev/input/eventNNN eventFile
   short eventID;                  /// /dev/input/eventNNN NNN= eventID
   #endif
@@ -251,12 +254,17 @@ class GamePad {
   friend class Input;
   friend class Joystick;
 public:
+  
+// CONFIGURATION
+  
   short mode;                      // [MODE0]: disabled, can check against this
                                    // [MODE1]: OS native
                                    // [MODE2]: win(directinput) / linux(n/a) / mac(n/a)
                                    // [MODE3]: win(xinput)      / linux(n/a) / mac(n/a)
   string modeName;                /// holds the driver name ("Direct Input" or "Windows Native" or "Linux Native") >>>> NATIVE? or maybe DEFAULT? <<<<
   string name;                    /// gamepad name (product name)
+  short type;                     /// 0= = ps3 compatible; 1= xbone compatible - COULD BE CHANGED by user in-game, and it will work to update the right axis!!!
+  short maxButtons;               /// nr of buttons the gamePad has
   
 // AXIS
   
@@ -317,12 +325,16 @@ class GameWheel {
   friend class Input;
   friend class Joystick;
 public:
+  
+// CONFIGURATION
+  
   short mode;                      // [MODE0]: disabled, can check against this
                                    // [MODE1]: OS native
                                    // [MODE2]: win(directinput) / linux(n/a) / mac(n/a)
                                    // [MODE3]: win(xinput)      / linux(n/a) / mac(n/a)
   string modeName;                /// holds the driver name ("Direct Input" or "Windows Native" or "Linux Native") >>>> NATIVE? or maybe DEFAULT? <<<<
   string name;                    /// wheel name (product name)
+  short  maxButtons;              /// nr of buttons the gameWheel has
   
 // AXIS
   
@@ -419,7 +431,12 @@ public:
   GamePad gp[MAX_JOYSTICKS];    /// gp[0-7]= OS driver; gp[8-15] XINPUT; gp[16-19] DIRECT INPUT
   GameWheel gw[MAX_JOYSTICKS];  /// gw[0-7]= OS driver; gw[8-15] XINPUT; gw[16-19] DIRECT INPUT
   _Kv Kv;                       /// struct with most inportant keycodes: in.k.key[Kv.space] is possible. OS independant/ if keyboard is changed in any way, just call Kv.populate()
-
+  
+  /// each driver type name (EX: j[0].mode==1 -> system default driver j[8].mode== 2 -> Direct Input handled)
+  string mode1Name;             /// under all systems, this is 'System Handled' or 'System Default' <<<<<<<<<<<<<<<<<<< CHOSE A GOOD NAME
+  string mode2Name;             /// under windows, this should be 'DirectInput', under the others 'Not Used'
+  string mode3Name;             /// under windows, this should be 'XInput', under the others 'Not Used'
+  
   struct InputNumbers {
     short jFound;             /// nr of joysticks found on system in total (for win, os+directinput+xinput)
     short gpFound;            /// nr of gamepads found on system

@@ -13,6 +13,8 @@
  * 30/01/2014 - Alec
  */
 
+// TODO: windows version
+
 extern OSInteraction osi;
 
 #ifdef OS_LINUX
