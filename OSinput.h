@@ -171,14 +171,15 @@ private:
 
 struct ButPressed {
   uchar b;                        /// button number
-  bool checked;                   /// checked & lastKey[] used for mortal kombat style of keyboard check (3 buffer keys for slow pc/ unhandled drop in framerate)
-  uint64 timeDown, timeUp, timeDT;  /// if a key is down, it has a time& timeDown is not 0 (same with timeUp) timeDT= time delta
+  bool checked;                   /// this is just a helper flag that can be messed with; always starts on false when a new key is added (osi doesn't use it for anything)
+  uint64 timeDown, timeUp, timeDT;  /// timeDown: when button was pressed; timeUp:  when button was released (0= button is STILL pressed); timeDT: how much time was pressed (time delta)
   
   ButPressed(const ButPressed &o): b(o.b), checked(o.checked), timeDown(o.timeDown), timeUp(o.timeUp), timeDT(o.timeDT) {};
   ButPressed():b(0), checked(false), timeDown(0), timeUp(0), timeDT(0) {}
 };
 
-
+class GamePad;
+class GameWheel;
 // --------------============= JOYSTICK CLASS ============--------------
 ///=====================================================================
 class Joystick {
@@ -192,9 +193,9 @@ public:
                                    // [MODE1]: OS native
                                    // [MODE2]: win(directinput) / linux(n/a) / mac(n/a)
                                    // [MODE3]: win(xinput)      / linux(n/a) / mac(n/a)
-  //string modeName;                /// holds the driver name ("Direct Input" or "Windows Native" or "Linux Native") >>>> NATIVE? or maybe DEFAULT? <<<<
   string name;                    /// joystick name (product name)
   short maxButtons;               /// nr of buttons the gameWheel has
+
 // AXIS
   
   long x, y;                      /// main stick x and y axis
@@ -212,9 +213,9 @@ public:
   uchar *lastCheck;                     /// holds what the last time the keys were checked button press info - points to 1 of the buffers
   ButPressed lastBut[MAX_KEYS_LOGGED];  /// history of pressed buttons
 
-// functions
+// FUNCTIONS
 
-  void update(short id);          /// MAIN UPDATE FUNC (for every type of stick/pad/wheel)
+  void update();                  /// MAIN UPDATE FUNC (for every type of stick/pad/wheel)
   void aquire();                  /// exclusive control of the device (if possible)
   void unaquire();                /// lose exclusive control of the device
   void resetButtons();            /// clears all button buffers & resets logged buttons (used in case of alt-tab or something similar)
@@ -225,11 +226,11 @@ public:
 
 // private data from here on  
 private:
-  bool init(short mode);          /// check 'mode' var @ beggining of class
-  void log(const ButPressed &);   /// used internally, just puts the last button in the last button-history (it logs imediatly when a button is down)
-
+  GamePad *_gp;                   /// linked gamepad - each stick has a coresponding gamepad that uses the same 'driver'
+  GameWheel *_gw;                 /// linked gamewheel - each stick has a coresponding gamewheel that uses the same 'driver'
   uchar buffer1[MAX_JOYSTICK_BUTTONS], buffer2[MAX_JOYSTICK_BUTTONS];   /// used for the key / lastCheck. buffers are swapped with pointers, so no copying is involved
-  inline void swapBuffers();
+  inline void swapBuffers();      /// [internal] swaps button buffers
+  void log(const ButPressed &);   /// [internal] just puts the last button in the last button-history (it logs imediatly when a button is down)
   
   /// OS specific stuff
   #ifdef OS_WIN
@@ -269,9 +270,8 @@ public:
                                    // [MODE1]: OS native
                                    // [MODE2]: win(directinput) / linux(n/a) / mac(n/a)
                                    // [MODE3]: win(xinput)      / linux(n/a) / mac(n/a)
-  //string modeName;                /// holds the driver name ("Direct Input" or "Windows Native" or "Linux Native") >>>> NATIVE? or maybe DEFAULT? <<<<
   string name;                    /// gamepad name (product name)
-  short type;                     /// 0= = ps3 compatible; 1= xbone compatible - COULD BE CHANGED by user in-game, and it will work to update the right axis!!!
+  short type;                     /// 0= ps3 compatible; 1= xbox compatible - COULD BE CHANGED by user in-game, and it will work to update the right axis!!!
   short maxButtons;               /// nr of buttons the gamePad has
   
 // AXIS
@@ -283,7 +283,7 @@ public:
   long pov;                       /// POV angle (multiplied by 100, so 35,900(max)= 359 degrees) (-1 usually, if not pressed)
 
 // BUTTONS state / history
-  
+
   uchar *b;                             /// buttons state
   long bPressure[MAX_JOYSTICK_BUTTONS]; /// heck if k knew this existed... guess no game (that i played) uses it; now it's implemented!
   uint64 bTime[MAX_JOYSTICK_BUTTONS];   /// time @ key started to be pressed
@@ -292,38 +292,21 @@ public:
 
 // functions
   
-  void update();                  /// can be called, to manually update the gamepad variables
-  bool aquire();                  /// exclusive control of the device (if possible)
-  bool unaquire();                /// lose exclusive control of the device
-  void resetButtons();            /// clears all button buffers & resets logged buttons (used in case of alt-tab or something similar)
-  
+  void resetButtons();                  /// clears all button buffers & resets logged buttons (used in case of alt-tab or something similar)
+  void update() { _j->update(); }       /// can be called, to manually update the gamepad variables
+  bool aquire() { _j->aquire(); }       /// exclusive control of the device (if possible)
+  bool unaquire() { _j->unaquire(); }   /// lose exclusive control of the device
+
   GamePad();
   ~GamePad();
   void delData();
   
 // internals from here on
 private:
-  bool init(short mode);          /// check 'mode' var @ beginning of class
-  void log(const ButPressed &);   /// [internal], just puts the last button in the last button-history (it logs imediatly when a button is down)
-  
+  Joystick *_j;                         /// linked Joystick class
+  void log(const ButPressed &);         /// [internal] just puts the last button in the last button-history (it logs imediatly when a button is down)
   uchar buffer1[MAX_JOYSTICK_BUTTONS], buffer2[MAX_JOYSTICK_BUTTONS];   /// used for the key / lastCheck. buffers are swapped with pointers, so no copying is involved
   inline void swapBuffers();
-
-/// OS/ driver specific stuff
-  #ifdef USING_XINPUT
-  #endif /// USING_XINPUT
-
-  #ifdef USING_DIRECTINPUT
-  LPDIRECTINPUTDEVICE8 diDevice;
-  DIJOYSTATE2 diStats;
-  LPDIRECTINPUTEFFECT vibration;
-  #endif /// USING_DIRECTINPUT
-/*
-  #ifdef OS_LINUX
-  int file;                           /// driver 'file'
-  short id;                           /// /dev/input/js[X] (shared between j/
-  #endif
- */
 };
 
 
@@ -341,7 +324,6 @@ public:
                                    // [MODE1]: OS native
                                    // [MODE2]: win(directinput) / linux(n/a) / mac(n/a)
                                    // [MODE3]: win(xinput)      / linux(n/a) / mac(n/a)
-  //string modeName;                /// holds the driver name ("Direct Input" or "Windows Native" or "Linux Native") >>>> NATIVE? or maybe DEFAULT? <<<<
   string name;                    /// wheel name (product name)
   short  maxButtons;              /// nr of buttons the gameWheel has
   
@@ -349,11 +331,10 @@ public:
   
   long wheel;                     /// the wheel
   long a1, a2, a3, a4, a5;        /// different axis/ pedals
-  
   // a pov??                       // THIS NEEDS MORE WORK <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 // BUTTONS state / history
-  
+
   uchar *b;                             /// buttons state
   long bPressure[MAX_JOYSTICK_BUTTONS]; /// heck if k knew this existed... guess no game (that i played) uses it; now it's implemented!
   uint64 bTime[MAX_JOYSTICK_BUTTONS];   /// time @ key started to be pressed
@@ -362,34 +343,23 @@ public:
 
 // functions
 
-  void update();
-  bool aquire();                 /// exclusive control of the device (if possible)
-  bool unaquire();               /// lose exclusive control of the device
-  void resetButtons();           /// clears all button buffers & resets logged buttons (used in case of alt-tab or something similar)
-  
+  void update() { _j->update(); }
+  bool aquire() { _j->aquire(); }       /// exclusive control of the device (if possible)
+  bool unaquire() { _j->unaquire(); }   /// lose exclusive control of the device
+  void resetButtons();                  /// clears all button buffers & resets history (used in case of alt-tab or something similar)
+
   GameWheel();
   ~GameWheel();
   void delData();
   
 private:
-  bool init(short mode);         /// check 'mode' var @ beginning of class
-  void log(const ButPressed &);  /// [internal] puts the last button in the last button-history (it logs imediatly when a button is down)
-  
+  Joystick *_j;                  /// linked Joystick class
   uchar buffer1[MAX_JOYSTICK_BUTTONS], buffer2[MAX_JOYSTICK_BUTTONS];   /// used for the key / lastCheck. buffers are swapped with pointers, so no copying is involved
+
+  void log(const ButPressed &);  /// [internal] puts the last button in the last button-history (it logs imediatly when a button is down)
   inline void swapBuffers();
-  
-/// OS / driver specific stuff
-  #ifdef USING_DIRECTINPUT
-  LPDIRECTINPUTDEVICE8 diDevice;
-  DIJOYSTATE2 diStats;
-  #endif /// USING_DIRECTINPUT
-/*
-  #ifdef OS_LINUX
-  int file;
-  short id;                           /// /dev/input/js[X] (shared between j/
-  #endif
- */
 };
+
 
 
 // -these are key codes; they are updated with _Kv.populate()- it is auto-called in in.populate()

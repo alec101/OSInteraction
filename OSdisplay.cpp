@@ -498,8 +498,8 @@ bool doChange(OSIWindow *w, OSIMonitor *m, OSIResolution *r, int8 bpp, short fre
   DEVMODE dm;
   for(short a= 0; a< sizeof(DEVMODE); a++) ((char *)&dm)[a]= 0;
   dm.dmSize= sizeof(dm);
-  dm.dmPelsWidth= dx;           /// selected screen width
-  dm.dmPelsHeight= dy;          /// selected screen height
+  dm.dmPelsWidth= r->dx;           /// selected screen width
+  dm.dmPelsHeight= r->dy;          /// selected screen height
   dm.dmBitsPerPel= bpp;         /// selected bits per pixel
   if(freq)
     dm.dmDisplayFrequency= freq;
@@ -511,8 +511,8 @@ bool doChange(OSIWindow *w, OSIMonitor *m, OSIResolution *r, int8 bpp, short fre
     return false;
   }
   /// update monitors positions after resolution change
-  for(short a= 0; a< nrMonitors; a++)
-    getMonitorPos(&monitor[a]);
+  for(short a= 0; a< osi.display.nrMonitors; a++)
+    getMonitorPos(&osi.display.monitor[a]);
   #endif /// OS_WIN
   
   #ifdef OS_LINUX

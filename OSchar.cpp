@@ -1450,13 +1450,13 @@ void _Kv::populate() {
   kpminus=    
   kpplus=     
   kpdel=      
-  kpequals=   
+  kpequal=   
   
   lOS=                  // left win
   rOS=                  // right win
   menu=                 // menu/propr
-  
-  makeme
+  0;
+  //makeme
   
   #endif /// OS_WIN
     

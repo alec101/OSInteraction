@@ -128,7 +128,7 @@ _NET_CLOSE_WINDOW
   #ifdef USING_XINPUT
 
 // something must be done with this <<<<<<<<<<<<<<<<<<<<<<<<<<<
-    #pragma comment(lib, "c:/alec/dxSDK2010j/lib/x64/xinput")
+    #pragma comment(lib, "c:/alec/dev/dxSDK2010j/lib/x64/xinput")
   #endif
 #endif /// OS_WIN
 
@@ -253,10 +253,7 @@ int main() {
     osi.checkMSG();               // wait for window creation
 */
   #ifdef USING_DIRECTINPUT
-  //in.getDIj(0)->init(3);
-  in.getT2j(0)->init(3);
-  in.gp[4].diDevice->Acquire();
-
+  //in.gp[8].aquire();
   //in.vibrate();
   #endif /// USING_DIRECTINPUT
 
@@ -267,14 +264,8 @@ int main() {
 
   while(1) {
 
-    //in.m.update();   /// mouse update
-    //in.k.update();   /// keyboard update
-    //in.k.updateLocks();
-
-//    in.j[0].update();
-
+    osi.checkMSG();		/// operating system messages handling
     in.update();
-
 
     if(osi.flags.haveFocus)
       for(short a= 0; a< MAX_WINDOWS; a++)
@@ -291,7 +282,7 @@ int main() {
     if(osi.flags.exit)
       osi.exit(0);
 
-    bool showPanel= true; // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    bool showPanel= false; // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     if(showPanel) {  
     #ifdef OS_WIN
     COORD pos= {0,0};
@@ -336,7 +327,7 @@ int main() {
     #endif /// OS_LINUX
     }
 
-    osi.checkMSG();		/// operating system messages handling
+    
   }
 
   return 0;
@@ -396,12 +387,13 @@ OSInteraction::OSInteraction() {
   flags.buttonPress= false;
   flags.keyPress= false;
   
-  getNanosecs(&present);                     /// start with updated present time variable
+  
   primWin= &win[0];                          /// primWin pointer, always to &win[0]
 
   #ifdef OS_WIN
   QueryPerformanceFrequency(&timerFreq);     /// read cpu frequency. used for high performance timer (querryPerformanceBlaBla)
   #endif /// OS_WIN
+  getNanosecs(&present);                     /// start with updated present time variable
 
   #ifdef OS_LINUX
 /// printf won't work without setlocale. but hopefully it won't be needed.
@@ -503,7 +495,6 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
       mode= 1;                            // if it fails, set mode to windowed <<--- ???
       w->mode= 1;
     }
-    display.getMonitorPos(m);
     w->x0= m->x0;
     w->y0= m->y0;
   }
@@ -1186,7 +1177,18 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       case WM_KEYDOWN:                                          // ***key PRESS***
       case WM_SYSKEYDOWN: {
         in.k.updateLocks();
-        getMillisecs(&osi.eventTime);            /// using getTIMEXXX() funcs: can't rely on event time sent from system
+
+
+        //TEST
+        printf("[%llu]system event time\n", osi.eventTime);
+        osi.getNanosecs(&osi.eventTime);            /// using getTIMEXXX() funcs: can't rely on event time sent from system
+        printf("[%llu]osi.getNanosecs()\n", osi.eventTime);
+        osi.getMicrosecs(&osi.eventTime);            /// using getTIMEXXX() funcs: can't rely on event time sent from system
+        printf("[%llu]osi.getMicrosecs()\n", osi.eventTime);
+        osi.getMillisecs(&osi.eventTime);            /// using getTIMEXXX() funcs: can't rely on event time sent from system
+        printf("[%llu]osi.getMillisecs()\n", osi.eventTime);
+        // END TEST
+
 
         //int code= GETBYTE2UINT32(lParam);
         uint code= (uint)wParam;
@@ -1241,7 +1243,9 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       case WM_KEYUP:                                        // ***key DEPRESS***
       case WM_SYSKEYUP: {
         in.k.updateLocks();
-        getMillisecs(&osi.eventTime);            /// using getTIMEXXX() funcs: can't rely on event time sent from system
+
+//        getMillisecs(&osi.eventTime);            /// using getTIMEXXX() funcs: can't rely on event time sent from system
+
         //int code= GETBYTE2UINT32(lParam);
         uint code= (uint)wParam;
         if(wParam== VK_SHIFT)   code= in.k.key[VK_RSHIFT]?   VK_RSHIFT:   VK_LSHIFT;
@@ -1311,22 +1315,27 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       if(wParam == 0) {
         osi.flags.haveFocus= false;
         // in case of alt-tab all current pressed buttons must be reset !!!!
-        in.resetPressedButtons();
+        
         in.m.unaquire();       /// direct input mouse unAquire <--- grab/aquire/blabla might be needed for other modes/ human input devices
         in.k.unaquire();
-        
-        // further unaquires must be placed here <<<<<<<<<<<<<<<<<<<<<<<<<
+        for(short a= 8; a<16; a++)
+          if(in.j[a].mode)
+            in.j[a].unaquire();
 
-        //in.gp[4].unaquire();
-        
+        in.resetPressedButtons();
+
+        // further unaquires must be placed here <<<<<<<<<<<<<<<<<<<<<<<<<
         
       } else {
         osi.flags.haveFocus= true;
         in.m.aquire();         /// direct input mouse aquire
         in.k.aquire();
+        for(short a= 8; a< 16; a++)
+          if(in.j[a].mode)
+            in.j[a].aquire();
+
         // further aquires must be placed here <<<<<<<<<<<<<<<<<<<<<<<<<
         
-        //in.gp[4].aquire();
       }
       if(chatty) printf("WM_ACTIVATE %s 0x%x %d %d\n", osi.getWinName(hWnd), m, wParam, lParam);
       //goto ret;
@@ -1786,7 +1795,7 @@ bool OSInteraction::checkMSG() {
   #ifdef OS_WIN
   while(1)    // loop thru ALL msgs... i used to peek thru only 1 msg, that was baaad... biig LAG
     if(PeekMessage(&win[0].msg, NULL, 0, 0, PM_REMOVE)) {	// Is There A Message Waiting?
-      //      eventTime= win[0].msg.time;
+      eventTime= win[0].msg.time;
       TranslateMessage(&win[0].msg);
       DispatchMessage(&win[0].msg);
 
@@ -2000,7 +2009,11 @@ void OSInteraction::getNanosecs(uint64 *out) {
   #ifdef OS_WIN
   LARGE_INTEGER t;
   QueryPerformanceCounter(&t);
-  *out= t.QuadPart/ (timerFreq.QuadPart/ 1000000000);
+  *out= (t.QuadPart* 100000000)/ (timerFreq.QuadPart/10);
+
+  inpart variabila in 2 bucati cumva
+  ceva gen ce au facut in linux 
+  vvvvvvvvvvvvvvvv
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
@@ -2019,7 +2032,7 @@ void OSInteraction::getMicrosecs(uint64 *out) {
   #ifdef OS_WIN
   LARGE_INTEGER t;
   QueryPerformanceCounter(&t);
-  *out= t.QuadPart/ (timerFreq.QuadPart/ 1000000);
+  *out= ((uint64)t.QuadPart* 1000000ull)/ (uint64)timerFreq.QuadPart;
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
@@ -2038,7 +2051,7 @@ void OSInteraction::getMillisecs(uint64 *out) {
   #ifdef OS_WIN
   LARGE_INTEGER t;
   QueryPerformanceCounter(&t);
-  *out= t.QuadPart/ (timerFreq.QuadPart/ 1000);
+  *out= (t.QuadPart* 1000)/ timerFreq.QuadPart;
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
@@ -2055,7 +2068,7 @@ void OSInteraction::getMillisecs(uint64 *out) {
 void OSInteraction::exit(int retVal) {
   display.restoreAllRes();
   #ifdef OS_WIN
-  exit(retVal);
+  ::exit(retVal);
   #endif /// OS_WIN
 
   #ifdef OS_LINUX

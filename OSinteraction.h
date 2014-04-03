@@ -185,7 +185,7 @@ private:
   void processMSG(); // linux MESSAGE HANDLER variant -don't call it, use OS independent checkMSG()
   #endif /// OS_LINUX
 
-  
+  friend LRESULT CALLBACK processMSG(HWND, UINT, WPARAM, LPARAM);
 
 // nothing to do with this class:
 public:

@@ -48,9 +48,11 @@ struct js_event {
 */
 
 // private funcs
-void checkGamepadType(string *name, GamePad *p);  // it is found in the gamepad area, at the end
+void checkGamepadType(GamePad *p);  // it is found in the gamepad area, at the end
   
 /* TODO:
+ *
+ * buttons to be on 32 bit integers? 1<< a is button a? good for copy-ing, 
  *
  * [win][mac] gamepad unification - check linux version
  *
@@ -149,7 +151,7 @@ void Input::vibrate() {
 
 
   // wLeftMotorSpeed
-  long hr;
+    long hr= 0;
         DWORD    rgdwAxes[2] = { DIJOFS_X, DIJOFS_Y };  // X- and y-axis
         LONG rglDirection[2] = { 0, 0 };
 
@@ -174,7 +176,11 @@ void Input::vibrate() {
 
 
         // Create the prepared effect
-        hr= gp[4].diDevice->CreateEffect( GUID_ConstantForce, &eff, &gp[4].vibration, NULL );
+        //hr= j[8].diDevice->CreateEffect( GUID_ConstantForce, &eff, &j[8].vibration, NULL );
+        //^^ further thinkin needed. gp vibrate? how about the stick? so same vibrate for all, right?
+
+
+
         
 
   //diEffect.cbTypeSpecificParams  = sizeof(DICONSTANTFORCE);
@@ -189,6 +195,7 @@ void Input::vibrate() {
 
   gp[4].diDevice->SendForceFeedbackCommand(DISFFC_SETACTUATORSON);
   */
+
         if(hr!= DI_OK)
           error.dinput(hr);
 
@@ -197,7 +204,26 @@ void Input::vibrate() {
   //gp[4].vibration->Start(1, null);
   //hr = g_lpdid->CreateEffect(GUID_ConstantForce, &diEffect, &lpdiEffect, NULL);
   #endif /// OS_WIN
+
+
 }
+
+
+#ifdef USING_DIRECTINPUT
+BOOL CALLBACK EnumEffectsCallback(LPCDIEFFECTINFO di, LPVOID pvRef) {
+    //DInputFFB * ffb = (DInputFFB*) pvRef;
+
+
+    // Pointer to calling device
+    //ffb->ffbcaps.ConstantForce = DIEFT_GETTYPE(di->dwEffType) == DIEFT_CONSTANTFORCE;
+    //ffb->ffbcaps.PeriodicForce = DIEFT_GETTYPE(di->dwEffType) == DIEFT_PERIODIC;
+  
+    printf(" Effect '%s'. IsConstant = %d, IsPeriodic = %d", di->tszName, DIEFT_GETTYPE(di->dwEffType) == DIEFT_CONSTANTFORCE, DIEFT_GETTYPE(di->dwEffType) == DIEFT_PERIODIC);
+
+    return DIENUM_CONTINUE;
+}
+#endif
+
 /// end testing
 
 #ifdef OS_MAC
@@ -210,8 +236,11 @@ static void HIDchange(void *, IOReturn, void *, IOHIDValueRef);
 #endif /// OS_MAC
 
 
+
+
 // ------------============= INPUT CLASS ===========--------------------
 // =====================================================================
+
 Input::Input() {
   nr.jFound= nr.gpFound= nr.gwFound= 0;
   
@@ -219,8 +248,16 @@ Input::Input() {
   nr.jT2= nr.gpT2= nr.gwT2= 0;
   nr.jT3= nr.gpT3= nr.gwT3= 0;
   
+  /// links between each stick/pad/wheel; the real difference is how they use what they read from the driver
+  for(short a= 0; a< 20; a++) {
+    j[a]._gp= &gp[a];
+    j[a]._gw= &gw[a];
+    gp[a]._j= &j[a];
+    gw[a]._j= &j[a];
+  }
+
   mode1Name= "System Default";        /// 'driver' name / description
-  
+
   #ifdef OS_WIN
   mode2Name= "Direct Input";
   mode3Name= "XInput";
@@ -236,21 +273,24 @@ Input::Input() {
   #endif /// OS_MAC
 
   #ifdef USING_DIRECTINPUT
-  m.diDevice= null;
   dInput= null;
   #endif /// USING_DIRECTINPUT
 
 }
 
+
 Input::~Input() {
-  delData();
-  
+  #ifdef USING_DIRECTINPUT
+  if(dInput)
+    dInput->Release();
+  dInput= null;
+  #endif
+
   #ifdef OS_MAC
   IOHIDManagerClose(manager, kIOHIDOptionsTypeNone); /// close the HID manager
   CFRelease(manager);                                /// delloc memory
   #endif /// OS_MAC
 }
-
 
 
 void Input::delData() {
@@ -268,14 +308,11 @@ void Input::delData() {
   nr.jOS= nr.gpOS= nr.gwOS= 0;
   nr.jT2= nr.gpT2= nr.gwT2= 0;
   nr.jT3= nr.gpT3= nr.gwT3= 0;
-
-  #ifdef USING_DIRECTINPUT
-  if(dInput)
-    dInput->Release();
-  dInput= null;
-  #endif
 }
 
+
+// ############ Input::init() - MUST call @ PROGRAM START ##############
+/// set mouse & keyboard mode with this func too (better leave on default)
 bool Input::init(int mMode, int kMode) {
   m.mode= mMode;
   k.mode= kMode;
@@ -293,23 +330,6 @@ bool Input::init(int mMode, int kMode) {
   /// Kv struct has (almost) all keyboard keys. It has to 'populate' all vars @ start
   Kv.populate();
 
-  /*
-  #ifdef USING_DIRECTINPUT
-  for(short a= 0; a< nr.jT2; a++) {
-    getT2j(a)->init(2);     /// 1 init for all 3 HIDs (it is an option how to use the device data, as a wheel/gamepad/joystick)
-    getT2gp(a)->mode= 2;
-    getT2gw(a)->mode= 2;
-  }
-  #endif
-  
-  #ifdef USING_XINPUT
-  for(short a= 0; a< nr.jT3; a++) {
-    getT3j(a)->init(3);     /// 1 init for all 3 HIDs (it is an option how to use the device data, as a wheel/gamepad/joystick)
-    getT3gp(a)->mode= 3;
-    getT3gw(a)->mode= 3;
-  }
-  #endif /// USING_XINPUT
-  */
 
   #ifdef OS_MAC
   
@@ -365,14 +385,22 @@ bool Input::init(int mMode, int kMode) {
 }
 
 
+
+///=============================================================================
+// ########################### INPUT POPULATE ##################################
+///=============================================================================
+
+/// this func is called each second to scan for newly plugged sticks/pads/wheels
 void Input::populate(bool scanMouseKeyboard) {
   
   // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   // POPULATE MUST BE REDONE (linux is ok) IT IS CALLED EACH SECOND, TO SCAN FOR STICKS
-  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   
   lastPopulate= osi.present;
   bool chatty= true;
+
+  // DO NOT SCAN FOR MOUSE & KEYBOARD EACH SECOND !!!
   if(scanMouseKeyboard) {
 
     // ---=== MOUSE SCAN ===---
@@ -391,48 +419,57 @@ void Input::populate(bool scanMouseKeyboard) {
     }
   } /// scanMouseKeyboard
 
-  
-  // ---=== MODE 1 JOYSTICKS ===---
+
+  /// all joys/gp/gw will have same directinput/xinput/os drivers
+
+  // ------------============ MODE 1 JOYSTICKS ===============------------
   #ifdef OS_WIN
+  /// if system reports 0 sticks, and currently no OS sticks are in use, just skip searching;
+  if(joyGetNumDevs()<= 0)
+    if(!nr.jOS)
+      goto skipWinOSsearch;
   
-  /// start with 0, update on the way
-  nr.jOS= 0;                    /// set to 0 & rescan for sticks
-  /// update the numbers without nr.jOS
-  nr.jFound= nr.jT2+ nr.jT3;    
-  nr.gpFound= nr.gpT2+ nr.gpT3;
-  nr.gwFound= nr.gwT2+ nr.gwT3;
+  JOYCAPS caps;
+  JOYINFOEX jinfo;
+  jinfo.dwSize= sizeof(JOYINFOEX);
 
-  /// disable all 
   for(short a= 0; a< 8; a++)
-    j[a].mode= gp[a].mode= gw[a].mode= 0;
-  
-  /// get the number of joysticks windows found
-  int n= joyGetNumDevs();       /// if this func doesn't return a positive number, there is no driver installed
-  if(n> 0) {
-    /// search normal driver joysticks
-    JOYINFOEX jinfo;
-    jinfo.dwSize= sizeof(JOYINFOEX);
-    if(n> 8) { 
-      error.console("found more than 8 joysticks...");
-      n= 8;                     /// limit to 8 detectable joysticks
-    }
-    for(short a= 0; a< n; a++)
-      if(joyGetPosEx(a, &jinfo) != JOYERR_UNPLUGGED) {        /// if it's plugged in-> found a joystick
-        /// joystick class will handle the updates for gamepads& wheels too
-        j[nr.jOS].id= a;
-        /// pads & wheels will use same driver; they'll differ ini what they do with read data
-        j[nr.jOS].mode= 1;
-        gp[nr.jOS].mode= 1;
-        gw[nr.jOS].mode= 1;
+    if(joyGetPosEx(a, &jinfo) == JOYERR_NOERROR) {
+      if(!j[a].mode) {                /// a new joystick got plugged in
+        /// get important data from joyGetDevCaps
+        for(short b= 0; b< sizeof(caps); b++) ((char *)&caps)[b]= 0;      /// clear caps
+        joyGetDevCaps(a, &caps, sizeof(caps));
+        j[a].name= (caps.szPname[0]==0)? "Unknown device": caps.szPname;
+        gp[a].name= j[a].name;
+        gw[a].name= j[a].name;
 
-        nr.jOS++;
+        j[a].maxButtons= caps.wMaxButtons;
+        gp[a].maxButtons= caps.wMaxButtons;
+        gw[a].maxButtons= caps.wMaxButtons;
+
+        /// set needed data
+        j[a].id= a;
+        j[a].mode= 1;
+        gp[a].mode= 1;
+        gw[a].mode= 1;
+
+        /// update numbers
+        nr.jOS++;    nr.gpOS++;    nr.gwOS++;
+        nr.jFound++; nr.gpFound++; nr.gwFound++;
+        if(chatty) printf("OS joystick[%d] %s CONNECTED\n", a, j[a].name.d);
       }
-  }
-  /// update the numbers
-  nr.gpOS= nr.gwOS= nr.jOS;
-  nr.jFound+= nr.jOS;
-  nr.gpFound+= nr.jOS;
-  nr.gwFound+= nr.jOS;
+    } else if(j[a].mode) {            /// joystick got unplugged
+      /// clear all data
+      j[a].delData();
+      gp[a].delData();
+      gw[a].delData();
+      /// update numbers
+      nr.jOS--;    nr.gpOS--;    nr.gwOS--;
+      nr.jFound--; nr.gpFound--; nr.gwFound--;
+      if(chatty) printf("OS joystick[%d] %s DISCONNECTED\n", a, j[a].name.d);
+    }
+  
+skipWinOSsearch:
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
@@ -495,6 +532,11 @@ void Input::populate(bool scanMouseKeyboard) {
         j[b].jsFile= f;                         /// joystick class handles this
         j[b].jsID= a;                           /// joystick class handles this
         j[b].name= gp[b].name= gw[b].name= name;/// stick name / product name
+
+        joystick name! IT HAS TO HAVE A NAME, if name== null? make it "Unknown" , 
+        but IT WON'T MATCH IN EVENT FILE NAME READ, more thinking to this
+        maybe set name, after the event match
+
         j[b].maxButtons= 
           gp[b].maxButtons= 
           gw[b].maxButtons= (short)buttons;     /// nr of buttons the stick has
@@ -506,7 +548,7 @@ void Input::populate(bool scanMouseKeyboard) {
         nr.jFound++;  nr.gpFound++; nr.gwFound++; 
         nr.jOS++;     nr.gpOS++;    nr.gwOS++;
         
-        checkGamepadType(&gp[b].name, &gp[b]);   /// check if it is ps3/ xbone compatible
+        checkGamepadType(&gp[b]);               /// check if it is ps3/ xbone compatible
         
         if(chatty) printf("joystick[%d] %s Axes: %d Buttons: %d Version: %d CONNECTED\n", b, name, axes, buttons, version);
         break;
@@ -569,27 +611,60 @@ void Input::populate(bool scanMouseKeyboard) {
   #endif /// OS_MAC
 
 
-  // ---=== MODE 2 JOYSTICKS ===---
+  // ------------============ MODE 2 JOYSTICKS ===============------------
   #ifdef USING_DIRECTINPUT
   dInput->EnumDevices(DI8DEVCLASS_GAMECTRL, diDevCallback, NULL, DIEDFL_ATTACHEDONLY);
+  /// direct input 'plugged' state is in diDevCallback(..)
+  /// direct input 'unplugged' state is set in Joystick::update(); if it can't read from device, calls delData()
+
   #endif /// USING_DIRECTINPUT
-  // ---=== MODE 3 JOYSTICKS ===---
 
+  // ------------============ MODE 3 JOYSTICKS ===============------------
 
+  #ifdef USING_XINPUT
 
-  /// all joys/gp/gw will have same directinput/xinput/os drivers
+  XINPUT_STATE state;
+  
+  for(short a= 0; a< 4; a++ ) { /// XUSER_MAX_COUNT = max xbones, but 4 is max design set too in osi
+    /// Simply get the state of the controller from XInput.  
+    if(XInputGetState(a, &state)== ERROR_SUCCESS) {
+      if(!j[16+ a].mode) {          /// new stick found
+        j[16+ a].id= a;
+
+        /// set mode to XInput (3)
+        j[16+ a].mode= 3;
+        gp[16+ a].mode= 3;
+        gw[16+ a].mode= 3;
+        // NOT SHURE THIS IS OK... <<<<<<<<< i can't find a way to find stick's name... this is XInput, tho, and only x-box pads are handled, right?
+        j[16+ a].name= "Microsoft X-Box 360 pad";
+        gp[16+ a].name= j[16+ a].name;
+        gw[16+ a].name= j[16+ a].name;
+
+        /// update sticks numbers
+        nr.jT3++;    nr.gpT3++;    nr.gwT3++;
+        nr.jFound++; nr.gpFound++; nr.gwFound++;
+
+        if(chatty) printf("XInput controller %d CONNECTED\n", a);
+      }
+    } else {
+      if(j[16+ a].mode) {           /// error reading & stick is enabled= stick disconnected
+        /// clear axis / buttons data / rest of stuff
+        j[16+ a].delData();
+        gp[16+ a].delData();
+        gw[16+ a].delData();
+        /// update sticks numbers
+        nr.jT3--;    nr.gpT3--;    nr.gwT3--;
+        nr.jFound--; nr.gpFound--; nr.gwFound--;
+        if(chatty) printf("XInput controller %d DISCONNECTED\n", a);
+      }
+    }
+  } /// for each possible xinput slot
+
+  #endif /// USING_XINPUT
+  
 }
 
-// resets all buttons for all devices- usually called on alt/tab - cmd/tab or something similar
-void Input::resetPressedButtons() {
-  m.resetButtons();
-  k.resetButtons();
-  for(short a= 0; a< MAX_JOYSTICKS; a++) {
-    j[a].resetButtons();
-    gp[a].resetButtons();
-    gw[a].resetButtons();
-  }
-}
+
 
 
 ///=============================================================================
@@ -613,19 +688,31 @@ void Input::update() {
   if(nr.jOS)
     for(short a= 0; a< 8; a++)
       if(j[a].mode)
-        j[a].update(a);
+        j[a].update();
   
   /// update [type 2] sticks/pads/wheels
   if(nr.jT2)
     for(short a= 8; a< 16; a++)
       if(j[a].mode)
-        j[a].update(a);
+        j[a].update();
   
   /// update [type 3] sticks/pads/wheels
   if(nr.jT3)
     for(short a= 16; a< 20; a++)
       if(j[a].mode)
-        j[a].update(a);
+        j[a].update();
+}
+
+
+// resets all buttons for all devices- usually called on alt/tab - cmd/tab or something similar
+void Input::resetPressedButtons() {
+  m.resetButtons();
+  k.resetButtons();
+  for(short a= 0; a< MAX_JOYSTICKS; a++) {
+    j[a].resetButtons();
+    gp[a].resetButtons();
+    gw[a].resetButtons();
+  }
 }
 
 
@@ -691,12 +778,17 @@ BOOL CALLBACK diDevCallback(LPCDIDEVICEINSTANCE inst, LPVOID extra) {
   in.nr.jFound++;
   in.nr.gpFound++;
   in.nr.gwFound++;
-  
+
+  checkGamepadType(&in.gp[id]);               /// check if pad is ps3 compatible or xbone compatible
+
   if(chatty) printf("found joystick[%d]: %s axes[%d] buttons[%d]\n", id, in.j[id].name.d, caps.dwAxes, caps.dwButtons);
 
   return DIENUM_CONTINUE;         /// DIENUM_CONTINUE to continue enumerating devices; else it will stop enumerating
 }
 #endif /// USING_DIRECTINPUT
+
+
+
 
 
 // ------------============= MOUSE CLASS ===========--------------------
@@ -713,9 +805,11 @@ Mouse::Mouse() {
   #endif /// USING_DIRECTINPUT
 }
 
+
 Mouse::~Mouse() {
   delData();
 }
+
 
 void Mouse::delData() {
   mode= 1;
@@ -731,6 +825,7 @@ void Mouse::delData() {
   #endif /// USING_DIRECTINPUT
 
 }
+
 
 bool Mouse::init(short mode) {
   delData();
@@ -774,72 +869,16 @@ bool Mouse::init(short mode) {
   return false;     /// this point is reaced-> fail
 }
 
-bool Mouse::aquire() {
-  if(mode== 1) {
-    #ifdef OS_LINUX
-    XGrabPointer(osi.primWin->dis, osi.primWin->win,
-                 True,              // send events or not
-                 ButtonPressMask| ButtonReleaseMask| PointerMotionMask,
-                 GrabModeSync,      // pointer - GrabMode[Async/Sync]
-                 GrabModeSync,      // keyboard- GrabMode[Async/Sync]
-                 osi.primWin->win,  // confine cursor to a window
-                 None,              // mouse cursor (graphics)
-                 CurrentTime);
-    #endif /// OS_LINUX
-    return true;
-  }
-  if(mode== 2)                    /// nothing to aquire
-    return true;
-  if(mode== 3) {
-    #ifdef USING_DIRECTINPUT
-    if(diDevice->Acquire()== DI_OK)
-      return true;
-    #endif
-  }
-
-  return false;
-}
-
-bool Mouse::unaquire() {
-  if(mode== 1) {
-    #ifdef OS_LINUX
-    XUngrabPointer(osi.primWin->dis, CurrentTime);
-    #endif
-    return true;
-  }
-  if(mode== 2)
-    return true;
-  
-  if(mode== 3) {
-    #ifdef USING_DIRECTINPUT
-    if(diDevice->Unacquire()== DI_OK)
-      return true;
-    #endif
-  }
-  return false;
-}
-
-
-
-void Mouse::resetButtons() {
-  uint64 present;
-  osi.getMillisecs(&present);// <<----------------- there should be only one present var, set in osi, so there is only 1 call to this func. many calls= time wasted
-  
-  for(short a= 0; a< MAX_MOUSE_BUTTONS; a++) {
-    if(b[a].down) {
-      b[a].lastTimeStart= b[a].timeStart;
-      b[a].lastTimeEnded= present;
-      b[a].lastDT= b[a].lastTimeEnded- b[a].lastTimeStart;
-      b[a].down= false;
-    }
-  }
-}
   
 
-
+// ########################## MOUSE UPDATE ##############################
+// when not using default MODE 1, call this func to update mouse vars - or better, call Input::update()
 void Mouse::update() {
   if(!osi.flags.haveFocus)
     return;
+
+  uint64 present= osi.present/ 1000000;
+
 /// os events: nothing to update, atm (i cant think of anything anyways)
   if(mode== 1) {
 
@@ -867,8 +906,7 @@ void Mouse::update() {
     // NO WIN FUNC AVAIBLE TO READ THE WHEEL IN ANY WAY. the only way is too complicated, with hooks to dll-s... /cry
 
     /// mouse buttons
-    uint64 present;
-    osi.getMillisecs(&present);
+    
     bool t;
 
     for(short a= 0; a< 5; a++) {                  /// for all mouse buttons (that windows knows ATM)
@@ -927,7 +965,7 @@ void Mouse::update() {
 
     /// mouse buttons
     bool t;
-    int present= GetTickCount();
+    
     for(short a= 0; a< 8; a++) {
       t= diStats.rgbButtons[a]? true: false;
       if((b[a].down)&& !t) {                  /// a button press ended
@@ -946,7 +984,65 @@ void Mouse::update() {
 }
 
 
+/// grab exclusive control of the mouse (if possible)
+bool Mouse::aquire() {
+  if(mode== 1) {
+    #ifdef OS_LINUX
+    XGrabPointer(osi.primWin->dis, osi.primWin->win,
+                 True,              // send events or not
+                 ButtonPressMask| ButtonReleaseMask| PointerMotionMask,
+                 GrabModeSync,      // pointer - GrabMode[Async/Sync]
+                 GrabModeSync,      // keyboard- GrabMode[Async/Sync]
+                 osi.primWin->win,  // confine cursor to a window
+                 None,              // mouse cursor (graphics)
+                 CurrentTime);
+    #endif /// OS_LINUX
+    return true;
+  }
+  if(mode== 2)                    /// nothing to aquire
+    return true;
+  if(mode== 3) {
+    #ifdef USING_DIRECTINPUT
+    if(diDevice->Acquire()== DI_OK)
+      return true;
+    #endif
+  }
 
+  return false;
+}
+
+/// release exclusive control of the mouse
+bool Mouse::unaquire() {
+  if(mode== 1) {
+    #ifdef OS_LINUX
+    XUngrabPointer(osi.primWin->dis, CurrentTime);
+    #endif
+    return true;
+  }
+  if(mode== 2)
+    return true;
+  
+  if(mode== 3) {
+    #ifdef USING_DIRECTINPUT
+    if(diDevice->Unacquire()== DI_OK)
+      return true;
+    #endif
+  }
+  return false;
+}
+
+
+/// clears button states, usefull when alt-tabbing, so things don't get messed up
+void Mouse::resetButtons() {
+  for(short a= 0; a< MAX_MOUSE_BUTTONS; a++) {
+    if(b[a].down) {
+      b[a].lastTimeStart= b[a].timeStart;
+      b[a].lastTimeEnded= osi.present/ 1000000;
+      b[a].lastDT= b[a].lastTimeEnded- b[a].lastTimeStart;
+      b[a].down= false;
+    }
+  }
+}
 
 
 
@@ -961,6 +1057,7 @@ manipTyped(40, sizeof(chTyped)) {
   delData();
 }
 
+
 Keyboard::~Keyboard() {
 //	delData();
   #ifdef USING_DIRECTINPUT
@@ -971,6 +1068,7 @@ Keyboard::~Keyboard() {
   }
   #endif
 }
+
 
 void Keyboard::delData() {
   key= buffer1;
@@ -1026,7 +1124,9 @@ bool Keyboard::init(short mode) {
 }
 
 
-// ### UPDATE func ### - if not using MODE 1, call this
+
+// ############################ KEYBOARD UPDATE func ####################################
+// if not using MODE 1, call this (autocalled in Input::update() )
 void Keyboard::update() {
   
   if(!osi.flags.haveFocus)
@@ -1053,34 +1153,41 @@ void Keyboard::update() {
   
   #ifdef OS_WIN // i can't think of a way atm, to use this in linux. the only mode is [mode 1]
   
-  uint64 present;
-  osi.getMillisecs(&present);
+  uint64 presentMilli= osi.present/ 1000000;              /// present time in milliseconds
 
   /// check if a key just started to be pressed or a key was depressed - might be a little time consuming
   for(short a= 0; a< MAX_KEYBOARD_KEYS; a++)
     if((key[a]& 0x80)&& !(lastCheck[a]& 0x80) ) {         // key press start
-      keyTime[a]= present;
+      keyTime[a]= presentMilli;
+      /// log the key in history
       KeyPressed k;
       k.code= a;
       k.checked= false;
-      k.timeDown= present;
+      k.timeDown= presentMilli;
+      k.timeUp= 0;
+      k.timeDT= 0;
+
       log(k);
     }
     else if((lastCheck[a]& 0x80)&& !(key[a]& 0x80)) {     // key depressed
       bool found= false;
       for(short b= 0; b< MAX_KEYS_LOGGED; b++)
         if(lastKey[b].code== a) {
-          lastKey[b].timeUp= present;
-          lastKey[b].timeDT= present- lastKey[b].timeDown;
+          if(lastKey[b].timeUp) continue;           /// skip if this key is already released
+
+          lastKey[b].timeUp= presentMilli;
+          lastKey[b].timeDT= presentMilli- lastKey[b].timeDown;
+          lastKey[b].checked= false;
           found= true;
+
           break;
         }
-      if(!found) {
+      if(!found) {                                  /// failsafe - normally it is found (alt-tab happens...)
         KeyPressed k;
         k.code= a;
         k.checked= false;
-        k.timeDown= present- 1;
-        k.timeUp= present;
+        k.timeDown= presentMilli- 1;
+        k.timeUp= presentMilli;
         k.timeDT= 1;
         log(k);                                     /// put it in history buffer
       }
@@ -1092,9 +1199,9 @@ void Keyboard::update() {
 // updates keyboard lock states (numlock/capslock/scrolllock)
 void Keyboard::updateLocks() {
   #ifdef OS_WIN
-  capsLock=   GetKeyState(VK_CAPITAL)& 0x01 == 1;
-  numLock=    GetKeyState(VK_NUMLOCK)& 0x01 == 1;
-  scrollLock= GetKeyState(VK_SCROLL)&  0x01 == 1;
+  capsLock=   (GetKeyState(VK_CAPITAL)& 0x01) == 1;
+  numLock=    (GetKeyState(VK_NUMLOCK)& 0x01) == 1;
+  scrollLock= (GetKeyState(VK_SCROLL)&  0x01) == 1;
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
@@ -1109,6 +1216,7 @@ void Keyboard::updateLocks() {
   makeme - better to have this!!!
   #endif /// OS_MAC
 }
+
 
 // grab exclusive control of the keyboard (if possible)
 bool Keyboard::aquire() {
@@ -1165,9 +1273,6 @@ void Keyboard::clearTypedBuffer() {
 
 // clears buffers and resets all logged keys, usually called when alt-tabbing (losing focus)
 void Keyboard::resetButtons() {
-  uint64 present;
-  osi.getMillisecs(&present);// <<----------------- there should be only one present var, set in osi, so there is only 1 call to this func. many calls= time wasted
-  
   /// clear all buffers
   for(short a= 0; a< MAX_KEYBOARD_KEYS; a++) {
     buffer1[a]= buffer2[a]= 0;
@@ -1178,7 +1283,7 @@ void Keyboard::resetButtons() {
   for(short a= 0; a< MAX_KEYS_LOGGED; a++) {
     /// if dela time pressed was not computed, it still waiting for key release
     if(!lastKey[a].timeDT) {
-      lastKey[a].timeUp= present;
+      lastKey[a].timeUp= osi.present/ 1000000;
       lastKey[a].timeDT= lastKey[a].timeUp- lastKey[a].timeDown;
     }
   }
@@ -1192,8 +1297,7 @@ ulong Keyboard::getChar() {
     return 0;
 
   /// clear old typed characters (must have stayed in buffer longer than 1 sec)
-  uint64 present;
-  osi.getMillisecs(&present);
+  uint64 present= osi.present/ 1000000;
   
   while(charTyped.first)
     if( (present- ((chTyped*)charTyped.last)->time)> 1000)  // if character stayed in buffer longer than 1 second, delete. IS 1 SEC OK?????
@@ -1214,8 +1318,7 @@ ulong Keyboard::getManip() {
     return 0;
   
   /// clear old typed characters (must have stayed in buffer longer than 1 sec)
-  uint64 present;
-  osi.getMillisecs(&present);
+  uint64 present= osi.present/ 1000000;
   
   while(manipTyped.first)
     if( (present- ((chTyped*)manipTyped.last)->time)> 1000) // if character stayed in buffer longer than 1 second, delete. IS 1 SEC OK?????
@@ -1332,9 +1435,11 @@ Joystick::Joystick() {
   delData();
 }
 
+
 Joystick::~Joystick() {
   delData();
 }
+
 
 void Joystick::delData() {
   mode= 0;
@@ -1346,17 +1451,10 @@ void Joystick::delData() {
   b= buffer1;
   lastCheck= buffer2;
 
-  /// clear buffers
-  for(short a= 0; a< MAX_JOYSTICK_BUTTONS; a++) {
-    buffer1[a]= buffer2[a]= 0;
-    bTime[a]= 0;
-  }
-  
-  /// mark initial history buttons as checked, so they get ignored
-  for(short a= 0; a< MAX_KEYS_LOGGED; a++)
-    lastBut[a].checked= true;
+  resetButtons();
 
   #ifdef OS_WIN
+  id= -1;
   #ifdef USING_DIRECTINPUT
   if(diDevice) {
     diDevice->Unacquire();
@@ -1381,65 +1479,178 @@ void Joystick::delData() {
   #endif /// OS_LINUX
 }
 
-// this is called by in.init() for all sticks. don't call it
-bool Joystick::init(short mode) {
-  this->mode= mode;
-
-  if(mode== 1) {
-    return true;
-  }
-  
-  if(mode== 2) {
-    #ifdef USING_DIRECTINPUT
-    #endif /// USING_DIRECTINPUT
-  }
-  
-  if(mode== 3) {
-    #ifdef USING_XINPUT
-    #endif /// USING_XIMPUT
-    return true;
-  }
-
-  return false;
-}
-
 
 
 // ############### JOYSTICK UPDATE #################
 /// handles pads/wheels too. might be a good ideea to call this func if others are called, dunno (or just remove update() from gp/gw)
 
-void Joystick::update(short id) {
+void Joystick::update() {
   bool chatty= true;
-  
-  if(mode== 1) { // TYPE1 joysticks: OS handling
-    #ifdef OS_WIN
-    // ---=== JOYSTICK ===---
+  uint64 presentMilli= osi.present/ 1000000;      /// present time in milliseconds
+  ButPressed blog;
+  bool found;
 
+  // -----------============ MODE 1 JOYSTICKS ============------------
+  if(mode== 1) {
+    #ifdef OS_WIN
+    /// read values from OS
     JOYINFOEX jinfo;
     jinfo.dwSize= sizeof(JOYINFOEX);
-    joyGetPosEx(id, &jinfo);
+    if(joyGetPosEx(id, &jinfo)== JOYERR_UNPLUGGED) {
+      if(chatty) printf("hid[%s] DISCONNECTED\n", name.d? name.d: "unknown");
+      /// clear all axis / buttons data / dinput driver
+      delData();
+      _gp->delData();
+      _gw->delData();
+      /// update numbers
+      in.nr.jOS--;    in.nr.gpOS--;    in.nr.gwOS--;
+      in.nr.jFound--; in.nr.gpFound--; in.nr.gwFound--;
+      return;
+    }
 
-    x= jinfo.dwXpos;                  /// main stick x axis
-    y= jinfo.dwYpos;                  /// main stick y axis
+    // NOTHING TESTED <<<<<<<<<<<<<<<<<<<<<<<
+    // vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
-    throttle= jinfo.dwZpos;           // throttle? need a joystick...
-    rudder= jinfo.dwRpos;             /// rudder
+    // ---=== JOYSTICK axis ===---
+    x=        jinfo.dwXpos;         /// main stick X axis
+    y=        jinfo.dwYpos;         /// main stick Y axis
+    throttle= jinfo.dwZpos;         /// throttle? need a joystick...
+    rudder=   jinfo.dwRpos;         /// rudder
+    pov=      jinfo.dwPOV;          /// pov in degrees* 100
+    u=        jinfo.dwUpos;         /// extra axis 5
+    v=        jinfo.dwVpos;         /// extra axis 6
 
-    pov= jinfo.dwPOV;                 /// pov in degrees* 100
-    
-    /// buttons
-    for(ulong a= 0; a< MAX_JOYSTICK_BUTTONS; a++)
-      b[a]= jinfo.dwButtons& (1<< a);           // JOY_BUTTONXX vals hopefully wont change!!!!!
+    // ---=== GAMEPAD axis ===---
+    _gp->lx=    jinfo.dwXpos;       /// left stick X
+    _gp->ly=    jinfo.dwYpos;       /// left stick Y
+    _gp->pov=   jinfo.dwPOV;        /// pov (0- 359 degrees * 100, -1 neutral)
 
-    u= jinfo.dwUpos;                  /// extra axis 5
-    v= jinfo.dwVpos;                  /// extra axis 6
-    // ---=== GAMEPAD ===---
-    in.gp[id].lx= jinfo.dwXpos;
-    in.gp[id].ly= jinfo.dwYpos;
-    in.
+    if(_gp->type== 0) {              // ps3 compatible
+      _gp->rx= jinfo.dwZpos;        /// right stick X
+      _gp->ry= jinfo.dwRpos;        /// right stick Y
+      _gp->lt= jinfo.dwUpos;        /// left trigger
+      _gp->rt= jinfo.dwVpos;        /// right trigger
+    } else if(_gp->type== 1) {       // xbone compatible
+      _gp->rx= jinfo.dwUpos;        /// right stick X
+      _gp->ry= jinfo.dwVpos;        /// right stick Y
+      _gp->lt= jinfo.dwZpos;        /// left trigger
+      _gp->rt= jinfo.dwRpos;        /// right trigger
+    }
 
+    // ---=== GAMEWHEEL axis ===---
+    _gw->wheel= jinfo.dwXpos;     /// wheel position
+    _gw->a1=    jinfo.dwYpos;     /// other axis 1
+    _gw->a2=    jinfo.dwZpos;     /// other axis 2
+    _gw->a3=    jinfo.dwRpos;     /// other axis 3
+    _gw->a4=    jinfo.dwPOV;      /// other axis 4
+    _gw->a5=    jinfo.dwUpos;     /// other axis 5
 
-    // ---=== GAMEWHEEL ===---
+    // ---=== stick/pad/wheel BUTTONS ===---
+    uchar but, extra;
+    swapBuffers();                    /// lastCheck will hold the previous buttons states
+    _gp->swapBuffers();
+    _gw->swapBuffers();
+
+    for(uchar a= 0; a< 32; a++) {     /// for each possible button
+      /*
+        * gamepad buttons are messy. there should be an order in buttons, done by osi, i think, for GAMEPAD UNIFICATION
+        *   the first 10 buttons are on all gamepads
+        *   the rest of buttons shuld be 'extra' buttons, (including the xbox button), and arranged after button 9
+        *   there has to be a variable that holds the total number of buttons the stick has
+        *   thrustmaster pad's extra buttons are on 6-> n
+        *   xbox 'xbox button' is on 8; it is changed on 10, and butotns 9 & 10 moved back 1 position
+        */
+      but= a;  
+      /// gamepad buttons unification. extra buttons (including xbox main button are set after button 9)
+        
+      /// ps3 compatible pad
+      if(_gp->type== 0) {
+        extra= _gp->maxButtons- 10;     /// gamepads have 10 normal buttons. the rest are marked as extra, and moved on button 10+
+          
+        if(extra && (a>= 6) && (a< 6+ extra))
+          but+= 4;                      /// is it an extra button? -> moved on position 11+
+        else if(extra && (a>= 6+ extra))
+          but-= extra;                  /// all buttons above extra buttons, moved back on 7+
+
+      /// xbox compatible pad
+      } else if(_gp->type== 1) {
+        // EXTRA NOT HANDLED <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+        extra= in.gp[a].maxButtons- 11; /// normal xbone has 11 buttons. rest are extra, but i have no clue where they would go... don't have such pad
+
+        if(a== 8)
+          but= 10;                      /// is it the xbox button? -> move it on position 11, with the extra buttons
+        else if(a>=9 && a<= 10)
+          but-= 1;                      /// move start & back to positions 9 & 10
+      } /// check type of gamepad
+
+      b[a]= jinfo.dwButtons& (1<< a);   /// current button state
+      _gp->b[but]= b[a];
+      _gw->b[a]= b[a];
+      // --------------============== BUTTON PRESS ================-----------------
+      if(b[a]&& !lastCheck[a]) {
+        /// mark button press time
+        bTime[a]= presentMilli;
+        _gp->bTime[but]= bTime[a];
+        _gw->bTime[a]= bTime[a];
+        /// log the button in history
+        blog.b= a;
+        blog.checked= false;
+        blog.timeDown= presentMilli;
+        blog.timeUp= 0;
+        blog.timeDT= 0;
+        log(blog);
+        _gw->log(blog);
+        blog.b= but;
+        _gp->log(blog);
+        if(chatty) printf("hid[%s] button PRESS nr[%d] arranged[%d]\n", name.d, a, but);
+      
+      // --------------============= BUTTON RELEASE ===============-----------------
+      } else if(lastCheck[a]&& !b[a]) {
+
+        /// search thru history for the button, to mark the time it got released
+        found= false;
+        for(short b= 0; b< MAX_KEYS_LOGGED; b++) {
+          if(lastBut[b].b== a) {
+            if(lastBut[b].timeUp) continue;    /// skip if button is already released
+
+            lastBut[b].timeUp= presentMilli;
+            lastBut[b].timeDT= presentMilli- lastBut[b].timeDown;
+            lastBut[b].checked= false;
+
+            /// gamepad button nr could have a different number, but it does not matter
+            _gp->lastBut[b].timeUp= presentMilli;
+            _gp->lastBut[b].timeDT= lastBut[b].timeDT;
+            _gp->lastBut[b].checked= false;
+  
+            _gw->lastBut[b].timeUp= presentMilli;
+            _gw->lastBut[b].timeDT= lastBut[b].timeDT;
+            _gw->lastBut[b].checked= false;
+
+            found= true;
+            break;
+          }
+          // THIS FAILSAFE CODE COULD GO AWAY vvvvvvvvvvvvvvvvv
+          if(!found) {                      /// failsafe - normally it is found (but things can happen ... alt-tab?)
+            // some debug stuff can be done here, tho
+            blog.b= a;
+            blog.checked= false;
+            blog.timeDown= presentMilli- 1; /// mark it as insta down-up
+            blog.timeUp= presentMilli;
+            blog.timeDT= 1;
+            log(blog);                      /// put it in history buffer
+            _gw->log(blog);
+            blog.b= but;
+            _gp->log(blog);
+          } /// failsafe check
+        
+          if(chatty) printf("hid[%s] button RELEASE nr[%d] arranged[%d]\n", name.d, a, but);
+        } /// for each button in history
+      } /// button press or release
+    } /// for each button
+     
+    // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    // NOTHING TESTED <<<<<<<<<<<<<<<<<<<<<<<
+
     #endif /// OS_WIN
 
   
@@ -1497,50 +1708,56 @@ ReadAgain:
         if(in.gp[a].type== 0) {
           extra= in.gp[a].maxButtons- 10; /// normal ps3 has 10 buttons. the rest are extra, on modified ps3 pads
           
-          /// is it an extra button?
-          if(extra && (ev[a].number>= 6) && (ev[a].number< 6+ extra)) {
-            but+= 4;                      /// moved on position 11+
-          /// all buttons above extra buttons, moved back
-          } else if(extra && (ev[a].number>= 6+ extra)) {
-            but-= extra;                  /// moved on 7+
-          }
+          if(extra && (ev[a].number>= 6) && (ev[a].number< 6+ extra))
+            but+= 4;                      /// is it an extra button? -> moved on position 10+
+          else if(extra && (ev[a].number>= 6+ extra))
+            but-= extra;                  /// all buttons above extra buttons, moved back on 6+
+          
         /// xbox compatible pad
         } else if(in.gp[a].type== 1) {
+          // EXTRA BUTTONS NOT HANDLED ON XBOX controller <<<<<<<<<<<<<<<<<<<<<<<<<<<<<
           extra= in.gp[a].maxButtons- 11; /// normal xbone has 11 buttons. rest are extra, but i have no clue where they would go... don't have such pad
           
-          /// is it the xbox button?
+          
           if(ev[a].number== 8)
-            but= 10;                      /// move it on position 11, with the extra buttons
+            but= 10;                      /// is it the xbox button? -> move it on position 10, with the extra buttons
           else if(ev[a].number>=9 && ev[a].number<= 10)
-            but-= 1;                      /// move start & back to positions 9 & 10
+            but-= 1;                      /// move start & back to positions 8 & 9
         }
 
-                  
+
+        b[ev[a].number]=  (uchar)ev[a].value;
+        _gp->b[but]= (uchar)ev[a].value;
+        _gw->b[ev[a].number]= (uchar)ev[a].value;
         
-        b[but]=  (uchar)ev[a].value;
-        
-        in.gp[id].b[but]= (uchar)ev[a].value;
-        in.gw[id].b[but]= (uchar)ev[a].value;
-        
-        if(ev[a].value== 1) {                      /// button PRESS
-          bTime[but]= ev[a].time;
-          in.gp[id].bTime[but]= ev[a].time;
-          in.gw[id].bTime[but]= ev[a].time;
-          if(chatty) printf("joystick %d button PRESS\n", id);
-        
-        } else if(ev[a].value== 0) {               /// button RELEASE
+        if(ev[a].value== 1) {                      // button PRESS
+          bTime[ev[a].number]= ev[a].time;
+          _gp->bTime[but]= ev[a].time;
+          _gw->bTime[ev[a].number]= ev[a].time;
+          /// put the button in history
+          blog.b= ev[a].number;
+          blog.checked= false;
+          blog.timeDown= bTime[but];
+          blog.timeUp= 0;
+          blog.timeDT= 0;
+          log(blog);
+          _gw->log(blog);
+          blog.b= but;
+          _gp->log(blog);
+          if(chatty) printf("hid[%s] button PRESS nr[%d] arranged[%d]\n", name.d, ev[a].number, but);
+        } else if(ev[a].value== 0) {               // button RELEASE
           /// put the button in history
           ButPressed p;
-          p.b= but;
-          p.checked= false;
-          p.timeDown= bTime[but];
-          p.timeUp= ev[a].time;
-          p.timeDT= p.timeUp- p.timeDown;
-          
+          blog.b= ev[a].number;
+          blog.checked= false;
+          blog.timeDown= bTime[ev[a].number];
+          blog.timeUp= ev[a].time;
+          blog.timeDT= p.timeUp- p.timeDown;
           log(p);
-          in.gp[id].log(p);
-          in.gw[id].log(p);
-          if(chatty) printf("joystick %d button RELEASE value[%d] number[%d] arranged number[%d]\n", id, ev[a].value, ev[a].number, but);
+          _gw->log(blog);
+          blog.b= but;
+          _gp->log(blog);
+          if(chatty) printf("hid[%s] button RELEASE nr[%d] arranged[%d]\n", name.d, ev[a].number, but);
         }
 
       // --------------============== AXIS EVENT ================---------------
@@ -1668,66 +1885,298 @@ ReadAgain:
     /// macs use callback functions. check HIDchange() at the end of this file
     #endif /// OS_MAC
 
+
+  // -----------============ MODE 2 JOYSTICKS ============------------
   } else if(mode== 2) {       // win(DirectInput) linux(n/a) mac(n/a)
-    
+
     #ifdef USING_DIRECTINPUT
-    diDevice->GetDeviceState(sizeof(DIJOYSTATE2), (LPVOID)&diStats);
+    if(diDevice->GetDeviceState(sizeof(DIJOYSTATE2), (LPVOID)&diStats)== DIERR_INPUTLOST) {   /// device DISCONNECTED
+      if(chatty) printf("hid[%s] DISCONNECTED\n", name.d);
+      /// clear all axis / buttons data / dinput driver
+      delData();
+      _gp->delData();
+      _gw->delData();
+      /// update numbers
+      in.nr.jT2--;    in.nr.gpT2--;    in.nr.gwT2--;
+      in.nr.jFound--; in.nr.gpFound--; in.nr.gwFound--;
+      return;
+    }
 
-    // ---=== JOYSTICK dinput update ===---
-    /// left & right sticks
-    x= diStats.lX;
-    y= diStats.lY;
-    throttle= diStats.lZ;
-    rudder= diStats.lRz;
-    /// POV...
-    pov= diStats.rgdwPOV[0];
-    /// buttons
-    for(short a= 0; a< MAX_JOYSTICK_BUTTONS; a++)
-      b[a]= diStats.rgbButtons[a];
-    /// extra axis
-    u= diStats.rglSlider[0];
-    v= diStats.rglSlider[1];
+    // ---=== JOYSTICK axis ===---
+    x=          diStats.lX;           /// main stick X
+    y=          diStats.lY;           /// main stick Y
+    throttle=   diStats.lZ;           /// throttle
+    rudder=     diStats.lRz;          /// rudder
+    pov=        diStats.rgdwPOV[0];   /// pov
+    u=          diStats.rglSlider[0]; /// extra axis 1
+    v=          diStats.rglSlider[1]; /// extra axis 2
 
-    // ---=== GAMEPAD ===---
+    // ---=== GAMEPAD axis ===---
+    _gp->lx=    diStats.lX;           /// left stick X
+    _gp->ly=    diStats.lY;           /// left stick Y
+    _gp->pov=   diStats.rgdwPOV[0];   /// pov (0- 359 degrees * 100, -1 neutral)
 
-    //in.gp[id].
+    if(_gp->type== 0) {                // ps3 compatible
+      _gp->rx= diStats.lRx;           /// right stick X
+      _gp->ry= diStats.lRy;           /// right stick Y
+      _gp->lt= diStats.rglSlider[0];  /// left trigger
+      _gp->rt= diStats.rglSlider[1];  /// right trigger
+    } else if(_gp->type== 1) {         // xbone compatible
+      _gp->rx= diStats.rglSlider[0];  /// right stick X
+      _gp->ry= diStats.rglSlider[1];  /// right stick Y
+      _gp->lt= diStats.lRx;           /// left trigger
+      _gp->rt= diStats.lRy;           /// right trigger
+    }
 
-    // ---=== GAMEWHEEL ===---
+    // ---=== GAMEWHEEL axis ===---
+    _gw->wheel= diStats.lX;           /// wheel position
+    _gw->a1=    diStats.lY;           /// other axis 1
+    _gw->a2=    diStats.lZ;           /// other axis 2
+    _gw->a3=    diStats.lRz;          /// other axis 3
+    _gw->a4=    diStats.rglSlider[0]; /// other axis 4
+    _gw->a5=    diStats.rglSlider[1]; /// other axis 5
 
+    // ---=== stick/pad/wheel BUTTONS ===---
+    uchar but, extra;
+    swapBuffers();                      /// lastCheck will hold the previous buttons states
+    _gp->swapBuffers();
+    _gw->swapBuffers();
+
+    for(uchar a= 0; a< maxButtons; a++) {     /// for each possible button
+      /*
+        * gamepad buttons are messy. there should be an order in buttons, done by osi, i think, for GAMEPAD UNIFICATION
+        *   the first 10 buttons are on all gamepads
+        *   the rest of buttons shuld be 'extra' buttons, (including the xbox button), and arranged after button 9
+        *   there has to be a variable that holds the total number of buttons the stick has
+        *   thrustmaster pad's extra buttons are on 6-> n
+        *   xbox 'xbox button' is on 8; it is changed on 10, and butotns 9 & 10 moved back 1 position
+        */
+      but= a;  
+      /// gamepad buttons unification. extra buttons (including xbox main button are set after button 9)
+        
+      /// ps3 compatible pad
+      if(_gp->type== 0) {
+        extra= _gp->maxButtons- 10;     /// gamepads have 10 normal buttons. the rest are marked as extra, and moved on button 10+
+          
+        if(extra && (a>= 6) && (a< 6+ extra))
+          but+= 4;                      /// is it an extra button? -> moved on position 11+
+        else if(extra && (a>= 6+ extra))
+          but-= extra;                  /// all buttons above extra buttons, moved back on 7+
+
+      /// xbox compatible pad
+      } else if(_gp->type== 1) {
+        // EXTRA NOT HANDLED <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+        extra= in.gp[a].maxButtons- 11; /// normal xbone has 11 buttons. rest are extra, but i have no clue where they would go... don't have such pad
+
+        if(a== 8)
+          but= 10;                      /// is it the xbox button? -> move it on position 11, with the extra buttons
+        else if(a>=9 && a<= 10)
+          but-= 1;                      /// move start & back to positions 9 & 10
+      } /// check type of gamepad
+
+      b[a]= diStats.rgbButtons[a];      /// current button state
+      _gp->b[but]= b[a];
+      _gw->b[a]= b[a];
+      // --------------============== BUTTON PRESS ================-----------------
+      if(b[a]&& !lastCheck[a]) {
+        /// mark button press time
+        bTime[a]= presentMilli;
+        _gp->bTime[but]= bTime[a];
+        _gw->bTime[a]= bTime[a];
+        /// log the button in history
+        blog.b= a;
+        blog.checked= false;
+        blog.timeDown= presentMilli;
+        blog.timeUp= 0;
+        blog.timeDT= 0;
+        log(blog);
+        _gw->log(blog);
+        blog.b= but;
+        _gp->log(blog);
+        if(chatty) printf("hid[%s] button PRESS nr[%d] arranged[%d]\n", name.d, a, but);
+      
+      // --------------============= BUTTON RELEASE ===============-----------------
+      } else if(lastCheck[a]&& !b[a]) {
+
+        /// search thru history for the button, to mark the time it got released
+        found= false;
+        for(short b= 0; b< MAX_KEYS_LOGGED; b++) {
+          if(lastBut[b].b== a) {
+            if(lastBut[b].timeUp) continue;    /// skip if button is already released
+
+            lastBut[b].timeUp= presentMilli;
+            lastBut[b].timeDT= presentMilli- lastBut[b].timeDown;
+            lastBut[b].checked= false;
+
+            /// gamepad button nr could have a different number, but it does not matter
+            _gp->lastBut[b].timeUp= presentMilli;
+            _gp->lastBut[b].timeDT= lastBut[b].timeDT;
+            _gp->lastBut[b].checked= false;
+  
+            _gw->lastBut[b].timeUp= presentMilli;
+            _gw->lastBut[b].timeDT= lastBut[b].timeDT;
+            _gw->lastBut[b].checked= false;
+
+            found= true;
+            break;
+          }
+          // THIS FAILSAFE CODE COULD GO AWAY vvvvvvvvvvvvvvvvv
+          if(!found) {                      /// failsafe - normally it is found (but things can happen ... alt-tab?)
+            // some debug stuff can be done here, tho
+            blog.b= a;
+            blog.checked= false;
+            blog.timeDown= presentMilli- 1; /// mark it as insta down-up
+            blog.timeUp= presentMilli;
+            blog.timeDT= 1;
+            log(blog);                      /// put it in history buffer
+            _gw->log(blog);
+            blog.b= but;
+            _gp->log(blog);
+          } /// failsafe
+        
+          if(chatty) printf("hid[%s] button RELEASE nr[%d] arranged[%d]\n", name.d, a, but);
+        } /// for each button in history
+      } /// button press or release
+    } /// for each button
+     
 
     #endif /// USING_DIRECTINPUT
 
+  // -----------============ MODE 3 JOYSTICKS ============------------
   } else if(mode== 3) {       // win(XInput) linux(n/a) mac(n/a)
     
     #ifdef USING_XINPUT
-    //          ---- msdn copy/paste ...
+    XINPUT_STATE xi;
+    for(short a= 0; a< sizeof(xi); a++) ((char *)&xi)[a]= 0;    /// zero memory
 
-    this part should be put in populate();
-    DWORD dwResult;    
-    for(DWORD i= 0; i< XUSER_MAX_COUNT; i++ ) {
-      
-      XINPUT_STATE state;
-      ZeroMemory(&state, sizeof(XINPUT_STATE));
-
-      /// Simply get the state of the controller from XInput.  
-      dwResult= XInputGetState(i, &state);
-
-      if(dwResult == ERROR_SUCCESS)
-        printf("XInput controller %d CONNECTED\n", i);
+    /// finding pov in degrees* 100
+    long tpov;
+    if(xi.Gamepad.wButtons& XINPUT_GAMEPAD_DPAD_UP) {
+      if(xi.Gamepad.wButtons& XINPUT_GAMEPAD_DPAD_RIGHT)
+        tpov= 4500;
+      else if(xi.Gamepad.wButtons& XINPUT_GAMEPAD_DPAD_LEFT)
+        tpov= 31500;
       else
-        printf("XInput controller %d NOT connected\n", i);
-      work needs to be done here. 
-    }
+        tpov= 0;
+    } else if(xi.Gamepad.wButtons& XINPUT_GAMEPAD_DPAD_DOWN) {
+      if(xi.Gamepad.wButtons& XINPUT_GAMEPAD_DPAD_RIGHT)
+        tpov= 13500;
+      else if(xi.Gamepad.wButtons& XINPUT_GAMEPAD_DPAD_LEFT)
+        tpov= 22500;
+      else
+        tpov= 18000;
+    } else if(xi.Gamepad.wButtons& XINPUT_GAMEPAD_DPAD_RIGHT)
+      tpov= 9000;
+    else if(xi.Gamepad.wButtons& XINPUT_GAMEPAD_DPAD_LEFT)
+      tpov= 27000;
+    else
+      tpov= -1;
+
+    // ---=== JOYSTICK axis ===---
+    x=        xi.Gamepad.sThumbLX;      /// main stick X
+    y=        xi.Gamepad.sThumbLY;      /// main stick Y
+    throttle= xi.Gamepad.bLeftTrigger;  /// throttle
+    rudder=   xi.Gamepad.bRightTrigger; /// rudder
+    pov=      tpov;                     /// pov
+    u=        xi.Gamepad.sThumbRX;      /// extra axis 1
+    v=        xi.Gamepad.sThumbRY;      /// extra axis 2
+    
+    // ---=== GAMEPAD axis ===---
+    /// windows uses 32768 units for negative axis, and 32767 units for positive axis... (0 is considered center in osi)
+    _gp->lx=  xi.Gamepad.sThumbLX< 0? xi.Gamepad.sThumbLX+ 1: xi.Gamepad.sThumbLX;    /// left stick X
+    _gp->ly=  xi.Gamepad.sThumbLY< 0? xi.Gamepad.sThumbLY+ 1: xi.Gamepad.sThumbLY;    /// left stick Y
+    _gp->rx=  xi.Gamepad.sThumbRX< 0? xi.Gamepad.sThumbRX+ 1: xi.Gamepad.sThumbRX;    /// right stick X
+    _gp->ry=  xi.Gamepad.sThumbRY< 0? xi.Gamepad.sThumbRY+ 1: xi.Gamepad.sThumbRY;    /// right stick Y
+    _gp->lt=  (xi.Gamepad.bLeftTrigger* 65534)/ 255;                                  /// left trigger
+    _gp->rt=  (xi.Gamepad.bRightTrigger* 65534)/ 255;                                 /// right trigger
+    _gp->pov= tpov;                                                                   /// pov (0- 359 degrees * 100, -1 neutral)
+
+    // ---=== GAMEWHEEL axis ===---
+    _gw->wheel= xi.Gamepad.sThumbLX< 0? xi.Gamepad.sThumbLX+ 1: xi.Gamepad.sThumbLX;  /// wheel position
+    _gw->a1=    xi.Gamepad.sThumbLY< 0? xi.Gamepad.sThumbLY+ 1: xi.Gamepad.sThumbLY;  /// other axis 1
+    _gw->a2=    xi.Gamepad.sThumbRX< 0? xi.Gamepad.sThumbRX+ 1: xi.Gamepad.sThumbRX;  /// other axis 2
+    _gw->a3=    xi.Gamepad.sThumbRY< 0? xi.Gamepad.sThumbRY+ 1: xi.Gamepad.sThumbRY;  /// other axis 3
+    _gw->a4=    (xi.Gamepad.bLeftTrigger* 65534)/ 255- 32767;                         /// other axis 4
+    _gw->a5=    (xi.Gamepad.bRightTrigger* 65534)/ 255- 32767;                        /// other axis 5
+
+    // ---=== stick/pad/wheel BUTTONS ===---
+    swapBuffers();
+    _gp->swapBuffers();
+    _gw->swapBuffers();
+
+    //short but;
+    for(uchar a= 0; a< 12; a++) {
+      if(a== 0)      _gp->b[a]= _gw->b[a]= b[a]= xi.Gamepad.wButtons& XINPUT_GAMEPAD_A;
+      else if(a== 1) _gp->b[a]= _gw->b[a]= b[a]= xi.Gamepad.wButtons& XINPUT_GAMEPAD_B;
+      else if(a== 2) _gp->b[a]= _gw->b[a]= b[a]= xi.Gamepad.wButtons& XINPUT_GAMEPAD_X;
+      else if(a== 3) _gp->b[a]= _gw->b[a]= b[a]= xi.Gamepad.wButtons& XINPUT_GAMEPAD_Y;
+      else if(a== 4) _gp->b[a]= _gw->b[a]= b[a]= xi.Gamepad.wButtons& XINPUT_GAMEPAD_LEFT_SHOULDER;
+      else if(a== 5) _gp->b[a]= _gw->b[a]= b[a]= xi.Gamepad.wButtons& XINPUT_GAMEPAD_RIGHT_SHOULDER;
+      else if(a== 6) _gp->b[a]= _gw->b[a]= b[a]= xi.Gamepad.wButtons& XINPUT_GAMEPAD_LEFT_THUMB;
+      else if(a== 7) _gp->b[a]= _gw->b[a]= b[a]= xi.Gamepad.wButtons& XINPUT_GAMEPAD_RIGHT_THUMB;
+      else if(a== 8) _gp->b[a]= _gw->b[a]= b[a]= xi.Gamepad.wButtons& XINPUT_GAMEPAD_BACK;
+      else if(a== 9) _gp->b[a]= _gw->b[a]= b[a]= xi.Gamepad.wButtons& XINPUT_GAMEPAD_START;
+      else if(a== 10) if(xi.Gamepad.wButtons& 0x0400) printf("looking for xbox button!!!\n"); //_gp->b[a]= _gw->b[a]= b[a]= xi.Gamepad.wButtons& 0x0400;
+      else if(a== 11) if(xi.Gamepad.wButtons& 0x0800) printf("looking for xbox button!!!\n"); //_gp->b[a]= _gw->b[a]= b[a]= xi.Gamepad.wButtons& 0x0800;
+
+      if(lastCheck[a]&& !b[a]) {         /// button just got pressed
+        /// mark button press time
+        _gp->bTime[a]= _gw->bTime[a]= bTime[a]= presentMilli;
+        /// log the button in history
+        blog.b= a;
+        blog.checked= false;
+        blog.timeDown= presentMilli;
+        blog.timeUp= 0;
+        blog.timeDT= 0;
+        log(blog);
+        _gw->log(blog);
+        _gp->log(blog);
+        if(chatty) printf("hid[%s] button PRESS nr[%d]\n", name.d, a);
+      } else if(b[a]&& !lastCheck[a]) {  /// button just got released
+        /// search thru history for the button, to mark the time it got released
+        found= false;
+        for(short b= 0; b< MAX_KEYS_LOGGED; b++) {
+          if(lastBut[b].b== a) {
+            if(lastBut[b].timeUp) continue;    /// skip if button is already released
+
+            lastBut[b].timeUp= presentMilli;
+            lastBut[b].timeDT= presentMilli- lastBut[b].timeDown;
+            lastBut[b].checked= false;
+
+            _gp->lastBut[b].timeUp= presentMilli;
+            _gp->lastBut[b].timeDT= lastBut[b].timeDT;
+            _gp->lastBut[b].checked= false;
+  
+            _gw->lastBut[b].timeUp= presentMilli;
+            _gw->lastBut[b].timeDT= lastBut[b].timeDT;
+            _gw->lastBut[b].checked= false;
+
+            found= true;
+            break;
+          }
+          // THIS FAILSAFE CODE COULD GO AWAY vvvvvvvvvvvvvvvvv
+          if(!found) {                      /// failsafe - normally it is found (but things can happen ... alt-tab?)
+            // some debug stuff can be done here, tho
+            blog.b= a;
+            blog.checked= false;
+            blog.timeDown= presentMilli- 1; /// mark it as insta down-up
+            blog.timeUp= presentMilli;
+            blog.timeDT= 1;
+            log(blog);                      /// put it in history buffer
+            _gw->log(blog);
+            _gp->log(blog);
+          } /// failsafe
+        } /// for each history button
+        if(chatty) printf("hid[%s] button RELEASE nr[%d]\n", name.d, a);
+      } /// if press or depress
+    } /// for each possible button
+
     #endif /// USING_XINPUT
   } /// pass thru all modes
 }
 
 
-
 void Joystick::resetButtons() {
-  uint64 present;
-  osi.getMillisecs(&present);// <<----------------- there should be only one present var, set in osi, so there is only 1 call to this func. many calls= time wasted
-  
   /// clear all buffers
   for(short a= 0; a< MAX_JOYSTICK_BUTTONS; a++) {
     buffer1[a]= buffer2[a]= 0;
@@ -1737,15 +2186,58 @@ void Joystick::resetButtons() {
 
   /// reset logged buttons
   for(short a= 0; a< MAX_KEYS_LOGGED; a++) {
-    /// if dela time pressed was not computed, it still waiting for button depress
-    if(!lastBut[a].timeDT) {
-      lastBut[a].timeUp= present;
+    lastBut[a].checked= true;                       /// mark all history as checked, so buttons get ignored
+    if(lastBut[a].timeDown&& !lastBut[a].timeUp) {  /// button waiting dor depress
+      lastBut[a].timeUp= osi.present/ 1000000;
       lastBut[a].timeDT= lastBut[a].timeUp- lastBut[a].timeDown;
     }
   }
 }
 
+// grab exclusive control of the joystick (if possible)
+void Joystick::aquire() {
+  if(mode== 1) {
+    return;
+  }
 
+  if(mode== 2) {
+    #ifdef USING_DIRECTINPUT
+    diDevice->Acquire();
+    #endif /// USING_DIRECTINPUT
+    return;
+  }
+
+  if(mode== 3) {
+    #ifdef USING_XINPUT
+    XInputEnable(TRUE);
+    #endif /// USING_XINPUT
+    return;
+  }
+}
+
+// ungrab exclusive control of the joystick
+void Joystick::unaquire() {
+  if(mode== 1) {
+    return;
+  }
+
+  if(mode== 2) {
+    #ifdef USING_DIRECTINPUT
+    diDevice->Unacquire();
+    #endif /// USING_DIRECTINPUT
+    return;
+  }
+
+  if(mode== 3) {
+    #ifdef USING_XINPUT
+    XInputEnable(FALSE);
+    #endif /// USING_XINPUT
+    return;
+  }
+}
+
+
+/// swap button buffers
 void Joystick::swapBuffers() {
   lastCheck= b;
   b= (b== buffer1)? buffer2: buffer1;
@@ -1759,58 +2251,19 @@ void Joystick::log(const ButPressed &k) {
 }
 
 
-#ifdef USING_DIRECTINPUT
-BOOL CALLBACK EnumEffectsCallback(LPCDIEFFECTINFO di, LPVOID pvRef)
-{
-    //DInputFFB * ffb = (DInputFFB*) pvRef;
 
 
-    // Pointer to calling device
-    //ffb->ffbcaps.ConstantForce = DIEFT_GETTYPE(di->dwEffType) == DIEFT_CONSTANTFORCE;
-    //ffb->ffbcaps.PeriodicForce = DIEFT_GETTYPE(di->dwEffType) == DIEFT_PERIODIC;
-  
-    printf(" Effect '%s'. IsConstant = %d, IsPeriodic = %d", di->tszName, DIEFT_GETTYPE(di->dwEffType) == DIEFT_CONSTANTFORCE, DIEFT_GETTYPE(di->dwEffType) == DIEFT_PERIODIC);
 
-    return DIENUM_CONTINUE;
-}
-#endif
 
 
 // ------------============= GAMEPAD CLASS ===========--------------------
 // ========================================================================
 
 GamePad::GamePad() {
-  mode= 0;                          // 0= DISABLED
-  type= 0;                          // 0= ps3; 1= xbone - changing this in game would work
-  #ifdef USING_DIRECTINPUT
-  vibration= null;
-  #endif
-/*
-  #ifdef OS_LINUX
-  file= -1;
-  #endif /// OS_LINUX
- */
-  
   delData();
 }
 
 GamePad::~GamePad() {
-  #ifdef USING_DIRECTINPUT
-  if(vibration) {
-    vibration->Unload();
-    vibration->Release();
-    vibration= null;
-  }
-  /*
-  if(diDevice) {
-    diDevice->Unacquire();
-    diDevice->Release();
-    diDevice= null;
-  }
-  */
-  #endif
-
-  delData();
 }
 
 void GamePad::delData() {
@@ -1826,104 +2279,15 @@ void GamePad::delData() {
   u= v= 0;
   pov= -1;
 
-
   b= buffer1;
   lastCheck= buffer2;
 
-  /// clear buffers
-  for(short a= 0; a< MAX_JOYSTICK_BUTTONS; a++) {
-    buffer1[a]= buffer2[a]= 0;
-    bTime[a]= 0;
-  }
-  
-  /// mark initial history buttons as checked, so they get ignored
-  for(short a= 0; a< MAX_KEYS_LOGGED; a++)
-    lastBut[a].checked= true;
-  /*
-  #ifdef OS_LINUX
-  if(file!= -1)
-    close(file);
-  id= -1;
-  #endif /// OS_LINUX
-   */
+  resetButtons();
 }
 
-
-// ### UPDATE func ### ATM joystick update handles pads/wheels too.
-void GamePad::update() {
-  
-  if(mode== 1) {
-    // windows: check Joystick::update()
-    // linux: updates in joystick, everything (pad/wheel/stick)
-    // mac: has callback functions for stick/pad/wheel updates, they are at the back of the file
-    return;
-  }
-  
-  #ifdef OS_WIN           /// skip some checks. only mode 1 works atm in linux
-  if(mode== 2) {
-  
-    #ifdef USING_DIRECTINPUT
-    diDevice->GetDeviceState(sizeof(DIJOYSTATE2), (LPVOID)&diStats);
-    /// left & right sticks
-    lx= diStats.lX;
-    ly= diStats.lY;
-    rx= diStats.lZ;
-    ry= diStats.lRz;
-    /// POV...
-    pov= diStats.rgdwPOV[0];
-    /// triggers
-    lt= diStats.lRx;
-    rt= diStats.lRy;
-    /// buttons
-    for(short a= 0; a< MAX_JOYSTICK_BUTTONS; a++)
-      b[a]= diStats.rgbButtons[a];
-    /// extra axis
-    u= diStats.rglSlider[0];
-    v= diStats.rglSlider[1];
-    return;
-    #endif /// USING_DIRECTINPUT
-  
-  }
-  
-  if(mode== 3) {
-    return;
-  }
-  #endif /// OS_WIN
-}
-
-// call in.init(), not this one
-bool GamePad::init(short mode) {
-  this->mode= mode;
-  
-  if(mode== 1) {
-    return true;
-  }
-  
-  if(mode== 2) {
-  #ifdef OS_WIN
-  #ifdef USING_DIRECTINPUT
-    return true;	// joystick initializes, it is the same device
-    /*
-    if(diDevice->SetDataFormat(&c_dfDIJoystick2)== DI_OK) {
-      diDevice->SetCooperativeLevel(osi.win[0].hWnd, DISCL_EXCLUSIVE| DISCL_FOREGROUND);
-      return true;
-    }
-    */
-  #endif /// USING_DIRECTINPUT
-  #endif /// OS_WIN
-  }
-  if(mode== 3) {
-    return true;
-  }
-  
-  return false;
-}
 
 // clears all button buffers / resets logged buttons - called by in.resetPressedButtons() - when alt-tab / something similar
 void GamePad::resetButtons() {
-  uint64 present;
-  osi.getMillisecs(&present);// <<----------------- there should be only one present var, set in osi, so there is only 1 call to this func. many calls= time wasted
-  
   /// clear all buffers
   for(short a= 0; a< MAX_JOYSTICK_BUTTONS; a++) {
     buffer1[a]= buffer2[a]= 0;
@@ -1933,9 +2297,9 @@ void GamePad::resetButtons() {
 
   /// reset logged buttons
   for(short a= 0; a< MAX_KEYS_LOGGED; a++) {
-    /// if dela time pressed was not computed, it still waiting for button depress
-    if(!lastBut[a].timeDT) {
-      lastBut[a].timeUp= present;
+    lastBut[a].checked= true;                       /// mark all history as checked, so buttons get ignored
+    if(lastBut[a].timeDown&& !lastBut[a].timeUp) {  /// button waiting dor depress
+      lastBut[a].timeUp= osi.present/ 1000000;
       lastBut[a].timeDT= lastBut[a].timeUp- lastBut[a].timeDown;
     }
   }
@@ -1955,44 +2319,26 @@ void GamePad::log(const ButPressed &k) {
 }
 
 
-// grab exclusive control of device (if possible)
-bool GamePad::aquire() {
-  if(mode== 2) {
-    #ifdef USING_DIRECTINPUT
-    if(diDevice->Acquire()== DI_OK)
-      return true;
-    #endif
-  }
-  return false;
-}
 
-
-// ungrab exclusive control of device
-bool GamePad::unaquire() {
-  if(mode== 2) {
-    #ifdef USING_DIRECTINPUT
-    if(diDevice->Unacquire()== DI_OK)
-      return true;
-    #endif
-  }
-  return false;
-}
-
-void checkGamepadType(string *name, GamePad *p) {
+void checkGamepadType(GamePad *p) {
   /// ps3 compatible devices won't be searched; they default on type 0
   p->type= 0;
+
   #ifdef OS_WIN
   #endif /// OS_WIN
   
   #ifdef OS_LINUX
-  if(*name== "Microsoft X-Box 360 pad")
+  if(p->name== "Microsoft X-Box 360 pad")
     p->type= 1;
   #endif /// OS_LINU
   
   #ifdef OS_MAC
   #endif /// OS_MAC
+
   // well, this list must be updated i guess; per OS, too
 }
+
+
 
 
 ///========================================================================///
@@ -2000,28 +2346,10 @@ void checkGamepadType(string *name, GamePad *p) {
 ///========================================================================///
 
 GameWheel::GameWheel() {
-  mode= 0;
-  /*
-  #ifdef OS_LINUX
-  id= -1;
-  file= null;
-  #endif /// OS_LINUX
-   */
   delData();
 }
 
 GameWheel::~GameWheel() {
-  #ifdef USING_DIRECTINPUT
-  /*
-  if(diDevice) {
-    diDevice->Unacquire();
-    diDevice->Release();
-    diDevice= null;
-  }
-  */
-  #endif
-
-  delData();
 }
 
 void GameWheel::delData() {
@@ -2033,89 +2361,16 @@ void GameWheel::delData() {
   a1= a2= a3= a4= a5= 0;      // THIS NEEDS MORE WORK
   // pov starts on -1, off state
 
+  
   b= buffer1;
   lastCheck= buffer2;
 
-  /// clear buffers
-  for(short a= 0; a< MAX_JOYSTICK_BUTTONS; a++) {
-    buffer1[a]= buffer2[a]= 0;
-    bTime[a]= 0;
-  }
-  
-  /// mark initial history buttons as checked, so they get ignored
-  for(short a= 0; a< MAX_KEYS_LOGGED; a++)
-    lastBut[a].checked= true;
-/*
-  #ifdef OS_LINUX
-  if(file!= -1)
-    close(file);
-  id= -1;
-  #endif /// OS_LINUX
- */
-}
-
-
-
-// init func. this is called by in.init() for each wheel
-bool GameWheel::init(short mode) {
-  this->mode= mode;
-  
-  if(mode== 1) {
-    return true;
-  }
-  
-  if(mode== 2) {
-    #ifdef USING_DIRECTINPUT
-    return true;		// joystick initializes it is the same device
-    /*
-    if(diDevice->SetDataFormat(&c_dfDIJoystick2)== DI_OK) {
-      diDevice->SetCooperativeLevel(osi.win[0].hWnd, DISCL_EXCLUSIVE| DISCL_FOREGROUND);
-      return true;
-    }
-    */
-    #endif /// USING_DIRECTINPUT
-  }
-  
-  if(mode== 3) {
-    #ifdef USING_XINPUT
-
-    #endif /// USING_XINPUT
-    return true;
-  }
-
-  return false;
-}
-
-
-// could manually update a specific wheel (if os permits)
-void GameWheel::update() {
-  error.simple("not done!");
-  
-  // windows: check Joystick::update()
-  // linux: updates in joystick, everything (pad/wheel/stick)
-  // mac: has callback functions for stick/pad/wheel updates, they are at the back of the file
-
-}
-
-
-// grab exclusive control of device
-bool GameWheel::aquire() {
-  error.simple("not done!");
-  return false;
-}
-
-// ungrab exclusive control of device
-bool GameWheel::unaquire() {
-  error.simple("not done!");
-  return false;
+  resetButtons();
 }
 
 
 // clears button buffer states / resets logged buttons history
 void GameWheel::resetButtons() {
-  uint64 present;
-  osi.getMillisecs(&present);// <<----------------- there should be only one present var, set in osi, so there is only 1 call to this func. many calls= time wasted
-  
   /// clear all buffers
   for(short a= 0; a< MAX_JOYSTICK_BUTTONS; a++) {
     buffer1[a]= buffer2[a]= 0;
@@ -2125,15 +2380,13 @@ void GameWheel::resetButtons() {
 
   /// reset logged buttons
   for(short a= 0; a< MAX_KEYS_LOGGED; a++) {
-    /// if dela time pressed was not computed, it still waiting for button depress
-    if(!lastBut[a].timeDT) {
-      lastBut[a].timeUp= present;
+    lastBut[a].checked= true;                       /// mark all history as checked, so buttons get ignored
+    if(lastBut[a].timeDown&& !lastBut[a].timeUp) {  /// button waiting dor depress
+      lastBut[a].timeUp= osi.present/ 1000000;
       lastBut[a].timeDT= lastBut[a].timeUp- lastBut[a].timeDown;
     }
   }
 }
-
-
 
 
 void GameWheel::swapBuffers() {
@@ -2147,6 +2400,7 @@ void GameWheel::log(const ButPressed &k) {
     lastBut[a]= lastBut[a- 1];
   lastBut[0]= k;
 }
+
 
 
 
@@ -2268,6 +2522,7 @@ static void HIDadded(void *context, IOReturn result, void *sender, IOHIDDeviceRe
     
     in.gp[a].name= in.j[a].name;
     in.gw[a].name= in.j[a].name;
+    call checkPadBlaBla() (ps3/xbone diff)
   } else {
     in.j[a].name= "Unknown";
     in.gp[a].name= in.j[a].name;
@@ -2433,21 +2688,25 @@ static void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDV
         if(chatty) printf(" lStick[%ld]y\n", in.gp[a].ly);
         return;
       case kHIDUsage_GD_Z:                       // [Throttle?] / [r stick X] / [wheel???]
+        xbone change, they are the same
         in.gp[a].rx= (t> -150 && t< 150)? 0: t; /// this is due to bug in mac HID api. center position is not centered.
         in.j[a].throttle= in.gw[a].a2= in.gp[a].rx;
         if(chatty) printf(" rStick[%ld]x\n", in.gp[a].rx);
         return;
       case kHIDUsage_GD_Rx:                      // [extra1 X?] / [l trigger] / [wheel???]
+        xbone change, they are the same
         in.gp[a].lt= 32767- t;
         in.j[a].u= in.gw[a].a4= (t> -150 && t< 150)? 0: t;
         if(chatty) printf(" lTrigger[%ld]\n", in.gp[a].lt);
         return;
       case kHIDUsage_GD_Ry:                      // [extra1 Y?] / [r trigger] / [wheel???]
+        xbone change, they are the same
         in.gp[a].rt= 32767- t;
         in.j[a].v= in.gw[a].a5= (t> -150 && t< 150)? 0: t;
         if(chatty) printf(" rTrigger[%ld]\n", in.gp[a].rt);
         return;
       case kHIDUsage_GD_Rz:                      // [Rudder?]   / [rStick Y]  / [wheel???]
+        xbone change, they are the same
         in.gp[a].ry= (t> -150 && t< 150)? 0: t; /// this is due to bug in mac HID api. center position is not centered.
         in.j[a].rudder= in.gw[a].a3= in.gp[a].ry;
         if(chatty) printf(" rStick[%ld]y\n", in.gp[a].ry);
@@ -2526,16 +2785,17 @@ static void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDV
     } /// axis usage switch
 
   } else if(e->type== 2) {                                // ---=== button ===---
+    in.j[a].swapBuffers[a]; < USE SWAPBUFFERS, lastCheck is inportant to update for actual use
     /// have to use the 'type' variable, wich is the only place it actually works... 
     in.j[a].b[e->id]= (uchar)v;
-    in.gp[a].b[e->id]= (uchar)v;
-    in.gw[a].b[e->id]= (uchar)v;
+    //in.gp[a].b[e->id]= (uchar)v;
+    //in.gw[a].b[e->id]= (uchar)v;
     
     if(v== 0) {                                           // release
       if(chatty) printf(" button release [%d]\n", e->id);
       in.j[a].bTime[e->id]=  time;
-      in.gp[a].bTime[e->id]= time;
-      in.gw[a].bTime[e->id]= time;
+      //in.gp[a].bTime[e->id]= time;
+      //in.gw[a].bTime[e->id]= time;
     } else if(v== 1) {                                    // press
       if(chatty) printf(" button press [%d]\n", e->id);
       /// put the button in history
@@ -2547,8 +2807,8 @@ static void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDV
       p.timeDT= p.timeUp- p.timeDown;
       
       in.j[a].log(p);
-      in.gp[a].log(p);
-      in.gw[a].log(p);
+      //in.gp[a].log(p);
+      //in.gw[a].log(p);
     } /// button press/release if
 
   } else if(e->usagePage== kHIDPage_VendorDefinedStart) { // ---=== button pressure / other vendor specifics ===---
@@ -2556,54 +2816,57 @@ static void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDV
     if(e->usage>= 0x20 && e->usage<= 0x2B)/// button pressure range
       t= (((v+ amin)* 65534)/ (amin+ amax))- 32767;     /// value scaled to min[-32767] max[+32767], 65535 total possible units (65534+ unit 0)    
     switch(e->usage) {
-        
+
+
+        GAMEPAD BUTTON UNIFICATION CODE <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
       // ---=== button pressures ===---
       case 0x20:                          /// gamepad button pov right
-        in.j[a].bPressure[20]= in.gw[a].bPressure[20]= in.gp[a].bPressure[20]= t+ 32767; 
+        in.j[a].bPressure[20]= t+ 32767; <<<<<<<<<<< NOT GOOD
         if(chatty) printf(" but 20 pressure[%ld]\n", in.gp[a].bPressure[20]);
         return;
       case 0x21:                          /// gamepad button pov left
-        in.j[a].bPressure[21]= in.gw[a].bPressure[21]= in.gp[a].bPressure[21]= t+ 32767; 
+        in.j[a].bPressure[21]= t+ 32767; <<<<<<<<<<<< NOT GOOD
         if(chatty) printf(" but 21 pressure[%ld]\n", in.gp[a].bPressure[21]);
         return;
       case 0x22:                          /// gamepad button pov up
-        in.j[a].bPressure[22]= in.gw[a].bPressure[22]= in.gp[a].bPressure[22]= t+ 32767;
+        in.j[a].bPressure[22]= t+ 32767;<<<<<<<<<<<<< NOT GOOD
         if(chatty) printf(" but 22 pressure[%ld]\n", in.gp[a].bPressure[22]);
         return;
       case 0x23:                          /// gamepad button pov down
-        in.j[a].bPressure[23]= in.gw[a].bPressure[23]= in.gp[a].bPressure[23]= t+ 32767;
+        in.j[a].bPressure[23]= t+ 32767;<<<<<<<<<<<< NOT GOOD
         if(chatty) printf(" but 23 pressure[%ld]\n", in.gp[a].bPressure[23]);
         return;
       case 0x24:                          /// gamepad button 3
-        in.j[a].bPressure[3]= in.gw[a].bPressure[3]= in.gp[a].bPressure[3]= t+ 32767;
+        in.j[a].bPressure[3]= t+ 32767;
         if(chatty) printf(" but 3 pressure[%ld]\n", in.gp[a].bPressure[3]);
         return;
       case 0x25:                          /// gamepad button 2
-        in.j[a].bPressure[2]= in.gw[a].bPressure[2]= in.gp[a].bPressure[2]= t+ 32767;
+        in.j[a].bPressure[2]= t+ 32767;
         if(chatty) printf(" but 2 pressure[%ld]\n", in.gp[a].bPressure[2]);
         return;
       case 0x26:                          /// gamepad button 1
-        in.j[a].bPressure[1]= in.gw[a].bPressure[1]= in.gp[a].bPressure[1]= t+ 32767;
+        in.j[a].bPressure[1]= t+ 32767;
         if(chatty) printf(" but 1 pressure[%ld]\n", in.gp[a].bPressure[1]);
         return;
       case 0x27:                          /// gamepad button 0
-        in.j[a].bPressure[0]= in.gw[a].bPressure[0]= in.gp[a].bPressure[0]= t+ 32767;
+        in.j[a].bPressure[0]= t+ 32767;
         if(chatty) printf(" but 0 pressure[%ld]\n", in.gp[a].bPressure[0]);
         return;
       case 0x28:                          /// gamepad button 4
-        in.j[a].bPressure[4]= in.gw[a].bPressure[4]= in.gp[a].bPressure[4]= t+ 32767;
+        in.j[a].bPressure[4]= t+ 32767;
         if(chatty) printf(" but 4 pressure[%ld]\n", in.gp[a].bPressure[4]);
         return;
       case 0x29:                          /// gamepad button 5
-        in.j[a].bPressure[5]= in.gw[a].bPressure[5]= in.gp[a].bPressure[5]= t+ 32767;
+        in.j[a].bPressure[5]= t+ 32767;
         if(chatty) printf(" but 5 pressure[%ld]\n", in.gp[a].bPressure[5]);        
         return;
       case 0x2A:                          /// gamepad button 6
-        in.j[a].bPressure[6]= in.gw[a].bPressure[6]= in.gp[a].bPressure[6]= t+ 32767;
+        in.j[a].bPressure[6]= t+ 32767;
         if(chatty) printf(" but 6 pressure[%ld]\n", in.gp[a].bPressure[6]);
         return;
       case 0x2B:                          /// gamepad button 7
-        in.j[a].bPressure[7]= in.gw[a].bPressure[7]= in.gp[a].bPressure[7]= t+ 32767;
+        in.j[a].bPressure[7]= t+ 32767;
         if(chatty) printf(" but 7 pressure[%ld]\n", in.gp[a].bPressure[7]);
         return;
       default:
