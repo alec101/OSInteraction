@@ -498,8 +498,8 @@ bool doChange(OSIWindow *w, OSIMonitor *m, OSIResolution *r, int8 bpp, short fre
   DEVMODE dm;
   for(short a= 0; a< sizeof(DEVMODE); a++) ((char *)&dm)[a]= 0;
   dm.dmSize= sizeof(dm);
-  dm.dmPelsWidth= dx;           /// selected screen width
-  dm.dmPelsHeight= dy;          /// selected screen height
+  dm.dmPelsWidth= r->dx;           /// selected screen width
+  dm.dmPelsHeight= r->dy;          /// selected screen height
   dm.dmBitsPerPel= bpp;         /// selected bits per pixel
   if(freq)
     dm.dmDisplayFrequency= freq;
@@ -511,8 +511,8 @@ bool doChange(OSIWindow *w, OSIMonitor *m, OSIResolution *r, int8 bpp, short fre
     return false;
   }
   /// update monitors positions after resolution change
-  for(short a= 0; a< nrMonitors; a++)
-    getMonitorPos(&monitor[a]);
+  for(short a= 0; a< osi.display.nrMonitors; a++)
+    getMonitorPos(&osi.display.monitor[a]);
   #endif /// OS_WIN
   
   #ifdef OS_LINUX
@@ -775,7 +775,7 @@ bool doChange(OSIWindow *w, OSIMonitor *m, OSIResolution *r, int8 bpp, short fre
 // -------------->>>>>>>>>>>>>>> POPULATE <<<<<<<<<<<<<<<--------------- //
 ///---------------------------------------------------------------------///
 void OSIDisplay::populate(OSInteraction *t) {
-  bool chatty= true;   // this is used for debug: prints stuff it finds to terminal
+  bool chatty= false;   // this is used for debug: prints stuff it finds to terminal
   delData();
   #ifdef OS_WIN
     
@@ -819,7 +819,7 @@ void OSIDisplay::populate(OSInteraction *t) {
     monitor[d].id= dd.DeviceName;
     monitor[d].name= dd.DeviceString;
 
-    if(chatty) printf("%s (%s)", monitor[d].id, monitor[d].name);
+    if(chatty) printf("%s (%s)", monitor[d].id.d, monitor[d].name.d);
 
     if(dd.StateFlags& DISPLAY_DEVICE_PRIMARY_DEVICE) {
       monitor[d].primary= true;
@@ -847,7 +847,7 @@ void OSIDisplay::populate(OSInteraction *t) {
       monitor[d].monitorName= dd.DeviceString;
     }
 
-    if(chatty) printf("%s (%s)\n", monitor[d].monitorID, monitor[d].monitorName);
+    if(chatty) printf("%s (%s)\n", monitor[d].monitorID.d, monitor[d].monitorName.d);
 
 /// windows vomit array size
     for(a= 0, n= 0; EnumDisplaySettings(monitor[d].id, a, &dm) != 0; a++)

@@ -145,6 +145,10 @@ public:
   void getNanosecs(uint64 *out);      /// performance timer in nanoseconds
   void getMicrosecs(uint64 *out);     /// performance timer in microseconds
   void getMillisecs(uint64 *out);     /// performance timer in miliseconds
+  void getClocks(uint64 *out);        /// performance timer in raw clocks     N/A LINUX... trying to make it work
+  void clocks2nanosecs(uint64 *out);  /// convert raw clocks to nanoseconds   N/A LINUX... trying to make it work
+  void clocks2microsecs(uint64 *out); /// convert raw clocks to microseconds  N/A LINUX... trying to make it work
+  void clocks2millisecs(uint64 *out); /// convert raw clocks to milliseconds  N/A LINUX... trying to make it work
   void exit(int retVal);              /// restores all monitor resolutions & exits. call this instead of _exit() or exit() func
 
 // opengl funcs
@@ -185,7 +189,7 @@ private:
   void processMSG(); // linux MESSAGE HANDLER variant -don't call it, use OS independent checkMSG()
   #endif /// OS_LINUX
 
-  
+  friend LRESULT CALLBACK processMSG(HWND, UINT, WPARAM, LPARAM);
 
 // nothing to do with this class:
 public:

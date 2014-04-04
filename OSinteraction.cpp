@@ -36,7 +36,7 @@
  * - window to change a monitor without problems (unplug?)
  *   but on multiple monitor mode, mark it as closed? something like this... notify the program somehow, so a rearrangement will be done
 
-
+ * - keyboard mode 2 in is getting more and more useless and a big drag... and is not avaible in linux+ mac
 
 */
 
@@ -128,7 +128,7 @@ _NET_CLOSE_WINDOW
   #ifdef USING_XINPUT
 
 // something must be done with this <<<<<<<<<<<<<<<<<<<<<<<<<<<
-    #pragma comment(lib, "c:/alec/dxSDK2010j/lib/x64/xinput")
+    #pragma comment(lib, "c:/alec/dev/dxSDK2010j/lib/x64/xinput")
   #endif
 #endif /// OS_WIN
 
@@ -253,10 +253,7 @@ int main() {
     osi.checkMSG();               // wait for window creation
 */
   #ifdef USING_DIRECTINPUT
-  //in.getDIj(0)->init(3);
-  in.getT2j(0)->init(3);
-  in.gp[4].diDevice->Acquire();
-
+  //in.gp[8].aquire();
   //in.vibrate();
   #endif /// USING_DIRECTINPUT
 
@@ -267,14 +264,8 @@ int main() {
 
   while(1) {
 
-    //in.m.update();   /// mouse update
-    //in.k.update();   /// keyboard update
-    //in.k.updateLocks();
-
-//    in.j[0].update();
-
+    osi.checkMSG();		/// operating system messages handling
     in.update();
-
 
     if(osi.flags.haveFocus)
       for(short a= 0; a< MAX_WINDOWS; a++)
@@ -304,7 +295,9 @@ int main() {
     printf("mouse: %05dx %05dy %dl %dr %dm %dx1 %dx2 % dw %d %d %d %d \n", in.m.x, in.m.y, in.m.b[0].down, in.m.b[1].down, in.m.b[2].down, in.m.b[3].down, in.m.b[4].down, in.m.getWheelDu(), in.m.b[5].down, in.m.b[6].down, in.m.b[7].down, in.m.b[8].down);
     printf("last keyboard keys: %03d %03d %03d\n", in.k.lastKey[0].code, in.k.lastKey[1].code, in.k.lastKey[2].code);
     printf("nr: joysticks(%d) gamepads(%d) gamewheels(%d)\n", in.nr.jFound, in.nr.gpFound, in.nr.gwFound);
-    short n= 0;
+    short n= 16;
+
+    in.gp[n].aquire();
 
     printf("gamepad[%d] s1[% 6ld,% 6ld] s2[% 6ld,% 6ld] extra[% 6ld,% 6ld]\n", n, in.gp[n].lx, in.gp[n].ly, in.gp[n].rx, in. gp[n].ry, in.gp[n].u, in.gp[n].v);
     printf("gamepad[%d] lTrigger[% 6ld] rTrigger[% 6ld]\n", n, in.gp[n].lt, in.gp[n].rt);
@@ -336,7 +329,7 @@ int main() {
     #endif /// OS_LINUX
     }
 
-    osi.checkMSG();		/// operating system messages handling
+    
   }
 
   return 0;
@@ -396,13 +389,12 @@ OSInteraction::OSInteraction() {
   flags.buttonPress= false;
   flags.keyPress= false;
   
-  getNanosecs(&present);                     /// start with updated present time variable
   primWin= &win[0];                          /// primWin pointer, always to &win[0]
 
   #ifdef OS_WIN
   QueryPerformanceFrequency(&timerFreq);     /// read cpu frequency. used for high performance timer (querryPerformanceBlaBla)
   #endif /// OS_WIN
-
+  
   #ifdef OS_LINUX
 /// printf won't work without setlocale. but hopefully it won't be needed.
 //    setlocale(LC_ALL, ""); // can't rely on setlocale. everything is different on each os. rely on StringClass32/8 and that's that.
@@ -416,6 +408,8 @@ OSInteraction::OSInteraction() {
   mach_timebase_info(&machInfo);            /// read cpu frequency & stuff; used for high performance timer (mac variant, named mach)
   cocoa.setProgramPath();                   /// program path (osi.path stores the string afterwards)
   #endif /// OS_MAC
+
+  getNanosecs(&present);                    /// start with updated present time variable
 }
 
 OSInteraction::~OSInteraction() {
@@ -503,7 +497,6 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
       mode= 1;                            // if it fails, set mode to windowed <<--- ???
       w->mode= 1;
     }
-    display.getMonitorPos(m);
     w->x0= m->x0;
     w->y0= m->y0;
   }
@@ -896,7 +889,7 @@ I have not checked this because I don't have a multihead system.
 
 
 
-// -------------------============ GLWINDOW DELETION ==============-------------
+// ----------------============= GLWINDOW DELETION ==============-------------
 bool OSInteraction::killPrimaryGLWindow() {
   return killGLWindow(&win[0]);
 }
@@ -982,6 +975,9 @@ bool OSInteraction::glMakeCurrent(OSIWindow *w) {
 } // OSInteraction::glMakeCurrent
 
 
+
+
+// WIP
 bool OSInteraction::glCreateRenderer(OSIWindow *w) {
   return false;
 //  glXCreateContext(w->display, w->
@@ -1006,7 +1002,7 @@ bool OSInteraction::glDestroyRenderer(OSIWindow *w) {
 
   return false;
 } // OSInteraction::glDestroyRenderer
-
+// WIP ^^^^^^^^^^^^^^^^^^^
 
 
 
@@ -1019,14 +1015,14 @@ bool OSInteraction::glDestroyRenderer(OSIWindow *w) {
 #ifdef OS_WIN
 string OSInteraction::getWinName(HWND h) {
   for(int a= 0; a< MAX_WINDOWS; a++)
-    if(win[a].hWnd==h)
+    if(win[a].hWnd== h)
       return win[a].name;
   return "unknown window";
 }
 
 OSIWindow *OSInteraction::getWin(HWND h) {
   for(int a= 0; a< MAX_WINDOWS; a++)
-    if(win[a].hWnd==h)
+    if(win[a].hWnd== h)
       return &win[a];
   return null;
 }
@@ -1063,7 +1059,7 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 // there is no resize/move for windows, the close button wont work either, i think
 ///===================================================
 
-  bool chatty= false;	// if used, prints msgs to terminal
+  bool chatty= false;	     // if used, prints msgs to terminal
   bool onlyHandled= true; /// used with chatty
   int mb= 0;
 
@@ -1185,39 +1181,38 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
     switch(m) {
       case WM_KEYDOWN:                                          // ***key PRESS***
       case WM_SYSKEYDOWN: {
+        osi.getMillisecs(&osi.eventTime);     /// using getTIMEXXX() funcs: can't rely on event time sent from system
         in.k.updateLocks();
-        getMillisecs(&osi.eventTime);            /// using getTIMEXXX() funcs: can't rely on event time sent from system
 
-        //int code= GETBYTE2UINT32(lParam);
-        uint code= (uint)wParam;
+        int code= GETBYTE2UINT32(lParam);
+        uint vcode= (uint)wParam;
         Keyboard::KeyPressed k;
 
         /// left/ right ALT/CONTROL/SHIFT distingush
-        if(wParam== VK_SHIFT)   code= (GetKeyState(VK_RSHIFT)& 0x80)?   VK_RSHIFT:    VK_LSHIFT;
-        if(wParam== VK_CONTROL) code= (GetKeyState(VK_RCONTROL)& 0x80)? VK_RCONTROL:  VK_LCONTROL;
-        if(wParam== VK_MENU)    code= (GetKeyState(VK_RMENU)& 0x80)?    VK_RMENU:     VK_LMENU;
+        if(wParam== VK_SHIFT)   code= (GetKeyState(VK_RSHIFT)& 0x80)?   in.Kv.rshift: in.Kv.lshift;
+        if(wParam== VK_CONTROL) code= (GetKeyState(VK_RCONTROL)& 0x80)? in.Kv.rctrl:  in.Kv.lctrl;
+        if(wParam== VK_MENU)    code= (GetKeyState(VK_RMENU)& 0x80)?    in.Kv.ralt:   in.Kv.lalt;
+        //if(wParam== VK_RETURN)  code= (GetKeyState(VK_RETURN)& 0x80)?   in.Kv.enter:  in.Kv.kpenter; // makes no difference (win's fault)
 
-        if(chatty) printf("key PRESS code=%d \n", code);
-        
         /// check if message is a <repeat key press>
         if(KF_REPEAT& HIWORD(lParam)) {
-          if(!in.k.key[code]) {    /// in case shit happened (alt tab mess, some crappy windows message block dunno)
+          if(!in.k.key[code]) {               /// in case shit happened (alt tab mess, some crappy windows message block dunno)
             /// log the key
             k.code= code;
             k.checked= false;
             k.timeDown= osi.eventTime;
+            k.timeUp= 0;
+            k.timeDT= 0;
             in.k.log(k);
             /// set the vars
             in.k.key[code]= 128;
             in.k.keyTime[code]= osi.eventTime;
-            //in.k.repeat[code]= 1;    /// with the next repeat increase (next line), the key will be logged as repeated twice, wich is ok
+            //in.k.repeat[code]= 1;           /// with the next repeat increase (next line), the key will be logged as repeated twice, wich is ok
           }
           //in.k.repeat[code]+= KF_REPEAT& HIWORD(lParam);   // THIS MIGHT BE DELETED <-------------------------------------------
-          
-          
-          // here must be placed in.k.addManip();
-          
-          
+
+          in.k.doManip();                          /// check if current pressed keys form a manip char
+          if(chatty) printf("key REPEAT code[0x%X] vcode[0x%X]\n", code, vcode);
           goto ret;
           //return 0;
         }
@@ -1231,24 +1226,25 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         in.k.keyTime[code]= osi.eventTime;
         //in.k.repeat[code]= 1;                  /// a new key press, sets repeat to 1  // MIGHT BE DELETED
         
-        
-        //        in.k.addManip(); here<<<<<<<<<<
-        
-        
+        in.k.doManip();                          /// check if current pressed keys form a manip char
+        if(chatty) printf("key PRESS code[0x%X] vcode[0x%X]\n", code, vcode);
         goto ret;
         //return 0;
       }
-      case WM_KEYUP:                                        // ***key DEPRESS***
+      case WM_KEYUP:                              // <<< key DEPRESS >>>
       case WM_SYSKEYUP: {
         in.k.updateLocks();
-        getMillisecs(&osi.eventTime);            /// using getTIMEXXX() funcs: can't rely on event time sent from system
-        //int code= GETBYTE2UINT32(lParam);
-        uint code= (uint)wParam;
-        if(wParam== VK_SHIFT)   code= in.k.key[VK_RSHIFT]?   VK_RSHIFT:   VK_LSHIFT;
-        if(wParam== VK_CONTROL) code= in.k.key[VK_RCONTROL]? VK_RCONTROL:	VK_LCONTROL;
-        if(wParam== VK_MENU)    code= in.k.key[VK_RMENU]?		 VK_RMENU:    VK_LMENU;
 
-        if(chatty) printf("key RELEASE code=%d\n", code);
+        osi.getMillisecs(&osi.eventTime);        /// using getTIMEXXX() funcs: can't rely on event time sent from system
+
+        int code= GETBYTE2UINT32(lParam);        /// key code
+        uint vcode= (uint)wParam;                /// windows virtual key code
+        if(wParam== VK_SHIFT)   code= in.k.key[in.Kv.rshift]? in.Kv.rshift: in.Kv.lshift;
+        if(wParam== VK_CONTROL) code= in.k.key[in.Kv.rctrl]?  in.Kv.rctrl:  in.Kv.lctrl;
+        if(wParam== VK_MENU)    code= in.k.key[in.Kv.ralt]?		in.Kv.ralt:   in.Kv.lalt;
+        //if(wParam== VK_RETURN)  code= in.k.key[VK_RETURN]?    in.Kv.enter:  in.Kv.kpenter;       // makes no difference (win's fault)
+
+        if(chatty) printf("key RELEASE code[0x%X] vcode[0x%X]\n", code, vcode);
 
         /// log the key in history
         bool found= false;
@@ -1310,51 +1306,55 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
     case WM_ACTIVATE: {
       if(wParam == 0) {
         osi.flags.haveFocus= false;
-        // in case of alt-tab all current pressed buttons must be reset !!!!
-        in.resetPressedButtons();
-        in.m.unaquire();       /// direct input mouse unAquire <--- grab/aquire/blabla might be needed for other modes/ human input devices
+        
+        /// if any HIDs are using exclusive mode, unaquire it
+        in.m.unaquire();
         in.k.unaquire();
-        
-        // further unaquires must be placed here <<<<<<<<<<<<<<<<<<<<<<<<<
+        for(short a= 8; a<16; a++)
+          if(in.j[a].mode)
+            in.j[a].unaquire();
 
-        //in.gp[4].unaquire();
-        
+        /// in case of alt-tab all current pressed buttons must be reset
+        in.resetPressedButtons();
         
       } else {
         osi.flags.haveFocus= true;
-        in.m.aquire();         /// direct input mouse aquire
+
+        /// if any HIDs are using exclusive mode, aquire it
+        in.m.aquire();
         in.k.aquire();
-        // further aquires must be placed here <<<<<<<<<<<<<<<<<<<<<<<<<
+        for(short a= 8; a< 16; a++)
+          if(in.j[a].mode)
+            in.j[a].aquire();
         
-        //in.gp[4].aquire();
       }
-      if(chatty) printf("WM_ACTIVATE %s 0x%x %d %d\n", osi.getWinName(hWnd), m, wParam, lParam);
+      if(chatty) printf("WM_ACTIVATE %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam);
       //goto ret;
       return 0;
 
     } case WM_CLOSE: {
-      if(chatty) printf("WM_CLOSE %s 0x%x %d %d\n", osi.getWinName(hWnd), m, wParam, lParam);
+      if(chatty) printf("WM_CLOSE %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam);
       osi.flags.exit= true;     /// main exit flag
       return 0;
     } case WM_CHAR: {
-      if(chatty) printf("\n\n\n\n\n\nWM_CHAR %s %c\n", osi.getWinName(hWnd), wParam);
+      if(chatty) printf("WM_CHAR %s %lc\n", osi.getWinName(hWnd).d, wParam);
       osi.getMillisecs(&osi.eventTime);
-      in.k.addChar(wParam, &osi.eventTime);
+      in.k.addChar((ulong)wParam, &osi.eventTime);
       return 0;
     } case WM_UNICHAR: {
-      error.simple("WM_UNICHAR not tested");
-      if(chatty) printf("\n\n\n\n\n\nWM_UNICHAR %s %c\n", osi.getWinName(hWnd), wParam);
+      error.console("WM_UNICHAR not tested");
+      if(chatty) printf("WM_UNICHAR %s %lc\n", osi.getWinName(hWnd).d, wParam);
       osi.getMillisecs(&osi.eventTime);
-      in.k.addChar(wParam, &osi.eventTime);
+      in.k.addChar((ulong)wParam, &osi.eventTime);
       return 0;
 
 /// system commands
     } case WM_SYSCOMMAND: {
-      if(chatty) printf("WM_SYSCOMMAND %s 0x%x %d %d\n", osi.getWinName(hWnd), m, wParam, lParam);
+      if(chatty) printf("WM_SYSCOMMAND %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam);
 
       switch (wParam)	{
         case SC_CLOSE: {
-          if(chatty) printf("  SC_CLOSE %s 0x%x %d %d\n", osi.getWinName(hWnd), m, wParam, lParam);
+          if(chatty) printf("  SC_CLOSE %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam);
           osi.flags.exit= true;
           return 0;
         }
@@ -1367,13 +1367,13 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 /// unhandled frequent windows messages
   if(chatty&& !onlyHandled)
     switch(m) {
-      case WM_ACTIVATEAPP: { printf("WM_ACTIVATEAPP %s 0x%x %d %d\n", osi.getWinName(hWnd), m, wParam, lParam); goto ret;   /// lower level aplication focus, the WM_ACTIVATE one, i think is better, cuz is the last one that is sent
-      } case WM_ERASEBKGND: { printf("WM_ERASEBKGND %s 0x%x %d %d\n", osi.getWinName(hWnd), m, wParam, lParam); goto ret;
-      } case WM_PAINT: { printf("WM_PAINT %s 0x%x %d %d\n", osi.getWinName(hWnd), m, wParam, lParam); goto ret;
-      } case WM_NCPAINT: { printf("WM_NCPAINT %s 0x%x %d %d\n", osi.getWinName(hWnd), m, wParam, lParam); goto ret;
-      } case WM_SETFOCUS: { printf("WM_SETFOCUS %s 0x%x %d %d\n", osi.getWinName(hWnd), m, wParam, lParam); goto ret;       /// keyboard focus i think
-      } case WM_KILLFOCUS: { printf("WM_KILLFOCUS %s 0x%x %d %d\n", osi.getWinName(hWnd), m, wParam, lParam); goto ret;     /// keyboard focus i think
-      } case WM_NCACTIVATE: { printf("WM_NCACTIVATE %s 0x%x %d %d\n", osi.getWinName(hWnd), m, wParam, lParam); goto ret;
+      case WM_ACTIVATEAPP: { printf("WM_ACTIVATEAPP %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;   /// lower level aplication focus, the WM_ACTIVATE one, i think is better, cuz is the last one that is sent
+      } case WM_ERASEBKGND: { printf("WM_ERASEBKGND %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;
+      } case WM_PAINT: { printf("WM_PAINT %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;
+      } case WM_NCPAINT: { printf("WM_NCPAINT %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;
+      } case WM_SETFOCUS: { printf("WM_SETFOCUS %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;       /// keyboard focus i think
+      } case WM_KILLFOCUS: { printf("WM_KILLFOCUS %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;     /// keyboard focus i think
+      } case WM_NCACTIVATE: { printf("WM_NCACTIVATE %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;
       } case WM_GETICON: { goto ret;              /// usually is used when alt-tabbing, gets an icon for the mini alt-tab list
         // WHEN dealing with icons, must remember to develop WM_GETICON too
       } case WM_IME_NOTIFY: {	goto ret;
@@ -1786,7 +1786,7 @@ bool OSInteraction::checkMSG() {
   #ifdef OS_WIN
   while(1)    // loop thru ALL msgs... i used to peek thru only 1 msg, that was baaad... biig LAG
     if(PeekMessage(&win[0].msg, NULL, 0, 0, PM_REMOVE)) {	// Is There A Message Waiting?
-      //      eventTime= win[0].msg.time;
+      // eventTime= win[0].msg.time; // not reliable. 1 sec after getMillisecs(). this time is in the dang future
       TranslateMessage(&win[0].msg);
       DispatchMessage(&win[0].msg);
 
@@ -1858,11 +1858,11 @@ OSIWindow::OSIWindow() {
 
 OSIWindow::~OSIWindow() {
   #ifdef OS_WIN
-  delData();     // it seems system already destroys windows, and this causes segmentation error
+  delData();            // it seems system already destroys windows, and this causes segmentation error
   #endif /// OS_WIN
   
   #ifdef OS_LINUX
-  //  delData();     // it seems system already destroys windows, and this causes segmentation error  
+  //  delData();        // it seems system already destroys windows, and this causes segmentation error  
   #endif
   
   #ifdef OS_MAC
@@ -2000,7 +2000,16 @@ void OSInteraction::getNanosecs(uint64 *out) {
   #ifdef OS_WIN
   LARGE_INTEGER t;
   QueryPerformanceCounter(&t);
-  *out= t.QuadPart/ (timerFreq.QuadPart/ 1000000000);
+  /// "(t.QuadPart* 1000000000)/ timerFreq.QuadPart" would be faster& simpler,
+  /// but unfortunately IT REACHES unsigned long long (uint64) LIMIT;
+  /// a solution i found is to use 2 uint64 helper vars, each holding half the final result
+
+  uint64 hi= t.QuadPart/ 10000000;
+  uint64 lo= t.QuadPart- (hi* 10000000);
+  lo= (lo* 1000000000)/ timerFreq.QuadPart;
+  hi= (hi* 1000000000)/ timerFreq.QuadPart;
+  
+  *out= hi* 10000000+ lo;
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
@@ -2019,7 +2028,17 @@ void OSInteraction::getMicrosecs(uint64 *out) {
   #ifdef OS_WIN
   LARGE_INTEGER t;
   QueryPerformanceCounter(&t);
-  *out= t.QuadPart/ (timerFreq.QuadPart/ 1000000);
+  /// "(t.QuadPart* 1000000)/ timerFreq.QuadPart" would be faster& simpler,
+  /// but unfortunately this ALMOST reaches the maximum value unsigned long long (uint64) can hold;
+  /// a solution i found is to use 2 uint64 helper vars, each holding half the final result
+
+  uint64 hi= t.QuadPart/ 10000000;
+  uint64 lo= t.QuadPart- (hi* 10000000);
+  hi= (hi* 1000000)/ timerFreq.QuadPart;
+  lo= (lo* 1000000)/ timerFreq.QuadPart;
+
+  *out= hi* 10000000+ lo;
+
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
@@ -2038,7 +2057,7 @@ void OSInteraction::getMillisecs(uint64 *out) {
   #ifdef OS_WIN
   LARGE_INTEGER t;
   QueryPerformanceCounter(&t);
-  *out= t.QuadPart/ (timerFreq.QuadPart/ 1000);
+  *out= (t.QuadPart* 1000)/ timerFreq.QuadPart;
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
@@ -2052,10 +2071,97 @@ void OSInteraction::getMillisecs(uint64 *out) {
   #endif /// OS_MAC
 }
 
+// WIP - linux problems
+void OSInteraction::getClocks(uint64 *out) {
+  #ifdef OS_WIN
+  QueryPerformanceCounter((LARGE_INTEGER*)out);
+  #endif /// OS_WIN
+
+  #ifdef OS_LINUX
+  //clock_getthedamnclocks(); <<<<<<<<<<<<<<<<<<<<
+  /*
+  timespec t;
+  clock_gettime(CLOCK_MONOTONIC, &t);
+  *out= (t.tv_sec* 1000)+ (t.tv_nsec/ 1000000);
+  */
+  #endif /// OS_LINUX
+
+  #ifdef OS_MAC
+  *out= mach_absolute_time();
+  #endif /// OS_MAC
+}
+
+// WIP - linux problems
+void OSInteraction::clocks2nanosecs(uint64 *out) {
+  #ifdef OS_WIN
+  /// there has to be a split because ((*out)* 1000000000)/ timerFreq.QuadPart reaches uint64 limit
+  uint64 hi= *out/ 10000000;
+  uint64 lo= *out- (hi* 10000000);
+  lo= (lo* 1000000000)/ timerFreq.QuadPart;
+  hi= (hi* 1000000000)/ timerFreq.QuadPart;
+  
+  *out= hi* 10000000+ lo;
+  #endif /// OS_WIN
+
+  #ifdef OS_LINUX
+  //<<< well, shait...
+  timespec t;
+  clock_gettime(CLOCK_MONOTONIC, &t);
+  *out= (t.tv_sec* 1000000000)+ t.tv_nsec;
+  #endif /// OS_LINUX
+
+  #ifdef OS_MAC
+  *out= ((*out)* machInfo.numer/ machInfo.denom);
+  #endif /// OS_MAC
+}
+
+// WIP - linux problems
+void OSInteraction::clocks2microsecs(uint64 *out) {
+  #ifdef OS_WIN
+  *out= (*out* 1000000)/ timerFreq.QuadPart;
+  #endif /// OS_WIN
+
+  #ifdef OS_LINUX
+  //<<< well, shait...
+  /*
+  timespec t;
+  clock_gettime(CLOCK_MONOTONIC, &t);
+  *out= (t.tv_sec* 10000bla00000)+ t.tv_nsec;
+  */
+  #endif /// OS_LINUX
+
+  #ifdef OS_MAC
+  *out= ((*out)* machInfo.numer/ machInfo.denom)/ 1000;
+  #endif /// OS_MAC
+}
+
+// WIP - linux problems
+void OSInteraction::clocks2millisecs(uint64 *out) {
+  #ifdef OS_WIN
+  *out= (*out* 1000)/ timerFreq.QuadPart;
+  #endif /// OS_WIN
+
+  #ifdef OS_LINUX
+  //<<< well, shait...
+  /*
+  timespec t;
+  clock_gettime(CLOCK_MONOTONIC, &t);
+  *out= (t.tv_sec* 1000000bla000)+ t.tv_nsec;
+  */
+  #endif /// OS_LINUX
+
+  #ifdef OS_MAC
+  *out= ((*out)* machInfo.numer/ machInfo.denom)/ 1000000;
+  #endif /// OS_MAC
+}
+
+
+
+
 void OSInteraction::exit(int retVal) {
   display.restoreAllRes();
   #ifdef OS_WIN
-  exit(retVal);
+  ::exit(retVal);
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
