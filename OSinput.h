@@ -195,6 +195,7 @@ public:
                                    // [MODE3]: win(xinput)      / linux(n/a) / mac(n/a)
   string name;                    /// joystick name (product name)
   short maxButtons;               /// nr of buttons the gameWheel has
+  bool active;                    /// this variable must be set from the program; if it's not true, there won't be reads from the stick
 
 // AXIS
   
@@ -215,10 +216,13 @@ public:
 
 // FUNCTIONS
 
-  void update();                  /// MAIN UPDATE FUNC (for every type of stick/pad/wheel)
+  void activate() { active= true; aquire(); }       /// !! activates stick, signaling to update internal values & grabs exclusive control of stick
+  void deactivate() { active= false; unaquire(); }  /// deactivates & ungrabs exclusive control of stick
+  
+  void resetButtons();            /// clears all button buffers & resets logged buttons (used in case of alt-tab or something similar)
   void aquire();                  /// exclusive control of the device (if possible)
   void unaquire();                /// lose exclusive control of the device
-  void resetButtons();            /// clears all button buffers & resets logged buttons (used in case of alt-tab or something similar)
+  void update();                  /// MAIN UPDATE FUNC (for every type of stick/pad/wheel) (calling Input::update() calls this too, if stick is active)
 
   Joystick();
   ~Joystick();
@@ -240,7 +244,8 @@ private:
   #ifdef USING_DIRECTINPUT         // primary
   friend BOOL CALLBACK diDevCallback(LPCDIDEVICEINSTANCE, LPVOID);
   LPDIRECTINPUTDEVICE8 diDevice;
-  LPCDIDEVICEINSTANCE diID;       /// ID of the device; if a new one is plugged, it will differ from current IDs
+  //LPCDIDEVICEINSTANCE diID;       /// ID of the device; if a new one is plugged, it will differ from current IDs
+  GUID diID;                        /// ID of the device; if a new one is plugged, it will differ from current IDs
   DIJOYSTATE2 diStats;
   #endif /// USING_DIRECTINPUT
 
@@ -291,7 +296,9 @@ public:
   ButPressed lastBut[MAX_KEYS_LOGGED];  /// history of pressed buttons
 
 // functions
-  
+  void activate() { _j->activate(); }     /// !! activates pad, signaling to update it's data values& grabbing exclusive usage
+  void deactivate() { _j->deactivate(); } /// deactivates & ungrabs device
+
   void resetButtons();                  /// clears all button buffers & resets logged buttons (used in case of alt-tab or something similar)
   void update() { _j->update(); }       /// can be called, to manually update the gamepad variables
   void aquire() { _j->aquire(); }       /// exclusive control of the device (if possible)
@@ -342,11 +349,14 @@ public:
   ButPressed lastBut[MAX_KEYS_LOGGED];  /// history of pressed buttons
 
 // functions
+  void activate() { _j->activate(); }     /// !! activates wheel, signaling to update it's data values & grabbing exclusive usage
+  void deactivate() { _j->deactivate(); } /// deactivates & ungrabs device
 
-  void update() { _j->update(); }
+  void resetButtons();                  /// clears all button buffers & resets history (used in case of alt-tab or something similar)
+  void update() { _j->update(); }       /// updates internal vals; calling Input::update() is better, but each stick can be updated manually
   void aquire() { _j->aquire(); }       /// exclusive control of the device (if possible)
   void unaquire() { _j->unaquire(); }   /// lose exclusive control of the device
-  void resetButtons();                  /// clears all button buffers & resets history (used in case of alt-tab or something similar)
+  
 
   GameWheel();
   ~GameWheel();

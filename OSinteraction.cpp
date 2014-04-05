@@ -128,7 +128,7 @@ _NET_CLOSE_WINDOW
   #ifdef USING_XINPUT
 
 // something must be done with this <<<<<<<<<<<<<<<<<<<<<<<<<<<
-    #pragma comment(lib, "c:/alec/dev/dxSDK2010j/lib/x64/xinput")
+    #pragma comment(lib, "../../dxSDK2010j/lib/x64/xinput")
   #endif
 #endif /// OS_WIN
 
@@ -282,7 +282,10 @@ int main() {
     if(osi.flags.exit)
       osi.exit(0);
 
-    bool showPanel= true; // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    short n= 8;
+    in.gp[n].activate();
+
+    bool showPanel= false; // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     if(showPanel) {  
     #ifdef OS_WIN
     COORD pos= {0,0};
@@ -295,9 +298,6 @@ int main() {
     printf("mouse: %05dx %05dy %dl %dr %dm %dx1 %dx2 % dw %d %d %d %d \n", in.m.x, in.m.y, in.m.b[0].down, in.m.b[1].down, in.m.b[2].down, in.m.b[3].down, in.m.b[4].down, in.m.getWheelDu(), in.m.b[5].down, in.m.b[6].down, in.m.b[7].down, in.m.b[8].down);
     printf("last keyboard keys: %03d %03d %03d\n", in.k.lastKey[0].code, in.k.lastKey[1].code, in.k.lastKey[2].code);
     printf("nr: joysticks(%d) gamepads(%d) gamewheels(%d)\n", in.nr.jFound, in.nr.gpFound, in.nr.gwFound);
-    short n= 16;
-
-    in.gp[n].aquire();
 
     printf("gamepad[%d] s1[% 6ld,% 6ld] s2[% 6ld,% 6ld] extra[% 6ld,% 6ld]\n", n, in.gp[n].lx, in.gp[n].ly, in.gp[n].rx, in. gp[n].ry, in.gp[n].u, in.gp[n].v);
     printf("gamepad[%d] lTrigger[% 6ld] rTrigger[% 6ld]\n", n, in.gp[n].lt, in.gp[n].rt);
@@ -1250,6 +1250,7 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         bool found= false;
         for(short a= 0; a< MAX_KEYS_LOGGED; a++)
           if(in.k.lastKey[a].code== code) {
+            if(in.k.lastKey[a].timeUp) continue;
             in.k.lastKey[a].timeUp= osi.eventTime;
             in.k.lastKey[a].timeDT= in.k.lastKey[a].timeUp- in.k.lastKey[a].timeDown;
             found= true;
@@ -1347,7 +1348,11 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       osi.getMillisecs(&osi.eventTime);
       in.k.addChar((ulong)wParam, &osi.eventTime);
       return 0;
-
+    } case WM_DEVICECHANGE: {
+      in.populate();                        /// a call to in.populate to rescan for joysticks/gamepads/gamewheels
+      goto ret;
+      break;
+    
 /// system commands
     } case WM_SYSCOMMAND: {
       if(chatty) printf("WM_SYSCOMMAND %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam);
@@ -1523,6 +1528,8 @@ void OSInteraction::processMSG()  {
         k.code= code;
         k.checked= false;
         k.timeDown= eventTime;
+        k.timeUp= 0;
+        k.timeDT= 0;
         in.k.log(k);
         /// set the key as pressed & other needed vars
         in.k.key[code]= 128;
@@ -1561,6 +1568,7 @@ void OSInteraction::processMSG()  {
       bool found= false;
       for(short a= 0; a< MAX_KEYS_LOGGED; a++)
         if(in.k.lastKey[a].code== code) {
+          if(in.k.lastKey[a].timeUp) continue;
           in.k.lastKey[a].timeUp= eventTime;
           in.k.lastKey[a].timeDT= in.k.lastKey[a].timeUp- in.k.lastKey[a].timeDown;
           found= true;

@@ -356,6 +356,8 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
     k.code= code;
     k.checked= false;
     k.timeDown= osi.eventTime;
+    k.timeUp= 0;
+    k.timeDT= 0;
     in.k.log(k);
     /// set the key as pressed & other needed vars
     in.k.key[code]= 128;
@@ -374,6 +376,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
     bool found= false;
     for(short a= 0; a< MAX_KEYS_LOGGED; a++)
       if(in.k.lastKey[a].code== code) {
+        if(in.k.lastKey[a].timeUp) continue;
         in.k.lastKey[a].timeUp= osi.eventTime;
         in.k.lastKey[a].timeDT= in.k.lastKey[a].timeUp- in.k.lastKey[a].timeDown;
         found= true;
@@ -434,6 +437,8 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
     k.code= code;
     k.checked= false;
     k.timeDown= osi.eventTime;
+    k.timeUp= 0;
+    k.timeDT= 0;
     in.k.log(k);
     /// set the key as pressed & other needed vars
     in.k.key[code]= 128;
@@ -463,6 +468,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
   bool found= false;
   for(short a= 0; a< MAX_KEYS_LOGGED; a++)
     if(in.k.lastKey[a].code== code) {
+      if(in.k.lastKey[a].timeUp) continue;
       in.k.lastKey[a].timeUp= osi.eventTime;
       in.k.lastKey[a].timeDT= in.k.lastKey[a].timeUp- in.k.lastKey[a].timeDown;
       found= true;
