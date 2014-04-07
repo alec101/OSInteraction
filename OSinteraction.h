@@ -171,6 +171,7 @@ private:
 //public:
   string getWinName(HWND h);
   OSIWindow *getWin(HWND h);          /// [internal] returns the OSIWindow that has the specified HWND
+  friend LRESULT CALLBACK processMSG(HWND, UINT, WPARAM, LPARAM);
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
@@ -181,7 +182,9 @@ private:
 
   #ifdef OS_MAC
   mach_timebase_info_data_t machInfo; /// [internal] mac variant of a performance timer. this var holds cpu frequencies & stuff (similar to QuerryPerformance... in win)
+public:
   OSIWindow *getWin(void *w);         /// [internal] returns the OSIWindow that has the specified NSWindow *
+private:
   #endif /// OS_MAC
 
   /// windows processMSG() is outside class
@@ -189,8 +192,7 @@ private:
   void processMSG(); // linux MESSAGE HANDLER variant -don't call it, use OS independent checkMSG()
   #endif /// OS_LINUX
 
-  friend LRESULT CALLBACK processMSG(HWND, UINT, WPARAM, LPARAM);
-
+  
 // nothing to do with this class:
 public:
   bool resizeGLScene(GLsizei dx, GLsizei dy);   // this is NOT OS DEPENDANT<------------ maybe needs to be placed in another class or something    

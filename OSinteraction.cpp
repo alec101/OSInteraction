@@ -282,10 +282,10 @@ int main() {
     if(osi.flags.exit)
       osi.exit(0);
 
-    short n= 8;
+    short n= 0;
     in.gp[n].activate();
 
-    bool showPanel= false; // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    bool showPanel= true; // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     if(showPanel) {  
     #ifdef OS_WIN
     COORD pos= {0,0};
@@ -310,7 +310,7 @@ int main() {
       ulong c= (in.k.charTyped.nrNodes> a)? ((Keyboard::chTyped*)in.k.charTyped.get(a))->c: L' ';
       
       printf("%lc", (wchar_t)c);
-      printf("%d", c);
+      printf("%lu", c);
       //printf("%lc", c);
       //printf("% c", (in.k.charTyped.nrNodes> a)? ((Keyboard::chTyped*)in.k.charTyped.get(a))->c: ' ');
     }

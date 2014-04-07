@@ -648,7 +648,7 @@ bool doChange(OSIWindow *w, OSIMonitor *m, OSIResolution *r, int8 bpp, short fre
       /// in pass 0, find primary monitor (pos 0, 0)
       if(prim== 0 && (!primaryActivated))
         if(osi.display.monitor[a].primary) {
-          printf("activating primary monitor first\n");
+          if(chatty) printf("activating primary monitor first\n");
           primaryActivated= true;
         } else continue;                          /// skip until primary monitor is found
       
@@ -743,8 +743,8 @@ bool doChange(OSIWindow *w, OSIMonitor *m, OSIResolution *r, int8 bpp, short fre
   CFRelease(modes);
   
   /// update monitors positions after resolution change
-  for(short a= 0; a< nrMonitors; a++)
-    getMonitorPos(&monitor[a]);
+  for(short a= 0; a< osi.display.nrMonitors; a++)
+    getMonitorPos(&osi.display.monitor[a]);
   #endif /// OS_MAC
 
   return true;
@@ -1363,7 +1363,9 @@ void OSIDisplay::populate(OSInteraction *t) {
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
-  monitor.dx,dy ADDED<<< current dx (not progres, not original)
+  
+  
+  // >>>>>>>>>  monitor.dx, dy ADDED <<< current dx (not progres, not original) <<<<<<<<<<
     
   int a, b, c, d, tx, ty;
   CGRect r;
@@ -1392,7 +1394,7 @@ void OSIDisplay::populate(OSInteraction *t) {
   if(chatty) printf("found %d monitors", nrMonitors);
   
   
-// loop thru all displays < START <--------------------------------------------------------
+  // loop thru all displays < START <--------------------------------------------------------
   
   for(d= 0; d< nrMonitors; d++) {                     /// for each monitor
     
@@ -1412,11 +1414,12 @@ void OSIDisplay::populate(OSInteraction *t) {
     r= CGDisplayBounds(dis[d]);
     monitor[d].x0= r.origin.x;
     monitor[d].y0= r.origin.y;
-   
-    
+
     /// original monitor settings
     monitor[d].original.dx= (int)CGDisplayPixelsWide(dis[d]);
     monitor[d].original.dy= (int)CGDisplayPixelsHigh(dis[d]);
+    
+    /// current monitor resolution size
     monitor[d].dx= (int)CGDisplayPixelsWide(dis[d]);
     monitor[d].dy= (int)CGDisplayPixelsHigh(dis[d]);
     

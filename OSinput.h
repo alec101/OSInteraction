@@ -258,6 +258,10 @@ private:
   int eventFile;                  /// opened /dev/input/eventNNN eventFile
   short eventID;                  /// /dev/input/eventNNN NNN= eventID
   #endif
+  
+  #ifdef OS_MAC
+  friend void HIDchange(void *, IOReturn, void *, IOHIDValueRef);
+  #endif
 };
 
 
@@ -314,6 +318,10 @@ private:
   void log(const ButPressed &);         /// [internal] just puts the last button in the last button-history (it logs imediatly when a button is down)
   uchar buffer1[MAX_JOYSTICK_BUTTONS], buffer2[MAX_JOYSTICK_BUTTONS];   /// used for the key / lastCheck. buffers are swapped with pointers, so no copying is involved
   inline void swapBuffers();
+  
+  #ifdef OS_MAC
+  friend void HIDchange(void *, IOReturn, void *, IOHIDValueRef);
+  #endif 
 };
 
 
@@ -368,6 +376,11 @@ private:
 
   void log(const ButPressed &);  /// [internal] puts the last button in the last button-history (it logs imediatly when a button is down)
   inline void swapBuffers();
+  
+  #ifdef OS_MAC
+  friend void HIDchange(void *, IOReturn, void *, IOHIDValueRef);
+  #endif 
+
 };
 
 

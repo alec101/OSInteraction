@@ -310,12 +310,10 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
   ulong flags= [theEvent modifierFlags];
   uchar code= [theEvent keyCode];
   
-  
-  test this, first.
-  WRONG !!! cocoa uses mach too, this is useless call to getMillisecs
-  osi.getMillisecs(&osi.eventTime);
+  osi.eventTime= osi.present/ 1000000;       /// event time; using osi.present time - not gonna call osi.getMillisecs for 100% precision
   
   if(chatty) printf("event!!\n");
+  
   //MUST TEST THIS, it is INPOSSIBLE OTHERWISE...
   /// caps lock
   uchar press= 0;
@@ -423,10 +421,8 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
   // long unicode;
   // NSString *chrs= [theEvent characters];
   // NSString *chrsNoMod= [theEvent charactersIgnoringModifiers];
-
-  WRONG !!! cocoa uses mach too, this is useless call to getMillisecs
-  osi.getMillisecs(&osi.eventTime);       /// event time. can't rely on what cocoa passes, it must match with osi.getMilisecs()
   
+  osi.eventTime= osi.present/ 1000000;       /// event time; using osi.present time - not gonna call osi.getMillisecs for 100% precision  
   osi.flags.keyPress= false;
   
   /// if it's not a repeat press event, start the keypress log
@@ -456,8 +452,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 - (void) keyUp:(NSEvent *)theEvent {
   bool chatty= false;
   
-  WRONG !!! cocoa uses mach too, this is useless call to getMillisecs
-  osi.getMillisecs(&osi.eventTime);
+  osi.eventTime= osi.present/ 1000000;       /// event time; using osi.present time - not gonna call osi.getMillisecs for 100% precision  
   osi.flags.keyPress= false;
   
   uchar code= [theEvent keyCode];
@@ -535,10 +530,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 - (void) mouseDown:(NSEvent *)theEvent {
   bool chatty= false;
   osi.flags.buttonPress= true;
-  
-  test this (simple print)
-  WRONG !!! cocoa uses mach too, this is useless call to getMillisecs
-  osi.getMillisecs(&osi.eventTime);
+  osi.eventTime= osi.present/ 1000000;       /// event time; using osi.present time - not gonna call osi.getMillisecs for 100% precision  
   
   in.m.b[0].down= true;
   in.m.b[0].timeStart= osi.eventTime;
@@ -548,8 +540,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 // ---------------============= LEFT BUTTON UP ==============-------------------
 - (void) mouseUp:(NSEvent *)theEvent {
   bool chatty= false;
-  WRONG !!! cocoa uses mach too, this is useless call to getMillisecs
-  osi.getMillisecs(&osi.eventTime);
+  osi.eventTime= osi.present/ 1000000;       /// event time; using osi.present time - not gonna call osi.getMillisecs for 100% precision  
   osi.flags.buttonPress= false;      /// it's not accurate, needs further testing against other buttons, but...
   
   if(in.m.b[0].down) {                    /// an alt-bab might mess stuff...
@@ -569,8 +560,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 - (void) rightMouseDown:(NSEvent *)theEvent {
   bool chatty= false;
   osi.flags.buttonPress= true;
-  WRONG !!! cocoa uses mach too, this is useless call to getMillisecs
-  osi.getMillisecs(&osi.eventTime);
+  osi.eventTime= osi.present/ 1000000;       /// event time; using osi.present time - not gonna call osi.getMillisecs for 100% precision  
   
   in.m.b[1].down= true;
   in.m.b[1].timeStart= osi.eventTime;
@@ -580,8 +570,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 // ---------------============ RIGHT BUTTON UP ==============-------------------
 - (void) rightMouseUp:(NSEvent *)theEvent {
   bool chatty= false;
-  WRONG !!! cocoa uses mach too, this is useless call to getMillisecs
-  osi.getMillisecs(&osi.eventTime);
+  osi.eventTime= osi.present/ 1000000;       /// event time; using osi.present time - not gonna call osi.getMillisecs for 100% precision  
   osi.flags.buttonPress= false;      /// it's not accurate, needs further testing against other buttons, but...
   
   if(in.m.b[1].down) {                    /// an alt-bab might mess stuff...
@@ -604,8 +593,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
   int b= (int)theEvent.buttonNumber; /// this seems ok: 2= middle; 3, 4= extra butotns
   
   osi.flags.buttonPress= true;
-  WRONG !!! cocoa uses mach too, this is useless call to getMillisecs
-  osi.getMillisecs(&osi.eventTime);
+  osi.eventTime= osi.present/ 1000000;       /// event time; using osi.present time - not gonna call osi.getMillisecs for 100% precision  
   
   in.m.b[b].down= true;
   in.m.b[b].timeStart= osi.eventTime;
@@ -617,8 +605,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
   bool chatty= false;
   
   int b= (int)theEvent.buttonNumber; /// this seems ok. 2=middle; 3, 4= extra butotns
-  WRONG !!! cocoa uses mach too, this is useless call to getMillisecs
-  osi.getMillisecs(&osi.eventTime);
+  osi.eventTime= osi.present/ 1000000;       /// event time; using osi.present time - not gonna call osi.getMillisecs for 100% precision  
   osi.flags.buttonPress= false;      /// it's not accurate, needs further testing against other buttons, but...
   
   if(in.m.b[b].down) {                    /// an alt-bab might mess stuff...
@@ -868,7 +855,7 @@ void processMSG(void) {
            untilDate: [NSDate distantPast]
            inMode: NSDefaultRunLoopMode
            dequeue: YES];
-    
+
     // TO BE OR NOT TO BE... it might eliminate function calls that generate lag ...
     // it is a vital part of the program that needs to be the fastest possible...
     
