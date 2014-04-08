@@ -2,42 +2,37 @@
 
 /* TODO:
  *
- * program path. a string that initializes in OSI constructor (UNDER WIN&LINUX)
+ * - system to create a glRenderer for each graphic card (MUST install a second grcard on a computer) !!!!
+ * 
+ * - threads!!!!!!!!!!!!
  *
- * mach_time, when does it start? more tests with it
+ * - [linux][mac] set an icon for the window;  [win] WHEN dealing with icons, must remember to develop WM_GETICON too
  *
- * what happens when the time variables overflow? must do something about that (osi.getNano, etc)
+ * - gamepad vibration under directinput (it is possible) & force feedback (MUST HAVE A VIBRATION GAMEPAD FIRST...)
  *
- * system to create a glRenderer for each graphic card (MUST install a second grcard on a computer)
- * gamepad vibration under directinput (it is possible) & force feedback (MUST HAVE A VIBRATION GAMEPAD FIRST...)
- * OSX emulator? to test stuf under osx?
- *
- * test mouse grab under linux
- * test keyboard grab under linux (first make shure it is possible to exit program)
- *
- * in linux, if messing with visual variables, the black screen flash can go away
- *  therefore, in windows, pfd must be messed with to get rid of the black flash
- *
- * - [win+linux] joystick, wheel (BUY THEM first)
- * - [win] xbox controller
- * - [win] test japanese keyboard, see what chars shows... or print to a file at least
- * - [win] Kv structure
- * - [mac] test Kv structure on a complex language keyboards
  * - create a loading window, in the center of the screen? eventually to have image of the game
  *
- * - set an icon for the window;  [win] WHEN dealing with icons, must remember to develop WM_GETICON too
+ * LOWER PRIORITY:
+ * - [linux] test mouse grab
+ * - [linux] test keyboard grab (first make shure it is possible to exit program)
+ *
+ * - [win][linux][mac] more messing with pixel formats, after a good testing 'chamber' in openGL is created
+ * 
+ * - [win][linux][mac] joystick, wheel (BUY THEM first)
+ *
  * - [WIN] WM_SETFOCUS & WM_KILLFOCUS - develop these? WM_ACTIVATE handles focus change atm.
- * - system to create a glRenderer for each graphic card (MUST install a second grcard on a computer) (THIS IS A MUST)
- * - threads!
+ * 
  * - if there is 1 glRenderer per window, glShareLists knows not to make duplicates if in the same graphics card??? THIS IS THE QUESTION.
  *
- * - Linux: test monitors on duplicate (on mirror, on whatever crap the os calls them)
+ * - [linux] test monitors on duplicate (on mirror, on whatever crap the os calls them)
  *
  * - window to change a monitor without problems (unplug?)
- *   but on multiple monitor mode, mark it as closed? something like this... notify the program somehow, so a rearrangement will be done
-
+ *    but on multiple monitor mode, mark it as closed? something like this... notify the program somehow, so a rearrangement will be done
+ *
+ * - [all]  Libcmt.lib try eliminating printf? alternative : console to write to file; problem: format!!!!
+ *
  * - keyboard mode 2 in is getting more and more useless and a big drag... and is not avaible in linux+ mac
-
+ * - what happens when the time variables overflow? must do something about that (osi.getNano, etc)
 */
 
 
@@ -235,7 +230,8 @@ int main() {
   
   osi.display.populate(&osi);     // check all monitors/ resolutions/ etc
 
-  osi.createGLWindow(&osi.win[0], &osi.display.monitor[0], "window 0", 400, 400, 32, 1);
+  osi.createGLWindow(&osi.win[0], &osi.display.monitor[1], "window 0", 444, 444, 32, 1);
+  osi.setProgramIcon("icon_64.ico");
   //osi.createGLWindow(&osi.win[0], &osi.display.monitor[0], "window 0", 1024, 768, 32, 2);
   //osi.createGLWindow(&osi.win[1], &osi.display.monitor[0], "window 2", 400, 400, 32, 3);
   //osi.createGLWindow(&osi.win[0], &osi.display.monitor[1], "window 0", 400, 400, 32, 4);
@@ -393,6 +389,11 @@ OSInteraction::OSInteraction() {
 
   #ifdef OS_WIN
   QueryPerformanceFrequency(&timerFreq);     /// read cpu frequency. used for high performance timer (querryPerformanceBlaBla)
+  /// 'path' string - program path
+  char *buf= new char[512];
+  GetCurrentDirectory(511, buf);
+  path= buf;
+  delete[] buf;
   #endif /// OS_WIN
   
   #ifdef OS_LINUX
@@ -402,6 +403,11 @@ OSInteraction::OSInteraction() {
   primWin->dis= XOpenDisplay(null);          // DISPLAY CONNECTION TO XSERVER can be something like ":0.0" :displayNr.screenNr
   if(primWin->dis == NULL)
     error.simple("Cannot connect to X server\n", true); /// true= exit
+  /// 'path' string - program path
+  char *buf= new char[512];
+  getcwd(buf, 511);
+  path= buf;
+  delete[] buf;
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
@@ -409,12 +415,6 @@ OSInteraction::OSInteraction() {
   cocoa.setProgramPath();                   /// program path (osi.path stores the string afterwards)
   #endif /// OS_MAC
 
-  #ifdef OS_LINUX
-  char *buf= new char[512];
-  getcwd(buf, 511);
-  path= buf;
-  delete[] buf;
-  #endif /// OS_LINUX
   getNanosecs(&present);                    /// start with updated present time variable
 }
 
@@ -457,7 +457,7 @@ bool OSInteraction::primaryGLWindow() {
 
 // MAIN CREATE WINDOW FUNC. has every customisation
 bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int dx, int dy, int8 bpp, int8 mode, short freq) {
-  bool chatty= false;                               /// used only for DEBUG
+  bool chatty= true;                               /// used only for DEBUG
   string func= "OSInteraction::createGLWindow: ";
   w->name= name;
   w->monitor= m;
@@ -513,20 +513,19 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
   rect.top=		 w->y0;
   rect.bottom= w->y0+ w->dy;
 
-  w->hInstance = GetModuleHandle(NULL);                   // Grab An Instance For Our Window .... wonder what this means lol
-  wc.style				 = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;  // Redraw On Size, And Own DC For Window.
-  wc.lpfnWndProc	 = (WNDPROC) processMSG;                // WndProc Handles Messages
-  wc.cbClsExtra		 = 0;                                   // No Extra Window Data
-  wc.cbWndExtra		 = 0;                                   // No Extra Window Data
-  wc.hInstance		 = w->hInstance;                        // Set The Instance
-  wc.hIcon				 = LoadIcon(NULL, IDI_WINLOGO);         // Load The Default Icon
-  wc.hCursor			 = LoadCursor(NULL, IDC_ARROW);         // Load The Arrow Pointer
-  wc.hbrBackground = NULL;                                // No Background Required For GL
-  //wc.hbrBackground = CreateSolidBrush(RGB(255,255,255));  // No Background Required For GL
-  wc.lpszMenuName	 = NULL;                                // We Don't Want A Menu
-  wc.lpszClassName = name;                                // Set The Class Name
+  w->hInstance = GetModuleHandle(NULL);                   /// grab an instance for window
+  wc.style				 = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;  /// Redraw On Size, And Own DC For Window.
+  wc.lpfnWndProc	 = (WNDPROC) processMSG;                // processMSG handles messages
+  wc.cbClsExtra		 = 0;                                   /// no extra
+  wc.cbWndExtra		 = 0;                                   /// no extra
+  wc.hInstance		 = w->hInstance;                        /// set the aquired instance
+  wc.hIcon				 = LoadIcon(NULL, IDI_WINLOGO);         // load default icon <<<<<<<<<<<<<<<<<<<<<< ICON WORKS MUST BE MADE
+  wc.hCursor			 = LoadCursor(NULL, IDC_ARROW);         /// load arrow pointer
+  wc.hbrBackground = NULL;                                /// no backgraound required when using opengl
+  wc.lpszMenuName	 = NULL;                                /// no menus
+  wc.lpszClassName = name;                                /// class name... dunno for shure what this is
 
-  if (!RegisterClass(&wc)) {                        // Attempt To Register The Window Class
+  if (!RegisterClass(&wc)) {                        /// register the window class
     error.simple(func+ "Failed to register wc");
     return false;
   }
@@ -537,7 +536,7 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
       dwStyle= WS_OVERLAPPEDWINDOW;
     } else {
       dwExStyle= WS_EX_TOOLWINDOW| WS_EX_WINDOWEDGE;
-      dwStyle= WS_OVERLAPPEDWINDOW;//| WS_CHILD;
+      dwStyle= WS_OVERLAPPEDWINDOW;                 /// WS_CHILD is out of the equation (these are windows in windows)
     }
   } else if(mode== 2) {                             // fullscreen
     if(w == &win[0]) {
@@ -546,7 +545,7 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
       ShowCursor(FALSE);
     } else {
       dwExStyle= 0;
-      dwStyle= WS_POPUP| WS_CHILD;
+      dwStyle= WS_POPUP| WS_CHILD;  // <<< wschild???
       ShowCursor(FALSE);
     }
   } else if((mode== 3) || (mode== 4)) {             // fullscreen window
@@ -555,7 +554,7 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
       dwStyle= WS_POPUP;
     }	else {
       dwExStyle= 0;
-      dwStyle= WS_POPUP| WS_CHILD;
+      dwStyle= WS_POPUP| WS_CHILD; // <<< wschild???
     }
   }
 
@@ -564,17 +563,17 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
   // Create The Window
   if (!(w->hWnd= CreateWindowEx(dwExStyle,              // Extended Style For The Window
                 name,                   // class name           <--- might want a different class name?
-                name,                   // window title
-                dwStyle |               // defined window style
-                WS_CLIPSIBLINGS |       // Required Window Style
-                WS_CLIPCHILDREN,        // Required Window Style
-                w->x0, w->y0,           // Window Position
-                rect.right- rect.left,  // dx
-                rect.bottom- rect.top,  // dy
-                win[0].hWnd,            // parent window
-                NULL,                   // no menu
-                w->hInstance,           // instance
-                NULL)))                 // Dont Pass Anything To WM_CREATE
+                name,                   /// window title
+                dwStyle |               /// defined window style
+                WS_CLIPSIBLINGS |       /// Required Window Style ?? not shure
+                WS_CLIPCHILDREN,        /// Required Window Style ?? not shure
+                w->x0, w->y0,           /// window position
+                rect.right- rect.left,  /// dx
+                rect.bottom- rect.top,  /// dy
+                win[0].hWnd,            /// parent window
+                NULL,                   /// no menu
+                w->hInstance,           /// instance
+                NULL)))                 /// don't pass anything to WM_CREATE
   {
     killGLWindow(w);                    // Reset The Display
     error.simple(func+ "Window creation error.");
@@ -582,6 +581,7 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
   }
   /// pixel format - MORE TESTING NEEDED HERE. screen blacks out on mode 3 - it shouldn't
   static PIXELFORMATDESCRIPTOR pfd;
+  /*
   pfd.nSize= sizeof(PIXELFORMATDESCRIPTOR);
   pfd.nVersion= 1;
   pfd.dwFlags= PFD_DRAW_TO_WINDOW| PFD_DRAW_TO_BITMAP| PFD_SUPPORT_OPENGL| PFD_DOUBLEBUFFER| PFD_STEREO_DONTCARE; //| PFD_SWAP_EXCHANGE;//| PFD_NEED_PALETTE;
@@ -608,27 +608,63 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
   pfd.dwLayerMask= 0;
   pfd.dwVisibleMask= 0;
   pfd.dwDamageMask= 0;
-
-  if (!(w->hDC= GetDC(w->hWnd))) {                  // try to get a Device Context?
+  */
+  if (!(w->hDC= GetDC(w->hWnd))) {                  /// get a device context
     killGLWindow(w);
     error.simple(func+ "Can't create a GL DC");
     return false;
   }
+  /// get the current pixel format index  
+  int pixelf= GetPixelFormat(w->hDC); 
+ printf("pixelf= %d\n", pixelf);
+  /// obtain a detailed description of that pixel format  
+  DescribePixelFormat(w->hDC, pixelf, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
+  //pfd.dwFlags= pfd.dwFlags| PFD_DRAW_TO_WINDOW| PFD_DRAW_TO_BITMAP| PFD_SUPPORT_OPENGL| PFD_DOUBLEBUFFER| PFD_STEREO_DONTCARE; //| PFD_SWAP_EXCHANGE;//| PFD_NEED_PALETTE;
+  if(chatty) {
+    printf("Current pixel format descriptor:\n");
+    printf("pfd.nVersion= %d\n", pfd.nVersion);
+    //pfd.dwFlags= PFD_DRAW_TO_WINDOW| PFD_DRAW_TO_BITMAP| PFD_SUPPORT_OPENGL| PFD_DOUBLEBUFFER| PFD_STEREO_DONTCARE; //| PFD_SWAP_EXCHANGE;//| PFD_NEED_PALETTE;
+    printf("pfd.iPixelType= %d\n", pfd.iPixelType);
+    printf("pfd.cColorBits= %d\n", pfd.cColorBits);
+    printf("pfd.cRedBits= %d\n", pfd.cRedBits);
+    printf("pfd.cRedShift= %d\n", pfd.cRedShift);
+    printf("pfd.cGreenBits= %d\n", pfd.cGreenBits);
+    printf("pfd.cGreenShift= %d\n", pfd.cGreenShift);
+    printf("pfd.cBlueBits= %d\n", pfd.cBlueBits);
+    printf("pfd.cBlueShift= %d\n", pfd.cBlueShift);
+    printf("pfd.cAlphaBits= %d\n", pfd.cAlphaBits);
+    printf("pfd.cAlphaShift= %d\n", pfd.cAlphaShift);
+    printf("pfd.cAccumBits= %d\n", pfd.cAccumBits);
+    printf("pfd.cAccumRedBits= %d\n", pfd.cAccumRedBits);
+    printf("pfd.cAccumGreenBits= %d\n", pfd.cAccumGreenBits);
+    printf("pfd.cAccumBlueBits= %d\n", pfd.cAccumBlueBits);
+    printf("pfd.cAccumAlphaBits= %d\n", pfd.cAccumAlphaBits);
+    printf("pfd.cDepthBits= %d\n", pfd.cDepthBits);
+    printf("pfd.cStencilBits= %d\n", pfd.cStencilBits);
+    printf("pfd.cAuxBuffers= %d\n", pfd.cAuxBuffers);
+    printf("pfd.iLayerType= %d\n", pfd.iLayerType);
+    printf("pfd.bReserved= %d\n", pfd.bReserved);
+    printf("pfd.dwLayerMask= %d\n", pfd.dwLayerMask);
+    printf("pfd.dwVisibleMask= %d\n", pfd.dwVisibleMask);
+    printf("pfd.dwDamageMask= %d\n", pfd.dwDamageMask);
+  }
 
-  if (!(PixelFormat= ChoosePixelFormat(w->hDC, &pfd))) {  // Did Windows Find A Matching Pixel Format? I HOPE WE FUKIN DID rofl (all these checs.. some will never fail ffs)
+  // MORE TESTS NEEDED. it seems, when everything is 0, some 'default' current mode is in use; can't know for shure until using a more complex opengl scene
+
+  if (!(PixelFormat= ChoosePixelFormat(w->hDC, &pfd))) {  /// lots of checks, don't think any needed
     killGLWindow(w);
     error.simple(func+ "Can't aquire a PixelFormat");
     return false;
   }
 
-  if(!SetPixelFormat(w->hDC, PixelFormat, &pfd)) {        // Are We Able To Set The Pixel Format?
+  if(!SetPixelFormat(w->hDC, PixelFormat, &pfd)) {        /// lots of checks, don't think any needed
     killGLWindow(w);
     error.simple(func+ "Can't set PixelFormat");
     return false;
   }
 
   if(!m->glRenderer) {      // THIS NEEDS INTENSIVE WORK&TESTING <<<<<<<<<<<<<< there must be only 1 renderer per graphics card
-    if(!(m->glRenderer= wglCreateContext(w->hDC))) {      // Are We Able To Get A Rendering Context?
+    if(!(m->glRenderer= wglCreateContext(w->hDC))) {      /// lots of checks, don't think any needed
       killGLWindow(w);
       error.simple(func+ "Can't create GL RC");
       return false;
@@ -643,7 +679,7 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
   //	You can also use wglMakeCurrent to change the calling thread's current rendering context so it's no longer current.
 
 
-  if(!wglMakeCurrent(w->hDC, m->glRenderer)) {          // Try To Activate The Rendering Context
+  if(!wglMakeCurrent(w->hDC, m->glRenderer)) {            /// lots of checks, don't think any needed
     killGLWindow(w);
     error.simple(func+ "Can't activate GL RC");
     return false;
@@ -906,6 +942,39 @@ bool OSInteraction::killGLWindow(OSIWindow *w) {
 } /// OSInteraction::killGLWindow
 
 
+void OSInteraction::setProgramIcon(string file) {
+  #ifdef OS_WIN
+  HANDLE hIcon= LoadImage(NULL, file, IMAGE_ICON, 64, 64, LR_LOADFROMFILE);
+
+  SendMessage(primWin->hWnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
+
+  // small icon???
+  //hIconSm = LoadImage(NULL, "menu_two.ico", IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
+  //SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hIconSm);
+  #endif
+
+}
+
+void OSInteraction::startThread(void func(void *)) {
+  #ifdef OS_WIN
+  // CreateThread(..) option 1 - thing is, _beginthread is more advanced than these funcs, i think.
+  // >> windows, it seems wants these funcs gone, and replaced in windows 8 with some 'windows store' compatible object which is crap <<
+  // >> so support for xp / win 7 will go away? will see in time, what the heck they want <<
+
+  // msdn:
+  // Like the Win32 ExitThread API, _endthreadex does not close the thread handle. Therefore, when you use _beginthreadex and _endthreadex,
+  // you must close the thread handle by calling the Win32 CloseHandle API.
+  _beginthread(func, 0, null);
+  #endif /// OS_WIN
+
+  #ifdef OS_LINUX
+  makeme
+  #endif /// OS_LINUX
+
+  #ifdef OS_MAC
+  mekeme
+  #endif /// OS_MAC
+}
 
 
 
@@ -1869,22 +1938,18 @@ OSIWindow::~OSIWindow() {
 void OSIWindow::delData() {
   #ifdef OS_WIN
   if(hDC) {
-    if(!ReleaseDC(hWnd, hDC))
-      error.simple("OSIWindow::delData: Release Device Context Failed.");
+    ReleaseDC(hWnd, hDC);
     hDC= NULL;
   }
 
   if(hWnd) {
-    if(!DestroyWindow(hWnd))
-      error.simple("OSIWindow::delData: Could Not Release hWnd.");
+    DestroyWindow(hWnd);
     hWnd= NULL;
   }
 
   if(name.len) {
-    if(!UnregisterClass(name, hInstance))
-      error.simple("OSIWindow::delData: Could Not Unregister Class.");
+    UnregisterClass(name, hInstance);   // << in case class name will differ in future
     hInstance= NULL;
-    name.delData();
   }
   // do not return;
   #endif /// OS_WIN
@@ -1954,28 +2019,6 @@ void OSIWindow::setWMstate(uint val, string8 prop1, string8 prop2) {
 /// send the message to root
   XSendEvent(dis, root, False, SubstructureRedirectMask| SubstructureNotifyMask, &xev);
 }
-
-
-/* TO BE DELETED <----------------------------------------------------------------------------------------------
- *
-void OSIWindow::setFullscreen(bool b) {
-/// it seems XChangeProperty is not enough??? maybe these msgs are new, not in the standard (DIDN'T TRY THO)
-
-  Atom wm_state= XInternAtom(display, "_NET_WM_STATE", False);
-  Atom fullscreen= XInternAtom(display, "_NET_WM_STATE_FULLSCREEN", False);
-
-  XEvent xev;
-  for(short a= 0; a< sizeof(xev); a++) ((char*)&xev)[a]= 0;
-  xev.type= ClientMessage;
-  xev.xclient.window= win;
-  xev.xclient.message_type= wm_state;
-  xev.xclient.format= 32;
-  xev.xclient.data.l[0]= b? 1: 0;
-  xev.xclient.data.l[1]= fullscreen;
-  xev.xclient.data.l[2]= 0;
-  XSendEvent(display, root, False, SubstructureRedirectMask| SubstructureNotifyMask, &xev);
-}
-*/
 
 #endif /// OS_LINUX
 

@@ -630,7 +630,7 @@ skipWinOSsearch:
 
   // ------------============ MODE 2 JOYSTICKS ===============------------
   #ifdef USING_DIRECTINPUT
-  
+  if(timer) osi.getNanosecs(&start);
   /// jConnected helps to check for disconnected joysticks; start with false, and each connected stick must mark 'true'
   /// if a stick doesn't mark jConnected[id] as true, it is DISCONNECTED
   for(short a= 0; a< 8; a++)

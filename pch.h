@@ -39,6 +39,7 @@
 
 #include "targetver.h"
 #include <Windows.h>
+#include <process.h>
 #include <mmsystem.h>
 #ifdef USING_DIRECTINPUT
   #define DIRECTINPUT_VERSION 0x0800

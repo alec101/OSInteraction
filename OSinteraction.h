@@ -123,6 +123,7 @@ public:
   
   bool checkMSG();                    /// checks for OS messages, should be INCLUDED in the MAIN LOOP
 
+  void startThread(void (void *));    /// start / create a new thread
   
 // openGL window creation / deletion funcs:
   
@@ -139,6 +140,7 @@ public:
   bool primaryGLWindow(string name, int dx, int dy, int8 bpp, int8 mode, short freq= 0); // mode: 1= windowed, 2= fullscreen, 3= fullscreeen window(must research this one), 4= fullscreen virtual desktop (every monitor)
   bool primaryGLWindow();             /// uses data from OSInteraction::ini <<< WIP???
   bool killPrimaryGLWindow();         /// calls restoreResolution, if in fullscreen
+  void setProgramIcon(string file);   /// sets program icon 
 
 // very usefull functions that will work on all OSes
   
