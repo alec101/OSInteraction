@@ -409,6 +409,12 @@ OSInteraction::OSInteraction() {
   cocoa.setProgramPath();                   /// program path (osi.path stores the string afterwards)
   #endif /// OS_MAC
 
+  #ifdef OS_LINUX
+  char *buf= new char[512];
+  getcwd(buf, 511);
+  path= buf;
+  delete[] buf;
+  #endif /// OS_LINUX
   getNanosecs(&present);                    /// start with updated present time variable
 }
 
@@ -451,6 +457,7 @@ bool OSInteraction::primaryGLWindow() {
 
 // MAIN CREATE WINDOW FUNC. has every customisation
 bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int dx, int dy, int8 bpp, int8 mode, short freq) {
+  bool chatty= false;                               /// used only for DEBUG
   string func= "OSInteraction::createGLWindow: ";
   w->name= name;
   w->monitor= m;
@@ -691,7 +698,7 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
   if(vi == NULL)
     error.simple(func+ "no appropriate visual found\n", true);
   else // DELETE <--------------------------------
-    printf("\n\tvisual %p selected\n", (void *)vi->visualid); // %p creates hexadecimal output like in glxinfo
+    if(chatty) printf("\n\tvisual %p selected\n", (void *)vi->visualid); // %p creates hexadecimal output like in glxinfo
 
   cmap= XCreateColormap(w->dis, w->root, vi->visual, AllocNone);
   swa.colormap= cmap;
@@ -785,6 +792,7 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
   if((mode== 2) || (mode== 3) || (mode== 4))
     w->setWMstate(1, "_NET_WM_STATE_FULLSCREEN");
   
+  /// Fullscreen window on all monitors - MODE 4. Needs XInerama only for monitor IDs (wich sucks, as Xrandr should handle this little aspect)
   if(mode== 4) {
     Atom fullmons = XInternAtom(w->dis, "_NET_WM_FULLSCREEN_MONITORS", False);
     XEvent xev;
@@ -807,39 +815,18 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
                     SubstructureRedirectMask | SubstructureNotifyMask, &xev);
   }
   
-  w->setWMstate(1, "_NET_WM_STATE_ABOVE");
+  if(w->mode!= 1)                           /// in all other modes but 1, make window 'on top'
+    w->setWMstate(1, "_NET_WM_STATE_ABOVE");
+  
+  XMapWindow(w->dis, w->win);               /// map window= finish creation/ show window
+  
+  if(w->mode== 1)                           /// MODE1 seems to need to move the window, x0&y0 in createwindow do nothing
+    XMoveWindow(w->dis, w->win, w->x0, w->y0);
 
-  XMapWindow(w->dis, w->win);
-
-/* ----------================IMPORTANT===================---------------------
-Update They say for multihead to work, you need to use _NET_WM_FULLSCREEN_MONITORS
-property (see here). It's an array of 4 integers that should be set like this:
-
-    Atom fullmons = XInternAtom(dis, "_NET_WM_FULLSCREEN_MONITORS", False);
-    XEvent xev;
-    memset(&xev, 0, sizeof(xev));
-    xev.type = ClientMessage;
-    xev.xclient.window = win;
-    xev.xclient.message_type = fullmons;
-    xev.xclient.format = 32;
-    xev.xclient.data.l[0] = 0; // your topmost monitor number
-    xev.xclient.data.l[1] = 0; // bottommost
-    xev.xclient.data.l[2] = 0; // leftmost
-    xev.xclient.data.l[3] = 1; // rightmost
-    xev.xclient.data.l[4] = 0; // source indication
-
-    XSendEvent (dis, DefaultRootWindow(dis), False,
-                    SubstructureRedirectMask | SubstructureNotifyMask, &xev);
-
-With this, you should be able to set your fullscreen windows to occupy
-a single monitor, the entire desktop, or (for more than 2 monitors) anything in between.
-
-I have not checked this because I don't have a multihead system.
-*/ //-----------===============IMPORTANT====================------------------
-
-  XStoreName(w->dis, w->win, name);
+  XStoreName(w->dis, w->win, name);         /// window name (top bar description/name)
 
 
+  // WIP <<<<<<<<<<<<< THIS IS NOT DONE. 'RENDERERS MUST BE HANDLED'
   // NOTE: this func has shareLists in its params !!!!!!!!!!!!!!!!!!!!!
   if(win== primWin)
     w->glRenderer= glXCreateContext(w->dis, vi, NULL, GL_TRUE);
@@ -847,16 +834,16 @@ I have not checked this because I don't have a multihead system.
     w->glRenderer= win[0].glRenderer;
   // SAME RENDERER!!!!!!!!!!!!!!!!!!!!!!!!!!!!! ATM
 
-
-
 /* The last parameter decides if direct rendering is enabled. If you want
    to send the graphical output via network, you have to set it to GL_FALSE.
    If your application puts its output to the computer you are sitting in
    front of, use GL_TRUE. Note that some capabilities like vertex buffer objects
    can only be used with a direct gl context (GL_TRUE). */
 
-  glMakeCurrent(w);    // osi func
+  
+  glMakeCurrent(w);                         // osi variant. works on every OS
 
+  
   glEnable(GL_DEPTH_TEST);
 
   ///  handle the close button WM
@@ -1402,7 +1389,7 @@ ret:
 
 #ifdef OS_LINUX
 void OSInteraction::processMSG()  {
-  bool chatty= true;      // used for debugs, prints stuff in every message
+  bool chatty= false;      // used for debugs, prints stuff in every message
 
   XEvent event;
   OSIWindow *w= null;
@@ -1769,7 +1756,8 @@ void OSInteraction::processMSG()  {
 
     } else if(event.type == CirculateNotify) {
       if(chatty) printf("circulate notify\n");
-    }
+    } else
+      if(chatty) printf("Unhandled unknown message\n");
 
     //} else
     //  XFlush(win[0].display); // why flush msgs? pass thru all, right?

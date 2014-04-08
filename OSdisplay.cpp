@@ -1219,9 +1219,6 @@ void OSIDisplay::populate(OSInteraction *t) {
   
   XRRFreeScreenResources(scr);
   
-  
-
-  
   if(chatty)
     for(a= 0; a< nrMonitors; a++)
       for(b= 0; b< monitor[a].nrRes; b++) {
@@ -1231,16 +1228,13 @@ void OSIDisplay::populate(OSInteraction *t) {
         printf("\n");
       }
 
-  
-  
+  // XInerama is used only for a display ID wich is used in WM_FULLSCREENMONITORS... that's all...
   
   /// if xinerama is not present... at least do a sketchy list of IDs
   /// i found that xinerama has the exact oposite order for the monitors as XRandr
   /// (i might be wrong, but if it is not installed, this is a dud anyway)
   for(a= nrMonitors- 1; a>= 0; a--)
     monitor[a].XineramaID= a;
-  
-  
   
     
   /// try to get the XineramaID for the monitor (this is the only thing Xinerama is used for)
@@ -1263,25 +1257,16 @@ void OSIDisplay::populate(OSInteraction *t) {
     for(b= 0; b< nrMonitors; b++) {
       if(xi[a].x_org== monitor[b].x0 && xi[a].y_org== monitor[b].y0) {
         monitor[b].XineramaID= a;
-        printf("monitor[%d] xineramaID[%d]\n", b, monitor[b].XineramaID);
+        if(chatty) printf("monitor[%d] xineramaID[%d]\n", b, monitor[b].XineramaID);
       }
     }
   }
   
   XFree(xi);
   
-    /// virtual desktop size
-  updateVirtualDesktop();
-//  vx0= 0; vy0= 0;
-//  vdx= DisplayWidth(osi.primWin->dis, 0);
-//  vdy= DisplayHeight(osi.primWin->dis, 0);
+  updateVirtualDesktop();               /// update virtual desktop size
+
   if(chatty) printf("virtual desktop size [%dx%d]\n", vdx, vdy);
-  
-  
-  
-  
-  
-  
   
   // IT'S OVERRRRR ... 
   

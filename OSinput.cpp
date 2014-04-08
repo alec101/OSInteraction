@@ -71,6 +71,7 @@ void checkGamepadType(GamePad *p);  // it is found in the gamepad area, at the e
  * buy a ffeedback joystick
  * buy a wheel
  * 
+ * [linux] Input::populate() joystick name might be null
  */
 
 
@@ -390,13 +391,14 @@ bool Input::init(int mMode, int kMode) {
 // ########################### INPUT POPULATE ##################################
 ///=============================================================================
 
-/// this func is called each second to scan for newly plugged sticks/pads/wheels
+/// this func can be called any time to scan for joysticks/pads/wheels; >>> note, it has a big drag of 5-10 millisecs!!! <<<
 bool jConnected[8];
 void Input::populate(bool scanMouseKeyboard) {
   /// debug
   uint64 start, end;
   bool timer= false;
-  bool chatty= true;
+  bool chatty= false;
+
 
   lastPopulate= osi.present;
 
@@ -481,7 +483,7 @@ skipWinOSsearch:
   #ifdef OS_LINUX
   if(timer) osi.getNanosecs(&start);
   // xlib xinput research: ... after some time, found nothing. TOO OLD LIB?
-
+  // this function takes 5-10 mil nanosecs (5-10 millisecs), which is HUGE
   // linux [MODE 1] using "linux/joystick.h". system driver
   
   int f;
@@ -496,11 +498,13 @@ skipWinOSsearch:
   
   /// searching for 32 js[X] files
   for(short a= 0; a< 32; a++) {
+    
     /// this limit to 8 can be changed if neccesary... can't predict what will happen in 10-20 years....
     if(nr.jOS== 8) {
       error.console("OSInput::init: Maximum number of jSticks/gPads/gWheels reached (where did you plug more than 8?)");
       break;
     }
+    
     /// check if this id is already in use by some joystick struct
     found= false;
     for(short b= 0; b< 8; b++) {
@@ -508,7 +512,7 @@ skipWinOSsearch:
         found= true;
     }
     if(found) continue;                         /// if found, this file id is already open
-
+    
     /// if this id was not found in currently opened joysticks, check if exists this '/dev/input/js[a]' file
     name[0]= f= version= axes= buttons= 0;
     s3.f("%s%d", s1.d, a);                       /// '/dev/input/js[a]'
@@ -517,7 +521,7 @@ skipWinOSsearch:
     if(f== -1) continue;                        /// the file does not exist (do not break for!)
     
     ioctl(f, JSIOCGVERSION, &version);          /// JSIOCG version, i think - driver version or something
-    // FURTHER TESTS MUST BE DONE WITH VERSION. it must be over 1.0
+    // FURTHER TESTS MUST BE DONE WITH VERSION. it must be over 1.0 (>>> every jsiocversion i read is 0... <<<)
     ioctl(f, JSIOCGAXES, &axes);                /// number of axis this stick has
     ioctl(f, JSIOCGBUTTONS, &buttons);          /// number of buttons this stick has
     ioctl(f, JSIOCGNAME(sizeof(name)), &name);  /// stick name or product name
@@ -525,7 +529,7 @@ skipWinOSsearch:
     /// check if the joystick is valid. I found out that there are mouses that report as joysticks...
     ///    but they report incredible amounts of axes and buttons...
     ///    still, can't rely only on this, FURTHER CHECKS SHOULD BE MADE  <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-    if((axes> 32) || (buttons> MAX_JOYSTICK_BUTTONS)) {
+    if((axes> 32) || (buttons> MAX_JOYSTICK_BUTTONS)|| axes<= 0|| buttons<= 0) {
       close(f);
       continue;
     }
@@ -539,10 +543,12 @@ skipWinOSsearch:
         j[b].jsID= a;                           /// joystick class handles this
         j[b].name= gp[b].name= gw[b].name= name;/// stick name / product name
 
+        /*
         joystick name! IT HAS TO HAVE A NAME, if name== null? make it "Unknown" , 
         but IT WON'T MATCH IN EVENT FILE NAME READ, more thinking to this
         maybe set name, after the event match
-
+        */
+        
         j[b].maxButtons= 
           gp[b].maxButtons= 
           gw[b].maxButtons= (short)buttons;     /// nr of buttons the stick has
@@ -563,8 +569,12 @@ skipWinOSsearch:
   }
   
   /// if no event file needs to be found, just return
-  if(!addEventFile)
+  if(!addEventFile) {
+    if(timer) osi.getNanosecs(&end);
+    if(timer) printf("linux joystick scan: %llu nanosecs\n", end- start);
+
     return;
+  }
   
   // event files asociated with each stick
   
@@ -599,7 +609,7 @@ skipWinOSsearch:
         if((j[b].eventFile== -1) && (j[b].name== name)) {
           j[b].eventFile= f;
           j[b].eventID= a;
-          if(chatty) printf("event file: %s belongs to joystick %d\n", s2.d, b);
+          if(chatty) printf("event file: %s%d belongs to joystick %d\n", s2.d, a, b);
           found= true;
           break;
         }
@@ -621,8 +631,6 @@ skipWinOSsearch:
   // ------------============ MODE 2 JOYSTICKS ===============------------
   #ifdef USING_DIRECTINPUT
   
-  if(timer) osi.getNanosecs(&start);
-
   /// jConnected helps to check for disconnected joysticks; start with false, and each connected stick must mark 'true'
   /// if a stick doesn't mark jConnected[id] as true, it is DISCONNECTED
   for(short a= 0; a< 8; a++)
@@ -784,12 +792,14 @@ BOOL CALLBACK diDevCallback(LPCDIDEVICEINSTANCE inst, LPVOID extra) {
 void Input::update() {
   uint64 start, end;    /// debug
   bool timer= false;    /// debug
+  if(timer) osi.getNanosecs(&start);
   
   /// scan for joysticks every second (? maybe 2 secs or 3?)
-  /* DISABLED ATM. can be enabled under linux (must check timer times)
-  if(osi.present- lastPopulate> 1000000000)
-    populate();
-  */ 
+  // DISABLED ATM. can be enabled under linux (must check timer times)
+  #ifdef OS_LINUX
+  //if(osi.present- lastPopulate> 1000000000)
+    //populate();
+  #endif /// OS_LINUX
   
   /* <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
   check linux+mac joysticks. buttons & everything
@@ -798,7 +808,7 @@ void Input::update() {
   check timers 
    */
   
-  if(timer) osi.getNanosecs(&start);
+  
 
   /// update mouse
   if(m.mode!= 1)
@@ -1557,7 +1567,7 @@ void Joystick::update() {
                                                   // if player 1 selects device0 with xinput
                                                   // and player 2 selects device0 with directinput??? what then? some tests must be done somehow
 
-  bool chatty= true;
+  bool chatty= false;
   uint64 presentMilli= osi.present/ 1000000;      /// present time in milliseconds
   ButPressed blog;
   bool found;
@@ -1727,12 +1737,12 @@ ReadAgain:
       // check if the joystick was UNPLUGGED (read sets errno on EBADF: file does not exist anymore)
       //printf("e[%d]", errno);
       if(errno== ENODEV) {
-        if(chatty) printf("joystick[%d] %s REMOVED\n", id, name.d);
+        if(chatty) printf("joystick %s REMOVED\n", name.d);
 
         /// set stick as DISABLED & close all opened driver files
         delData();
-        gp[id].delData();
-        gw[id].delData();
+        _gp->delData();
+        _gw->delData();
 
         /// update sticks numbers
         in.nr.jFound--; in.nr.gpFound--; in.nr.gwFound--;
@@ -1750,12 +1760,7 @@ ReadAgain:
       
       // --------------============= BUTTON EVENT ===============---------------
       if(ev[a].type& JS_EVENT_BUTTON) {
-        vvvvvvvvvvvvvvvvvvvvvvv
-        update last check (no swap buffers needed, i think as these are events)
-        log on button press
-        search history on release & update
-        ^^^^^^^^^^^^^^^^^^^^^
-
+        
         /*
         * gamepad buttons are messy. there should be an order in buttons, done by osi, i think, for GAMEPAD UNIFICATION
         *   the first 10 buttons are on all gamepads
@@ -1771,7 +1776,7 @@ ReadAgain:
         
         /// ps3 compatible pad
         if(in.gp[a].type== 0) {
-          extra= in.gp[a].maxButtons- 10; /// normal ps3 has 10 buttons. the rest are extra, on modified ps3 pads
+          extra= _gp->maxButtons- 10; /// normal ps3 has 10 buttons. the rest are extra, on modified ps3 pads
           
           if(extra && (ev[a].number>= 6) && (ev[a].number< 6+ extra))
             but+= 4;                      /// is it an extra button? -> moved on position 10+
@@ -1781,7 +1786,7 @@ ReadAgain:
         /// xbox compatible pad
         } else if(in.gp[a].type== 1) {
           // EXTRA BUTTONS NOT HANDLED ON XBOX controller <<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-          extra= in.gp[a].maxButtons- 11; /// normal xbone has 11 buttons. rest are extra, but i have no clue where they would go... don't have such pad
+          extra= _gp->maxButtons- 11; /// normal xbone has 11 buttons. rest are extra, but i have no clue where they would go... don't have such pad
           
           
           if(ev[a].number== 8)
@@ -1790,11 +1795,17 @@ ReadAgain:
             but-= 1;                      /// move start & back to positions 8 & 9
         }
 
-
+        /// swapbuffers won't work. just update lastCheck[]
+        lastCheck[ev[a].number]= b[ev[a].number];
+        _gp->lastCheck[but]= _gp->b[but];
+        _gw->lastCheck[ev[a].number]= b[ev[a].number];
+        
+        /// update button state
         b[ev[a].number]=  (uchar)ev[a].value;
         _gp->b[but]= (uchar)ev[a].value;
         _gw->b[ev[a].number]= (uchar)ev[a].value;
         
+        /// update history
         if(ev[a].value== 1) {                      // button PRESS
           bTime[ev[a].number]= ev[a].time;
           _gp->bTime[but]= ev[a].time;
@@ -1811,22 +1822,45 @@ ReadAgain:
           _gp->log(blog);
           if(chatty) printf("hid[%s] button PRESS nr[%d] arranged[%d]\n", name.d, ev[a].number, but);
         } else if(ev[a].value== 0) {               // button RELEASE
+          /// search thru history for the button, to mark the time it got released
+          found= false;
+          for(short b= 0; b< MAX_KEYS_LOGGED; b++)
+            if(lastBut[b].b== ev[a].number) {
+              if(lastBut[b].timeUp) continue;    /// skip if this tested button is already released
 
-          /// put the button in history
-          wrong. search thru history & update button.
+              lastBut[b].timeUp= ev[a].time;
+              lastBut[b].timeDT= ev[a].time- lastBut[b].timeDown;
+              lastBut[b].checked= false;
 
-          ButPressed p;
-          blog.b= ev[a].number;
-          blog.checked= false;
-          blog.timeDown= bTime[ev[a].number];
-          blog.timeUp= ev[a].time;
-          blog.timeDT= p.timeUp- p.timeDown;
-          log(p);
-          _gw->log(blog);
-          blog.b= but;
-          _gp->log(blog);
+              /// gamepad button nr could have a different number, but it does not matter
+              _gp->lastBut[b].timeUp= ev[a].time;
+              _gp->lastBut[b].timeDT= lastBut[b].timeDT;
+              _gp->lastBut[b].checked= false;
+
+              _gw->lastBut[b].timeUp= ev[a].time;
+              _gw->lastBut[b].timeDT= lastBut[b].timeDT;
+              _gw->lastBut[b].checked= false;
+
+              found= true;
+              break;
+            }
+        
+          // THIS FAILSAFE CODE COULD GO AWAY vvvvvvvvvvvvvvvvv
+          if(!found) {                      /// failsafe - normally it is found (but things can happen ... alt-tab?)
+            // some debug stuff can be done here, tho
+            blog.b= ev[a].number;
+            blog.checked= false;
+            blog.timeDown= ev[a].time- 1;   /// mark it as insta down-up
+            blog.timeUp= ev[a].time;
+            blog.timeDT= 1;
+            log(blog);                      /// put it in history buffer
+            _gw->log(blog);
+            blog.b= but;
+            _gp->log(blog);
+          } /// failsafe
+        
           if(chatty) printf("hid[%s] button RELEASE nr[%d] arranged[%d]\n", name.d, ev[a].number, but);
-        }
+        } /// if button press/release
 
       // --------------============== AXIS EVENT ================---------------
       } else if(ev[a].type& JS_EVENT_AXIS) {
@@ -1837,49 +1871,49 @@ ReadAgain:
         
         // possible to make a[MAX_AXIS] and x/y/rudder/etc would be refrences to a[]
         switch (ev[a].number) {
-                                          // [JOYSTICK]  / [GAMEPAD]   / [GAMEWHEEL]
-          case 0:                         // [X axis?]   / [l stick X] / [wheel???]
+                                            // [JOYSTICK]  / [GAMEPAD]   / [GAMEWHEEL]
+          case 0:                           // [X axis?]   / [l stick X] / [wheel???]
             x= ev[a].value;
-            in.gp[id].lx= ev[a].value;
-            in.gw[id].a1= ev[a].value;
+            _gp->lx= ev[a].value;
+            _gw->a1= ev[a].value;
             break;
-          case 1:                         // [Y axis?]   / [l stick Y] / [wheel???]
-            y= ev[a].value;
-            in.gp[id].ly= ev[a].value;
-            in.gw[id].a2= ev[a].value;
+          case 1:                           // [Y axis?]   / [l stick Y] / [wheel???]
+            y= -ev[a].value;
+            _gp->ly= -ev[a].value;
+            _gw->a2= ev[a].value;
             break;
-          case 2:                         // [Throttle?] / [r stick X] / [wheel???]
+          case 2:                           // [Throttle?] / [r stick X] / [wheel???]
             throttle= ev[a].value;
-            if(in.gp[id].type== 0)
-              in.gp[id].rx= ev[a].value;        /// ps3 pad   [right stick]
+            if(_gp->type== 0)
+              _gp->rx= ev[a].value;        /// ps3 pad   [right stick]
             else
-              in.gp[id].lt= 32767+ ev[a].value; /// xbone pad [left trigger]
+              _gp->lt= 32767+ ev[a].value; /// xbone pad [left trigger]
             
-            in.gw[id].a3= ev[a].value;
+            _gw->a3= ev[a].value;
             break;
-          case 3:                         // [extra1 X?] / [l trigger] / [wheel???]
+          case 3:                           // [extra1 X?] / [l trigger] / [wheel???]
             x2= ev[a].value;
-            if(in.gp[id].type== 0)
-              in.gp[id].lt= 32767- ev[a].value; /// ps3   [left trigger]
+            if(_gp->type== 0)
+              _gp->lt= 32767- ev[a].value; /// ps3   [left trigger]
             else
-              in.gp[id].rx= ev[a].value;        /// xbone [right stick X]
-            in.gw[id].a5= ev[a].value;
+              _gp->rx= ev[a].value;        /// xbone [right stick X]
+            _gw->a5= ev[a].value;
             break;
-          case 4:                         // [extra1 Y?] / [r trigger] / [wheel???]
+          case 4:                           // [extra1 Y?] / [r trigger] / [wheel???]
             y2= ev[a].value;
-            if(in.gp[id].type== 0)
-              in.gp[id].rt= 32767- ev[a].value; /// ps3   [right trigger]
+            if(_gp->type== 0)
+              _gp->rt= 32767- ev[a].value; /// ps3   [right trigger]
             else
-              in.gp[id].ry= ev[a].value;        /// xbone [right stick Y]
+              _gp->ry= -ev[a].value;       /// xbone [right stick Y]
             // gw <<<<<<<<<<<<<<<<<<<<<<<<<<
             break;
-          case 5:                         // [Rudder?]   / [rStick Y]  / [wheel???]
+          case 5:                           // [Rudder?]   / [rStick Y]  / [wheel???]
             rudder= ev[a].value;
-            if(in.gp[id].type== 0)
-              in.gp[id].ry= ev[a].value;        /// ps3   [right stick Y]
+            if(_gp->type== 0)
+              _gp->ry= -ev[a].value;       /// ps3   [right stick Y]
             else
-              in.gp[id].rt= 32767+ ev[a].value; /// xbone [right trigger]
-            in.gw[id].a4= ev[a].value;
+              _gp->rt= 32767+ ev[a].value; /// xbone [right trigger]
+            _gw->a4= ev[a].value;
             break;
           case 6:                         // [POV X?]    / [POV X]     / [wheel???]
           case 7:                         // [POV Y?]    / [POV Y]     / [wheel???]
@@ -1921,18 +1955,18 @@ ReadAgain:
             
             /// pov found @ this point
             pov= tpov;
-            in.gp[id].pov= pov;
+            _gp->pov= pov;
             // gw is not set<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
             
             break;
           case 8:                         // [u axis]    / [u axis]    / [u axis]
             
             u= ev[a].value;
-            in.gp[id].u= ev[a].value;
+            _gp->u= ev[a].value;
             break;
           case 9:                         // [v axis]    / [v axis]    / [v axis]
             v= ev[a].value;
-            in.gp[id].v= ev[a].value;
+            _gp->v= ev[a].value;
             break;
           default:
             printf("unhandled axis event!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
@@ -2915,6 +2949,16 @@ void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDValueRef
         but+= 4;                        /// is it an extra button? -> moved on position 11+
       else if(extra && (e->id>= 6+ extra))
         but-= extra;                    /// all buttons above extra buttons, moved back on 7+
+      
+    // xbox compatible pad
+    } else if(in.gp[a].type== 1) {
+      // EXTRA BUTTONS NOT HANDLED ON XBOX controller <<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+      extra= in.gp[a].maxButtons- 11; /// normal xbone has 11 buttons. rest are extra, but i have no clue where they would go... don't have such pad
+          
+      if(ev[a].number== 8)
+        but= 10;                      /// is it the xbox button? -> move it on position 10, with the extra buttons
+      else if(ev[a].number>=9 && ev[a].number<= 10)
+        but-= 1;                      /// move start & back to positions 8 & 9
     }
     
     in.j[a].b[e->id]= (uchar)v;
