@@ -775,7 +775,7 @@ bool doChange(OSIWindow *w, OSIMonitor *m, OSIResolution *r, int8 bpp, short fre
 // -------------->>>>>>>>>>>>>>> POPULATE <<<<<<<<<<<<<<<--------------- //
 ///---------------------------------------------------------------------///
 void OSIDisplay::populate(OSInteraction *t) {
-  bool chatty= false;   // this is used for debug: prints stuff it finds to terminal
+  bool chatty= true;   // this is used for debug: prints stuff it finds to terminal
   delData();
   #ifdef OS_WIN
     
@@ -803,6 +803,7 @@ void OSIDisplay::populate(OSInteraction *t) {
     if(!(dd.StateFlags& DISPLAY_DEVICE_ATTACHED_TO_DESKTOP))        /// should be attached to desktop ...
       continue;
     nrMonitors++;
+
   }
   if(!nrMonitors) {
     error.simple("OSIDisplay::populate: can't find any displays");
@@ -812,13 +813,14 @@ void OSIDisplay::populate(OSInteraction *t) {
   monitor= new OSIMonitor[nrMonitors];
 
 // loop thru all displays < START <--------------------------------------------------------
-  for(short d= 0; EnumDisplayDevices(null, d, &dd, null); d++) {    /// for each display
+  for(short d= 0; EnumDisplayDevices(null, d, &dd, null); d++) {    /// for each display ADAPTER
     if(!(dd.StateFlags& DISPLAY_DEVICE_ATTACHED_TO_DESKTOP))        /// should be attached to desktop ...
       continue;
 
-    monitor[d].id= dd.DeviceName;
-    monitor[d].name= dd.DeviceString;
-
+    monitor[d].id= dd.DeviceName;           // <<<<<<<<<<<<<<<<<<<
+    monitor[d].name= dd.DeviceString;       // <<<<<<<<<<<<<<<<<<<
+    //printf("DEVICE ID: %s\n", dd.DeviceID);
+    //dd.
     if(chatty) printf("%s (%s)", monitor[d].id.d, monitor[d].name.d);
 
     if(dd.StateFlags& DISPLAY_DEVICE_PRIMARY_DEVICE) {
@@ -841,10 +843,15 @@ void OSIDisplay::populate(OSInteraction *t) {
 /// to get these vars & some rethinking
     monitor[d].x0= dm.dmPosition.x;
     monitor[d].y0= dm.dmPosition.y;
+    for(a= 0; EnumDisplayDevices(monitor[d].id, a, &dd, null); a++) {
+      printf("found %d ID[%s]\nName[%s]\nString[%s]\n", a, dd.DeviceID, dd.DeviceName, dd.DeviceString);
+      if(!dd.StateFlags& DISPLAY_DEVICE_ATTACHED_TO_DESKTOP) printf("!!not attached!!\n");
 
-    if(EnumDisplayDevices(monitor[d].id, 0, &dd, null)) {
+    }
+
+    if(EnumDisplayDevices(monitor[d].id, 0, &dd, null)) {     /// >>> FOR EACH MONITOR ON THAT DISPLAY ADAPTER <<<<
       monitor[d].monitorID= dd.DeviceName;                  // currently i cant find any use for this
-      monitor[d].monitorName= dd.DeviceString;
+      monitor[d].monitorName= dd.DeviceString;            //<<<<<<<<<<<<<<<<<<<<<<<<<<<
     }
 
     if(chatty) printf("%s (%s)\n", monitor[d].monitorID.d, monitor[d].monitorName.d);

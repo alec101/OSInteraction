@@ -4,7 +4,7 @@
  *
  * - system to create a glRenderer for each graphic card (MUST install a second grcard on a computer) !!!!
  * 
- * - threads!!!!!!!!!!!!
+ * - [linux][mac]threads!!!!!!!!!!!!
  *
  * - [linux][mac] set an icon for the window;  [win] WHEN dealing with icons, must remember to develop WM_GETICON too
  *
@@ -118,12 +118,13 @@ _NET_CLOSE_WINDOW
   #pragma comment(lib, "Winmm")               /// joystick api support
   #ifdef USING_DIRECTINPUT
     #pragma comment(lib, "dinput8")
-    #pragma comment(lib, "dxguid")
+    #pragma comment(lib, "../../dxSDK2010j/lib/x86/dxguid")
   #endif
   #ifdef USING_XINPUT
 
 // something must be done with this <<<<<<<<<<<<<<<<<<<<<<<<<<<
-    #pragma comment(lib, "../../dxSDK2010j/lib/x64/xinput")
+    //#pragma comment(lib, "../../dxSDK2010j/lib/x64/xinput")
+    #pragma comment(lib, "../../dxSDK2010j/lib/x86/xinput")
   #endif
 #endif /// OS_WIN
 
@@ -230,7 +231,10 @@ int main() {
   
   osi.display.populate(&osi);     // check all monitors/ resolutions/ etc
 
-  osi.createGLWindow(&osi.win[0], &osi.display.monitor[1], "window 0", 444, 444, 32, 1);
+  osi.createGLWindow(&osi.win[0], &osi.display.monitor[1], "window 0", 1024, 768, 32, 1);
+  osi.createGLWindow(&osi.win[1], &osi.display.monitor[0], "window 1", 1024, 768, 32, 1);
+  
+
   osi.setProgramIcon("icon_64.ico");
   //osi.createGLWindow(&osi.win[0], &osi.display.monitor[0], "window 0", 1024, 768, 32, 2);
   //osi.createGLWindow(&osi.win[1], &osi.display.monitor[0], "window 2", 400, 400, 32, 3);
@@ -281,7 +285,7 @@ int main() {
     short n= 0;
     in.gp[n].activate();
 
-    bool showPanel= true; // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    bool showPanel= false; // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     if(showPanel) {  
     #ifdef OS_WIN
     COORD pos= {0,0};
@@ -457,7 +461,7 @@ bool OSInteraction::primaryGLWindow() {
 
 // MAIN CREATE WINDOW FUNC. has every customisation
 bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int dx, int dy, int8 bpp, int8 mode, short freq) {
-  bool chatty= true;                               /// used only for DEBUG
+  bool chatty= false;                               /// used only for DEBUG
   string func= "OSInteraction::createGLWindow: ";
   w->name= name;
   w->monitor= m;
@@ -545,7 +549,7 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
       ShowCursor(FALSE);
     } else {
       dwExStyle= 0;
-      dwStyle= WS_POPUP| WS_CHILD;  // <<< wschild???
+      dwStyle= WS_POPUP;//WS_CHILD;//WS_OVERLAPPED;// WS_POPUP;//| WS_CHILD;  // <<< wschild???
       ShowCursor(FALSE);
     }
   } else if((mode== 3) || (mode== 4)) {             // fullscreen window
@@ -554,7 +558,7 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
       dwStyle= WS_POPUP;
     }	else {
       dwExStyle= 0;
-      dwStyle= WS_POPUP| WS_CHILD; // <<< wschild???
+      dwStyle= WS_POPUP;//| WS_CHILD; // <<< wschild???
     }
   }
 
@@ -649,7 +653,21 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
     printf("pfd.dwDamageMask= %d\n", pfd.dwDamageMask);
   }
 
+
+ 
   // MORE TESTS NEEDED. it seems, when everything is 0, some 'default' current mode is in use; can't know for shure until using a more complex opengl scene
+
+
+   // NEED TO USE THIS INSTEAD, i think
+  /*
+  BOOL wglChoosePixelFormatARB(   HDC hdc,
+                                const int *piAttribIList,
+                                const FLOAT *pfAttribFList,
+                                UINT nMaxFormats,
+                                int *piFormats,
+                                UINT *nNumFormats);
+  */
+
 
   if (!(PixelFormat= ChoosePixelFormat(w->hDC, &pfd))) {  /// lots of checks, don't think any needed
     killGLWindow(w);
@@ -1109,17 +1127,22 @@ OSIWindow *OSInteraction::getWin(void *w) {
 #ifdef OS_WIN
 LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 
-///===================================================
-// return 0 is faster than defWindowProc(what goto ret does)
-// it would work good for fullscreen/windowed fullscreen, but in windowed mode
-// there is no resize/move for windows, the close button wont work either, i think
-///===================================================
+  ///===================================================
+  // return 0 is faster than defWindowProc(what goto ret does)
+  // it would work good for fullscreen/windowed fullscreen, but in windowed mode
+  // there is no resize/move for windows, the close button won't work either, i think
+  ///===================================================
 
   bool chatty= false;	     // if used, prints msgs to terminal
   bool onlyHandled= true; /// used with chatty
+  bool timeFunc= true;    /// measure the time this func takes to finish
+  uint64 start, end;      /// used with timeFunc
+  
+  if(timeFunc) osi.getNanosecs(&start);
+
   int mb= 0;
 
-// mouse in [MODE 2], THE WHEEL IS NOT POSSIBLE TO READ with funcs, so events are the only way (decent way, anyways)
+  // mouse in [MODE 2], THE WHEEL IS NOT POSSIBLE TO READ with funcs, so events are the only way (decent way, anyways)
   if((in.m.mode== 2)&& osi.flags.haveFocus)
     if(m== WM_MOUSEWHEEL) {
       in.m.wheel+= (GET_WHEEL_DELTA_WPARAM(wParam)> 0)? 1: -1;
@@ -1127,11 +1150,10 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       goto ret;
     }
 
-
-// mouse vals are handled here, in case mouse is set in [MODE 1]
+  // mouse vals are handled here, in case mouse is set in [MODE 1]
   if((in.m.mode== 1)&& osi.flags.haveFocus)
     switch(m) {
-      case WM_MOUSEMOVE: {                                        /// mouse movement
+      case WM_MOUSEMOVE:                                          /// mouse movement
         in.m.oldx= in.m.x;
         in.m.oldy= in.m.y;
         in.m.x= ((int)(short)LOWORD(lParam));
@@ -1142,16 +1164,17 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         }
         goto ret;
         //return 0; // it is faster, but no windows move/resize!!!
-      } case WM_SETCURSOR: { goto ret;                            /// to be or not to be
+      case WM_SETCURSOR: 
+        goto ret;                             /// to be or not to be
 
-    // mouse buttons in MODE 1
-      } case WM_LBUTTONDOWN: {                                    /// left mouse button
+      // mouse buttons in MODE 1
+      case WM_LBUTTONDOWN:                                        /// left mouse button
         osi.getMillisecs(&in.m.b[0].timeStart);
         in.m.b[0].down= true;
         if(chatty) printf("mouse: l button pressed\n");
         goto ret;
         //return 0;
-      } case WM_LBUTTONUP: {
+      case WM_LBUTTONUP:
         in.m.b[0].lastTimeStart= in.m.b[0].timeStart;
         osi.getMillisecs(&in.m.b[0].lastTimeEnded);
         in.m.b[0].lastDT= in.m.b[0].lastTimeEnded- in.m.b[0].lastTimeStart;
@@ -1159,13 +1182,13 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         if(chatty) printf("mouse: l button released\n");
         goto ret;
         //return 0;
-      } case WM_RBUTTONDOWN: {                                    /// right mouse button
+      case WM_RBUTTONDOWN:                                        /// right mouse button
         osi.getMillisecs(&in.m.b[1].timeStart);
         in.m.b[1].down= true;
         if(chatty) printf("mouse: r button pressed\n");
         goto ret;
         //return 0;
-      } case WM_RBUTTONUP: {
+      case WM_RBUTTONUP:
         in.m.b[1].lastTimeStart= in.m.b[1].timeStart;
         osi.getMillisecs(&in.m.b[1].lastTimeEnded);
         in.m.b[1].lastDT= in.m.b[1].lastTimeEnded- in.m.b[1].lastTimeStart;
@@ -1173,13 +1196,13 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         if(chatty) printf("mouse: r button released\n");
         goto ret;
         //return 0;
-      } case WM_MBUTTONDOWN: {                                    /// middle mouse button
+      case WM_MBUTTONDOWN:                                        /// middle mouse button
         osi.getMillisecs(&in.m.b[2].timeStart);
         in.m.b[2].down= true;
         if(chatty) printf("mouse: m button pressed\n");
         goto ret;
         //return 0;
-      } case WM_MBUTTONUP: {
+      case WM_MBUTTONUP:
         in.m.b[2].lastTimeStart= in.m.b[2].timeStart;
         osi.getMillisecs(&in.m.b[2].lastTimeEnded);
         in.m.b[2].lastDT= in.m.b[2].lastTimeEnded- in.m.b[2].lastTimeStart;
@@ -1187,12 +1210,12 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         if(chatty) printf("mouse: m button released\n");
         goto ret;
         //return 0;
-      } case WM_MOUSEWHEEL: {                                     /// wheel
+      case WM_MOUSEWHEEL:                                         /// wheel
         in.m.wheel+= (GET_WHEEL_DELTA_WPARAM(wParam)> 0)? 1: -1;
         if(chatty) printf("mouse: wheel rotated\n");
         goto ret;
         //return 0;
-      } case WM_XBUTTONDOWN: {                                    /// buttons 4 & 5
+      case WM_XBUTTONDOWN:                                        /// buttons 4 & 5
         if(GET_XBUTTON_WPARAM(wParam)== XBUTTON1) {
           osi.getMillisecs(&in.m.b[3].timeStart);
           in.m.b[3].down= true;
@@ -1208,7 +1231,7 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
           //return 0;
         }
         break;
-      } case WM_XBUTTONUP: {
+      case WM_XBUTTONUP:
         if(GET_XBUTTON_WPARAM(wParam)== XBUTTON1) {
           in.m.b[3].lastTimeStart= in.m.b[3].timeStart;
           in.m.b[3].lastTimeEnded= osi.eventTime;
@@ -1228,7 +1251,6 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
           //return 0;
         }
         break;
-      }
     };
 
 
@@ -1331,21 +1353,21 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         goto ret;
         //return 0;
       }
-    }
-  }
+    } /// switch
+  } /// if keyboard is in mode 1
+
   if(in.k.mode== 2) {
     switch(m) {
       case WM_KEYDOWN:                    // key PRESS
       case WM_SYSKEYDOWN:
       case WM_KEYUP:                      // key PRESS
-      case WM_SYSKEYUP: {
+      case WM_SYSKEYUP:
         in.k.updateLocks();               /// to be or not to be...  this should be just empty code here...
         in.k.update();
         if(chatty) printf("key update");
         goto ret;
-      }
-    }
-  }
+    } /// switch
+  } /// if keyboard is in mode 2
 
 
   /// ignore some calls to defwindowproc for speed - PROBLEM IS, no window MOVE/RESIZE, probly no close button either
@@ -1360,95 +1382,129 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 
   // handled windows messages
   switch(m) {
-    case WM_ACTIVATE: {
-      if(wParam == 0) {
-        osi.flags.haveFocus= false;
-        
+    case WM_ACTIVATEAPP:
+      if(wParam== 1) {                     // ---=== application GAINS focus ===---
+        /// if any HIDs are using exclusive mode, aquire it
+        in.m.aquire();
+        in.k.aquire();
+        for(short a= 8; a< 20; a++)       /// direct input & xinput sticks
+          if(in.j[a].active)
+            in.j[a].aquire();
+
+        /// change resolution in case of fullscreen
+        for(short a= 0; a< MAX_WINDOWS; a++) 
+          if(osi.win[a].isCreated)
+            if(osi.win[a].mode== 2)
+              osi.display.changeRes(&osi.win[a], osi.win[a].monitor, osi.win[a].dx, osi.win[a].dy, osi.win[a].bpp, osi.win[a].freq);
+
+        /// show windows in case they are minimized
+        for(short a= 0; a< MAX_WINDOWS; a++) 
+          if(osi.win[a].isCreated)
+            if(osi.win[a].mode== 2) {
+              ShowWindow(osi.win[a].hWnd, SW_RESTORE);
+              osi.flags.minimized= false;
+              MoveWindow(osi.win[a].hWnd, osi.win[a].monitor->x0, osi.win[a].monitor->y0, osi.win[a].dx, osi.win[a].dy, false);
+              printf("window %d x0[%d] y0[%d] dx[%d] dy[%d]\n", a, osi.win[a].monitor->x0, osi.win[a].monitor->y0, osi.win[a].dx, osi.win[a].dy);
+            }
+        SetForegroundWindow(osi.primWin->hWnd);
+        osi.flags.haveFocus= true;        /// set flag, the last
+
+      } else {                             // ---=== application LOSES focus ===---
+        osi.flags.haveFocus= false;       /// set flag, first
+
         /// if any HIDs are using exclusive mode, unaquire it
         in.m.unaquire();
         in.k.unaquire();
-        for(short a= 8; a<16; a++)
-          if(in.j[a].mode)
+        for(short a= 8; a< 20; a++)      /// direct input & xinput sticks unaquire
+          if(in.j[a].active)
             in.j[a].unaquire();
 
         /// in case of alt-tab all current pressed buttons must be reset
         in.resetPressedButtons();
-        
-      } else {
-        osi.flags.haveFocus= true;
 
-        /// if any HIDs are using exclusive mode, aquire it
-        in.m.aquire();
-        in.k.aquire();
-        for(short a= 8; a< 16; a++)
-          if(in.j[a].mode)
-            in.j[a].aquire();
-        
-      }
-      if(chatty) printf("WM_ACTIVATE %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam);
-      //goto ret;
-      return 0;
+        /// minimize windows in case of fullscreen
+        for(short a= 0; a< MAX_WINDOWS; a++) 
+          if(osi.win[a].isCreated)
+            if(osi.win[a].mode== 2) {
+              if(&osi.win[a]== osi.primWin) /// main window gets minimized
+                ShowWindow(osi.win[a].hWnd, SW_MINIMIZE);
+              else                          /// all other windows must be hidden, else they get minimized into a small box
+                ShowWindow(osi.win[a].hWnd, SW_HIDE);
+              osi.flags.minimized= true;
+            }
 
-    } case WM_CLOSE: {
+        /// change back original monitors resolutions in case of fullscreen
+        for(short a= 0; a< MAX_WINDOWS; a++) 
+          if(osi.win[a].isCreated)
+            if(osi.win[a].mode== 2)
+              osi.display.restoreRes(&osi.win[a], osi.win[a].monitor);
+
+
+
+      } /// switch gain/lose focus
+
+      printf("WM_ACTIVATEAPP %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam);
+      goto ret;
+
+    case WM_CLOSE:
       if(chatty) printf("WM_CLOSE %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam);
       osi.flags.exit= true;     /// main exit flag
       return 0;
-    } case WM_CHAR: {
+    case WM_CHAR:
       if(chatty) printf("WM_CHAR %s %lc\n", osi.getWinName(hWnd).d, wParam);
       osi.getMillisecs(&osi.eventTime);
       in.k.addChar((ulong)wParam, &osi.eventTime);
       return 0;
-    } case WM_UNICHAR: {
+    case WM_UNICHAR:
       error.console("WM_UNICHAR not tested");
       if(chatty) printf("WM_UNICHAR %s %lc\n", osi.getWinName(hWnd).d, wParam);
       osi.getMillisecs(&osi.eventTime);
       in.k.addChar((ulong)wParam, &osi.eventTime);
       return 0;
-    } case WM_DEVICECHANGE: {
+    case WM_DEVICECHANGE:
       in.populate();                        /// a call to in.populate to rescan for joysticks/gamepads/gamewheels
       goto ret;
       break;
     
-/// system commands
-    } case WM_SYSCOMMAND: {
+    // system commands
+    case WM_SYSCOMMAND:
       if(chatty) printf("WM_SYSCOMMAND %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam);
 
       switch (wParam)	{
-        case SC_CLOSE: {
+        case SC_CLOSE: 
           if(chatty) printf("  SC_CLOSE %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam);
           osi.flags.exit= true;
           return 0;
-        }
-      }
+      } /// switch the type of WM_SYSCOMMAND
     goto ret;
     //return 0;
-    }
-  }
+  } /// switch message
 
-/// unhandled frequent windows messages
+  /// unhandled frequent windows messages
   if(chatty&& !onlyHandled)
     switch(m) {
-      case WM_ACTIVATEAPP: { printf("WM_ACTIVATEAPP %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;   /// lower level aplication focus, the WM_ACTIVATE one, i think is better, cuz is the last one that is sent
-      } case WM_ERASEBKGND: { printf("WM_ERASEBKGND %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;
-      } case WM_PAINT: { printf("WM_PAINT %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;
-      } case WM_NCPAINT: { printf("WM_NCPAINT %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;
-      } case WM_SETFOCUS: { printf("WM_SETFOCUS %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;       /// keyboard focus i think
-      } case WM_KILLFOCUS: { printf("WM_KILLFOCUS %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;     /// keyboard focus i think
-      } case WM_NCACTIVATE: { printf("WM_NCACTIVATE %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;
-      } case WM_GETICON: { goto ret;              /// usually is used when alt-tabbing, gets an icon for the mini alt-tab list
+      case WM_ACTIVATE: printf("WM_ACTIVATE %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;
+      case WM_ERASEBKGND: printf("WM_ERASEBKGND %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;
+      case WM_PAINT: printf("WM_PAINT %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;
+      case WM_NCPAINT: printf("WM_NCPAINT %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;
+      case WM_SETFOCUS: printf("WM_SETFOCUS %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;       /// keyboard focus i think
+      case WM_KILLFOCUS: printf("WM_KILLFOCUS %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;     /// keyboard focus i think
+      case WM_NCACTIVATE: printf("WM_NCACTIVATE %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;
+      case WM_GETICON: printf("WM_GETICON\n"); goto ret;              /// usually is used when alt-tabbing, gets an icon for the mini alt-tab list
         // WHEN dealing with icons, must remember to develop WM_GETICON too
-      } case WM_IME_NOTIFY: {	goto ret;
-      } case WM_IME_SETCONTEXT: {	goto ret;
-      } case WM_NCHITTEST: { goto ret;            /// something to do with mouse placement
-      } case WM_NCMOUSEMOVE: { goto ret;          /// non client area mouse coords (top title/ moving bar, is a non-client for example)
-      } case WM_NCMOUSELEAVE: { goto ret;         /// non client area mouse leaving window
-      }
-    };
+      case WM_IME_NOTIFY: printf("WM_IME_NOTIFY\n"); goto ret;
+      case WM_IME_SETCONTEXT: printf("WM_IME_SETCONTEXT\n"); goto ret;
+      case WM_NCHITTEST: goto ret;            /// something to do with mouse placement
+      case WM_NCMOUSEMOVE: goto ret;          /// non client area mouse coords (top title/ moving bar, is a non-client for example)
+      case WM_NCMOUSELEAVE: goto ret;         /// non client area mouse leaving window
+    } /// switch
 
   if(chatty&& !onlyHandled)
     printf("UNKNOWN %s 0x%x %d %d\n", osi.getWinName(hWnd), m, wParam, lParam);
   /// this DefWindowProc() handles window movement & resize & rest... without this, moving is not working, for example
 ret:
+  if(timeFunc) osi.getNanosecs(&end);
+  if(timeFunc) printf("processMSG lag: %llu\n", end- start);
   return DefWindowProc(hWnd, m, wParam, lParam);
 }
 
