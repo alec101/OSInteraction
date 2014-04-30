@@ -1,7 +1,10 @@
-#include "pch.h"
+﻿#include "pch.h"
+
+// Create a 'probe' context on each monitor, see what it (OpenGL) returns (a product ID or something)
+//^^^^^^^^^^^^^^^
 
 /* TODO:
- *
+ * - [win] USING_XINPUT & USING_DIRECTINPUT must be inside OS_WIN
  * - system to create a glRenderer for each graphic card (MUST install a second grcard on a computer) !!!!
  * 
  * - [linux][mac]threads!!!!!!!!!!!!
@@ -13,6 +16,10 @@
  * - create a loading window, in the center of the screen? eventually to have image of the game
  *
  * LOWER PRIORITY:
+ * - rename Input class... OSiInput or OSIinput or OSIInput (might rename all classes to 'OSi' style)
+ * - [linux][mac] prevent screensaver/ monitor low power
+ * - [win][linux][mac] what happens on sleep? should be handled like 'app lose focus'
+ * - windowfocus flag. it's there, but not updated at all
  * - [linux] test mouse grab
  * - [linux] test keyboard grab (first make shure it is possible to exit program)
  *
@@ -119,11 +126,12 @@ _NET_CLOSE_WINDOW
   #ifdef USING_DIRECTINPUT
     #pragma comment(lib, "dinput8")
     #pragma comment(lib, "../../dxSDK2010j/lib/x86/dxguid")
+    #pragma comment(lib, "../../dxSDK2010j/lib/x64/dxguid")
+
   #endif
   #ifdef USING_XINPUT
 
-// something must be done with this <<<<<<<<<<<<<<<<<<<<<<<<<<<
-    //#pragma comment(lib, "../../dxSDK2010j/lib/x64/xinput")
+    #pragma comment(lib, "../../dxSDK2010j/lib/x64/xinput")
     #pragma comment(lib, "../../dxSDK2010j/lib/x86/xinput")
   #endif
 #endif /// OS_WIN
@@ -181,49 +189,49 @@ int getY(double a) {
 */
 
 void drawSomething();
-
+/*
 int main() {
-/*
-  printf("Q1[% 6.1f][% 6.1f][% 6.1f][% 6.1f][% 6.1f][% 6.1f]\n", pov( 0,    100), pov( 5,    100), pov( 50,   100), pov( 100,  100), pov( 100,  50),  pov( 100,  5));
-  printf("Q2[% 6.1f][% 6.1f][% 6.1f][% 6.1f][% 6.1f][% 6.1f]\n", pov( 100,  0),   pov( 100, -5),   pov( 100, -50),  pov( 100, -100), pov( 50,  -100), pov( 5,   -100));
-  printf("Q3[% 6.1f][% 6.1f][% 6.1f][% 6.1f][% 6.1f][% 6.1f]\n", pov( 0,   -100), pov(-5,   -100), pov(-50,  -100), pov(-100, -100), pov(-100, -50),  pov(-100, -5));
-  printf("Q4[% 6.1f][% 6.1f][% 6.1f][% 6.1f][% 6.1f][% 6.1f]\n", pov(-100,  0),   pov(-100,  5),   pov(-100,  50),  pov(-100,  100), pov(-50,   100), pov(-5,    100));
-*/
-  /*
-  for(short a= 0; a< 4; a++) {
-    short b= a* 90;
-    printf("Q%d % 4d[% 3d,% 3d] % 4d[% 3d,% 3d] % 4d[% 3d,% 3d] % 4d[% 3d,% 3d]\n", a, b+ 0, getX(b+ 0), getY(b+ 0), b+ 10, getX(b+ 10), getY(b+ 10), b+ 45, getX(b+ 45), getY(b+ 45), b+ 80, getX(b+ 80), getY(b+ 80));
-  }
-  getchar();
-  return 0;
-  */
+
+  //printf("Q1[% 6.1f][% 6.1f][% 6.1f][% 6.1f][% 6.1f][% 6.1f]\n", pov( 0,    100), pov( 5,    100), pov( 50,   100), pov( 100,  100), pov( 100,  50),  pov( 100,  5));
+  //printf("Q2[% 6.1f][% 6.1f][% 6.1f][% 6.1f][% 6.1f][% 6.1f]\n", pov( 100,  0),   pov( 100, -5),   pov( 100, -50),  pov( 100, -100), pov( 50,  -100), pov( 5,   -100));
+  //printf("Q3[% 6.1f][% 6.1f][% 6.1f][% 6.1f][% 6.1f][% 6.1f]\n", pov( 0,   -100), pov(-5,   -100), pov(-50,  -100), pov(-100, -100), pov(-100, -50),  pov(-100, -5));
+  //printf("Q4[% 6.1f][% 6.1f][% 6.1f][% 6.1f][% 6.1f][% 6.1f]\n", pov(-100,  0),   pov(-100,  5),   pov(-100,  50),  pov(-100,  100), pov(-50,   100), pov(-5,    100));
+
+  
+  //for(short a= 0; a< 4; a++) {
+   // short b= a* 90;
+    //printf("Q%d % 4d[% 3d,% 3d] % 4d[% 3d,% 3d] % 4d[% 3d,% 3d] % 4d[% 3d,% 3d]\n", a, b+ 0, getX(b+ 0), getY(b+ 0), b+ 10, getX(b+ 10), getY(b+ 10), b+ 45, getX(b+ 45), getY(b+ 45), b+ 80, getX(b+ 80), getY(b+ 80));
+  //}
+  //getchar();
+  //return 0;
+  
 
 
-/*
+
   // some string + time tests
-  uint64 t1, t2;
-  string s;
+  //uint64 t1, t2;
+  //string s;
 
-  osi.getNanosecs(&t1);
+  //osi.getNanosecs(&t1);
 
-  uint b= 0;
-  s= "繋がって or つながって繋がって or つながって繋がって or つながって繋がって or つながって繋がって or つながって繋がって or つながって繋がって or つながって繋がって or つながって繋がって or つながって繋がって or つながって";
-  for(uint a= 0; a< 10000000; a++) {
+  //uint b= 0;
+  //s= "繋がって or つながって繋がって or つながって繋がって or つながって繋がって or つながって繋がって or つながって繋がって or つながって繋がって or つながって繋がって or つながって繋がって or つながって繋がって or つながって";
+  //for(uint a= 0; a< 10000000; a++) {
     //s+= "繋がって or つながって";
-    string s1= s[4];
-    uint c= s.getChar(b++);
-    if(b>100) b= 0;
+    //string s1= s[4];
+    //uint c= s.getChar(b++);
+    //if(b>100) b= 0;
     //printf("%d", b);
-  }
+  //}
 
-  osi.getNanosecs(&t2);
+  //osi.getNanosecs(&t2);
 
-  printf("elapsed time= %lu\n", t2- t1);
-  printf("sizeof(bool)= %d\n", sizeof(bool));
-  printf("t1= %lu, t2= %lu", t1, t2);
-  getchar();
+  //printf("elapsed time= %lu\n", t2- t1);
+  //printf("sizeof(bool)= %d\n", sizeof(bool));
+  //printf("t1= %lu, t2= %lu", t1, t2);
+  //getchar();
   // <end> string + time tests
-*/
+
 
 
   error.useWindowsFlag= true;
@@ -232,10 +240,10 @@ int main() {
   osi.display.populate(&osi);     // check all monitors/ resolutions/ etc
 
   osi.createGLWindow(&osi.win[0], &osi.display.monitor[1], "window 0", 1024, 768, 32, 1);
-  osi.createGLWindow(&osi.win[1], &osi.display.monitor[0], "window 1", 1024, 768, 32, 1);
+//  osi.createGLWindow(&osi.win[1], &osi.display.monitor[0], "window 1", 1024, 768, 32, 1);
   
 
-  osi.setProgramIcon("icon_64.ico");
+//  osi.setProgramIcon("icon_64.ico");
   //osi.createGLWindow(&osi.win[0], &osi.display.monitor[0], "window 0", 1024, 768, 32, 2);
   //osi.createGLWindow(&osi.win[1], &osi.display.monitor[0], "window 2", 400, 400, 32, 3);
   //osi.createGLWindow(&osi.win[0], &osi.display.monitor[1], "window 0", 400, 400, 32, 4);
@@ -248,10 +256,10 @@ int main() {
   osi.flags.haveFocus= true;
   
   
-  /*
-  while(!osi.flags.haveFocus)
-    osi.checkMSG();               // wait for window creation
-*/
+  
+ // while(!osi.flags.haveFocus)
+ //   osi.checkMSG();               // wait for window creation
+
   #ifdef USING_DIRECTINPUT
   //in.gp[8].aquire();
   //in.vibrate();
@@ -320,12 +328,13 @@ int main() {
     
     
     #ifdef OS_LINUX
-    /*
-    for(short a= 0; a< 256; a++) {
-      if(in.k.key[a])
-        printf("keydown: keycode[%02d], keysym[%06lx]\n", a, XkbKeycodeToKeysym(osi.primWin->dis, a, null, 0));
-    }
-    */
+    
+    //for(short a= 0; a< 256; a++) {
+//      if(in.k.key[a])
+        //printf("keydown: keycode[%02d], keysym[%06lx]\n", a, XkbKeycodeToKeysym(osi.primWin->dis, a, null, 0));
+    //}
+    
+
     #endif /// OS_LINUX
     }
 
@@ -334,6 +343,7 @@ int main() {
 
   return 0;
 }
+*/
 
 void drawSomething() {
   glDrawBuffer( GL_BACK );
@@ -460,7 +470,7 @@ bool OSInteraction::primaryGLWindow() {
 }
 
 // MAIN CREATE WINDOW FUNC. has every customisation
-bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int dx, int dy, int8 bpp, int8 mode, short freq) {
+bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int dx, int dy, int8 bpp, int8 mode, short freq, bool dblBuffer) {
   bool chatty= false;                               /// used only for DEBUG
   string func= "OSInteraction::createGLWindow: ";
   w->name= name;
@@ -623,7 +633,11 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
  printf("pixelf= %d\n", pixelf);
   /// obtain a detailed description of that pixel format  
   DescribePixelFormat(w->hDC, pixelf, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
-  //pfd.dwFlags= pfd.dwFlags| PFD_DRAW_TO_WINDOW| PFD_DRAW_TO_BITMAP| PFD_SUPPORT_OPENGL| PFD_DOUBLEBUFFER| PFD_STEREO_DONTCARE; //| PFD_SWAP_EXCHANGE;//| PFD_NEED_PALETTE;
+  // double buffer is needed, but causes screen flicker. must check with the other type of wgl_choosePixelFormat()
+  pfd.dwFlags= pfd.dwFlags| PFD_DRAW_TO_WINDOW| PFD_DRAW_TO_BITMAP| PFD_SUPPORT_OPENGL| PFD_STEREO_DONTCARE; //| PFD_SWAP_EXCHANGE;//| PFD_NEED_PALETTE;
+  if(dblBuffer)
+    pfd.dwFlags|= PFD_DOUBLEBUFFER;
+
   if(chatty) {
     printf("Current pixel format descriptor:\n");
     printf("pfd.nVersion= %d\n", pfd.nVersion);
@@ -654,7 +668,6 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
   }
 
 
- 
   // MORE TESTS NEEDED. it seems, when everything is 0, some 'default' current mode is in use; can't know for shure until using a more complex opengl scene
 
 
@@ -1135,7 +1148,7 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 
   bool chatty= false;	     // if used, prints msgs to terminal
   bool onlyHandled= true; /// used with chatty
-  bool timeFunc= true;    /// measure the time this func takes to finish
+  bool timeFunc= false;    /// measure the time this func takes to finish
   uint64 start, end;      /// used with timeFunc
   
   if(timeFunc) osi.getNanosecs(&start);
@@ -1465,12 +1478,18 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       in.populate();                        /// a call to in.populate to rescan for joysticks/gamepads/gamewheels
       goto ret;
       break;
-    
+
+    //case WM_PAINT:      // TEST
+//      return 0;
+
     // system commands
     case WM_SYSCOMMAND:
       if(chatty) printf("WM_SYSCOMMAND %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam);
 
       switch (wParam)	{
+        case SC_SCREENSAVE:
+				case SC_MONITORPOWER:
+				  return 0;                         /// prevent these from happening by not calling DefWinProc
         case SC_CLOSE: 
           if(chatty) printf("  SC_CLOSE %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam);
           osi.flags.exit= true;

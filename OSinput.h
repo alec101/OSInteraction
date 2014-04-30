@@ -3,9 +3,9 @@
 // mode variable for each HID (human input device)
 // keyboard: [MODE1]: OS events (default)  [MODE2]: manual update() NA in linux             [MODE3]: directinput            [MODE4]: windows raw data(NA)
 // mouse:    [MODE1]: OS events (default)  [MODE2]: manual update() using different funcs   [MODE3]: direct input (win)
-// joystick:  j[0-7]: sys driver           j[8-15]: directinput / ? / ?                    j[16-19]: xinput/ ? / ?
-// gamepad:  gp[0-7]: sys driver          gp[8-15]: directinput / ? / ?                   gp[16-19]: xinput/ ? / ?
-// gamewheel:gw[0-7]: sys driver          gw[8-15]: directinput / ? / ?                   gw[16-19]: xinput/ ? / ?
+// joystick:  j[0-7]: sys driver           j[8-15]: directinput / NA / NA                    j[16-19]: xinput/ NA / NA
+// gamepad:  gp[0-7]: sys driver          gp[8-15]: directinput / NA / NA                   gp[16-19]: xinput/ NA / NA
+// gamewheel:gw[0-7]: sys driver          gw[8-15]: directinput / NA / NA                   gw[16-19]: xinput/ NA / NA
 
 // [internal workings]: joysticks/ gamepads/ gamewheels share direct input & xinput drivers & os drivers
 
@@ -15,9 +15,8 @@
 // in keyboard [MODE 3] update must be done manually in a loop (with update())
 
 // *more USAGE stuff*
-// -setting a gamepad/joy/etc as "inUse" or "active" (NOT INPLEMENTED)
+// -setting a gamepad/joy/etc as "inUse" or "active"
 //    will tell input.update() to update it. Else, update it manually
-//    or just use nrJoy, nrBlabla??????????????????? this might be CUT
 
 // GAMEPAD BUTTON PRESSUREs 20 - 23 are for dPad button pressures
 

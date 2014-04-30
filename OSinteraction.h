@@ -129,16 +129,14 @@ public:
   
   // createGLWindow is the main function to use
   // [mode1]: windowed, using size, center screen [mode2] fullscreen [mode3] fullscreen window [mode4] full Virtual Screen window, on all monitors
-  bool createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int dx, int dy, int8 bpp, int8 mode, short freq= 0);
+  bool createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int dx, int dy, int8 bpp, int8 mode, short freq= 0, bool dblBuffer= true);
   bool killGLWindow(OSIWindow *w);    /// destroys a specific opengl window
   
   // next funcs call createGLWindow / killGLWindow; they might make life easier, but nothing more
   
-  // primaryWindow must be expanded with a bool to be set to middle of screen, eventually to have image of the game
-  // or resize / standard buttons if windowed mode is used for the game
-  // frequency must be the same 
+  ///frequency must be the same for all windows...
   bool primaryGLWindow(string name, int dx, int dy, int8 bpp, int8 mode, short freq= 0); // mode: 1= windowed, 2= fullscreen, 3= fullscreeen window(must research this one), 4= fullscreen virtual desktop (every monitor)
-  bool primaryGLWindow();             /// uses data from OSInteraction::ini <<< WIP???
+  bool primaryGLWindow();             /// creates a basic window, fullscreen
   bool killPrimaryGLWindow();         /// calls restoreResolution, if in fullscreen
   void setProgramIcon(string file);   /// sets program icon 
 
