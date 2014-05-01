@@ -22,9 +22,31 @@
 // graphics cards are ignored atm; no usefull data that i can think of can be gathered; (windows)
 //   only the monitors that are attached to graphics cards are important - all data is gathered on them
 
-//=============//
+///===================///
+// COMPILING / LINKING //
+///===================///
+
+// put [..] [../source] [../../!utilClasses] in your include directories
+
+// ---===NEEDED LIBRARIES ===---
+
+// LINUX libraries: [GL] [GLU] [Xrandr] [Xinerama]   ([Xi] is scraped)
+// WIN libs: [opengl32] [glu32] 
+//           [winmm]:            crude windows joystick support
+//           [dinput8] [dxguid]: if using direct input (+ #define USING_DIRECTINPUT)
+//           [xinput]:           xinput 1.3, from dxsdk, maybe a path to it, too (+ #define USING_XINPUT)
+// MAC frameworks: [-framework Opengl]: opengl library, basically
+//                 [-framework cocoa]: macOSX api
+//                 [-framework IOKit]: some monitor functions use this lib
+
+// WIN: there are #pragma comments, for windows libs... but they work only for the visual c++ compiler
+
+// MAC: just place "-framework Opengl -framework cocoa -framework IOKit" in additional linker commands
+
+
+///===========///
 // LINUX STUFF //
-//=============//
+///===========///
 
 // sudo apt-get install mesa-common-dev    GL/gl.h GL/glx.h
 // sudo apt-get install libglu1-mesa-dev   GL/glu.h
@@ -34,6 +56,108 @@
 // sudo apt-get install libxi-dev          NOT USED ATM 
 // sudo apt-get install libc6-dev-i386     the 32-bit c libraries (only 64bit libs are in linux64)
 // sudo apt-get install xxxxxxxxxxxx       the 64-bit c libraries (only 32bit libs are in linux32)
+
+// CASE SENSITIVE FILENAMES!!!! (linux)
+
+
+ 
+
+#pragma once
+
+#ifdef OS_WIN
+#define USING_DIRECTINPUT 1
+#define USING_XINPUT
+//#define _WIN32_WINNT 0x05010000
+//#define WINVER 0x0501
+
+#include "targetver.h"
+#include <Windows.h>
+#include <process.h>
+#include <mmsystem.h>
+#ifdef USING_DIRECTINPUT
+  #define DIRECTINPUT_VERSION 0x0800
+  #include <dinput.h>
+#endif
+#ifdef USING_XINPUT
+  #include <../../dxSDK2010j/Include/XInput.h>
+#endif
+#endif /// OS_WIN
+
+
+#include <stdio.h>
+#include <stdarg.h>
+#include <math.h>
+
+
+#ifdef OS_MAC
+#include <OpenGL/gl.h>
+#include <OpenGL/glu.h>
+#else /// OS_WIN + OS_LINUX
+#include <GL/gl.h>
+#include <GL/glu.h>
+#endif 
+
+#ifdef OS_LINUX
+#include <unistd.h>
+#include <errno.h>
+#include <time.h>
+#include <X11/X.h>
+#include <X11/Xlib.h>
+#include <X11/XKBlib.h>
+#include <X11/keysym.h>
+#include <X11/keysymdef.h>
+#include <X11/extensions/Xrandr.h>
+#include <X11/extensions/Xinerama.h>
+//#include <X11/extensions/XInput.h>        // too old stuff, maybe go thru it again, but...
+//#include <X11/extensions/XInput2.h>       // too old stuff, maybe go thru it again, but...
+//#include <locale.h> printf won't work without locale, to print unicode chars...
+
+#include <GL/glx.h>
+#endif /// OS_LINUX
+
+#ifdef OS_MAC
+#include <unistd.h>
+#include <mach/mach.h>                  // high resolution clock funcs
+#include <mach/mach_time.h>             // high resolution clock funcs
+#include <CoreGraphics/CoreGraphics.h>  // trying to pinpoint quartz
+//#include <IOKit/hid/IOHIDKeys.h>        // human interface devices (joysticks/gamepads/gamewheels)
+#include <IOKit/hid/IOHIDLib.h>         // human interface devices (joysticks/gamepads/gamewheels)
+#endif /// OS_MAC
+
+
+#include "typeShortcuts.h"
+#include "stringClass32.h"
+#include "stringClass8.h"
+#include "errorHandling.h"
+#include "chainList.h"
+#include "segList.h"
+
+typedef string8 string;         // <<-- string set is here; can be utf-8 / utf-32
+
+#include "OSdisplay.h"
+#include "OSinteraction.h"
+#include "OSchar.h"
+#include "OSinput.h"
+#include "OScocoa.h"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

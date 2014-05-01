@@ -1,4 +1,4 @@
-#include "pch.h"
+#include "OSInteraction.h"
 
 #ifdef OS_LINUX
 //#include <linux/joystick.h>   // it's not x stuff... lots of crap added, keyboard/mouse, that is not needed. IT'S POSSIBLE TO AVOID THIS HEADER, only some function definitions are needed.
@@ -2247,7 +2247,7 @@ ReadAgain:
         /// mark button press time
         _gp->bTime[a]= _gw->bTime[a]= bTime[a]= presentMilli;
         /// log the button in history
-        blog.b= a;
+        blog.b= (uchar)a;
         blog.checked= false;
         blog.timeDown= presentMilli;
         blog.timeUp= 0;
@@ -2282,7 +2282,7 @@ ReadAgain:
         // THIS FAILSAFE CODE COULD GO AWAY vvvvvvvvvvvvvvvvv
         if(!found) {                      /// failsafe - normally it is found (but things can happen ... alt-tab?)
           // some debug stuff can be done here, tho
-          blog.b= a;
+          blog.b= (uchar)a;
           blog.checked= false;
           blog.timeDown= presentMilli- 1; /// mark it as insta down-up
           blog.timeUp= presentMilli;

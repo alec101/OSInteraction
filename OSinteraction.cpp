@@ -1,4 +1,4 @@
-﻿#include "pch.h"
+﻿#include "OSInteraction.h"
 
 // Create a 'probe' context on each monitor, see what it (OpenGL) returns (a product ID or something)
 //^^^^^^^^^^^^^^^
@@ -1040,9 +1040,9 @@ void OSInteraction::swapBuffers(OSIWindow *w) {
 bool OSInteraction::glMakeCurrent(OSIWindow *w) {
   #ifdef OS_WIN
   if(w)
-    return wglMakeCurrent(w->hDC, w->glRenderer);
+    return wglMakeCurrent(w->hDC, w->glRenderer)? true: false;
   else
-    return wglMakeCurrent(null, null);
+    return wglMakeCurrent(null, null)? true: false;
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
