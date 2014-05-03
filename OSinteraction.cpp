@@ -137,11 +137,11 @@ _NET_CLOSE_WINDOW
 #endif /// OS_WIN
 
 
-
+// >>> OBJECTS CREATION <<< //
+///========================///
 OSInteraction osi;
-ErrorHandling error;
 Input in;
-
+ErrorHandling error;
 
 
 // ################
@@ -1274,6 +1274,7 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       case WM_SYSKEYDOWN: {
         osi.getMillisecs(&osi.eventTime);     /// using getTIMEXXX() funcs: can't rely on event time sent from system
         in.k.updateLocks();
+        osi.flags.keyPress= true;
 
         int code= GETBYTE2UINT32(lParam);
         uint vcode= (uint)wParam;
@@ -1325,6 +1326,7 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       case WM_KEYUP:                              // <<< key DEPRESS >>>
       case WM_SYSKEYUP: {
         in.k.updateLocks();
+        osi.flags.keyPress= false;
 
         osi.getMillisecs(&osi.eventTime);        /// using getTIMEXXX() funcs: can't rely on event time sent from system
 

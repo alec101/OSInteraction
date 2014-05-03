@@ -64,13 +64,22 @@
 
 #pragma once
 
-#ifdef OS_WIN
-#define USING_DIRECTINPUT 1
-#define USING_XINPUT
-//#define _WIN32_WINNT 0x05010000
-//#define WINVER 0x0501
+#ifdef _WIN32
+#define OS_WIN
+#elif defined __linux__
+#define OS_LINUX
+#elif defined __APPLE__
+#define OS_MAC
+#endif
 
-#include "targetver.h"
+#ifdef OS_WIN
+#define USING_DIRECTINPUT
+#define USING_XINPUT
+
+#define _WIN32_WINNT 0x05010000
+#define WINVER 0x0501
+#include <SDKDDKVer.h>
+
 #include <Windows.h>
 #include <process.h>
 #include <mmsystem.h>
@@ -333,6 +342,7 @@ extern "C" void processMSG(void);   /// declared in OScocoa.mm
 
 
 extern OSInteraction osi;   // only 1 global class
+extern ErrorHandling error;
 
 
 

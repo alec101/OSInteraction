@@ -99,7 +99,7 @@ public:
 
   /// use Input::Kv structure if you need to find a certain key. EX: in.k.key[Kv.enter] is the enter key status (pressed or not pressed)
   uchar *key;                   // all keys button status - it points to buffer1/buffer2. there is a clever swap between the two buffers, so there is no copying involved
-  uint64 keyTime[256];          /// time @ key started to be pressed
+  uint64 keyTime[MAX_KEYBOARD_KEYS]; /// time @ key started to be pressed
   uchar *lastCheck;             /// holds what the last time the keys were checked button press info - points to 1 of the buffers
   bool capsLock, scrollLock, numLock;     /// the 3 toggle locks <<< there are other 'locks'... on foreign keyboards
   

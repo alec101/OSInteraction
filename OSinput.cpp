@@ -117,7 +117,7 @@ static Cursor CreateNullCursor(Display *display, Window root)
 // -----------------------------======================--------------------------------
 
 void Input::vibrate() {
-  #ifdef OS_WIN // direct input vibration
+  #ifdef USING_DIRECTINPUT // direct input vibration
   /*
   HRESULT  hr;
   DIEFFECT diEffect;               // parameters for created effect
@@ -204,7 +204,7 @@ void Input::vibrate() {
 //	lpdiEffect->Download();
   //gp[4].vibration->Start(1, null);
   //hr = g_lpdid->CreateEffect(GUID_ConstantForce, &diEffect, &lpdiEffect, NULL);
-  #endif /// OS_WIN
+  #endif /// USING_DIRECTINPUT
 
 
 }
@@ -226,6 +226,21 @@ BOOL CALLBACK EnumEffectsCallback(LPCDIEFFECTINFO di, LPVOID pvRef) {
 #endif
 
 /// end testing
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifdef OS_MAC
 /// all these are callback functions. any pad/stick/wheel added/button press / etc + some kind of egipteean hierogliph func, that should be cleaned (first one)
@@ -329,8 +344,9 @@ bool Input::init(int mMode, int kMode) {
   populate(true);
   
   /// Kv struct has (almost) all keyboard keys. It has to 'populate' all vars @ start
+  printf("bef: %d\n", Kv.a);
   Kv.populate();
-
+  printf("aft: %d\n", Kv.a);
 
   #ifdef OS_MAC
   
@@ -1491,6 +1507,8 @@ void Keyboard::printPressed() {
 
 Joystick::Joystick() {
   mode= 0;                    /// mode set to 0 = DISABLED
+  _gp= null;                  /// must start null
+  _gw= null;                  /// must start null
 
   #ifdef OS_WIN
   #ifdef USING_DIRECTINPUT
@@ -1520,7 +1538,7 @@ void Joystick::delData() {
   name.delData();
   
 
-  x= y= throttle= rudder= u= v= 0;
+  x= y= x2= y2= throttle= rudder= u= v= 0;
   pov= -1;
   
   b= buffer1;
@@ -2386,6 +2404,7 @@ void Joystick::log(const ButPressed &k) {
 // ========================================================================
 
 GamePad::GamePad() {
+  _j= null;
   delData();
 }
 
@@ -2477,6 +2496,7 @@ void checkGamepadType(GamePad *p) {
 ///========================================================================///
 
 GameWheel::GameWheel() {
+  _j= null;
   delData();
 }
 
@@ -2492,7 +2512,6 @@ void GameWheel::delData() {
   wheel= 0;
   a1= a2= a3= a4= a5= 0;      // THIS NEEDS MORE WORK
   // pov starts on -1, off state
-
   
   b= buffer1;
   lastCheck= buffer2;
