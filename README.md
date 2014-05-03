@@ -12,22 +12,21 @@ check out pch.h for further compiling instructions & other info
 
 Compiling on Windows:
 
-   libraries: [opengl32] [glu32]: openGL libraries 
+    libraries: [opengl32] [glu32]: openGL libraries 
               [winmm]:            crude windows joystick support
               [dinput8] [dxguid]: if using direct input (+ #define USING_DIRECTINPUT)
               [xinput]:           xinput 1.3, from dxsdk, maybe a path to it, too (+ #define USING_XINPUT)
 
 Compiling on Linux:
 
-
-  libraries: [GL] [GLU] [Xrandr] [Xinerama]
+    libraries: [GL] [GLU] [Xrandr] [Xinerama]
  
 Compiling on Mac:
 
- frameworks: [-framework Opengl]: opengl library, basically
+    frameworks: [-framework Opengl]: opengl library, basically
              [-framework cocoa]:  macOSX api
              [-framework IOKit]:  some monitor functions use this lib
-  just place "-framework Opengl -framework cocoa -framework IOKit" in additional linker commands
+    just place "-framework Opengl -framework cocoa -framework IOKit" in additional linker commands
 
 
 
