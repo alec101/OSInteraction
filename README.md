@@ -29,7 +29,7 @@ Compiling on Mac:
     just place "-framework Opengl -framework cocoa -framework IOKit" in additional linker commands
 
 
-## If you use `USING_DIRECTINPUT` or `USING_XINPUT` compiler directives, be sure to place these defines in both OSinteraction and your project, if you use OSi as a library. Basicaly just make sure every project has the same defines.
+### If you use `USING_DIRECTINPUT` or `USING_XINPUT` compiler directives, be sure to place these defines in both OSinteraction and your project, if you use OSi as a library. Basicaly just make sure every project has the same defines.
 
 
 A nice way to arrange the source (this is how i got setup thigs):
