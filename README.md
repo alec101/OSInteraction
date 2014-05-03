@@ -7,7 +7,7 @@ https://www.dropbox.com/s/gze6yepuhwn278k/OSInteraction.zip
 
 
 
-check out pch.h for further compiling instructions & other info
+check out OSinteraction.h for further compiling instructions & other info
 
 
 Compiling on Windows:
