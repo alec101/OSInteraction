@@ -15,7 +15,7 @@ Compiling on Windows:
     libraries: [opengl32] [glu32]: openGL libraries 
                [winmm]:            crude windows joystick support
                [dinput8] [dxguid]: if using direct input (+ #define USING_DIRECTINPUT)
-               [xinput]:           xinput 1.3, from dxsdk, maybe a path to it, too (+ #define USING_XINPUT)
+               [xinput]:           xinput 1.3, from dxsdk (+ #define USING_XINPUT)
 
 Compiling on Linux:
 
