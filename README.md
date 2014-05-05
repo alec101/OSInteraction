@@ -13,13 +13,13 @@ SOME features:
 * OpenGL functions that have different usage mode/names under each OS, are nicely combined under 1 function. (ex: call glMakeCurrent(....), which knows to call wglMakeCurrent under WIN, glxMakeCurrent under LINUX, blaBlaBla under MAC)
 * Tons of other nice stuff.
 
-
+-
 This is a setup for netbeans/xcode/visual studio/code blocks/codelite :
 https://www.dropbox.com/s/gze6yepuhwn278k/OSInteraction.zip
 
 
-
-check out OSinteraction.h for further compiling instructions & other info
+-
+Check out OSinteraction.h for further compiling instructions & other info
 
 
 Compiling on Windows:
@@ -63,7 +63,7 @@ etc
 and include directories: ".." "../source" "../../!utilClasses"
 
 
-
+-
 ###Licence: 
 http://unlicense.org/ - so you can do whatever you want to do with this code - copy, change, wipe the floor, etc without any kind of pressure. Hope it helps!
 
