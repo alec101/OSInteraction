@@ -43,7 +43,7 @@ Compiling on Mac:
 
   _If you use `USING_DIRECTINPUT` or `USING_XINPUT` compiler directives, be sure to place these defines in both OSinteraction and your project, if you use OSi as a library. Basicaly just make sure every project has the same defines._
 
-
+-
 A nice way to arrange the source (this is how i got setup thigs):
 
 devYourDir/!utilClasses: https://github.com/alec101/-utilClasses 
