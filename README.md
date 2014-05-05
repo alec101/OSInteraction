@@ -61,3 +61,11 @@ devYourDir/OSInteraction/netbeans/projectFile - if using NetBeans
 etc
 
 and include directories: ".." "../source" "../../!utilClasses"
+
+
+
+###Licence: 
+http://unlicense.org/ - so you can do whatever you want to do with this code - copy, change, wipe the floor, etc without any kind of pressure. Hope it helps!
+
+
+
