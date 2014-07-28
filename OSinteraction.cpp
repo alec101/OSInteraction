@@ -1,13 +1,18 @@
 ﻿#include "OSInteraction.h"
+bool chatty= false;  /// used only for DEBUG
+
 
 // Create a 'probe' context on each monitor, see what it (OpenGL) returns (a product ID or something)
 //^^^^^^^^^^^^^^^
 
 /* TODO:
+ * - [all] extensions in win will be tied to glRenderer; inline funcs must be done for EVERY extension;
+ *   function pointers are aquired differently on each system;
+
  * - [win] USING_XINPUT & USING_DIRECTINPUT must be inside OS_WIN
  * - system to create a glRenderer for each graphic card (MUST install a second grcard on a computer) !!!!
  * 
- * - [linux][mac]threads!!!!!!!!!!!!
+ * - [linux][mac] threads!!!!!!!!!!!!
  *
  * - [linux][mac] set an icon for the window;  [win] WHEN dealing with icons, must remember to develop WM_GETICON too
  *
@@ -18,7 +23,7 @@
  * LOWER PRIORITY:
  * - rename Input class... OSiInput or OSIinput or OSIInput (might rename all classes to 'OSi' style)
  * - [linux][mac] prevent screensaver/ monitor low power
- * - [win][linux][mac] what happens on sleep? should be handled like 'app lose focus'
+ * - [win][linux][mac] what happens on sleep? should be handled like 'app lose focus', or better, another flag, as the app must pause or something (some dont pause on app focus)
  * - windowfocus flag. it's there, but not updated at all
  * - [linux] test mouse grab
  * - [linux] test keyboard grab (first make shure it is possible to exit program)
@@ -38,14 +43,19 @@
  *
  * - [all]  Libcmt.lib try eliminating printf? alternative : console to write to file; problem: format!!!!
  *
- * - keyboard mode 2 in is getting more and more useless and a big drag... and is not avaible in linux+ mac
+ * - keyboard mode 2 in is getting more and more useless and a big drag... and is not avaible in linux + mac
  * - what happens when the time variables overflow? must do something about that (osi.getNano, etc)
+ * - [mac] errorHandling window
 */
 
 
 // LINUX WINDOW RESEARCH
 
 // ONLY 1 DISPLAY MUST BE CREATED. it is 'the connection' to the 'server'(linux/computer, call it what u like)
+
+// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+// >>> WHAT HAPPENS WHEN MULTIPLE GRAPHICS CARDS ARE PRESENT? SOME SAY THERE ARE MULTIPLE DISPLAY CONNECTIONS AVAIBLE <<<
+// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 /* -Two commonly met examples are Maximized and Shaded. A window manager may implement these as proper substates
  *  of NormalState and IconicState, or it may treat them as independent flags, allowing e.g. a maximized window
@@ -117,6 +127,13 @@ _NET_CLOSE_WINDOW
 
  *
  */
+
+/*
+opengl extensions; unfortunately, in windows, they are tied to the context; using 2 grcards they are for shure tied to each context
+need that dang computer!!! finish the renderer class / OSi
+the pfnblablaFunc stuff works in windows only, it seems; test in linux
+*/
+//^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
 #ifdef OS_WIN
@@ -376,22 +393,6 @@ void drawSomething() {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 OSInteraction::OSInteraction() {
   flags.exit= false;
   flags.haveFocus= false;
@@ -471,7 +472,7 @@ bool OSInteraction::primaryGLWindow() {
 
 // MAIN CREATE WINDOW FUNC. has every customisation
 bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int dx, int dy, int8 bpp, int8 mode, short freq, bool dblBuffer) {
-  bool chatty= false;                               /// used only for DEBUG
+
   string func= "OSInteraction::createGLWindow: ";
   w->name= name;
   w->monitor= m;
@@ -630,7 +631,7 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
   }
   /// get the current pixel format index  
   int pixelf= GetPixelFormat(w->hDC); 
- printf("pixelf= %d\n", pixelf);
+  if(chatty) printf("pixelf= %d\n", pixelf);
   /// obtain a detailed description of that pixel format  
   DescribePixelFormat(w->hDC, pixelf, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
   // double buffer is needed, but causes screen flicker. must check with the other type of wgl_choosePixelFormat()
@@ -722,6 +723,9 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
   SetFocus(w->hWnd);              /// Sets Keyboard Focus To The Window
 
   w->isCreated= true;
+
+  getExtensions();              // WIP <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
   return true;
   #endif /// OS_WIN
 
@@ -921,6 +925,9 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
 
   w->monitor= m;
   w->isCreated= true;
+
+  getExtensions();              // WIP <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
   return true;
 
   #endif /// OS_LINUX
@@ -931,7 +938,7 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
   
   return cocoa.createWindow(w);  /// all window vars are set, just create the window.
   #endif /// OS_MAC
-
+  
 /// if program reached this point, there's no OS defined
   error.simple(func+ "no OS specified?");
   return false;
@@ -1098,7 +1105,6 @@ bool OSInteraction::glDestroyRenderer(OSIWindow *w) {
 
 
 
-
 #ifdef OS_WIN
 string OSInteraction::getWinName(HWND h) {
   for(int a= 0; a< MAX_WINDOWS; a++)
@@ -1146,7 +1152,6 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
   // there is no resize/move for windows, the close button won't work either, i think
   ///===================================================
 
-  bool chatty= false;	     // if used, prints msgs to terminal
   bool onlyHandled= true; /// used with chatty
   bool timeFunc= false;    /// measure the time this func takes to finish
   uint64 start, end;      /// used with timeFunc
@@ -1419,7 +1424,7 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
               ShowWindow(osi.win[a].hWnd, SW_RESTORE);
               osi.flags.minimized= false;
               MoveWindow(osi.win[a].hWnd, osi.win[a].monitor->x0, osi.win[a].monitor->y0, osi.win[a].dx, osi.win[a].dy, false);
-              printf("window %d x0[%d] y0[%d] dx[%d] dy[%d]\n", a, osi.win[a].monitor->x0, osi.win[a].monitor->y0, osi.win[a].dx, osi.win[a].dy);
+              if(chatty) printf("window %d x0[%d] y0[%d] dx[%d] dy[%d]\n", a, osi.win[a].monitor->x0, osi.win[a].monitor->y0, osi.win[a].dx, osi.win[a].dy);
             }
         SetForegroundWindow(osi.primWin->hWnd);
         osi.flags.haveFocus= true;        /// set flag, the last
@@ -1458,7 +1463,7 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 
       } /// switch gain/lose focus
 
-      printf("WM_ACTIVATEAPP %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam);
+      if(chatty) printf("WM_ACTIVATEAPP %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam);
       goto ret;
 
     case WM_CLOSE:
@@ -1504,17 +1509,17 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
   /// unhandled frequent windows messages
   if(chatty&& !onlyHandled)
     switch(m) {
-      case WM_ACTIVATE: printf("WM_ACTIVATE %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;
-      case WM_ERASEBKGND: printf("WM_ERASEBKGND %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;
-      case WM_PAINT: printf("WM_PAINT %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;
-      case WM_NCPAINT: printf("WM_NCPAINT %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;
-      case WM_SETFOCUS: printf("WM_SETFOCUS %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;       /// keyboard focus i think
-      case WM_KILLFOCUS: printf("WM_KILLFOCUS %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;     /// keyboard focus i think
-      case WM_NCACTIVATE: printf("WM_NCACTIVATE %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;
-      case WM_GETICON: printf("WM_GETICON\n"); goto ret;              /// usually is used when alt-tabbing, gets an icon for the mini alt-tab list
+      case WM_ACTIVATE: if(chatty) printf("WM_ACTIVATE %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;
+      case WM_ERASEBKGND: if(chatty) printf("WM_ERASEBKGND %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;
+      case WM_PAINT: if(chatty) printf("WM_PAINT %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;
+      case WM_NCPAINT: if(chatty) printf("WM_NCPAINT %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;
+      case WM_SETFOCUS: if(chatty) printf("WM_SETFOCUS %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;       /// keyboard focus i think
+      case WM_KILLFOCUS: if(chatty) printf("WM_KILLFOCUS %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;     /// keyboard focus i think
+      case WM_NCACTIVATE: if(chatty) printf("WM_NCACTIVATE %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;
+      case WM_GETICON: if(chatty) printf("WM_GETICON\n"); goto ret;              /// usually is used when alt-tabbing, gets an icon for the mini alt-tab list
         // WHEN dealing with icons, must remember to develop WM_GETICON too
-      case WM_IME_NOTIFY: printf("WM_IME_NOTIFY\n"); goto ret;
-      case WM_IME_SETCONTEXT: printf("WM_IME_SETCONTEXT\n"); goto ret;
+      case WM_IME_NOTIFY: if(chatty) printf("WM_IME_NOTIFY\n"); goto ret;
+      case WM_IME_SETCONTEXT: if(chatty) printf("WM_IME_SETCONTEXT\n"); goto ret;
       case WM_NCHITTEST: goto ret;            /// something to do with mouse placement
       case WM_NCMOUSEMOVE: goto ret;          /// non client area mouse coords (top title/ moving bar, is a non-client for example)
       case WM_NCMOUSELEAVE: goto ret;         /// non client area mouse leaving window
@@ -1535,8 +1540,6 @@ ret:
 
 #ifdef OS_LINUX
 void OSInteraction::processMSG()  {
-  bool chatty= false;      // used for debugs, prints stuff in every message
-
   XEvent event;
   OSIWindow *w= null;
 

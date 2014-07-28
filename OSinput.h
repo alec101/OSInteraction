@@ -47,8 +47,13 @@ public:
   int oldx, oldy;         /// old mouse position (can be usefull)
 /// delta x,y since last read. when program reads them, either set them to 0 after each read, or use getDx() & getDy()
   int dx, dy;             /// read these vars, and set them to 0, or call getDx()/getDy(). they track all movement until program processes them
-  inline int getDx() { int tx= dx; dx= 0; return tx; }          /// returns mouse delta movement on y axis
-  inline int getDy() { int ty= dy; dy= 0; return ty; }          /// returns mouse delta movement on x axis
+
+  // DX and DY must be reset at the end of each frame; using getDx&y is WRONG, as any check of dx and dy afterwards by the program results in 0 being returned
+//  inline int getDx() { int tx= dx; dx= 0; return tx; }          /// returns mouse delta movement on y axis
+//  inline int getDy() { int ty= dy; dy= 0; return ty; }          /// returns mouse delta movement on x axis
+  inline void resetDeltas() { dx= dy= 0; }                       // THIS IS THE CORRECT WAY; must be called at the end of the read cycle
+  // at the end of a HID read and check and etc, dx and dy must be set to 0, but by the program. OSi can't know when to set them to 0...
+
 
   // WHEELS CAN HAVE EXACT AXIS VALUES... <<< look into this some more
 /// wheel
@@ -508,7 +513,7 @@ public:
 extern Input in;  // only 1 global class
 
 
-
+#define mPos(_x, _y, _dx, _dy) ((in.m.x>= (_x)) && (in.m.x<= ((_x)+ (_dx))) && (in.m.y>= (_y)) && (in.m.y<= ((_y)+ (_dy))))
 
 
 

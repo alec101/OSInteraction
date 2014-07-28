@@ -64,6 +64,15 @@
 
 #pragma once
 
+// You can start the program with this macro; starting with main() in windows signals to create a console
+#define OSiMain \
+#ifdef OS_WIN \
+int WinMain(_In_  HINSTANCE hInstance, _In_  HINSTANCE hPrevInstance, _In_  LPSTR lpCmdLine, _In_  int nCmdShow) { \
+#else \
+int main(int argc, char *argv[], char *envp[]) { \
+#endif 
+
+
 #ifdef _WIN32
 #define OS_WIN
 #elif defined __linux__
@@ -73,6 +82,7 @@
 #endif
 
 #ifdef OS_WIN
+#define _CRT_SECURE_NO_WARNINGS
 #define USING_DIRECTINPUT
 #define USING_XINPUT
 
@@ -105,6 +115,8 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 #endif 
+#define GL_GLEXT_PROTOTYPES
+#include "glext.h"        // OpenGL extensions header file
 
 #ifdef OS_LINUX
 #include <unistd.h>
@@ -145,6 +157,7 @@ typedef string8 string;         // <<-- string set is here; can be utf-8 / utf-3
 
 #include "OSdisplay.h"
 #include "OSinteraction.h"
+#include "OSglExt.h"
 #include "OSchar.h"
 #include "OSinput.h"
 #include "OScocoa.h"
@@ -285,15 +298,17 @@ public:
   void exit(int retVal);              /// restores all monitor resolutions & exits. call this instead of _exit() or exit() func
 
 // opengl funcs
-  
+
+  //template<class T> bool OSinteraction::getExtension(cchar *name, T& address);    /// WIP, need glRenderer, this is made very sketchy as it is
+  void getExtensions();
+
   void swapBuffers(OSIWindow *w);     /// swap buffers of specific window
   void swapPrimaryBuffers();          /// calls swapBuffers, but for primary window (this makes life a little easier)
   bool glMakeCurrent(OSIWindow *w);   /// OS independant variant. Pass null, to unmake current
   
   
-  bool glCreateRenderer(OSIWindow *w);  /// WIP? <<<
-  bool glDestroyRenderer(OSIWindow *w); /// WIP? <<< OS independant variant
-
+  bool glCreateRenderer(OSIWindow *w);  /// WIP <<<
+  bool glDestroyRenderer(OSIWindow *w); /// WIP <<< OS independant variant
 
   
 // internals from here on; nothing to bother

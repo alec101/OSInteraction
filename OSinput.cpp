@@ -1,5 +1,7 @@
 #include "OSInteraction.h"
 
+extern bool chatty;
+
 #ifdef OS_LINUX
 //#include <linux/joystick.h>   // it's not x stuff... lots of crap added, keyboard/mouse, that is not needed. IT'S POSSIBLE TO AVOID THIS HEADER, only some function definitions are needed.
 #include <fcntl.h>
@@ -344,9 +346,7 @@ bool Input::init(int mMode, int kMode) {
   populate(true);
   
   /// Kv struct has (almost) all keyboard keys. It has to 'populate' all vars @ start
-  printf("bef: %d\n", Kv.a);
   Kv.populate();
-  printf("aft: %d\n", Kv.a);
 
   #ifdef OS_MAC
   
@@ -413,8 +413,6 @@ void Input::populate(bool scanMouseKeyboard) {
   /// debug
   uint64 start, end;
   bool timer= false;
-  bool chatty= false;
-
 
   lastPopulate= osi.present;
 
@@ -727,8 +725,6 @@ skipWinOSsearch:
 
 #ifdef USING_DIRECTINPUT
 BOOL CALLBACK diDevCallback(LPCDIDEVICEINSTANCE inst, LPVOID extra) {
-  bool chatty= true;
-
   /// can't handle more than 8 direct input sticks (don't think this will change very soon)
   if(in.nr.jT2== 8)
     return DIENUM_CONTINUE;
@@ -984,8 +980,8 @@ void Mouse::update() {
     x= p.x;
     y= p.y;
     if(useDelta) {
-      dx+= x- oldx;
-      dy+= y- oldy;
+      dx= x- oldx;      // REMOVED +=, if update() is done; it would not help with anything how the deltas were done
+      dy= y- oldy;
     }
     
     /// mouse wheel
@@ -1585,7 +1581,6 @@ void Joystick::update() {
                                                   // if player 1 selects device0 with xinput
                                                   // and player 2 selects device0 with directinput??? what then? some tests must be done somehow
 
-  bool chatty= false;
   uint64 presentMilli= osi.present/ 1000000;      /// present time in milliseconds
   ButPressed blog;
   bool found;
@@ -2633,7 +2628,6 @@ static void HIDadded(void *context, IOReturn result, void *sender, IOHIDDeviceRe
 
   // IOHIDDeviceRegisterInputValueCallback(device, HIDchange, &driver[a]); this could further optimize some code, but very little, by passing &driver[a] after it is created...
   
-  bool chatty= false;
   if(chatty) printf("%s\n", __FUNCTION__);
 
   /// find the first non-in-use joystick
@@ -2754,7 +2748,6 @@ static void HIDremoved(void *context, IOReturn result, void *sender, IOHIDDevice
   // inSender:    the IOHIDManagerRef for the device being removed
   // inHIDDevice: the removed HID device
 
-  bool chatty= true;
   if(chatty) printf("%s", __FUNCTION__);
 
   /// find removed device in 'driver' struct
@@ -2798,8 +2791,6 @@ void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDValueRef
   
   // further testing: it seems there is d-pad button pressure measurements... same with most of buttons !!!!
   
-  bool chatty= false;
-
   IOHIDElementRef elem= IOHIDValueGetElement(val);        /// get the 'element' thet of the value
   IOHIDDeviceRef device= IOHIDElementGetDevice(elem);     /// get the HID device that a element belongs to
   IOHIDElementCookie cookie= IOHIDElementGetCookie(elem)- 1; /// cookies represent a unique identifier for a HID element (also first element they point to is 1, and the list starts with 0)

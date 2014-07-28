@@ -1,4 +1,5 @@
 #include "OSInteraction.h"
+extern bool chatty;
 
 //#include <stdlib.h>
 //#include <unistd.h>
@@ -23,7 +24,7 @@
 //        - alt-tabbing sets fullscreen windows to the back; the other option would be to autohide - it would be easy to set (in cocoa.mm cocoa.createWindow() )
 //          there is a single line that is commented. This mode seems pretty nice, tho; the back window can be hidden with right-click on it's taskbar icon...
 /* TODO:
- *
+ * [linux] restore mouse cursor for change res... ?
  * WIN: to use progRes
  * WIN: move getMonitorPos in populate(). it's win only, and small, used only in populate() anyways
  * xrand has some event handling, must be checked
@@ -288,7 +289,6 @@ bool OSIDisplay::changeRes(OSIWindow *w, OSIMonitor *m, short dx, short dy, int8
   //                 * hope there are no problems with 'primary' monitor, and needs to be set manually...
   //                 * XGrabServer, might be needed when res changing! (line[1683])
 
-  bool chatty= true;
 
   /// search in data for requested resolution (hope populate() was called first)
   OSIResolution *r= getResolution(dx, dy, m);
@@ -423,8 +423,7 @@ void OSIDisplay::restoreAllRes() {
 ///----------------------------------------------------------------------///
 
 void OSIDisplay::restoreRes(OSIWindow *w, OSIMonitor *m) {
-  // TODO: linux restore mouse cursor
-  bool chatty= true;
+  
   if(m->inOriginal)
     return;
   if(chatty) printf("RESTORE MONITOR RESOLUTION [%s]\n", m->name.d);
@@ -493,7 +492,6 @@ void OSIDisplay::restoreRes(OSIWindow *w, OSIMonitor *m) {
 
 
 bool doChange(OSIWindow *w, OSIMonitor *m, OSIResolution *r, int8 bpp, short freq) {
-  bool chatty= true;
   #ifdef OS_WIN
   DEVMODE dm;
   for(short a= 0; a< sizeof(DEVMODE); a++) ((char *)&dm)[a]= 0;
@@ -775,7 +773,6 @@ bool doChange(OSIWindow *w, OSIMonitor *m, OSIResolution *r, int8 bpp, short fre
 // -------------->>>>>>>>>>>>>>> POPULATE <<<<<<<<<<<<<<<--------------- //
 ///---------------------------------------------------------------------///
 void OSIDisplay::populate(OSInteraction *t) {
-  bool chatty= true;   // this is used for debug: prints stuff it finds to terminal
   delData();
   #ifdef OS_WIN
     
@@ -828,7 +825,7 @@ void OSIDisplay::populate(OSInteraction *t) {
       primary= &monitor[d];
       if(chatty) printf(" primary");
     }
-    printf("\n");
+    if(chatty) printf("\n");
 
 /// original monitor settings
     if(EnumDisplaySettings(monitor[d].id, ENUM_CURRENT_SETTINGS, &dm)) {
@@ -844,7 +841,7 @@ void OSIDisplay::populate(OSInteraction *t) {
     monitor[d].x0= dm.dmPosition.x;
     monitor[d].y0= dm.dmPosition.y;
     for(a= 0; EnumDisplayDevices(monitor[d].id, a, &dd, null); a++) {
-      printf("found %d ID[%s]\nName[%s]\nString[%s]\n", a, dd.DeviceID, dd.DeviceName, dd.DeviceString);
+      if(chatty) printf("found %d ID[%s]\nName[%s]\nString[%s]\n", a, dd.DeviceID, dd.DeviceName, dd.DeviceString);
       if(!dd.StateFlags& DISPLAY_DEVICE_ATTACHED_TO_DESKTOP) printf("!!not attached!!\n");
 
     }

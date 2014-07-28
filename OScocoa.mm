@@ -1,4 +1,5 @@
-#include "pch.h"
+#include "OSinteraction.h"
+extern bool chatty;
 
 #ifdef OS_MAC
 
@@ -162,7 +163,7 @@ OSIcocoa cocoa;
 
 // --------------------->>>> WINDOW FOCUS IN <<<<------------------------
 - (void)windowDidBecomeKey:(NSNotification *)notification{
-  bool chatty= true;
+  
   if(chatty) printf("%s\n", __FUNCTION__);
 
   /// set the hasFocus flag of the window that become key to true
@@ -209,7 +210,6 @@ OSIcocoa cocoa;
 
 // ------------------>>>> WINDOW FOCUS OUT <<<<----------------------
 - (void)windowDidResignKey:(NSNotification *)notification{
-  bool chatty= true;
   if(chatty) printf("%s\n", __FUNCTION__);
   
   /// set the hasFocus flag of the window as false
@@ -306,7 +306,6 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 - (void) flagsChanged: (NSEvent *)theEvent {
   // find out all flagsChanged!!!!!!!!!!
   
-  bool chatty= FALSE;
   ulong flags= [theEvent modifierFlags];
   uchar code= [theEvent keyCode];
   
@@ -413,7 +412,6 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 - (void) keyDown:(NSEvent *)theEvent {
   // string UCKeytranslate(b,a,c);<< this one is "very low". hopefully, everything is ok with what cocoa has as a basic.
   
-  bool chatty= false;
   uchar code= [theEvent keyCode];
   
   /// different vars that might be needed some day (atm, everything seems set with keyboard, tho):
@@ -450,8 +448,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 
 // ---------------================= KEY UP ==================-------------------
 - (void) keyUp:(NSEvent *)theEvent {
-  bool chatty= false;
-  
+
   osi.eventTime= osi.present/ 1000000;       /// event time; using osi.present time - not gonna call osi.getMillisecs for 100% precision  
   osi.flags.keyPress= false;
   
@@ -510,8 +507,6 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 
 // ---------------============== MOUSE MOVED ================-------------------
 - (void) mouseMoved:(NSEvent *)theEvent {
-  bool chatty= false;
-
   in.m.oldx= in.m.x;
   in.m.oldy= in.m.y;
   
@@ -528,7 +523,6 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 
 // ---------------============ LEFT BUTTON DOWN =============-------------------
 - (void) mouseDown:(NSEvent *)theEvent {
-  bool chatty= false;
   osi.flags.buttonPress= true;
   osi.eventTime= osi.present/ 1000000;       /// event time; using osi.present time - not gonna call osi.getMillisecs for 100% precision  
   
@@ -539,7 +533,6 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 
 // ---------------============= LEFT BUTTON UP ==============-------------------
 - (void) mouseUp:(NSEvent *)theEvent {
-  bool chatty= false;
   osi.eventTime= osi.present/ 1000000;       /// event time; using osi.present time - not gonna call osi.getMillisecs for 100% precision  
   osi.flags.buttonPress= false;      /// it's not accurate, needs further testing against other buttons, but...
   
@@ -558,7 +551,6 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 
 // ---------------=========== RIGHT BUTTON DOWN =============-------------------
 - (void) rightMouseDown:(NSEvent *)theEvent {
-  bool chatty= false;
   osi.flags.buttonPress= true;
   osi.eventTime= osi.present/ 1000000;       /// event time; using osi.present time - not gonna call osi.getMillisecs for 100% precision  
   
@@ -569,7 +561,6 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 
 // ---------------============ RIGHT BUTTON UP ==============-------------------
 - (void) rightMouseUp:(NSEvent *)theEvent {
-  bool chatty= false;
   osi.eventTime= osi.present/ 1000000;       /// event time; using osi.present time - not gonna call osi.getMillisecs for 100% precision  
   osi.flags.buttonPress= false;      /// it's not accurate, needs further testing against other buttons, but...
   
@@ -588,8 +579,6 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 
 // ---------------========== 'OTHER' BUTTON DOWN ============-------------------
 - (void) otherMouseDown:(NSEvent *)theEvent {
-  bool chatty= false;
-  
   int b= (int)theEvent.buttonNumber; /// this seems ok: 2= middle; 3, 4= extra butotns
   
   osi.flags.buttonPress= true;
@@ -602,8 +591,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 
 // ---------------=========== 'OTHER' BUTTON UP =============-------------------
 - (void) otherMouseUp:(NSEvent *)theEvent {
-  bool chatty= false;
-  
+
   int b= (int)theEvent.buttonNumber; /// this seems ok. 2=middle; 3, 4= extra butotns
   osi.eventTime= osi.present/ 1000000;       /// event time; using osi.present time - not gonna call osi.getMillisecs for 100% precision  
   osi.flags.buttonPress= false;      /// it's not accurate, needs further testing against other buttons, but...
@@ -623,7 +611,6 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 
 // ---------------============== MOUSE WHEEL ================-------------------
 - (void) scrollWheel:(NSEvent *)theEvent {
-  bool chatty= false;
   if(theEvent.scrollingDeltaY> 0)
     in.m.wheel++;
   else
@@ -824,7 +811,9 @@ bool OSIcocoa::createWindow(OSIWindow *w) {
   w->win= win;
   w->view= view;
   w->isCreated= true;
-  
+
+  osi.getExtensions();              // WIP <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
   [pool release];
 
   return ret;
