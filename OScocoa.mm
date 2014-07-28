@@ -507,16 +507,10 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 
 // ---------------============== MOUSE MOVED ================-------------------
 - (void) mouseMoved:(NSEvent *)theEvent {
-  in.m.oldx= in.m.x;
-  in.m.oldy= in.m.y;
-  
+  /// oldx&y, deltas, removed; now updated with each in.update() call
   in.m.x= theEvent.window.screen.frame.origin.x+ theEvent.window.frame.origin.x+ theEvent.locationInWindow.x;
   in.m.y= theEvent.window.screen.frame.origin.y+ theEvent.window.frame.origin.y+ theEvent.locationInWindow.y;
   
-  if(in.m.useDelta) {
-    in.m.dx+= in.m.x- in.m.oldx;
-    in.m.dy+= in.m.y- in.m.oldy;
-  }
   if(chatty) printf("mouseMoved: x[%d] y[%d]\n", in.m.x, in.m.y);
 }
 
@@ -612,9 +606,9 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 // ---------------============== MOUSE WHEEL ================-------------------
 - (void) scrollWheel:(NSEvent *)theEvent {
   if(theEvent.scrollingDeltaY> 0)
-    in.m.wheel++;
+    in.m.twheel++;
   else
-    in.m.wheel--;
+    in.m.twheel--;
   if(chatty) printf("scrollWheel [%d]\n", theEvent.scrollingDeltaY> 0? 1: -1);
 }
 

@@ -1172,14 +1172,15 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
   if((in.m.mode== 1)&& osi.flags.haveFocus)
     switch(m) {
       case WM_MOUSEMOVE:                                          /// mouse movement
-        in.m.oldx= in.m.x;
-        in.m.oldy= in.m.y;
+        // removed oldx&y, dx&y, they are updated when in.update() is called; deltas are always on, now.
+        //in.m.oldx= in.m.x;
+        //in.m.oldy= in.m.y;
         in.m.x= ((int)(short)LOWORD(lParam));
         in.m.y= ((int)(short)HIWORD(lParam));
-        if(in.m.useDelta) {                    ///in case mouse is set to use delta move values, not exact screen coords
-          in.m.dx+= in.m.x- in.m.oldx;
-          in.m.dy+= in.m.y- in.m.oldy;
-        }
+        //if(in.m.useDelta) {                    ///in case mouse is set to use delta move values, not exact screen coords
+          //in.m.dx+= in.m.x- in.m.oldx;
+          //in.m.dy+= in.m.y- in.m.oldy;
+        //}
         goto ret;
         //return 0; // it is faster, but no windows move/resize!!!
       case WM_SETCURSOR: 
@@ -1229,7 +1230,7 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         goto ret;
         //return 0;
       case WM_MOUSEWHEEL:                                         /// wheel
-        in.m.wheel+= (GET_WHEEL_DELTA_WPARAM(wParam)> 0)? 1: -1;
+        in.m.twheel+= (GET_WHEEL_DELTA_WPARAM(wParam)> 0)? 1: -1;
         if(chatty) printf("mouse: wheel rotated\n");
         goto ret;
         //return 0;
@@ -1550,14 +1551,9 @@ void OSInteraction::processMSG()  {
       
 // ---------------============ MOUSE MOVEMENT ===============-------------------
     if(event.type == MotionNotify) { /// this is the first event handled, because it is spammed
-      in.m.oldx= in.m.x;
-      in.m.oldy= in.m.y;
+      /// oldx&y, dx&y removed; now updated on each in.update() call 
       in.m.x= event.xmotion.x_root;
       in.m.y= event.xmotion.y_root;
-      if(in.m.useDelta) {
-        in.m.dx+= in.m.x- in.m.oldx;
-        in.m.dy+= in.m.y- in.m.oldy;
-      }
       continue;
 
 // ---------------============ BUTTON PRESS =================-------------------
@@ -1566,11 +1562,11 @@ void OSInteraction::processMSG()  {
       eventTime= event.xbutton.time;          /// compatible with getMillisecs()
 
       if(event.xbutton.button== 4) {          // wheel up
-        in.m.wheel+= 1;
+        in.m.twheel+= 1;
         continue;
       }
       if(event.xbutton.button== 5) {          // wheel down
-        in.m.wheel-= 1;
+        in.m.twheel-= 1;
         continue;
       }
 

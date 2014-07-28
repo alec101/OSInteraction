@@ -32,35 +32,27 @@
 // --------------============= MOUSE CLASS ============--------------
 ///==================================================================
 class Mouse {
-  friend class Input;
+
 public:
-// USAGE / settings
+  // USAGE / settings
   
   short mode;              // [MODE 1]: OS events(default) - works on every OS
                            // [MODE 2]: manual update() using different funcs (can't make it work under linux/mac, but still researching ways...)
                            // [MODE 3]: win(direct input) / linux(n/a) / mac(n/a)
   
-  bool useDelta;          /// use dx, dy (x,y, oldx, oldy are still updated)
+  // position
 
-/// position
   int x, y;               /// current mouse position
-  int oldx, oldy;         /// old mouse position (can be usefull)
-/// delta x,y since last read. when program reads them, either set them to 0 after each read, or use getDx() & getDy()
-  int dx, dy;             /// read these vars, and set them to 0, or call getDx()/getDy(). they track all movement until program processes them
+  int oldx, oldy;         /// old mouse position (can be usefull) sincel last in.update() call
+  int dx, dy;             /// mouse delta movement values, since last in.update() call
 
-  // DX and DY must be reset at the end of each frame; using getDx&y is WRONG, as any check of dx and dy afterwards by the program results in 0 being returned
-//  inline int getDx() { int tx= dx; dx= 0; return tx; }          /// returns mouse delta movement on y axis
-//  inline int getDy() { int ty= dy; dy= 0; return ty; }          /// returns mouse delta movement on x axis
-  inline void resetDeltas() { dx= dy= 0; }                       // THIS IS THE CORRECT WAY; must be called at the end of the read cycle
-  // at the end of a HID read and check and etc, dx and dy must be set to 0, but by the program. OSi can't know when to set them to 0...
-
+  // wheel
 
   // WHEELS CAN HAVE EXACT AXIS VALUES... <<< look into this some more
-/// wheel
-  int wheel;              /// wheel delta rotation in units; get nr units rotated then set <wheel> to 0; or use getWheelDu();
-  inline int getWheelDu() { int t= wheel; wheel= 0; return t; } /// returns wheel delta units
+  int wheel;              /// wheel delta rotation in units since last in.update() call
+  
+  // buttons
 
-/// buttons
   struct Button {
     uint64 lastDT;        /// last button press delta time in milisecs
     uint64 lastTimeStart; /// last button press start time
@@ -72,13 +64,16 @@ public:
     Button(): lastDT(0), lastTimeStart(0), lastTimeEnded(0), down(false), timeStart(0) {};
   } b[MAX_MOUSE_BUTTONS];
 
-  
+  // funcs
+
   bool init(short mode);  /// can init mouse with this function (usually is best to call in.init(..) instead of this)
   void update();          /// if not using mode 1, update mouse values with this
   
   bool aquire();          /// exclusive control of the mouse (if possible)
   bool unaquire();        /// lose exclusive control of the mouse
   void resetButtons();    /// resets all buttons in case of alt-tab or something similar
+
+  // constructors / destructors
 
   Mouse();
   ~Mouse();
@@ -89,6 +84,13 @@ private:
   LPDIRECTINPUTDEVICE8 diDevice;
   DIMOUSESTATE2 diStats;
   #endif
+  int twheel;
+
+  friend class Input;
+  friend class OSinteraction;
+  #ifdef OS_WIN
+  friend LRESULT CALLBACK processMSG(HWND, UINT, WPARAM, LPARAM);
+  #endif /// OS_WIN
 };
 
 

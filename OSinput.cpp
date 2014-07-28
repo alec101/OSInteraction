@@ -880,9 +880,8 @@ void Input::resetPressedButtons() {
 
 Mouse::Mouse() {
   mode= 1;
-  useDelta= false;
-
   x= y= dx= dy= oldx= oldy= wheel= 0;
+  twheel= 0;      /// used with wheel position, internal
   #ifdef USING_DIRECTINPUT
   diDevice= null;
   diStats= {0};
@@ -897,7 +896,7 @@ Mouse::~Mouse() {
 
 void Mouse::delData() {
   mode= 1;
-  useDelta= false;
+  twheel= 0;
   x= y= dx= dy= oldx= oldy= wheel= 0;
 
   #ifdef USING_DIRECTINPUT
@@ -958,6 +957,8 @@ bool Mouse::init(short mode) {
 // ########################## MOUSE UPDATE ##############################
 // when not using default MODE 1, call this func to update mouse vars - or better, call Input::update()
 void Mouse::update() {
+  static int tx= 0, ty= 0, twheel= 0;      /// temporary vars, used in mouse positioning and the wheel
+
   if(!osi.flags.haveFocus)
     return;
 
@@ -965,8 +966,16 @@ void Mouse::update() {
 
 /// os events: nothing to update, atm (i cant think of anything anyways)
   if(mode== 1) {
-
-  
+    /// oldx&y and deltas must be done per in.update();
+    /// REMEMBER: there can be multiple mouse move messages between in.update() calls
+    oldx= tx;
+    oldy= ty;
+    tx= x;
+    ty= y;
+    dx= x- oldx;
+    dy= y- oldy;
+    wheel= twheel;      /// twheel is updated using system messages, and set to 0 here, after it's read
+    twheel= 0;
 
 /// manual update mode
   } else if(mode== 2) {
@@ -979,10 +988,9 @@ void Mouse::update() {
     oldy= y;
     x= p.x;
     y= p.y;
-    if(useDelta) {
-      dx= x- oldx;      // REMOVED +=, if update() is done; it would not help with anything how the deltas were done
-      dy= y- oldy;
-    }
+    dx= x- oldx;      /// replaced += with =; deltas are updated on each in.update() call
+    dy= y- oldy;
+
     
     /// mouse wheel
     
@@ -1035,13 +1043,12 @@ void Mouse::update() {
     oldy= y;
     x= diStats.lX;
     y= diStats.lY;
-    if(useDelta) {
-      dx+= x- oldx;
-      dy+= y- oldy;
-    }
+    dx= x- oldx;      /// removed +=, made =; 
+    dy= y- oldy;
     
     /// mouse wheel
     // THIS PART NEEDS TESTING, DUNNO WHAT DIRECT INPUT TRANMITS !!!!!!!!!!!!!!!  ALL DIRECT X PART, even. NEED A WORKING GLPRINT FUNC
+    wheel= 0;
     if(diStats.lZ)
       wheel++;
     else
