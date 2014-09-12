@@ -1,4 +1,4 @@
-﻿#include "OSInteraction.h"
+﻿#include "osinteraction.h"
 bool chatty= false;  /// used only for DEBUG
 
 
@@ -6,6 +6,7 @@ bool chatty= false;  /// used only for DEBUG
 //^^^^^^^^^^^^^^^
 
 /* TODO:
+ * - [mac] better glMakeCurrent func, with the coreGl mac stuff << MAX PRIORITY
  * - [all] extensions in win will be tied to glRenderer; inline funcs must be done for EVERY extension;
  *   function pointers are aquired differently on each system;
 
@@ -21,7 +22,7 @@ bool chatty= false;  /// used only for DEBUG
  * - create a loading window, in the center of the screen? eventually to have image of the game
  *
  * LOWER PRIORITY:
- * - rename Input class... OSiInput or OSIinput or OSIInput (might rename all classes to 'OSi' style)
+ * - rename Input class... osiInput or osiinput or osiInput (might rename all classes to 'osi' style)
  * - [linux][mac] prevent screensaver/ monitor low power
  * - [win][linux][mac] what happens on sleep? should be handled like 'app lose focus', or better, another flag, as the app must pause or something (some dont pause on app focus)
  * - windowfocus flag. it's there, but not updated at all
@@ -130,7 +131,7 @@ _NET_CLOSE_WINDOW
 
 /*
 opengl extensions; unfortunately, in windows, they are tied to the context; using 2 grcards they are for shure tied to each context
-need that dang computer!!! finish the renderer class / OSi
+need that dang computer!!! finish the renderer class / osi
 the pfnblablaFunc stuff works in windows only, it seems; test in linux
 */
 //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -156,8 +157,8 @@ the pfnblablaFunc stuff works in windows only, it seems; test in linux
 
 // >>> OBJECTS CREATION <<< //
 ///========================///
-OSInteraction osi;
-Input in;
+osinteraction osi;
+osiInput in;
 ErrorHandling error;
 
 
@@ -393,7 +394,7 @@ void drawSomething() {
 
 
 
-OSInteraction::OSInteraction() {
+osinteraction::osinteraction() {
   flags.exit= false;
   flags.haveFocus= false;
   flags.minimized= false;
@@ -401,6 +402,7 @@ OSInteraction::OSInteraction() {
   flags.keyPress= false;
   
   primWin= &win[0];                          /// primWin pointer, always to &win[0]
+  glr= null;
 
   #ifdef OS_WIN
   QueryPerformanceFrequency(&timerFreq);     /// read cpu frequency. used for high performance timer (querryPerformanceBlaBla)
@@ -433,7 +435,7 @@ OSInteraction::OSInteraction() {
   getNanosecs(&present);                    /// start with updated present time variable
 }
 
-OSInteraction::~OSInteraction() {
+osinteraction::~osinteraction() {
   #ifdef OS_LINUX
 // it seems system already destroys the display/windows and calling any of these causes segmentation error
 // maybe put them in a program exit function that might be called by the program.
@@ -444,7 +446,7 @@ OSInteraction::~OSInteraction() {
   #endif
 }
 
-void OSInteraction::delData() {
+void osinteraction::delData() {
   /// destroy every window. kinda useless...
   for(short a= 0; a< MAX_WINDOWS; a++)
     if(win[a].isCreated) win[a].delData();
@@ -456,12 +458,12 @@ void OSInteraction::delData() {
 // SIMPLE WINDOW CREATION FUNCS. they all call createGLWindow()
 
 // create just a single 'primary' window on 'primary' monitor
-bool OSInteraction::primaryGLWindow(string name, int dx, int dy, int8 bpp, int8 mode, short freq) {
+bool osinteraction::primaryGLWindow(string name, int dx, int dy, int8 bpp, int8 mode, short freq) {
   return createGLWindow(primWin, display.primary, name, dx, dy, bpp, mode, freq);
 }
 
 // create a fullscreen (mode 3) primary window
-bool OSInteraction::primaryGLWindow() {
+bool osinteraction::primaryGLWindow() {
   win[0].mode= 3;
   win[0].name= "Primary Program Window";
   win[0].freq= 0;
@@ -470,10 +472,11 @@ bool OSInteraction::primaryGLWindow() {
   return createGLWindow(&win[0], display.primary, win[0].name, win[0].dx, win[0].dy, win[0].bpp, win[0].mode, win[0].freq);
 }
 
-// MAIN CREATE WINDOW FUNC. has every customisation
-bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int dx, int dy, int8 bpp, int8 mode, short freq, bool dblBuffer) {
 
-  string func= "OSInteraction::createGLWindow: ";
+// MAIN CREATE WINDOW FUNC. has every customisation
+bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, string name, int dx, int dy, int8 bpp, int8 mode, short freq, bool dblBuffer) {
+
+  string func= "osinteraction::createGLWindow: ";
   w->name= name;
   w->monitor= m;
 
@@ -515,7 +518,7 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
 
   /// fullscreen resolution change
   if(mode== 2) {
-    if(!display.changeRes(w, m, w->dx, w->dy, w->bpp, w->freq)) {
+    if(!display.changeRes(m, w->dx, w->dy, w->bpp, w->freq)) {
       mode= 1;                            // if it fails, set mode to windowed <<--- ???
       w->mode= 1;
     }
@@ -525,8 +528,8 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
 
   rect.left=	 w->x0;
   rect.right=	 w->x0+ w->dx;
-  rect.top=		 w->y0;
-  rect.bottom= w->y0+ w->dy;
+  rect.top=		 display.vdy- display.vy0- (w->y0+ w->dy);  /// coordonate unification changed
+  rect.bottom= display.vdy- display.vy0- w->y0;           /// coordonate unification changed
 
   w->hInstance = GetModuleHandle(NULL);                   /// grab an instance for window
   wc.style				 = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;  /// Redraw On Size, And Own DC For Window.
@@ -582,7 +585,7 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
                 dwStyle |               /// defined window style
                 WS_CLIPSIBLINGS |       /// Required Window Style ?? not shure
                 WS_CLIPCHILDREN,        /// Required Window Style ?? not shure
-                w->x0, w->y0,           /// window position
+                w->x0, (display.vdy- display.vy0)- (w->y0+ w->dy), /// window position (coord unification fixed)
                 rect.right- rect.left,  /// dx
                 rect.bottom- rect.top,  /// dy
                 win[0].hWnd,            /// parent window
@@ -695,23 +698,18 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
     return false;
   }
 
-  if(!m->glRenderer) {      // THIS NEEDS INTENSIVE WORK&TESTING <<<<<<<<<<<<<< there must be only 1 renderer per graphics card
-    if(!(m->glRenderer= wglCreateContext(w->hDC))) {      /// lots of checks, don't think any needed
-      killGLWindow(w);
-      error.simple(func+ "Can't create GL RC");
-      return false;
-    }
-    w->monitor= m;          /// point window's monitor to the primary monitor
+  if(!assignRenderer(w)) {
+    osi.killGLWindow(w);
+    error.simple("FATAL ERROR: Cannot create oGL renderer (context)");
+    return false;
   }
-
-  w->glRenderer= m->glRenderer;
-
+  
   // from help: wglMakeCurrent()
   //	All subsequent OpenGL calls made by the thread are drawn on the device identified by hdc.
   //	You can also use wglMakeCurrent to change the calling thread's current rendering context so it's no longer current.
 
 
-  if(!wglMakeCurrent(w->hDC, m->glRenderer)) {            /// lots of checks, don't think any needed
+  if(!glMakeCurrent(w)) {
     killGLWindow(w);
     error.simple(func+ "Can't activate GL RC");
     return false;
@@ -723,8 +721,10 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
   SetFocus(w->hWnd);              /// Sets Keyboard Focus To The Window
 
   w->isCreated= true;
+  m->win= w;
 
-  getExtensions();              // WIP <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+  w->glr->checkExt();
+  w->glr->getExtFuncs();        /// once a window is created, getExtensions() aquires oGL extensions functions
 
   return true;
   #endif /// OS_WIN
@@ -746,7 +746,7 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
                  None };
 
   w->root= m->root;                                        // 'desktop window'
-  w->dis= primWin->dis; // server connection, created in OSInteraction()
+  w->dis= primWin->dis; // server connection, created in osinteraction()
 
   if(mode == 2)
     if(!display.changeRes(w, m, dx, dy, bpp, freq)) {
@@ -793,7 +793,7 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
   swa.override_redirect= 0;                             // this is very hard to handle if true
 
   w->win= XCreateWindow(w->dis, w->root,
-                        w->x0, w->y0, w->dx, w->dy,     // position & size
+                        w->x0, display.vdy- display.vy0- (w->y0+ w->dy), w->dx, w->dy,     // position & size (coord unification fixed)
                         0,                              // border size
                         vi->depth,                      // depth can be CopyFromParent
                         InputOutput,                    // InputOnly/ InputOutput/ CopyFromParent
@@ -892,7 +892,7 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
   XMapWindow(w->dis, w->win);               /// map window= finish creation/ show window
   
   if(w->mode== 1)                           /// MODE1 seems to need to move the window, x0&y0 in createwindow do nothing
-    XMoveWindow(w->dis, w->win, w->x0, w->y0);
+    XMoveWindow(w->dis, w->win, w->x0, display.vdy- display.vy0- (w->y0+ w->dy));
 
   XStoreName(w->dis, w->win, name);         /// window name (top bar description/name)
 
@@ -925,8 +925,9 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
 
   w->monitor= m;
   w->isCreated= true;
+  m->win= w;
 
-  getExtensions();              // WIP <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+  w->glr->getExtensions();        /// once a window is created, getExtensions() aquires oGL extensions functions
 
   return true;
 
@@ -942,7 +943,7 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
 /// if program reached this point, there's no OS defined
   error.simple(func+ "no OS specified?");
   return false;
-} // OSInteraction::createGLWindow END <<<
+} // osinteraction::createGLWindow END <<<
 
 
 
@@ -951,19 +952,35 @@ bool OSInteraction::createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int
 
 
 // ----------------============= GLWINDOW DELETION ==============-------------
-bool OSInteraction::killPrimaryGLWindow() {
+bool osinteraction::killPrimaryGLWindow() {
   return killGLWindow(&win[0]);
 }
 
 
-bool OSInteraction::killGLWindow(OSIWindow *w) {
-  #ifdef OS_WIN
-  if (w->mode== 2)
-    display.restorePrimary();
+bool osinteraction::killGLWindow(osiWindow *w) {
+  
+  if(w->mode== 2)
+    display.restoreRes(w->monitor);
+
+  if(w->monitor)
+    w->monitor->win= null;
 
   w->delData();
 
   return true;
+  /*
+  #ifdef OS_WIN
+  /*
+  if(w->monitor)
+    w->monitor->win= null;
+
+  if (w->mode== 2)
+    display.restorePrimary();
+
+  w->delData();
+  
+  return true;
+  
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
@@ -977,10 +994,11 @@ bool OSInteraction::killGLWindow(OSIWindow *w) {
   #endif
 
   return false;
-} /// OSInteraction::killGLWindow
+  */
+} /// osinteraction::killGLWindow
 
 
-void OSInteraction::setProgramIcon(string file) {
+void osinteraction::setProgramIcon(string file) {
   #ifdef OS_WIN
   HANDLE hIcon= LoadImage(NULL, file, IMAGE_ICON, 64, 64, LR_LOADFROMFILE);
 
@@ -993,7 +1011,7 @@ void OSInteraction::setProgramIcon(string file) {
 
 }
 
-void OSInteraction::startThread(void func(void *)) {
+void osinteraction::startThread(void func(void *)) {
   #ifdef OS_WIN
   // CreateThread(..) option 1 - thing is, _beginthread is more advanced than these funcs, i think.
   // >> windows, it seems wants these funcs gone, and replaced in windows 8 with some 'windows store' compatible object which is crap <<
@@ -1017,88 +1035,6 @@ void OSInteraction::startThread(void func(void *)) {
 
 
 
-///--------------------------------------///
-// OPENGL functions that are OS dependant //
-///--------------------------------------///
-
-// SWAP BUFFERS
-void OSInteraction::swapPrimaryBuffers() {
-  swapBuffers(&win[0]);
-}
-
-
-void OSInteraction::swapBuffers(OSIWindow *w) {
-  #ifdef OS_WIN
-  //SwapBuffers(w->hDC);      /// standard; the wgl one has more possibilities
-  wglSwapLayerBuffers(w->hDC, WGL_SWAP_MAIN_PLANE);
-  #endif /// OS_WIN
-
-  #ifdef OS_LINUX
-  glXSwapBuffers(w->dis, w->win);
-  #endif /// OS_LINUX
-
-  #ifdef OS_MAC
-  cocoa.swapBuffers(w);
-  #endif /// OS_MAC
-} // OSInteraction::swapBuffers
-
-
-
-bool OSInteraction::glMakeCurrent(OSIWindow *w) {
-  #ifdef OS_WIN
-  if(w)
-    return wglMakeCurrent(w->hDC, w->glRenderer)? true: false;
-  else
-    return wglMakeCurrent(null, null)? true: false;
-  #endif /// OS_WIN
-
-  #ifdef OS_LINUX
-  if(w)
-    return glXMakeCurrent(w->dis, w->win, w->glRenderer);
-  else
-    return true; //glXMakeCurrent(primWin->dis, None, NULL);
-  #endif /// OS_LINUX
-
-  #ifdef OS_MAC
-  if(w)
-    cocoa.makeCurrent(w);
-  return true;
-  #endif /// OS_MAC
-  
-  return false;
-} // OSInteraction::glMakeCurrent
-
-
-
-
-// WIP
-bool OSInteraction::glCreateRenderer(OSIWindow *w) {
-  return false;
-//  glXCreateContext(w->display, w->
-  // visual info!!!!
-} // OSInteraction::glCreateRenderer
-
-
-bool OSInteraction::glDestroyRenderer(OSIWindow *w) {
-  #ifdef OS_WIN
-  wglDeleteContext(w->glRenderer);
-  return true;
-  #endif /// OS_WIN
-
-  #ifdef OS_LINUX
-  glXDestroyContext(w->dis, w->glRenderer);
-  return true;
-  #endif ///OS_LINUX
-
-  #ifdef OS_MAC
-  return true;  // nothing to 'destroy' in mac, it seems. renderers are always active i think.
-  #endif /// OS_MAC
-
-  return false;
-} // OSInteraction::glDestroyRenderer
-// WIP ^^^^^^^^^^^^^^^^^^^
-
-
 
 
 
@@ -1106,14 +1042,14 @@ bool OSInteraction::glDestroyRenderer(OSIWindow *w) {
 
 
 #ifdef OS_WIN
-string OSInteraction::getWinName(HWND h) {
+string osinteraction::getWinName(HWND h) {
   for(int a= 0; a< MAX_WINDOWS; a++)
     if(win[a].hWnd== h)
       return win[a].name;
   return "unknown window";
 }
 
-OSIWindow *OSInteraction::getWin(HWND h) {
+osiWindow *osinteraction::getWin(HWND h) {
   for(int a= 0; a< MAX_WINDOWS; a++)
     if(win[a].hWnd== h)
       return &win[a];
@@ -1122,7 +1058,7 @@ OSIWindow *OSInteraction::getWin(HWND h) {
 #endif /// OS_WIN
 
 #ifdef OS_LINUX
-OSIWindow *OSInteraction::getWin(Window *w) {
+osiWindow *osinteraction::getWin(Window *w) {
   for(short a= 0; a< MAX_WINDOWS; a++)
     if(win[a].win== *w)
       return &win[a];
@@ -1131,7 +1067,7 @@ OSIWindow *OSInteraction::getWin(Window *w) {
 #endif
 
 #ifdef OS_MAC
-OSIWindow *OSInteraction::getWin(void *w) {
+osiWindow *osinteraction::getWin(void *w) {
   for(short a= 0; a< MAX_WINDOWS; a++)
     if(win[a].win== w)
       return &win[a];
@@ -1153,9 +1089,11 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
   ///===================================================
 
   bool onlyHandled= true; /// used with chatty
-  bool timeFunc= false;    /// measure the time this func takes to finish
+  bool timeFunc= false;   /// measure the time this func takes to finish
   uint64 start, end;      /// used with timeFunc
-  
+  osiWindow *w;           /// window that received the message
+//  WINDOWPOS *tw;          /// used for window position change messages
+
   if(timeFunc) osi.getNanosecs(&start);
 
   int mb= 0;
@@ -1172,15 +1110,15 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
   if((in.m.mode== 1)&& osi.flags.haveFocus)
     switch(m) {
       case WM_MOUSEMOVE:                                          /// mouse movement
-        // removed oldx&y, dx&y, they are updated when in.update() is called; deltas are always on, now.
-        //in.m.oldx= in.m.x;
-        //in.m.oldy= in.m.y;
-        in.m.x= ((int)(short)LOWORD(lParam));
+        /// removed oldx&y, dx&y, they are updated when in.update() is called; deltas are always on, now.
+        /// these are inside window positions
+        w= osi.getWin(hWnd);
+        in.m.x= ((int)(short)LOWORD(lParam));   /// msdn says not to use loword; this is what GET_X_PARAM does
         in.m.y= ((int)(short)HIWORD(lParam));
-        //if(in.m.useDelta) {                    ///in case mouse is set to use delta move values, not exact screen coords
-          //in.m.dx+= in.m.x- in.m.oldx;
-          //in.m.dy+= in.m.y- in.m.oldy;
-        //}
+        /// coordonate unification
+        in.m.y= w->y0+ w->dy- in.m.y;
+        in.m.x= w->x0+ in.m.x;
+        
         goto ret;
         //return 0; // it is faster, but no windows move/resize!!!
       case WM_SETCURSOR: 
@@ -1284,7 +1222,7 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 
         int code= GETBYTE2UINT32(lParam);
         uint vcode= (uint)wParam;
-        Keyboard::KeyPressed k;
+        osiKeyboard::KeyPressed k;
 
         /// left/ right ALT/CONTROL/SHIFT distingush
         if(wParam== VK_SHIFT)   code= (GetKeyState(VK_RSHIFT)& 0x80)?   in.Kv.rshift: in.Kv.lshift;
@@ -1357,7 +1295,7 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
           }
         /// in case the key was not found in history, add a hist-log with insta-keydown-keyup
         if(!found)  {
-          Keyboard::KeyPressed k;
+          osiKeyboard::KeyPressed k;
           k.code= code;
           k.checked= false;
           k.timeDown= osi.eventTime- 1;   /// 1 milisecond before the keyup
@@ -1416,7 +1354,7 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         for(short a= 0; a< MAX_WINDOWS; a++) 
           if(osi.win[a].isCreated)
             if(osi.win[a].mode== 2)
-              osi.display.changeRes(&osi.win[a], osi.win[a].monitor, osi.win[a].dx, osi.win[a].dy, osi.win[a].bpp, osi.win[a].freq);
+              osi.display.changeRes(osi.win[a].monitor, osi.win[a].dx, osi.win[a].dy, osi.win[a].bpp, osi.win[a].freq);
 
         /// show windows in case they are minimized
         for(short a= 0; a< MAX_WINDOWS; a++) 
@@ -1458,7 +1396,7 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         for(short a= 0; a< MAX_WINDOWS; a++) 
           if(osi.win[a].isCreated)
             if(osi.win[a].mode== 2)
-              osi.display.restoreRes(&osi.win[a], osi.win[a].monitor);
+              osi.display.restoreRes(osi.win[a].monitor);
 
 
 
@@ -1486,7 +1424,43 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       in.populate();                        /// a call to in.populate to rescan for joysticks/gamepads/gamewheels
       goto ret;
       break;
-
+    case WM_MOVE:
+      w= osi.getWin(hWnd);
+      /// hanles normal windows (no fullscreens)
+      if(w)
+        if(w->mode== 1) {
+          w->x0= (int)(short)LOWORD(lParam);
+          w->y0= (osi.display.vdy- 1)- (int)(short)HIWORD(lParam)- w->dy;
+        }
+      goto ret;
+      break;
+    case WM_SIZE:
+      if(wParam== SIZE_RESTORED) {      /// handling only window size change (there are minimize and maximize messages here)
+        w= osi.getWin(hWnd);
+        if(w)
+          if(w->mode== 1) {
+            w->dx= LOWORD(lParam);
+            w->dy= HIWORD(lParam);
+            osi.resizeGLScene(w->dx, w->dy);
+          }
+      }
+      goto ret;
+      break;
+    case WM_WINDOWPOSCHANGING:
+      /*
+      tw= (WINDOWPOS *)&lParam;
+      w= osi.getWin(hWnd);
+      /// hanles normal windows (no fullscreens)
+      if(w)
+      if(w->mode== 0) {
+        w->x0= tw->x;
+        w->y0= osi.display.vdy- tw->y- 1;
+        w->dx= tw->cx;
+        w->dy= tw->cy;
+      }
+      */
+      goto ret;
+      break;
     //case WM_PAINT:      // TEST
 //      return 0;
 
@@ -1540,9 +1514,9 @@ ret:
 
 
 #ifdef OS_LINUX
-void OSInteraction::processMSG()  {
+void osinteraction::processMSG()  {
   XEvent event;
-  OSIWindow *w= null;
+  osiWindow *w= null;
 
   while(XPending(primWin->dis)) {       /// while there are messages in queue, loop thru them
     XNextEvent(primWin->dis, &event);
@@ -1553,7 +1527,9 @@ void OSInteraction::processMSG()  {
     if(event.type == MotionNotify) { /// this is the first event handled, because it is spammed
       /// oldx&y, dx&y removed; now updated on each in.update() call 
       in.m.x= event.xmotion.x_root;
-      in.m.y= event.xmotion.y_root;
+      in.m.y= osi.display.vdy- event.xmotion.y_root- 1; test this
+      coodonate unification missing <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
       continue;
 
 // ---------------============ BUTTON PRESS =================-------------------
@@ -1618,9 +1594,9 @@ void OSInteraction::processMSG()  {
 
       continue;
 
-// ############################ KEYBOARD EVENTS ############################# //
+    // ############################ KEYBOARD EVENTS ############################# //
 
-// ---------------================ KEY PRESS ================-------------------
+    // ---------------================ KEY PRESS ================-------------------
     } else if(event.type == KeyPress) {
       if(in.k.mode!= 1) continue;         /// only keyboard in [mode 1]
       
@@ -1866,7 +1842,7 @@ void OSInteraction::processMSG()  {
               /// set the window 'below' every other windows
               win[a].setWMstate(0, "_NET_WM_STATE_ABOVE");
               win[a].setWMstate(1, "_NET_WM_STATE_BELOW");
-              // setFullScreen(&win[a], false); // THIS IS A POSIBILITY
+              // setFullScreen(&win[a], false); // THIS IS A PosiBILITY
 
               /// [mode 2] resolution change & window iconification
               if(win[a].mode== 2) {
@@ -1909,7 +1885,7 @@ void OSInteraction::processMSG()  {
   
   } /// while there are messages in queue
   
-} // OSInteraction::processMSG ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+} // osinteraction::processMSG ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 #endif /// OS_LINUX
 
 
@@ -1919,7 +1895,7 @@ void OSInteraction::processMSG()  {
 
 
 
-bool OSInteraction::checkMSG() {
+bool osinteraction::checkMSG() {
   bool ret= false;
   
   getNanosecs(&present);       // current time, or 'present' variable updated here <<<
@@ -1949,7 +1925,7 @@ bool OSInteraction::checkMSG() {
   #endif /// OS_MAC
 
   return ret;
-} /// OSInteraction::checkMSG
+} /// osinteraction::checkMSG
 
 
 
@@ -1962,14 +1938,14 @@ bool OSInteraction::checkMSG() {
 // -----------============= WINDOW CLASS =============------------------
 ///=====================================================================
 #ifdef OS_WIN
-MSG OSIWindow::msg= {0};
+MSG osiWindow::msg= {0};
 #endif
 
 #ifdef OS_LINUX
-Display *OSIWindow::dis= null;
+Display *osiWindow::dis= null;
 #endif
 
-OSIWindow::OSIWindow() {
+osiWindow::osiWindow() {
   isCreated= false;
   x0= y0= dx= dy= 0;
   freq= bpp= 0;
@@ -1997,7 +1973,7 @@ OSIWindow::OSIWindow() {
   #endif /// OS_MAC
 }
 
-OSIWindow::~OSIWindow() {
+osiWindow::~osiWindow() {
   #ifdef OS_WIN
   delData();            // it seems system already destroys windows, and this causes segmentation error
   #endif /// OS_WIN
@@ -2011,7 +1987,7 @@ OSIWindow::~OSIWindow() {
   #endif /// OS_MAC
 }
 
-void OSIWindow::delData() {
+void osiWindow::delData() {
   #ifdef OS_WIN
   if(hDC) {
     ReleaseDC(hWnd, hDC);
@@ -2059,7 +2035,7 @@ void OSIWindow::delData() {
   this->dx= 0;
   this->dy= 0;
   this->freq= 0;
-  this->glRenderer= 0;
+  this->glr= null;
   this->monitor= null;
   this->name.delData();
   this->x0= 0;
@@ -2070,7 +2046,7 @@ void OSIWindow::delData() {
 
 #ifdef OS_LINUX
 
-void OSIWindow::setWMprop(string8 wmID, string8 wmProp, uint val1, uint val2) {
+void osiWindow::setWMprop(string8 wmID, string8 wmProp, uint val1, uint val2) {
   Atom wm= XInternAtom(dis, wmID, False);
   Atom prop= XInternAtom(dis, wmProp, False);
   ulong data[5]= {val1, val2, 0, 0, 0};
@@ -2079,7 +2055,7 @@ void OSIWindow::setWMprop(string8 wmID, string8 wmProp, uint val1, uint val2) {
 }
 
 
-void OSIWindow::setWMstate(uint val, string8 prop1, string8 prop2) {
+void osiWindow::setWMstate(uint val, string8 prop1, string8 prop2) {
   XEvent xev;
   for(short a= 0; a< sizeof(xev); a++) ((char*)&xev)[a]= 0;               /// clear xev
 /// set vals
@@ -2101,7 +2077,7 @@ void OSIWindow::setWMstate(uint val, string8 prop1, string8 prop2) {
 
 
 
-// END OSIWindow class //
+// END osiWindow class //
 ///------=======------///
 
 
@@ -2111,7 +2087,7 @@ void OSIWindow::setWMstate(uint val, string8 prop1, string8 prop2) {
 
 
 
-void OSInteraction::getNanosecs(uint64 *out) {
+void osinteraction::getNanosecs(uint64 *out) {
   #ifdef OS_WIN
   LARGE_INTEGER t;
   QueryPerformanceCounter(&t);
@@ -2139,7 +2115,7 @@ void OSInteraction::getNanosecs(uint64 *out) {
 }
 
 
-void OSInteraction::getMicrosecs(uint64 *out) {
+void osinteraction::getMicrosecs(uint64 *out) {
   #ifdef OS_WIN
   LARGE_INTEGER t;
   QueryPerformanceCounter(&t);
@@ -2168,7 +2144,7 @@ void OSInteraction::getMicrosecs(uint64 *out) {
 }
 
 
-void OSInteraction::getMillisecs(uint64 *out) {
+void osinteraction::getMillisecs(uint64 *out) {
   #ifdef OS_WIN
   LARGE_INTEGER t;
   QueryPerformanceCounter(&t);
@@ -2187,7 +2163,7 @@ void OSInteraction::getMillisecs(uint64 *out) {
 }
 
 // WIP - linux problems
-void OSInteraction::getClocks(uint64 *out) {
+void osinteraction::getClocks(uint64 *out) {
   #ifdef OS_WIN
   QueryPerformanceCounter((LARGE_INTEGER*)out);
   #endif /// OS_WIN
@@ -2207,7 +2183,7 @@ void OSInteraction::getClocks(uint64 *out) {
 }
 
 // WIP - linux problems
-void OSInteraction::clocks2nanosecs(uint64 *out) {
+void osinteraction::clocks2nanosecs(uint64 *out) {
   #ifdef OS_WIN
   /// there has to be a split because ((*out)* 1000000000)/ timerFreq.QuadPart reaches uint64 limit
   uint64 hi= *out/ 10000000;
@@ -2231,7 +2207,7 @@ void OSInteraction::clocks2nanosecs(uint64 *out) {
 }
 
 // WIP - linux problems
-void OSInteraction::clocks2microsecs(uint64 *out) {
+void osinteraction::clocks2microsecs(uint64 *out) {
   #ifdef OS_WIN
   *out= (*out* 1000000)/ timerFreq.QuadPart;
   #endif /// OS_WIN
@@ -2251,7 +2227,7 @@ void OSInteraction::clocks2microsecs(uint64 *out) {
 }
 
 // WIP - linux problems
-void OSInteraction::clocks2millisecs(uint64 *out) {
+void osinteraction::clocks2millisecs(uint64 *out) {
   #ifdef OS_WIN
   *out= (*out* 1000)/ timerFreq.QuadPart;
   #endif /// OS_WIN
@@ -2273,7 +2249,7 @@ void OSInteraction::clocks2millisecs(uint64 *out) {
 
 
 
-void OSInteraction::exit(int retVal) {
+void osinteraction::exit(int retVal) {
   display.restoreAllRes();
   #ifdef OS_WIN
   ::exit(retVal);
@@ -2296,11 +2272,183 @@ void OSInteraction::exit(int retVal) {
 
 
 
+///-------------=======================-------------///
+// ============= OPENGL SPECIFIC STUFF ============= //
+///-------------=======================-------------///
+
+/// [internal]
+osiRenderer *createRenderer(osiWindow *w) {
+  osiRenderer *r= new osiRenderer;
+  
+  #ifdef OS_WIN
+  r->glContext= wglCreateContext(w->hDC);
+  #endif /// OS_WIN
+
+  #ifdef OS_LINUX
+  makeme
+  #endif /// OS_LINUX
+
+  #ifdef OS_MAC
+  makeme
+  #endif /// OS_MAC
+
+  if(!r->glContext) {
+    delete r;
+    return null;
+  }
+  w->glr= r;
+  w->monitor->glr= r;
+  osi.glRenderers.add(r);
+  return r;
+}
+
+/// create or assign a renderer to selected window; returns pointer to the renderer or null if failed, somehow
+osiRenderer *osinteraction::assignRenderer(osiWindow *w) {
+  // make shure w and w's monitor are not null
+  if(!w) return null;
+  if(!w->monitor) return null;
+
+  osiRenderer *r;                  /// tmp var
+
+  /// if there are existing renderers created, check if the requested window can use one of them
+  if(glRenderers.nrNodes) {
+
+    /// check if any renderer is created on current monitor (if there is one, assign it to w)
+    if(w->monitor->glr)
+      return w->glr= w->monitor->glr;
+
+    // quote from MSDN:
+    //  "It need not be the same hdc that was passed to wglCreateContext when hglrc was created,
+    //  but it must be on the same device and have the same pixel format."
+    // if this is true, BINGO! a test can be done to see if a renderer can be activated on a window; if it can, no need for a new one!
+
+    glMakeCurrent(null);
+
+    /// check if it is possible to activate an existing renderer to this window
+    for(r= (osiRenderer *)glRenderers.first; r; r= (osiRenderer *)r->next) {
+      w->glr= r;
+      if(glMakeCurrent(w))           /// try to make it current
+        return w->monitor->glr= r;    // successfull made current
+      w->glr= null;
+    }
+
+    // other tests can be done... need the new computer to test every possibility and OS
+
+    // more tests to be placed here ^^^
+  } /// if there are renderers already created
+
+  if(!createRenderer(w)) return null;         /// reached this point -> create a new renderer
+
+  return w->glr;
+}
+
+
+/// deletes the specified renderer and makes shure that windows and monitors that used it, know about it
+void osinteraction::delRenderer(osiRenderer *r) {
+
+  /// if any window uses this renderer, set it to null
+  for(short a= 0; a< MAX_WINDOWS; a++)
+    if(win[a].glr== r)
+      win[a].glr= null;
+  
+  /// if any monitor uses this renderer, set it to null
+  for(short a= 0; a< display.nrMonitors; a++)
+    if(display.monitor[a].glr== r)
+      display.monitor[a].glr= null;
+
+
+  /// if the selected renderer is the one that has to be deleted, make shure everything is ok
+  if(glr== r) {
+    glr= null;
+    glMakeCurrent(null);
+  }
+  
+  glRenderers.del(r);
+}
+
+
+
+///--------------------------------------///
+// OPENGL functions that are OS dependant //
+///--------------------------------------///
+
+// SWAP BUFFERS
+void osinteraction::swapPrimaryBuffers() {
+  swapBuffers(&win[0]);
+}
+
+
+void osinteraction::swapBuffers(osiWindow *w) {
+  #ifdef OS_WIN
+  //SwapBuffers(w->hDC);      /// standard; the wgl one has more possibilities
+  wglSwapLayerBuffers(w->hDC, WGL_SWAP_MAIN_PLANE);
+  #endif /// OS_WIN
+
+  #ifdef OS_LINUX
+  glXSwapBuffers(w->dis, w->win);
+  #endif /// OS_LINUX
+
+  #ifdef OS_MAC
+  cocoa.swapBuffers(w);
+  #endif /// OS_MAC
+} // osinteraction::swapBuffers
+
+
+
+bool osinteraction::glMakeCurrent(osiWindow *w) {
+  if(w) {
+    if(glr) glr->isActive= false;     /// set not active flag for current renderer
+    glr= w->glr;
+    if(glr) glr->isActive= true;      /// set active flag of new renderer
+  } else {
+    if(glr) glr->isActive= false;     /// set not active flag for current renderer
+    glr= null;
+  }
+
+  #ifdef OS_WIN
+  if(w)
+    return wglMakeCurrent(w->hDC, w->glr->glContext)? true: false;
+  else
+    return wglMakeCurrent(null, null)? true: false;
+  #endif /// OS_WIN
+
+  #ifdef OS_LINUX
+  if(w)
+    return glXMakeCurrent(w->dis, w->win, w->glr->glRenderer);
+  else
+    make a null check. if a null is called this has to be done
+    return true; //glXMakeCurrent(primWin->dis, None, NULL);
+  #endif /// OS_LINUX
+
+  #ifdef OS_MAC
+  if(w)
+    cocoa.makeCurrent(w); // as it is, this is too simple <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< check CGL
+    
+    this must be changed-> the glc (core)'s function has the possibility to makecurrent(null) and returns an error message if something went wrong
+    
+  return false; // <<<< better atm
+  return true;
+  #endif /// OS_MAC
+  
+  return false;
+} // osinteraction::glMakeCurrent
+
+
+
+
+
+
+
+
+
+
+
+
 
 // NOT OS DEPENDANT pure gl stuff <----------------------------------------------------------
 // ------------------------------------------------------------------------------------------
 
-bool OSInteraction::resizeGLScene(GLsizei dx, GLsizei dy) {
+bool osinteraction::resizeGLScene(GLsizei dx, GLsizei dy) {
   bool ret= true;
   if (dy==0)	dy= 1; /// prevent a divide by 0
 

@@ -165,11 +165,11 @@ GLAPI void APIENTRY glCopyTexSubImage3D (GLenum target, GLint level, GLint xoffs
 #define GL_SAMPLE_COVERAGE_INVERT         0x80AB
 #define GL_TEXTURE_CUBE_MAP               0x8513
 #define GL_TEXTURE_BINDING_CUBE_MAP       0x8514
-#define GL_TEXTURE_CUBE_MAP_POSITIVE_X    0x8515
+#define GL_TEXTURE_CUBE_MAP_PosiTIVE_X    0x8515
 #define GL_TEXTURE_CUBE_MAP_NEGATIVE_X    0x8516
-#define GL_TEXTURE_CUBE_MAP_POSITIVE_Y    0x8517
+#define GL_TEXTURE_CUBE_MAP_PosiTIVE_Y    0x8517
 #define GL_TEXTURE_CUBE_MAP_NEGATIVE_Y    0x8518
-#define GL_TEXTURE_CUBE_MAP_POSITIVE_Z    0x8519
+#define GL_TEXTURE_CUBE_MAP_PosiTIVE_Z    0x8519
 #define GL_TEXTURE_CUBE_MAP_NEGATIVE_Z    0x851A
 #define GL_PROXY_TEXTURE_CUBE_MAP         0x851B
 #define GL_MAX_CUBE_MAP_TEXTURE_SIZE      0x851C
@@ -1446,7 +1446,7 @@ typedef int64_t GLint64;
 #define GL_WAIT_FAILED                    0x911D
 #define GL_TIMEOUT_IGNORED                0xFFFFFFFFFFFFFFFFull
 #define GL_SYNC_FLUSH_COMMANDS_BIT        0x00000001
-#define GL_SAMPLE_POSITION                0x8E50
+#define GL_SAMPLE_PosiTION                0x8E50
 #define GL_SAMPLE_MASK                    0x8E51
 #define GL_SAMPLE_MASK_VALUE              0x8E52
 #define GL_MAX_SAMPLE_MASK_WORDS          0x8E59
@@ -2877,7 +2877,7 @@ GLAPI void APIENTRY glDrawElementsInstancedARB (GLenum mode, GLsizei count, GLen
 #define GL_MAX_PROGRAM_NATIVE_TEX_INSTRUCTIONS_ARB 0x880F
 #define GL_MAX_PROGRAM_NATIVE_TEX_INDIRECTIONS_ARB 0x8810
 #define GL_PROGRAM_STRING_ARB             0x8628
-#define GL_PROGRAM_ERROR_POSITION_ARB     0x864B
+#define GL_PROGRAM_ERROR_PosiTION_ARB     0x864B
 #define GL_CURRENT_MATRIX_ARB             0x8641
 #define GL_TRANSPOSE_CURRENT_MATRIX_ARB   0x88B7
 #define GL_CURRENT_MATRIX_STACK_DEPTH_ARB 0x8640
@@ -3853,11 +3853,11 @@ GLAPI void APIENTRY glGetCompressedTexImageARB (GLenum target, GLint level, void
 #define GL_REFLECTION_MAP_ARB             0x8512
 #define GL_TEXTURE_CUBE_MAP_ARB           0x8513
 #define GL_TEXTURE_BINDING_CUBE_MAP_ARB   0x8514
-#define GL_TEXTURE_CUBE_MAP_POSITIVE_X_ARB 0x8515
+#define GL_TEXTURE_CUBE_MAP_PosiTIVE_X_ARB 0x8515
 #define GL_TEXTURE_CUBE_MAP_NEGATIVE_X_ARB 0x8516
-#define GL_TEXTURE_CUBE_MAP_POSITIVE_Y_ARB 0x8517
+#define GL_TEXTURE_CUBE_MAP_PosiTIVE_Y_ARB 0x8517
 #define GL_TEXTURE_CUBE_MAP_NEGATIVE_Y_ARB 0x8518
-#define GL_TEXTURE_CUBE_MAP_POSITIVE_Z_ARB 0x8519
+#define GL_TEXTURE_CUBE_MAP_PosiTIVE_Z_ARB 0x8519
 #define GL_TEXTURE_CUBE_MAP_NEGATIVE_Z_ARB 0x851A
 #define GL_PROXY_TEXTURE_CUBE_MAP_ARB     0x851B
 #define GL_MAX_CUBE_MAP_TEXTURE_SIZE_ARB  0x851C
@@ -6021,8 +6021,8 @@ GLAPI void APIENTRY glCopyTexSubImage3DEXT (GLenum target, GLint level, GLint xo
 #ifndef GL_EXT_cull_vertex
 #define GL_EXT_cull_vertex 1
 #define GL_CULL_VERTEX_EXT                0x81AA
-#define GL_CULL_VERTEX_EYE_POSITION_EXT   0x81AB
-#define GL_CULL_VERTEX_OBJECT_POSITION_EXT 0x81AC
+#define GL_CULL_VERTEX_EYE_PosiTION_EXT   0x81AB
+#define GL_CULL_VERTEX_OBJECT_PosiTION_EXT 0x81AC
 typedef void (APIENTRYP PFNGLCULLPARAMETERDVEXTPROC) (GLenum pname, GLdouble *params);
 typedef void (APIENTRYP PFNGLCULLPARAMETERFVEXTPROC) (GLenum pname, GLfloat *params);
 #ifdef GL_GLEXT_PROTOTYPES
@@ -7432,11 +7432,11 @@ GLAPI void APIENTRY glTexBufferEXT (GLenum target, GLenum internalformat, GLuint
 #define GL_REFLECTION_MAP_EXT             0x8512
 #define GL_TEXTURE_CUBE_MAP_EXT           0x8513
 #define GL_TEXTURE_BINDING_CUBE_MAP_EXT   0x8514
-#define GL_TEXTURE_CUBE_MAP_POSITIVE_X_EXT 0x8515
+#define GL_TEXTURE_CUBE_MAP_PosiTIVE_X_EXT 0x8515
 #define GL_TEXTURE_CUBE_MAP_NEGATIVE_X_EXT 0x8516
-#define GL_TEXTURE_CUBE_MAP_POSITIVE_Y_EXT 0x8517
+#define GL_TEXTURE_CUBE_MAP_PosiTIVE_Y_EXT 0x8517
 #define GL_TEXTURE_CUBE_MAP_NEGATIVE_Y_EXT 0x8518
-#define GL_TEXTURE_CUBE_MAP_POSITIVE_Z_EXT 0x8519
+#define GL_TEXTURE_CUBE_MAP_PosiTIVE_Z_EXT 0x8519
 #define GL_TEXTURE_CUBE_MAP_NEGATIVE_Z_EXT 0x851A
 #define GL_PROXY_TEXTURE_CUBE_MAP_EXT     0x851B
 #define GL_MAX_CUBE_MAP_TEXTURE_SIZE_EXT  0x851C
@@ -8123,7 +8123,7 @@ GLAPI void APIENTRY glMultiModeDrawElementsIBM (const GLenum *mode, const GLsize
 
 #ifndef GL_IBM_rasterpos_clip
 #define GL_IBM_rasterpos_clip 1
-#define GL_RASTER_POSITION_UNCLIPPED_IBM  0x19262
+#define GL_RASTER_PosiTION_UNCLIPPED_IBM  0x19262
 #endif /* GL_IBM_rasterpos_clip */
 
 #ifndef GL_IBM_static_data
@@ -8457,7 +8457,7 @@ GLAPI GLboolean APIENTRY glIsImageHandleResidentNV (GLuint64 handle);
 #define GL_HARDMIX_NV                     0x92A9
 #define GL_HSL_COLOR_NV                   0x92AF
 #define GL_HSL_HUE_NV                     0x92AD
-#define GL_HSL_LUMINOSITY_NV              0x92B0
+#define GL_HSL_LUMINosiTY_NV              0x92B0
 #define GL_HSL_SATURATION_NV              0x92AE
 #define GL_INVERT_OVG_NV                  0x92B4
 #define GL_INVERT_RGB_NV                  0x92A3
@@ -8621,7 +8621,7 @@ GLAPI void APIENTRY glEvalMapsNV (GLenum target, GLenum mode);
 
 #ifndef GL_NV_explicit_multisample
 #define GL_NV_explicit_multisample 1
-#define GL_SAMPLE_POSITION_NV             0x8E50
+#define GL_SAMPLE_PosiTION_NV             0x8E50
 #define GL_SAMPLE_MASK_NV                 0x8E51
 #define GL_SAMPLE_MASK_VALUE_NV           0x8E52
 #define GL_TEXTURE_BINDING_RENDERBUFFER_NV 0x8E53
@@ -9056,7 +9056,7 @@ GLAPI void APIENTRY glProgramBufferParametersIuivNV (GLenum target, GLuint bindi
 #define GL_MITER_TRUNCATE_NV              0x90A8
 #define GL_SKIP_MISSING_GLYPH_NV          0x90A9
 #define GL_USE_MISSING_GLYPH_NV           0x90AA
-#define GL_PATH_ERROR_POSITION_NV         0x90AB
+#define GL_PATH_ERROR_PosiTION_NV         0x90AB
 #define GL_PATH_FOG_GEN_MODE_NV           0x90AC
 #define GL_ACCUM_ADJACENT_PAIRS_NV        0x90AD
 #define GL_ADJACENT_PAIRS_NV              0x90AE
@@ -9129,7 +9129,7 @@ GLAPI void APIENTRY glProgramBufferParametersIuivNV (GLenum target, GLuint bindi
 #define GL_FONT_HEIGHT_BIT_NV             0x00800000
 #define GL_FONT_MAX_ADVANCE_WIDTH_BIT_NV  0x01000000
 #define GL_FONT_MAX_ADVANCE_HEIGHT_BIT_NV 0x02000000
-#define GL_FONT_UNDERLINE_POSITION_BIT_NV 0x04000000
+#define GL_FONT_UNDERLINE_PosiTION_BIT_NV 0x04000000
 #define GL_FONT_UNDERLINE_THICKNESS_BIT_NV 0x08000000
 #define GL_FONT_HAS_KERNING_BIT_NV        0x10000000
 #define GL_PRIMARY_COLOR_NV               0x852C
@@ -9906,7 +9906,7 @@ GLAPI void APIENTRY glGetIntegerui64i_vNV (GLenum value, GLuint index, GLuint64E
 #define GL_TRACK_MATRIX_NV                0x8648
 #define GL_TRACK_MATRIX_TRANSFORM_NV      0x8649
 #define GL_VERTEX_PROGRAM_BINDING_NV      0x864A
-#define GL_PROGRAM_ERROR_POSITION_NV      0x864B
+#define GL_PROGRAM_ERROR_PosiTION_NV      0x864B
 #define GL_VERTEX_ATTRIB_ARRAY0_NV        0x8650
 #define GL_VERTEX_ATTRIB_ARRAY1_NV        0x8651
 #define GL_VERTEX_ATTRIB_ARRAY2_NV        0x8652

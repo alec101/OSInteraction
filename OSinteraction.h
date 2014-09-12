@@ -65,7 +65,7 @@
 #pragma once
 
 // You can start the program with this macro; starting with main() in windows signals to create a console
-#define OSiMain \
+#define osiMain \
 #ifdef OS_WIN \
 int WinMain(_In_  HINSTANCE hInstance, _In_  HINSTANCE hPrevInstance, _In_  LPSTR lpCmdLine, _In_  int nCmdShow) { \
 #else \
@@ -107,16 +107,29 @@ int main(int argc, char *argv[], char *envp[]) { \
 #include <stdarg.h>
 #include <math.h>
 
+// OpenGL headers
+
+#ifdef OS_WIN
+#include <GL/gl.h>
+#include <GL/glu.h>
+#define WGL_WGLEXT_PROTOTYPES 1
+#include "wglext.h"
+#endif /// OS_WIN
+
+#ifdef OS_LINUX
+#include <GL/gl.h>
+#include <GL/glu.h>
+#define GLX_GLXEXT_PROTOTYPES 1
+#include "glxext.h"
+#endif /// OS_LINUX
 
 #ifdef OS_MAC
 #include <OpenGL/gl.h>
 #include <OpenGL/glu.h>
-#else /// OS_WIN + OS_LINUX
-#include <GL/gl.h>
-#include <GL/glu.h>
-#endif 
+// there's a corearb header, too NEEDS CHECKING
+#endif /// OS_MAC
 #define GL_GLEXT_PROTOTYPES
-#include "glext.h"        // OpenGL extensions header file
+#include "glext.h"        // OpenGL extensions header file (OS independant ones)
 
 #ifdef OS_LINUX
 #include <unistd.h>
@@ -155,23 +168,12 @@ int main(int argc, char *argv[], char *envp[]) { \
 
 typedef string8 string;         // <<-- string set is here; can be utf-8 / utf-32
 
-#include "OSdisplay.h"
-#include "OSinteraction.h"
-#include "OSglExt.h"
-#include "OSchar.h"
-#include "OSinput.h"
-#include "OScocoa.h"
-
-
-
-
-
-
-
-
-
-
-
+#include "osiDisplay.h"
+#include "osiGlExt.h"
+#include "osiRenderer.h"
+#include "osiChar.h"
+#include "osiInput.h"
+#include "osiCocoa.h"
 
 
 
@@ -186,13 +188,14 @@ typedef string8 string;         // <<-- string set is here; can be utf-8 / utf-3
 // 64 may be too much i think...
 #define MAX_WINDOWS 64
 
+class osiRenderer;
 
 // -----------------============ WINDOW CLASS =============---------------------
-class OSIWindow {
-  friend class OSInteraction;
+class osiWindow {
+  friend class osinteraction;
 public:
-  OSIWindow();
-  ~OSIWindow();
+  osiWindow();
+  ~osiWindow();
   void delData();
 
   string name;              /// window name (program name)
@@ -202,57 +205,57 @@ public:
   int8 bpp;                 /// bits per pixel (if in fullscreen)
   short freq;               /// frequency (if used - fullscreen)
   int8 mode;                /// 1= windowed, 2= fullscreen, 3= fullscreen window, 4= full virtual desktop
-  OSIMonitor *monitor;      /// on what monitor it is drawn
-  
-  // GL RENDERER MUST BE PLACED SOMEWHERE ELSE, NOT IN THE PRIVATE DATA PART
-  
-// internal data from here
-#ifdef OS_WIN
-  HGLRC glRenderer;         /// permanent rendering context
+  osiMonitor *monitor;      /// on what monitor it is drawn
+  osiRenderer *glr;         /// the oGL renderer assigned to this window
+
+  // internal data from here
+
+  #ifdef OS_WIN
   HDC hDC;                  /// private GDI device context
   HWND hWnd;                /// holds program window handle
   HINSTANCE hInstance;      /// holds the instance of the application ?? isn't this per window...
     
   static MSG msg;           /// windows message struct... this is just needed for checkMSG();
-#endif ///OS_WIN
+  #endif ///OS_WIN
 
-#ifdef OS_LINUX
+  #ifdef OS_LINUX
   Window root;              /// root window (it is different on each monitor)
   static Display *dis;      /// display 'handle'. nowadays there is only 1 display, and 1 big (virtual) screen.
   Window win;               /// window 'handle' or watever
   XWindowAttributes gwa;    /// window attributes (size/etc)
   
-  GLXContext glRenderer;    /// openGL renderer  <<<<<<<<<<<<<<<<<<<<<<<<<
-  
-  bool isMapped;            /// internal flag used when resolution is changing
+  bool isMapped;            // internal flag used when resolution is changing <<NOT USED ANYMORE I THINK>>
 
   /// specific linux window propreties functions
-  void setWMprop(string8 wmID, string8 wmProp, uint val1, uint val2= 0); /// documentation is @ end of OSinteraction.h
-  void setWMstate(uint val, string8 prop1, string8 prop2= (cchar*)0); /// documentation is @ end of OSinteraction.h
-#endif
+  void setWMprop(string8 wmID, string8 wmProp, uint val1, uint val2= 0); /// documentation is @ end of osinteraction.h
+  void setWMstate(uint val, string8 prop1, string8 prop2= (cchar*)0); /// documentation is @ end of osinteraction.h
+  #endif
 
-#ifdef OS_MAC
+  #ifdef OS_MAC
   void *win;                 /// MacWindow
   void *view;                /// MacGLview
-  void *glRenderer;          // not used/ view has the context. this needs further thinking
-#endif
+  #endif
 };
 
 
 
 
-// -----------=========== OSINTERACTION CLASS ================------------------
-class OSInteraction {
+
+///=============================================================================///
+// -----------=========== osiNTERACTION CLASS ================------------------ //
+///=============================================================================///
+
+class osinteraction {
 public:
   string path;                        /// program path
-  OSIDisplay display;                 /// display class, handles monitors, resolutions
-  OSIWindow win[MAX_WINDOWS];         /// all windows; win[0] is the primary window, it should be created first
-  OSIWindow *primWin;                 /// win[0]; primary window
+  osiDisplay display;                 /// display class, handles monitors, resolutions
+  osiWindow win[MAX_WINDOWS];         /// all windows; win[0] is the primary window, it should be created first
+  osiWindow *primWin;                 /// win[0]; primary window
   uint64 present;   /// present time, updated in checkMSG(), wich should be the first func in a main loop. present MUST BE UPDATED MANUALLY, each frame, if checkMSG() is not called
   uint64 eventTime;                   /// each event/msg timestamp/ used internally, to timestamp different messages
 
-// main flags - check these frequently (mainly after a call to checkMSG() )
-  struct OSIFlags {
+  // main flags - check these frequently (mainly after a call to checkMSG() )
+  struct osiFlags {
     bool haveFocus;                    // program has FOCUS or is in the BACKGROUND
     bool minimized;                    // program is minimized
     bool exit;                         // system wants program to CLOSE
@@ -261,8 +264,8 @@ public:
   } flags;
 
   
-  OSInteraction();                    /// lots of inits go here. check cpp file
-  ~OSInteraction();
+  osinteraction();                    /// lots of inits go here. check cpp file
+  ~osinteraction();
   void delData();                     /// called by destructor
 
   // SYSTEM EVENTS HANDLER: call this in MAIN PROGRAM LOOP
@@ -271,12 +274,12 @@ public:
 
   void startThread(void (void *));    /// start / create a new thread
   
-// openGL window creation / deletion funcs:
+  // openGL window creation / deletion funcs:
   
   // createGLWindow is the main function to use
   // [mode1]: windowed, using size, center screen [mode2] fullscreen [mode3] fullscreen window [mode4] full Virtual Screen window, on all monitors
-  bool createGLWindow(OSIWindow *w, OSIMonitor *m, string name, int dx, int dy, int8 bpp, int8 mode, short freq= 0, bool dblBuffer= true);
-  bool killGLWindow(OSIWindow *w);    /// destroys a specific opengl window
+  bool createGLWindow(osiWindow *w, osiMonitor *m, string name, int dx, int dy, int8 bpp, int8 mode, short freq= 0, bool dblBuffer= true);
+  bool killGLWindow(osiWindow *w);    /// destroys a specific opengl window
   
   // next funcs call createGLWindow / killGLWindow; they might make life easier, but nothing more
   
@@ -286,7 +289,7 @@ public:
   bool killPrimaryGLWindow();         /// calls restoreResolution, if in fullscreen
   void setProgramIcon(string file);   /// sets program icon 
 
-// very usefull functions that will work on all OSes
+  // very useful functions that will work on all OSes
   
   void getNanosecs(uint64 *out);      /// performance timer in nanoseconds
   void getMicrosecs(uint64 *out);     /// performance timer in microseconds
@@ -297,41 +300,38 @@ public:
   void clocks2millisecs(uint64 *out); /// convert raw clocks to milliseconds  N/A LINUX... trying to make it work
   void exit(int retVal);              /// restores all monitor resolutions & exits. call this instead of _exit() or exit() func
 
-// opengl funcs
+  // opengl funcs
 
-  //template<class T> bool OSinteraction::getExtension(cchar *name, T& address);    /// WIP, need glRenderer, this is made very sketchy as it is
-  void getExtensions();
-
-  void swapBuffers(OSIWindow *w);     /// swap buffers of specific window
+  void swapBuffers(osiWindow *w);     /// swap buffers of specific window
   void swapPrimaryBuffers();          /// calls swapBuffers, but for primary window (this makes life a little easier)
-  bool glMakeCurrent(OSIWindow *w);   /// OS independant variant. Pass null, to unmake current
+  bool glMakeCurrent(osiWindow *w);   /// OS independant variant. Pass null, to unmake current
   
-  
-  bool glCreateRenderer(OSIWindow *w);  /// WIP <<<
-  bool glDestroyRenderer(OSIWindow *w); /// WIP <<< OS independant variant
+  chainList glRenderers;
+  osiRenderer *glr;                   /// this will allways point to the current active glRenderer;
+  osiRenderer *assignRenderer(osiWindow *w); /// [internal]create or assign a renderer to selected window; returns pointer to the renderer or null if failed, somehow
+  void delRenderer(osiRenderer *);    /// deletes the specified renderer and makes shure that windows and monitors that used it, know about it
 
-  
-// internals from here on; nothing to bother
+  // internals from here on; nothing to bother
 private:
   #ifdef OS_WIN
-//private:
+
   LARGE_INTEGER timerFreq;
-//public:
+
   string getWinName(HWND h);
-  OSIWindow *getWin(HWND h);          /// [internal] returns the OSIWindow that has the specified HWND
+  osiWindow *getWin(HWND h);          /// [internal] returns the osiWindow that has the specified HWND
   friend LRESULT CALLBACK processMSG(HWND, UINT, WPARAM, LPARAM);
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
-  OSIWindow *getWin(Window *w);       /// [internal] returns the OSIWindow that has the specified Window *
-  //void setFullScreen(OSIWindow *w, bool fullScreen);  /// sets _NET_WM_STATE_FULLSCREEN attribute for selected window
-  //void sendWMProp(int wmID, int wmProp, bool activate); /// documentation is @ end of OSinteraction.h
+  osiWindow *getWin(Window *w);       /// [internal] returns the osiWindow that has the specified Window *
+  //void setFullScreen(osiWindow *w, bool fullScreen);  /// sets _NET_WM_STATE_FULLSCREEN attribute for selected window
+  //void sendWMProp(int wmID, int wmProp, bool activate); /// documentation is @ end of osinteraction.h
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
   mach_timebase_info_data_t machInfo; /// [internal] mac variant of a performance timer. this var holds cpu frequencies & stuff (similar to QuerryPerformance... in win)
 public:
-  OSIWindow *getWin(void *w);         /// [internal] returns the OSIWindow that has the specified NSWindow *
+  osiWindow *getWin(void *w);         /// [internal] returns the osiWindow that has the specified NSWindow *
 private:
   #endif /// OS_MAC
 
@@ -341,7 +341,7 @@ private:
   #endif /// OS_LINUX
 
   
-// nothing to do with this class:
+  // nothing to do with this class:
 public:
   bool resizeGLScene(GLsizei dx, GLsizei dy);   // this is NOT OS DEPENDANT<------------ maybe needs to be placed in another class or something    
 };
@@ -356,8 +356,13 @@ extern "C" void processMSG(void);   /// declared in OScocoa.mm
 #endif
 
 
-extern OSInteraction osi;   // only 1 global class
+extern osinteraction osi;   // only 1 global class
 extern ErrorHandling error;
+
+
+
+
+
 
 
 
@@ -426,7 +431,7 @@ extern ErrorHandling error;
  * 
  * ====================================================================================================
  * 
- * void setWMprop(string8 wmID, string8 wmProp, uint val1, uint val2= 0); /// documentation is @ end of OSinteraction.h
+ * void setWMprop(string8 wmID, string8 wmProp, uint val1, uint val2= 0); /// documentation is @ end of osinteraction.h
  * 
  *  this func uses XChangeProperty(...) with atom1 as wmID
  *                                           atom2 as wmProp

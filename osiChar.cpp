@@ -1,8 +1,8 @@
-#include "OSInteraction.h"
+#include "osinteraction.h"
 
 // or
 //#include "OSchar.h"
-//#include "OSinput.h"
+//#include "osinput.h"
 /* 
  * keysym2unicode is the same as http://www.cl.cam.ac.uk/~mgk25/ucs/keysym2ucs.c
  * but the list was updated from http://www.cl.cam.ac.uk/~mgk25/ucs/keysyms.txt
@@ -15,7 +15,7 @@
 
 // TODO: windows version
 
-extern OSInteraction osi;
+extern osinteraction osi;
 
 #ifdef OS_LINUX
 // -keysyms that have no unicode counterpart were ignored
@@ -1240,9 +1240,9 @@ void Input::getUnicode(KeySym *ks, ulong *ret) {
 
 
 
-// is this function more tied to OSchar.cpp? should this be in OSinput.cpp, as it is part of Keyboard?
+// is this function more tied to OSchar.cpp? should this be in osinput.cpp, as it is part of Keyboard?
 
-void Keyboard::doManip() {
+void osiKeyboard::doManip() {
   // only string manipulator characters/keys are returned
 
   // XK_Tab 0xff09 NOT RETURNED ATM, SUBJECT TO CHANGE?

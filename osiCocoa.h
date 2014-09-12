@@ -2,7 +2,7 @@
 #ifdef OS_MAC
 
 
-class OSIcocoa {
+class osiCocoa {
   
  
   
@@ -10,25 +10,25 @@ public:
   
   
   void setProgramPath();              /// under mac is not certain that it is set, it seems
-  bool createWindow(OSIWindow *w);
-  bool changeRes(OSIWindow *w, OSIMonitor *m, short dx, short dy, int8 bpp, short freq= 0);
+  bool createWindow(osiWindow *w);
+  bool changeRes(osiWindow *w, osiMonitor *m, short dx, short dy, int8 bpp, short freq= 0);
   void checkMSG();
   
   
-  void getWindowSize(OSIWindow *w, int *dx, int *dy);
+  void getWindowSize(osiWindow *w, int *dx, int *dy);
   void sleep(int ms);                 /// cocoa sleep function (in miliseconds)
   
   int passedTime(void);               /// this might be scraped
   
-  void swapBuffers(OSIWindow *w);
-  void makeCurrent(OSIWindow *w);
+  void swapBuffers(osiWindow *w);
+  void makeCurrent(osiWindow *w);
   bool displayName(unsigned long id, string8 *out);  // returns in out the name of the display
   
-  OSIcocoa();
-  ~OSIcocoa();
+  osiCocoa();
+  ~osiCocoa();
 };
 
-extern OSIcocoa cocoa;
+extern osiCocoa cocoa;
 
 
 
