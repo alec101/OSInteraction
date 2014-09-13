@@ -14,11 +14,11 @@ struct GlExt {
   GlExt(cchar *s, bool b): desc(s), avaible(b) {}
 };
 
+
 extern GlExt _glARBlistEmpty[];   /// [internal] each renderer will create it's starting glARBlist from this
 extern GlExt _glEXTlistEmpty[];   /// [internal] each renderer will create it's starting glEXTlist from this
 extern GlExt _glOTHERlistEmpty[];   /// [internal] each renderer will create it's starting glOTHERlist from this
 
-void *glExtNULL(void *a, void *b, void *c, void *d, void *e, void *f, void *g, void *h, void *i, void *j, void *k, void *l, void *m, void *n, void *o, void *p, void *q, void *r, void *s, void *t, void *u, void *v, void *x, void *y, void *z);
 
 ///====================================================///
 // all openGL extension functions, under this structure //

@@ -1,6 +1,6 @@
 #pragma once
-#ifdef OS_MAC
 
+#ifdef OS_MAC
 
 class osiCocoa {
   

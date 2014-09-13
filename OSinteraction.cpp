@@ -6,6 +6,7 @@ bool chatty= false;  /// used only for DEBUG
 //^^^^^^^^^^^^^^^
 
 /* TODO:
+ * - all internals to have '_' in front, and all or most funcs that are internal, should be outside their class
  * - [mac] better glMakeCurrent func, with the coreGl mac stuff << MAX PRIORITY
  * - [all] extensions in win will be tied to glRenderer; inline funcs must be done for EVERY extension;
  *   function pointers are aquired differently on each system;
