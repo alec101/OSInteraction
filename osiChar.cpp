@@ -1,8 +1,5 @@
 #include "osinteraction.h"
 
-// or
-//#include "OSchar.h"
-//#include "osinput.h"
 /* 
  * keysym2unicode is the same as http://www.cl.cam.ac.uk/~mgk25/ucs/keysym2ucs.c
  * but the list was updated from http://www.cl.cam.ac.uk/~mgk25/ucs/keysyms.txt
@@ -1164,7 +1161,7 @@ struct CodePair {
 
 
 
-void Input::keysym2unicode(KeySym *ks, ulong *ret) {
+void osiInput::keysym2unicode(KeySym *ks, ulong *ret) {
   int min= 0;
   int max= sizeof(ks2unicode)/ sizeof(struct CodePair)- 1;
   int mid;
@@ -1203,7 +1200,7 @@ void Input::keysym2unicode(KeySym *ks, ulong *ret) {
 
 
 
-void Input::getUnicode(KeySym *ks, ulong *ret) {
+void osiInput::getUnicode(KeySym *ks, ulong *ret) {
   
   // only unicode printable characters are returned
   // this func can return 0! STRING TERMINATOR CONFUSION warning!!!!

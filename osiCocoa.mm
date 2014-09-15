@@ -1,7 +1,8 @@
+#ifdef OS_MAC
 #include "osinteraction.h"
 extern bool chatty;
 
-#ifdef OS_MAC
+
 
 /// cocoa uses these, unfortunately...
 #undef uint

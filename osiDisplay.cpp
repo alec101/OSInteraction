@@ -548,9 +548,9 @@ bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, short freq) {
   bool grab= false;                         // grab the server
   
   if(grab)
-    XGrabServer(w->dis);                    // GRAB SERVER
+    XGrabServer(m->win->dis);                    // GRAB SERVER
   
-  XRRScreenResources *scr= XRRGetScreenResources(w->dis, m->root);
+  XRRScreenResources *scr= XRRGetScreenResources(m->win->dis, m->root);
   XRRCrtcInfo *crtc;
   Status s;
   
@@ -644,8 +644,8 @@ bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, short freq) {
   if(chatty) printf("virtual desktop UPDATE: x[%d], y[%d] (delta x[%d], y[%d])\n", osi.display.vdx, osi.display.vdy, changex, changey);
   
   if(change)
-  XRRSetScreenSize(w->dis, DefaultRootWindow(osi.primWin->dis), osi.display.vdx, osi.display.vdy,
-              DisplayWidthMM(w->dis, 0), DisplayHeightMM(w->dis, 0)); // the size in mm is kinda hard to compute, but doable... it might be NOT NEEDED
+  XRRSetScreenSize(m->win->dis, DefaultRootWindow(osi.primWin->dis), osi.display.vdx, osi.display.vdy,
+              DisplayWidthMM(m->win->dis, 0), DisplayHeightMM(m->win->dis, 0)); // the size in mm is kinda hard to compute, but doable... it might be NOT NEEDED
   
   /// set panning for all monitors
   /* THIS MIGHT NOT BE NEEDED AT ALL, as all monitors are disabled & re-enabled with updated positions
@@ -671,16 +671,16 @@ bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, short freq) {
       if(prim== 0 && primaryActivated) continue;  /// if in pass 0 and primary monitor was activated, continue till pass 2
       
       /// in pass 0, find primary monitor (pos 0, 0)
-      if(prim== 0 && (!primaryActivated))
+      if(prim== 0 && (!primaryActivated)) {
         if(osi.display.monitor[a].primary) {
           if(chatty) printf("activating primary monitor first\n");
           primaryActivated= true;
         } else continue;                          /// skip until primary monitor is found
-      
+      }
       /// skip if in pass 1 and this is the primary monitor (already activated)
       if((prim== 1) && osi.display.monitor[a].primary) continue;
         
-      XRRScreenResources *scr= XRRGetScreenResources(w->dis, m->root);
+      XRRScreenResources *scr= XRRGetScreenResources(m->win->dis, m->root);
       crtc= XRRGetCrtcInfo(osi.primWin->dis, scr, osi.display.monitor[a].crtcID);
       
       if(chatty) printf("monitor%d[%s]:", a, osi.display.monitor[a].name.d);
@@ -706,7 +706,7 @@ bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, short freq) {
       s= Success;
     
       if(change) // DEBUG
-      s= XRRSetCrtcConfig(w->dis, scr,                    /// server connection, screen resources (virtual desktop)
+      s= XRRSetCrtcConfig(m->win->dis, scr,               /// server connection, screen resources (virtual desktop)
                           osi.display.monitor[a].crtcID,  /// crt that will change the res
                           CurrentTime,                    /// time
                           osi.display.monitor[a].x0,      /// x monitor position on virtual desktop
@@ -732,7 +732,7 @@ bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, short freq) {
         m->dy= tmpy;
 
         if(grab)
-          XUngrabServer(w->dis);               // UNGRAB SERVER
+          XUngrabServer(m->win->dis);               // UNGRAB SERVER
       
         if(chatty) printf("error: XRRSetCrtcConfig not sucessful\n");
         error.simple("doChange: Critical error while changing monitor resolution"); // , true); DISABLED QUIT, do something in other funcs
@@ -744,7 +744,7 @@ bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, short freq) {
   /// free memory from here on, then exit
   //XRRFreeScreenResources(scr);
   if(grab)
-    XUngrabServer(w->dis);                  // UNGRAB SERVER
+    XUngrabServer(m->win->dis);                  // UNGRAB SERVER
   
   for(short a= 0; a< osi.display.nrMonitors; a++) {
     delete[] outs[a];

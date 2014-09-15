@@ -1,5 +1,9 @@
-﻿#include "osinteraction.h"
+#include "osinteraction.h"
 
+// TODO:
+/*
+ * [win] MUST check ogl 1.1, if there are any funcs got from gl.h
+ */
 
 
 /// one single struct that holds all the gl extensions, for LINUX and MAC
@@ -17,7 +21,7 @@ template<class T> bool getGlProc(cchar *name, T& address) {
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
-  makeme
+  address= (T)glXGetProcAddressARB((const GLubyte *)name);
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
@@ -26,7 +30,7 @@ template<class T> bool getGlProc(cchar *name, T& address) {
   if(address) return true; else return false;
 }
 
-#define GETGLPROCMACRO(x) getGlProc(#x, r->glExt.##x);
+#define GETGLPROCMACRO(_x_x) getGlProc(#_x_x, r->glExt. _x_x);
 
 ///=============================///
 // OpenGL version funcs aquiring //
@@ -39,7 +43,7 @@ void getVERfuncs(osiRenderer *r, int major, int minor) {
   ///==================///
 
   /// GLX_VERSION_1_3
-  GETGLPROCMACRO(glXGetFBConfigs)
+  getGlProc("glXGetFBConfigs", r->glExt.glXGetFBConfigs); //GETGLPROCMACRO(glXGetFBConfigs)
   GETGLPROCMACRO(glXChooseFBConfig)
   GETGLPROCMACRO(glXGetFBConfigAttrib)
   GETGLPROCMACRO(glXGetVisualFromFBConfig)
@@ -58,7 +62,7 @@ void getVERfuncs(osiRenderer *r, int major, int minor) {
   GETGLPROCMACRO(glXGetSelectedEvent)
 
   /// GLX_VERSION_1_4
-  GETGLPROCMACRO(glXGetProcAddress)
+  //GETGLPROCMACRO(glXGetProcAddress)
   #endif /// OS_LINUX
 
   if(major< 1)
@@ -92,6 +96,7 @@ void getVERfuncs(osiRenderer *r, int major, int minor) {
   GETGLPROCMACRO(glCompressedTexSubImage2D)
   GETGLPROCMACRO(glCompressedTexSubImage1D)
   GETGLPROCMACRO(glGetCompressedTexImage)
+  #ifdef OS_WIN
   GETGLPROCMACRO(glClientActiveTexture)
   GETGLPROCMACRO(glMultiTexCoord1d)
   GETGLPROCMACRO(glMultiTexCoord1dv)
@@ -129,6 +134,7 @@ void getVERfuncs(osiRenderer *r, int major, int minor) {
   GETGLPROCMACRO(glLoadTransposeMatrixd)
   GETGLPROCMACRO(glMultTransposeMatrixf)
   GETGLPROCMACRO(glMultTransposeMatrixd)
+  #endif /// OS_WIN
 
   /// OpenGL 1.4 funcs =================------------------------------
   if(major== 1 && minor< 4)
@@ -739,7 +745,7 @@ void getVERfuncs(osiRenderer *r, int major, int minor) {
 // extensions not in ARB or EXT list //
 ///=================================///
 void getOTHERfuncs(osiRenderer *r) {
-
+  #ifdef OS_WIN
   if(r->glOTHERlist[0].avaible) {    /// GL_ARB_imaging
     GETGLPROCMACRO(glColorTable)
     GETGLPROCMACRO(glColorTableParameterfv)
@@ -774,6 +780,7 @@ void getOTHERfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glResetHistogram)
     GETGLPROCMACRO(glResetMinmax)
   }
+  #endif /// OS_WIN
   if(r->glOTHERlist[1].avaible) {    /// GL_ARB_bindless_texture
     GETGLPROCMACRO(glGetTextureHandleARB)
     GETGLPROCMACRO(glGetTextureSamplerHandleARB)
@@ -829,10 +836,12 @@ void getOTHERfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glIglooInterfaceSGIX)
 
   }
+  #ifdef OS_WIN
   if(r->glOTHERlist[7].avaible) {    /// WGL_NV_vertex_array_range
     GETGLPROCMACRO(wglAllocateMemoryNV)
     GETGLPROCMACRO(wglFreeMemoryNV)
   }
+  #endif /// OS_WIN
 
 }
 
@@ -881,8 +890,8 @@ void getARBfuncs(osiRenderer *r) {
   }
 
   #ifdef OS_LINUX
-  if(r->glARBlist[1].avaible)       /// #2 GLX_ARB_get_proc_address  http://www.opengl.org/registry/specs/ARB/get_proc_address.txt
-    GETGLPROCMACRO(glXGetProcAddressARB)
+  //if(r->glARBlist[1].avaible)       /// #2 GLX_ARB_get_proc_address  http://www.opengl.org/registry/specs/ARB/get_proc_address.txt
+    //GETGLPROCMACRO(glXGetProcAddressARB)
   #endif /// OS_LINUX
   
   if(r->glARBlist[2].avaible) {     /// #3 GL_ARB_transpose_matrix  http://www.opengl.org/registry/specs/ARB/transpose_matrix.txt
@@ -1336,9 +1345,12 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glXMakeCurrentReadSGI)
     GETGLPROCMACRO(glXGetCurrentReadDrawableSGI)
   }
+  
   if(r->glEXTlist[42].avaible) {    /// #43 GLX_SGIX_video_source http://www.opengl.org/registry/specs/SGIX/video_source.txt
+    #ifdef _VL_H
     GETGLPROCMACRO(glXCreateGLXVideoSourceSGIX)
     GETGLPROCMACRO(glXDestroyGLXVideoSourceSGIX)
+    #endif
   }
   if(r->glEXTlist[46].avaible) {    /// #47 GLX_EXT_import_context http://www.opengl.org/registry/specs/EXT/import_context.txt
     GETGLPROCMACRO(glXGetCurrentDisplayEXT)
@@ -1440,7 +1452,9 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glXChannelRectSyncSGIX)
   }
   if(r->glEXTlist[85].avaible) {    /// #86 GLX_SGIX_dm_buffer incomplete !!!GLX_SGIX_dmbuffer!!! http://www.opengl.org/registry/specs/SGIX/dmbuffer.txt
+    #ifdef _DM_BUFFER_H_
     GETGLPROCMACRO(glXAssociateDMPbufferSGIX)
+    #endif
   }
   if(r->glEXTlist[90].avaible) {    /// #91 GLX_SGIX_swap_group http://www.opengl.org/registry/specs/SGIX/swap_group.txt
     GETGLPROCMACRO(glXJoinSwapGroupSGIX)
@@ -3301,6 +3315,7 @@ inline GLAPI void APIENTRY glCompressedTexSubImage1D (GLenum target, GLint level
   osi.glr->glExt.glCompressedTexSubImage1D (target, level, xoffset, width, format, imageSize, data); }
 inline GLAPI void APIENTRY glGetCompressedTexImage (GLenum target, GLint level, void *img) {
   osi.glr->glExt.glGetCompressedTexImage (target, level, img); }
+#ifdef OS_WIN
 inline GLAPI void APIENTRY glClientActiveTexture (GLenum texture) {
   osi.glr->glExt.glClientActiveTexture (texture); }
 inline GLAPI void APIENTRY glMultiTexCoord1d (GLenum target, GLdouble s) {
@@ -3375,6 +3390,7 @@ inline GLAPI void APIENTRY glMultTransposeMatrixf (const GLfloat *m) {
   osi.glr->glExt.glMultTransposeMatrixf (m);}
 inline GLAPI void APIENTRY glMultTransposeMatrixd (const GLdouble *m) {
   osi.glr->glExt.glMultTransposeMatrixd (m);}
+#endif /// OS_WIN
 
 /// OpenGL 1.4 funcs =================------------------------------
 inline GLAPI void APIENTRY glBlendFuncSeparate (GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha) {
@@ -4517,8 +4533,7 @@ inline void glXGetSelectedEvent (Display *dpy, GLXDrawable draw, unsigned long *
   osi.glr->glExt.glXGetSelectedEvent (dpy, draw, event_mask);}
 
 /// GLX_VERSION_1_4
-inline GLXContext glXCreateContextAttribsARB (Display *dpy, GLXFBConfig config, GLXContext share_context, Bool direct, const int *attrib_list) {
-  return osi.glr->glExt.glXCreateContextAttribsARB (dpy, config, share_context, direct, attrib_list);}
+// well, how can one get the pointer for the function that gets the pointer?
 #endif /// OS_LINUX
 
 
@@ -4579,8 +4594,9 @@ inline GLAPI void APIENTRY glGetVertexAttribLui64vARB (GLuint index, GLenum pnam
   osi.glr->glExt.glGetVertexAttribLui64vARB (index, pname, params);}
 #ifdef OS_LINUX
 // GLX_ARB_get_proc_address
-inline __GLXextFuncPtr glXGetProcAddressARB (const GLubyte *procName) {
-  return osi.glr->glExt.glXGetProcAddressARB (procName);}
+// hope this func just works as it is...
+//inline __GLXextFuncPtr glXGetProcAddressARB (const GLubyte *procName) {
+  //return osi.glr->glExt.glXGetProcAddressARB (procName);}
 #endif /// OS_LINUX
 // GL_ARB_cl_event
 inline GLAPI GLsync APIENTRY glCreateSyncFromCLeventARB (struct _cl_context *context, struct _cl_event *event, GLbitfield flags) {
@@ -4685,6 +4701,7 @@ inline GLAPI void APIENTRY glFramebufferTextureLayerARB (GLenum target, GLenum a
   osi.glr->glExt.glFramebufferTextureLayerARB (target, attachment, texture, level, layer);}
 inline GLAPI void APIENTRY glFramebufferTextureFaceARB (GLenum target, GLenum attachment, GLuint texture, GLint level, GLenum face) {
   osi.glr->glExt.glFramebufferTextureFaceARB (target, attachment, texture, level, face);}
+#ifdef OS_WIN
 // GL_ARB_imaging - not in openGL registry list
 inline GLAPI void APIENTRY glColorTable (GLenum target, GLenum internalformat, GLsizei width, GLenum format, GLenum type, const void *table) {
   osi.glr->glExt.glColorTable (target, internalformat, width, format, type, table);}
@@ -4750,6 +4767,7 @@ inline GLAPI void APIENTRY glResetHistogram (GLenum target) {
   osi.glr->glExt.glResetHistogram (target);}
 inline GLAPI void APIENTRY glResetMinmax (GLenum target) {
   osi.glr->glExt.glResetMinmax (target);}
+#endif /// OS_WIN
 // GL_ARB_indirect_parameters
 inline GLAPI void APIENTRY glMultiDrawArraysIndirectCountARB (GLenum mode, GLintptr indirect, GLintptr drawcount, GLsizei maxdrawcount, GLsizei stride) {
   osi.glr->glExt.glMultiDrawArraysIndirectCountARB (mode, indirect, drawcount, maxdrawcount, stride);}
