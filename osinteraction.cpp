@@ -1,4 +1,4 @@
-﻿#include "osinteraction.h"
+#include "osinteraction.h"
 bool chatty= false;  /// used only for DEBUG
 
 
@@ -6,15 +6,13 @@ bool chatty= false;  /// used only for DEBUG
 //^^^^^^^^^^^^^^^
 
 /* TODO:
- * - all internals to have '_' in front, and all or most funcs that are internal, should be outside their class/
+ * - all internals to have '_' in front, and all or most funcs that are internal, should be outside their class
  * - [mac] better glMakeCurrent func, with the coreGl mac stuff << MAX PRIORITY
- * - [all] extensions in win will be tied to glRenderer; inline funcs must be done for EVERY extension;
- *   function pointers are aquired differently on each system;
-
+ *
  * - [win] USING_XINPUT & USING_DIRECTINPUT must be inside OS_WIN
  * - system to create a glRenderer for each graphic card (MUST install a second grcard on a computer) !!!!
  * 
- * - [linux][mac] threads!!!!!!!!!!!!
+ * - [mac] threads!!!!!!!!!!!!
  *
  * - [linux][mac] set an icon for the window;  [win] WHEN dealing with icons, must remember to develop WM_GETICON too
  *
@@ -23,7 +21,7 @@ bool chatty= false;  /// used only for DEBUG
  * - create a loading window, in the center of the screen? eventually to have image of the game
  *
  * LOWER PRIORITY:
- * - rename Input class... osiInput or osiinput or osiInput (might rename all classes to 'osi' style)
+ * [all] XLock/UnlockDisplay() - keep an eye on, something like this might be implemented for all os-es, for threads
  * - [linux][mac] prevent screensaver/ monitor low power
  * - [win][linux][mac] what happens on sleep? should be handled like 'app lose focus', or better, another flag, as the app must pause or something (some dont pause on app focus)
  * - windowfocus flag. it's there, but not updated at all
@@ -732,25 +730,23 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, string name, int
 
 
   #ifdef OS_LINUX //                <---------------------------LINUX
-  XVisualInfo *vi;
   Colormap cmap;
   XSetWindowAttributes swa;
 
-  GLint att[]= {
-                 GLX_RGBA,
+  GLint att[]= { GLX_RGBA,
                  GLX_RED_SIZE, 8,
                  GLX_GREEN_SIZE, 8,
                  GLX_BLUE_SIZE, 8,
                  GLX_ALPHA_SIZE, 8,
                  GLX_DEPTH_SIZE, 16,
-                 GLX_DOUBLEBUFFER,
+                 (dblBuffer? GLX_DOUBLEBUFFER: 0),
                  None };
-
+  
   w->root= m->root;                                        // 'desktop window'
   w->dis= primWin->dis; // server connection, created in osinteraction()
-
+  
   if(mode == 2)
-    if(!display.changeRes(w, m, dx, dy, bpp, freq)) {
+    if(!display.changeRes(m, dx, dy, bpp, freq)) {
       error.simple("osi:createGLwindow: cant change to selected resolution");
       w->dx= m->dx;
       w->dy= m->dy;
@@ -759,7 +755,7 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, string name, int
 
   w->mode= mode;
 
-  vi= glXChooseVisual(w->dis, m->screen, att);
+  w->vi= glXChooseVisual(w->dis, m->screen, att);
 
   /* !!!!!!!!!!!!!!!!!!
   vi= DefaultVisual(display, 0);
@@ -767,10 +763,10 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, string name, int
   */
 
 
-  if(vi == NULL)
+  if(w->vi == NULL)
     error.simple(func+ "no appropriate visual found\n", true);
   else // DELETE <--------------------------------
-    if(chatty) printf("\n\tvisual %p selected\n", (void *)vi->visualid); // %p creates hexadecimal output like in glxinfo
+    if(chatty) printf("\n\tvisual %p selected\n", (void *)w->vi->visualid); // %p creates hexadecimal output like in glxinfo
 
   cmap= XCreateColormap(w->dis, w->root, vi->visual, AllocNone);
   swa.colormap= cmap;
@@ -796,13 +792,13 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, string name, int
   w->win= XCreateWindow(w->dis, w->root,
                         w->x0, display.vdy- display.vy0- (w->y0+ w->dy), w->dx, w->dy,     // position & size (coord unification fixed)
                         0,                              // border size
-                        vi->depth,                      // depth can be CopyFromParent
+                        w->vi->depth,                      // depth can be CopyFromParent
                         InputOutput,                    // InputOnly/ InputOutput/ CopyFromParent
-                        vi->visual,                     // can be CopyFromParent
+                        w->vi->visual,                     // can be CopyFromParent
                         CWColormap| CWEventMask| CWOverrideRedirect,       // tied with &swa
                         &swa);                          //
 
-
+  
 
 
   // XInput EXPERIMANTAL
@@ -897,26 +893,14 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, string name, int
 
   XStoreName(w->dis, w->win, name);         /// window name (top bar description/name)
 
-
-  // WIP <<<<<<<<<<<<< THIS IS NOT DONE. 'RENDERERS MUST BE HANDLED'
-  // NOTE: this func has shareLists in its params !!!!!!!!!!!!!!!!!!!!!
-  if(win== primWin)
-    w->glRenderer= glXCreateContext(w->dis, vi, NULL, GL_TRUE);
-  else
-    w->glRenderer= win[0].glRenderer;
-  // SAME RENDERER!!!!!!!!!!!!!!!!!!!!!!!!!!!!! ATM
-
-/* The last parameter decides if direct rendering is enabled. If you want
-   to send the graphical output via network, you have to set it to GL_FALSE.
-   If your application puts its output to the computer you are sitting in
-   front of, use GL_TRUE. Note that some capabilities like vertex buffer objects
-   can only be used with a direct gl context (GL_TRUE). */
-
+  /// create / assign existing renderer 
+  if(!assignRenderer(w)) {
+    osi.killGLWindow(w);
+    error.simple("FATAL ERROR: Cannot create oGL renderer (context)");
+    return false;
+  }
   
   glMakeCurrent(w);                         // osi variant. works on every OS
-
-  
-  glEnable(GL_DEPTH_TEST);
 
   ///  handle the close button WM
   if(w== primWin) {
@@ -927,8 +911,9 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, string name, int
   w->monitor= m;
   w->isCreated= true;
   m->win= w;
-
-  w->glr->getExtensions();        /// once a window is created, getExtensions() aquires oGL extensions functions
+  
+  w->glr->checkExt();           /// checks for extension avaibility on this oGL renderer
+  w->glr->getExtFuncs();        /// once a window is created, getExtensions() aquires oGL extensions functions
 
   return true;
 
@@ -941,7 +926,7 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, string name, int
   return cocoa.createWindow(w);  /// all window vars are set, just create the window.
   #endif /// OS_MAC
   
-/// if program reached this point, there's no OS defined
+  /// if program reached this point, there's no OS defined
   error.simple(func+ "no OS specified?");
   return false;
 } // osinteraction::createGLWindow END <<<
@@ -969,33 +954,6 @@ bool osinteraction::killGLWindow(osiWindow *w) {
   w->delData();
 
   return true;
-  /*
-  #ifdef OS_WIN
-  /*
-  if(w->monitor)
-    w->monitor->win= null;
-
-  if (w->mode== 2)
-    display.restorePrimary();
-
-  w->delData();
-  
-  return true;
-  
-  #endif /// OS_WIN
-
-  #ifdef OS_LINUX
-  w->delData();
-  return true;
-  #endif /// OS_LINUX
-
-  #ifdef OS_MAC
-  w->delData();
-  return true;
-  #endif
-
-  return false;
-  */
 } /// osinteraction::killGLWindow
 
 
@@ -1010,6 +968,65 @@ void osinteraction::setProgramIcon(string file) {
   //SendMessage(hwnd, WM_SETICON, ICON_SMALL, (LPARAM)hIconSm);
   #endif
 
+  #ifdef OS_LINUX
+  
+// WIP <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<  
+  // research:
+  /*
+   * 
+   * i think an .ico lib and .png lib must be in osi (maybe more img types, too... heck, why not osi to handle multiple img types...)
+   * this will help for a splash screen image too
+   * 
+   * you can include something like #include "icon.bmp", and XReadBitmap funcs know how to handle this weird thing
+   * 
+   * 
+   * interesting funcs
+   * XCreatePixmapFrobBitmap (dunno exactly the name)
+   * XSetWMIconName(display, win, &icon_name_property); <<< dunno about this name, must check when it is shown
+   * 
+   * */
+  return; // <<<<<<<<<<<<<<<<<<<< RETURN HERE as nothing works  
+    
+  /* include the definition of the bitmap in our program. */
+  //#include "icon.bmp";
+
+  /* pointer to the WM hints structure. */
+  
+  // all this should work, as long as iconPixmap is populated with data somehow
+  
+  XWMHints* winHints;
+
+  
+  /* load the given bitmap data and create an X pixmap containing it. */
+  Pixmap iconPixmap; // = XCreateBitmapFromData(display, win, icon_bitmap_bits, icon_bitmap_width, icon_bitmap_height);
+  
+  //if (!icon_pixmap) {
+    //fprintf(stderr, "XCreateBitmapFromData - error creating pixmap\n");
+    //exit(1);
+  //}
+
+  winHints= XAllocWMHints();
+
+  /* initialize the structure appropriately. */
+  /* first, specify which size hints we want to fill in. */
+  /* in our case - setting the icon's pixmap. */
+  winHints->flags= IconPixmapHint;
+  /* next, specify the desired hints data.           */
+  /* in our case - supply the icon's desired pixmap. */
+  winHints->icon_pixmap= iconPixmap;
+  
+  /* pass the hints to the window manager. */
+  XSetWMHints(osi.primWin->dis, osi.primWin->win, winHints);
+
+  XFree(winHints);
+    
+    
+// WIP <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+  #endif
+
+  #ifdef OS_MAC
+  makeme
+  #endif
 }
 
 void osinteraction::startThread(void func(void *)) {
@@ -1025,7 +1042,18 @@ void osinteraction::startThread(void func(void *)) {
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
-  makeme
+/* WARNING:
+ * XInitThreads() function initializes Xlib support for concurrent threads.
+ *   This function must be the first Xlib function a multi-threaded program calls,
+ *   and it must complete before any other Xlib call is made. 
+ * 
+ * XLock/UnlockDisplay() - keep an eye on, something like this might be implemented for all os-es, for threads
+ * 
+ * std::threads works on every os... it's new.... 
+ * 
+ */
+  pthread_t dummy;
+  pthread_create(&dummy, null, func, null);
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
@@ -1033,6 +1061,19 @@ void osinteraction::startThread(void func(void *)) {
   #endif /// OS_MAC
 }
 
+void osinteraction::endThread(int status) {
+  #ifdef OS_WIN
+  makeme
+  #endif /// OS_WIN
+
+  #ifdef OS_LINUX
+  pthread_exit(&status);
+  #endif /// OS_LINUX
+
+  #ifdef OS_MAC
+  makeme
+  #endif /// OS_MAC
+}
 
 
 
@@ -1952,7 +1993,8 @@ osiWindow::osiWindow() {
   freq= bpp= 0;
 
   monitor= null;
-
+  glr= null;
+  
   #ifdef OS_WIN
   hDC= NULL;
   hInstance= NULL;
@@ -1962,15 +2004,13 @@ osiWindow::osiWindow() {
   #ifdef OS_LINUX
   root= 0;              /// root window (desktop/server main window/ watever)
   win= 0;               /// window 'handle' or watever (per monitor)
-
-  glRenderer= 0;        /// openGL renderer
+  vi= null;
   isMapped= false;
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
   win= null;
   view= null;
-  glRenderer= null;   // n/u
   #endif /// OS_MAC
 }
 
@@ -2286,7 +2326,14 @@ osiRenderer *createRenderer(osiWindow *w) {
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
-  makeme
+  r->glContext= glXCreateContext(w->dis, w->vi, NULL, GL_TRUE);
+  
+/* The last parameter decides if direct rendering is enabled. If you want
+   to send the graphical output via network, you have to set it to GL_FALSE.
+   If your application puts its output to the computer you are sitting in
+   front of, use GL_TRUE. Note that some capabilities like vertex buffer objects
+   can only be used with a direct gl context (GL_TRUE). */
+          
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
@@ -2417,8 +2464,7 @@ bool osinteraction::glMakeCurrent(osiWindow *w) {
   if(w)
     return glXMakeCurrent(w->dis, w->win, w->glr->glRenderer);
   else
-    make a null check. if a null is called this has to be done
-    return true; //glXMakeCurrent(primWin->dis, None, NULL);
+    return glXMakeCurrent(primWin->dis, None, NULL);
   #endif /// OS_LINUX
 
   #ifdef OS_MAC

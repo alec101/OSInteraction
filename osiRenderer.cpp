@@ -10,9 +10,18 @@ extern void getVERfuncs(osiRenderer *, int, int);
 extern void getARBfuncs(osiRenderer *);
 extern void getEXTfuncs(osiRenderer *);
 extern void getOTHERfuncs(osiRenderer *);
+void *glExtNULL(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
 
 
-osiRenderer::osiRenderer() {
+  
+
+
+
+osiRenderer::osiRenderer()
+#ifndef OS_WIN
+: glExt( ::glExt)        /// set the reference to the global struct that holds all the functions 
+#endif
+  {
   glContext= null;
   isActive= false;
   glVerMajor= glVerMinor= 0;
@@ -22,7 +31,7 @@ osiRenderer::osiRenderer() {
   #ifdef OS_WIN
   ;
   #else /// OS_MAC & OS_LINUX
-  this->glExt= ::glExt;       /// set the reference to the global struct that holds all the functions
+
   #endif
 
   short a;
@@ -47,7 +56,7 @@ osiRenderer::osiRenderer() {
   /// set all glExt funcs to point to the glExtNULL func (defined in osiGlExt.cpp)
   void **p= (void **)&glExt.glDrawRangeElements;      // glDrawRangeElements must be the first func in the structure
   for(int a= 0; a< ((sizeof(glExt)- sizeof(char))/ sizeof(void *)); a++) {
-    *p= &glExtNULL;
+    *p= (void*)&glExtNULL;
     p++;
   }
 }

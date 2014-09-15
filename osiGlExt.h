@@ -5,6 +5,15 @@
 
 */
 
+// Research:
+/*
+ * windows has gl.h on v1.1
+ * linux has gl.h on v1.3, has GL_ARB_imaging extension, too and some others
+*/
+
+#ifdef OS_LINUX
+//extern __GLXextFuncPtr glXGetProcAddressARB (const GLubyte *procName);
+#endif
 
 // each oGL extension will have one of these structs (there is an array with all of them)
 struct GlExt {
@@ -48,6 +57,7 @@ struct GlExtFuncs {
   PFNGLCOMPRESSEDTEXSUBIMAGE2DPROC glCompressedTexSubImage2D;
   PFNGLCOMPRESSEDTEXSUBIMAGE1DPROC glCompressedTexSubImage1D;
   PFNGLGETCOMPRESSEDTEXIMAGEPROC glGetCompressedTexImage;
+  #ifdef OS_WIN /// ofc, these funcs dont have pointers under linux, dunno why
   PFNGLCLIENTACTIVETEXTUREPROC  glClientActiveTexture;
   PFNGLMULTITEXCOORD1DPROC      glMultiTexCoord1d;
   PFNGLMULTITEXCOORD1DVPROC     glMultiTexCoord1dv;
@@ -85,6 +95,7 @@ struct GlExtFuncs {
   PFNGLLOADTRANSPOSEMATRIXDPROC glLoadTransposeMatrixd;
   PFNGLMULTTRANSPOSEMATRIXFPROC glMultTransposeMatrixf;
   PFNGLMULTTRANSPOSEMATRIXDPROC glMultTransposeMatrixd;
+  #endif /// OS_WIN
 
   /// OpenGL 1.4 funcs =================------------------------------
   PFNGLBLENDFUNCSEPARATEPROC  glBlendFuncSeparate;
@@ -653,7 +664,8 @@ struct GlExtFuncs {
   // CORE or other extensions not in ARB or EXT list //
   ///===============================================///
 
-  ///GL_ARB_imaging
+  #ifdef OS_WIN
+  /// GL_ARB_imaging - no PFNPROCs in linux... ffs they just work without them
   PFNGLCOLORTABLEPROC glColorTable;
   PFNGLCOLORTABLEPARAMETERFVPROC glColorTableParameterfv;
   PFNGLCOLORTABLEPARAMETERIVPROC glColorTableParameteriv;
@@ -686,6 +698,7 @@ struct GlExtFuncs {
   PFNGLMINMAXPROC glMinmax;
   PFNGLRESETHISTOGRAMPROC glResetHistogram;
   PFNGLRESETMINMAXPROC glResetMinmax;
+  #endif /// OS_WIN
 
   /// GL_ARB_bindless_texture
   PFNGLGETTEXTUREHANDLEARBPROC glGetTextureHandleARB;
@@ -740,10 +753,11 @@ struct GlExtFuncs {
   /// GL_SGIX_igloo_interface
   PFNGLIGLOOINTERFACESGIXPROC glIglooInterfaceSGIX;
 
+  #ifdef OS_WIN
   /// WGL_NV_vertex_array_range
   PFNWGLALLOCATEMEMORYNVPROC wglAllocateMemoryNV;
   PFNWGLFREEMEMORYNVPROC wglFreeMemoryNV;
-
+  #endif
 
 
 
@@ -764,7 +778,7 @@ struct GlExtFuncs {
   PFNGLXCREATEPIXMAPPROC glXCreatePixmap;
   PFNGLXDESTROYPIXMAPPROC glXDestroyPixmap;
   PFNGLXCREATEPBUFFERPROC glXCreatePbuffer;
-  PFNGLXDESTROYPBUFFEPROCR glXDestroyPbuffer;
+  PFNGLXDESTROYPBUFFERPROC glXDestroyPbuffer;
   PFNGLXQUERYDRAWABLEPROC glXQueryDrawable;
   PFNGLXCREATENEWCONTEXTPROC glXCreateNewContext;
   PFNGLXMAKECONTEXTCURRENTPROC glXMakeContextCurrent;
@@ -774,7 +788,7 @@ struct GlExtFuncs {
   PFNGLXGETSELECTEDEVENTPROC glXGetSelectedEvent;
 
   /// GLX_VERSION_1_4
-  PFNGLXGETPROCADDRESSPROC glXGetProcAddress;
+  //PFNGLXGETPROCADDRESSPROC glXGetProcAddress;
   #endif /// OS_LINUX
 
 
@@ -820,7 +834,7 @@ struct GlExtFuncs {
   PFNGLMULTITEXCOORD4SVARBPROC    glMultiTexCoord4svARB;
   #ifdef OS_LINUX
   /// #2 GLX_ARB_get_proc_address  http://www.opengl.org/registry/specs/ARB/get_proc_address.txt
-  PFNGLXGETPROCADDRESSARBPROC glXGetProcAddressARB;
+  //PFNGLXGETPROCADDRESSARBPROC glXGetProcAddressARB;
   #endif /// OS_LINUX
   /// #3 GL_ARB_transpose_matrix  http://www.opengl.org/registry/specs/ARB/transpose_matrix.txt
   PFNGLLOADTRANSPOSEMATRIXFARBPROC glLoadTransposeMatrixfARB;
@@ -1348,8 +1362,10 @@ struct GlExtFuncs {
   PFNGLXMAKECURRENTREADSGIPROC glXMakeCurrentReadSGI;
   PFNGLXGETCURRENTREADDRAWABLESGIPROC glXGetCurrentReadDrawableSGI;
   /// GLX_SGIX_video_source      // #43 http://www.opengl.org/registry/specs/SGIX/video_source.txt
+  #ifdef _VL_H
   PFNGLXCREATEGLXVIDEOSOURCESGIXPROC glXCreateGLXVideoSourceSGIX;
   PFNGLXDESTROYGLXVIDEOSOURCESGIXPROC glXDestroyGLXVideoSourceSGIX;
+  #endif /// _VL_H - dunno what this is...
   /// GLX_EXT_import_context     // #47 http://www.opengl.org/registry/specs/EXT/import_context.txt
   PFNGLXGETCURRENTDISPLAYEXTPROC glXGetCurrentDisplayEXT;
   PFNGLXQUERYCONTEXTINFOEXTPROC glXQueryContextInfoEXT;
@@ -1432,7 +1448,9 @@ struct GlExtFuncs {
   PFNGLXQUERYCHANNELDELTASSGIXPROC glXQueryChannelDeltasSGIX;
   PFNGLXCHANNELRECTSYNCSGIXPROC glXChannelRectSyncSGIX;
   /// GLX_SGIX_dm_buffer         // #86 incomplete !!!GLX_SGIX_dmbuffer!!! http://www.opengl.org/registry/specs/SGIX/dmbuffer.txt
+  #ifdef _DM_BUFFER_H_
   PFNGLXASSOCIATEDMPBUFFERSGIXPROC glXAssociateDMPbufferSGIX;
+  #endif /// _DM_BUFFER_H_ - no clue 'bout this header
   /// GLX_SGIX_swap_group          // #91 http://www.opengl.org/registry/specs/SGIX/swap_group.txt
   PFNGLXJOINSWAPGROUPSGIXPROC glXJoinSwapGroupSGIX;
   /// GLX_SGIX_swap_barrier        // #92 http://www.opengl.org/registry/specs/SGIX/swap_barrier.txt

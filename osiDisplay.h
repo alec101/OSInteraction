@@ -77,6 +77,7 @@ struct osiResolution {
 
 // -------------========= osiMonitor =======------------------
 struct osiMonitor {
+  friend bool doChange(osiMonitor *, osiResolution *, int8, short);
   string name;              /// monitor name (product description or something that can identify it)
 
   int x0, y0;               /// position on the VIRTUAL DESKTOP

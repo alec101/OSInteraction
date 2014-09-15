@@ -62,8 +62,6 @@
 
  
 
-#pragma once
-
 // You can start the program with this macro; starting with main() in windows signals to create a console
 #define osiMain \
 #ifdef OS_WIN \
@@ -74,12 +72,13 @@ int main(int argc, char *argv[], char *envp[]) { \
 
 
 #ifdef _WIN32
-#define OS_WIN
+#define OS_WIN 1
 #elif defined __linux__
-#define OS_LINUX
+#define OS_LINUX 1
 #elif defined __APPLE__
-#define OS_MAC
+#define OS_MAC 1
 #endif
+
 
 #ifdef OS_WIN
 #define _CRT_SECURE_NO_WARNINGS
@@ -107,6 +106,10 @@ int main(int argc, char *argv[], char *envp[]) { \
 #include <stdarg.h>
 #include <math.h>
 
+
+
+
+
 // OpenGL headers
 
 #ifdef OS_WIN
@@ -118,9 +121,12 @@ int main(int argc, char *argv[], char *envp[]) { \
 #endif /// OS_WIN
 
 #ifdef OS_LINUX
+#define GL_GLEXT_LEGACY 1
+#define GLX_GLXEXT_PROTOTYPES 1
 #include <GL/gl.h>
 #include <GL/glu.h>
-#define GLX_GLXEXT_PROTOTYPES 1
+#include <GL/glx.h>
+
 #include "glxext.h"
 #endif /// OS_LINUX
 
@@ -129,8 +135,11 @@ int main(int argc, char *argv[], char *envp[]) { \
 #include <OpenGL/glu.h>
 // there's a corearb header, too NEEDS CHECKING
 #endif /// OS_MAC
-#define GL_GLEXT_PROTOTYPES
-#include "glext.h"        // OpenGL extensions header file (OS independant ones)
+
+#define GL_GLEXT_PROTOTYPES 1
+#include <glext.h>        // OpenGL extensions header file (OS independant ones)
+
+// os specific
 
 #ifdef OS_LINUX
 #include <unistd.h>
@@ -143,11 +152,10 @@ int main(int argc, char *argv[], char *envp[]) { \
 #include <X11/keysymdef.h>
 #include <X11/extensions/Xrandr.h>
 #include <X11/extensions/Xinerama.h>
+#include <pthread.h>
 //#include <X11/extensions/XInput.h>        // too old stuff, maybe go thru it again, but...
 //#include <X11/extensions/XInput2.h>       // too old stuff, maybe go thru it again, but...
 //#include <locale.h> printf won't work without locale, to print unicode chars...
-
-#include <GL/glx.h>
 #endif /// OS_LINUX
 
 #ifdef OS_MAC
@@ -159,6 +167,7 @@ int main(int argc, char *argv[], char *envp[]) { \
 #include <IOKit/hid/IOHIDLib.h>         // human interface devices (joysticks/gamepads/gamewheels)
 #endif /// OS_MAC
 
+// utility classes
 
 #include "typeShortcuts.h"
 #include "stringClass32.h"
@@ -168,6 +177,8 @@ int main(int argc, char *argv[], char *envp[]) { \
 #include "segList.h"
 
 typedef string8 string;         // <<-- string set is here; can be utf-8 / utf-32
+
+// osi headers
 
 #include "osiDisplay.h"
 #include "osiGlExt.h"
@@ -224,6 +235,7 @@ public:
   static Display *dis;      /// display 'handle'. nowadays there is only 1 display, and 1 big (virtual) screen.
   Window win;               /// window 'handle' or watever
   XWindowAttributes gwa;    /// window attributes (size/etc)
+  XVisualInfo *vi;
   
   bool isMapped;            // internal flag used when resolution is changing <<NOT USED ANYMORE I THINK>>
 
@@ -243,7 +255,7 @@ public:
 
 
 ///=============================================================================///
-// -----------=========== osiNTERACTION CLASS ================------------------ //
+// -----------=========== OSINTERACTION CLASS ================------------------ //
 ///=============================================================================///
 
 class osinteraction {
@@ -274,6 +286,7 @@ public:
   bool checkMSG();                    /// checks for OS messages, should be INCLUDED in the MAIN LOOP
 
   void startThread(void (void *));    /// start / create a new thread
+  void endThread(int status= 0);      /// call it within the thread to end the thread
   
   // openGL window creation / deletion funcs:
   
