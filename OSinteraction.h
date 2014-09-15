@@ -110,7 +110,8 @@ int main(int argc, char *argv[], char *envp[]) { \
 // OpenGL headers
 
 #ifdef OS_WIN
-#include <GL/gl.h>
+//#include <GL/gl.h>
+#include "gl.h"
 #include <GL/glu.h>
 #define WGL_WGLEXT_PROTOTYPES 1
 #include "wglext.h"
