@@ -29,6 +29,7 @@ struct js_event {
 /*
 #include <math.h>
  
+#ifdef OS_WIN
 #ifdef USING_DIRECTINPUT
   #define DIRECTINPUT_VERSION 0x0800
   #include <dinput.h>
@@ -36,7 +37,8 @@ struct js_event {
 #ifdef USING_XINPUT
   // #include <c:\alec\dxSDK2010j\Include\XInput.h> // USE XINPUT 1.3
 #endif
- 
+#endif /// OS_WIN
+
 #ifdef OS_LINUX
 #include <linux/joystick.h>   // it's not x stuff... lots of crap added, keyboard/mouse, that is not needed
 #include <fcntl.h>
@@ -121,6 +123,7 @@ static Cursor CreateNullCursor(Display *display, Window root)
 // -----------------------------======================--------------------------------
 
 void osiInput::vibrate() {
+  #ifdef OS_WIN
   #ifdef USING_DIRECTINPUT // direct input vibration
   /*
   HRESULT  hr;
@@ -209,11 +212,11 @@ void osiInput::vibrate() {
   //gp[4].vibration->Start(1, null);
   //hr = g_lpdid->CreateEffect(GUID_ConstantForce, &diEffect, &lpdiEffect, NULL);
   #endif /// USING_DIRECTINPUT
-
+  #endif /// OS_WIN
 
 }
 
-
+#ifdef OS_WIN
 #ifdef USING_DIRECTINPUT
 BOOL CALLBACK EnumEffectsCallback(LPCDIEFFECTINFO di, LPVOID pvRef) {
     //DInputFFB * ffb = (DInputFFB*) pvRef;
@@ -228,7 +231,7 @@ BOOL CALLBACK EnumEffectsCallback(LPCDIEFFECTINFO di, LPVOID pvRef) {
     return DIENUM_CONTINUE;
 }
 #endif
-
+#endif /// OS_WIN
 /// end testing
 
 
@@ -281,6 +284,9 @@ osiInput::osiInput() {
   #ifdef OS_WIN
   mode2Name= "Direct Input";
   mode3Name= "XInput";
+  #ifdef USING_DIRECTINPUT
+  _dInput= null;
+  #endif /// USING_DIRECTINPUT
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
@@ -291,20 +297,17 @@ osiInput::osiInput() {
   mode2Name= mode3Name= "Not Used";
   k.numLock= true;    /// macs don't handle num locks. this will always be on
   #endif /// OS_MAC
-
-  #ifdef USING_DIRECTINPUT
-  dInput= null;
-  #endif /// USING_DIRECTINPUT
-
 }
 
 
 osiInput::~osiInput() {
+  #ifdef OS_WIN
   #ifdef USING_DIRECTINPUT
-  if(dInput)
-    dInput->Release();
-  dInput= null;
+  if(_dInput)
+    _dInput->Release();
+  _dInput= null;
   #endif
+  #endif /// OS_WIN
 
   #ifdef OS_MAC
   IOHIDManagerClose(manager, kIOHIDOptionsTypeNone); /// close the HID manager
@@ -336,13 +339,15 @@ void osiInput::delData() {
 bool osiInput::init(int mMode, int kMode) {
   m.mode= mMode;
   k.mode= kMode;
+  #ifdef OS_WIN
   #ifdef USING_DIRECTINPUT
-  if(!dInput)
-    if(DirectInput8Create(osi.win[0].hInstance, DIRECTINPUT_VERSION, IID_IDirectInput8, (void**)&dInput, NULL)!= DI_OK) {
+  if(!_dInput)
+    if(DirectInput8Create(osi.win[0]._hInstance, DIRECTINPUT_VERSION, IID_IDirectInput8, (void**)&_dInput, NULL)!= DI_OK) {
       error.simple("Could not initialize Direct Input");
       return false;
     }
   #endif
+  #endif /// OS_WIN
 
   /// fill in all vars, find all xinput/directinput devices, etc
   populate(true);
@@ -416,7 +421,7 @@ void osiInput::populate(bool scanMouseKeyboard) {
   uint64 start, end;
   bool timer= false;
 
-  lastPopulate= osi.present;
+  _lastPopulate= osi.present;
 
   // DO NOT SCAN FOR MOUSE & KEYBOARD EACH SECOND !!! - it can be done but it is extremly laggy
   if(scanMouseKeyboard) {
@@ -645,6 +650,7 @@ skipWinOSsearch:
 
 
   // ------------============ MODE 2 JOYSTICKS ===============------------
+  #ifdef OS_WIN
   #ifdef USING_DIRECTINPUT
   if(timer) osi.getNanosecs(&start);
   /// jConnected helps to check for disconnected joysticks; start with false, and each connected stick must mark 'true'
@@ -652,7 +658,7 @@ skipWinOSsearch:
   for(short a= 0; a< 8; a++)
     jConnected[a]= false;
 
-  dInput->EnumDevices(DI8DEVCLASS_GAMECTRL, diDevCallback, NULL, DIEDFL_ATTACHEDONLY);
+  _dInput->EnumDevices(DI8DEVCLASS_GAMECTRL, _diDevCallback, NULL, DIEDFL_ATTACHEDONLY);
 
   for(short a= 0; a< 8; a++) {
     if(j[a+ 8].mode&& !jConnected[a]) {     // a joystick was disconnected
@@ -674,9 +680,11 @@ skipWinOSsearch:
   /// direct input 'unplugged' state is set in Joystick::update(); if it can't read from device, calls delData()
 
   #endif /// USING_DIRECTINPUT
+  #endif /// OS_WIN
 
   // ------------============ MODE 3 JOYSTICKS ===============------------
 
+  #ifdef OS_WIN
   #ifdef USING_XINPUT
   if(timer) osi.getNanosecs(&start);
   
@@ -687,7 +695,7 @@ skipWinOSsearch:
     /// Simply get the state of the controller from XInput.  
     if(XInputGetState(a, &state)== ERROR_SUCCESS) {
       if(!j[16+ a].mode) {          /// new stick found
-        j[16+ a].id= a;
+        j[16+ a]._id= a;
 
         /// set mode to XInput (3)
         j[16+ a].mode= 3;
@@ -721,19 +729,19 @@ skipWinOSsearch:
   if(timer) printf("xinput joystick check: %llu nanosecs\n", end- start);
   
   #endif /// USING_XINPUT
-  
+  #endif /// OS_WIN
 }
 
-
+#ifdef OS_WIN
 #ifdef USING_DIRECTINPUT
-BOOL CALLBACK diDevCallback(LPCDIDEVICEINSTANCE inst, LPVOID extra) {
+BOOL CALLBACK _diDevCallback(LPCDIDEVICEINSTANCE inst, LPVOID extra) {
   /// can't handle more than 8 direct input sticks (don't think this will change very soon)
   if(in.nr.jT2== 8)
     return DIENUM_CONTINUE;
 
   /// check if this device is already active
   for(short a= 8; a< 16; a++) {
-    if(in.j[a].diID== inst->guidInstance) {
+    if(in.j[a]._diID== inst->guidInstance) {
       jConnected[a- 8]= true;           /// this helps with joystick disconnection(see more in Input::populate())
       return DIENUM_CONTINUE;
     }
@@ -749,25 +757,25 @@ BOOL CALLBACK diDevCallback(LPCDIDEVICEINSTANCE inst, LPVOID extra) {
 
   /// create the direct input device
   bool fail= false;
-  if(in.dInput->CreateDevice(inst->guidInstance, &in.j[id].diDevice, NULL)                     != DI_OK) fail= true;
-  if(in.j[id].diDevice->SetDataFormat(&c_dfDIJoystick2)                                        != DI_OK) fail= true;
-  if(in.j[id].diDevice->SetCooperativeLevel(osi.win[0].hWnd, DISCL_EXCLUSIVE| DISCL_FOREGROUND)!= DI_OK) fail= true;
+  if(in._dInput->CreateDevice(inst->guidInstance, &in.j[id]._diDevice, NULL)                     != DI_OK) fail= true;
+  if(in.j[id]._diDevice->SetDataFormat(&c_dfDIJoystick2)                                         != DI_OK) fail= true;
+  if(in.j[id]._diDevice->SetCooperativeLevel(osi.win[0]._hWnd, DISCL_EXCLUSIVE| DISCL_FOREGROUND)!= DI_OK) fail= true;
 
   if(fail) {
     error.console("diDevCallback(): couldn't add the new device");
-    if(in.j[id].diDevice)
-      in.j[id].diDevice->Release();
-    in.j[id].diDevice= null;
+    if(in.j[id]._diDevice)
+      in.j[id]._diDevice->Release();
+    in.j[id]._diDevice= null;
     return DIENUM_CONTINUE;
   }
 
-  in.j[id].diID= inst->guidInstance;                  /// this is used to distinguish between new sticks and already in use sticks
+  in.j[id]._diID= inst->guidInstance;                  /// this is used to distinguish between new sticks and already in use sticks
 
   /// device capabilities 
   // http://msdn.microsoft.com/en-us/library/windows/desktop/microsoft.directx_sdk.reference.didevcaps(v=vs.85).aspx
   DIDEVCAPS caps;
   caps.dwSize= sizeof(DIDEVCAPS);
-  in.j[id].diDevice->GetCapabilities(&caps);
+  in.j[id]._diDevice->GetCapabilities(&caps);
   //(FORCE FEEDBACK FLAG? maybe?)<<<<<<<<<
 
   in.j[id].maxButtons= (short)caps.dwButtons; /// number of buttons device has
@@ -796,7 +804,7 @@ BOOL CALLBACK diDevCallback(LPCDIDEVICEINSTANCE inst, LPVOID extra) {
   return DIENUM_CONTINUE;         /// DIENUM_CONTINUE to continue enumerating devices; else it will stop enumerating
 }
 #endif /// USING_DIRECTINPUT
-
+#endif /// OS_WIN
 
 
 
@@ -882,11 +890,13 @@ void osiInput::resetPressedButtons() {
 osiMouse::osiMouse() {
   mode= 1;
   x= y= dx= dy= oldx= oldy= wheel= 0;
-  twheel= 0;      /// used with wheel position, internal
+  _twheel= 0;      /// used with wheel position, internal
+  #ifdef OS_WIN
   #ifdef USING_DIRECTINPUT
-  diDevice= null;
-  diStats= {0};
+  _diDevice= null;
+  _diStats= {0};
   #endif /// USING_DIRECTINPUT
+  #endif /// OS_WIN
 }
 
 
@@ -897,16 +907,18 @@ osiMouse::~osiMouse() {
 
 void osiMouse::delData() {
   mode= 1;
-  twheel= 0;
+  _twheel= 0;
   x= y= dx= dy= oldx= oldy= wheel= 0;
 
+  #ifdef OS_WIN
   #ifdef USING_DIRECTINPUT
-  if(diDevice) {
-    diDevice->Unacquire();
-    diDevice->Release();
-    diDevice= null;
+  if(_diDevice) {
+    _diDevice->Unacquire();
+    _diDevice->Release();
+    _diDevice= null;
   }
   #endif /// USING_DIRECTINPUT
+  #endif /// OS_WIN
 
 }
 
@@ -922,33 +934,31 @@ bool osiMouse::init(short mode) {
   }
 
   if(mode== 3) {
+    #ifdef OS_WIN
     #ifdef USING_DIRECTINPUT
     long hr= 0;
     DIDATAFORMAT mouseformat;
     mouseformat= c_dfDIMouse;
     mouseformat.dwFlags= DIDF_RELAXIS; 
 
-    hr= in.dInput->CreateDevice(GUID_SysMouse, &diDevice, NULL);
+    hr= in._dInput->CreateDevice(GUID_SysMouse, &_diDevice, NULL);
 
-    hr= diDevice->SetDataFormat(&mouseformat);
-    hr= diDevice->SetCooperativeLevel(osi.win[0].hWnd, DISCL_EXCLUSIVE| DISCL_FOREGROUND);
-    diDevice->Acquire();
+    hr= _diDevice->SetDataFormat(&mouseformat);
+    hr= _diDevice->SetCooperativeLevel(osi.win[0]._hWnd, DISCL_EXCLUSIVE| DISCL_FOREGROUND);
+    _diDevice->Acquire();
 
     if(hr!= DI_OK) {
       error.simple("Could not initialize the mouse under DirectInput.");
       return false;
     }
 
-    if(diDevice== NULL) {
+    if(_diDevice== NULL) {
       return false;
     }
 
     return true;		/// reached this point, returns a success
-    #endif
-    #ifndef USING_DIRECTINPUT
-    error.simple("USING_DIRECTINPUT not defined; no code for direct input compiled");
-    return false;
-    #endif
+    #endif /// USING_DIRECTINPUT
+    #endif /// OS_WIN
   }
   return false;     /// this point is reaced-> fail
 }
@@ -1037,20 +1047,21 @@ void osiMouse::update() {
   } else if(mode== 3) {
 
     /// direct input
+    #ifdef OS_WIN
     #ifdef USING_DIRECTINPUT           /// skip some checks. only mode 1 works atm in linux
-    diDevice->GetDeviceState(sizeof(DIMOUSESTATE2), (LPVOID)&diStats);
+    _diDevice->GetDeviceState(sizeof(DIMOUSESTATE2), (LPVOID)&_diStats);
     /// mouse position
     oldx= x;
     oldy= y;
-    x= diStats.lX;
-    y= osi.display.vdy- diStats.lY;   /// coordonate unification
+    x= _diStats.lX;
+    y= osi.display.vdy- _diStats.lY;   /// coordonate unification
     dx= x- oldx;      /// removed +=, made =; 
     dy= y- oldy;
     
     /// mouse wheel
     // THIS PART NEEDS TESTING, DUNNO WHAT DIRECT INPUT TRANMITS !!!!!!!!!!!!!!!  ALL DIRECT X PART, even. NEED A WORKING GLPRINT FUNC
     wheel= 0;
-    if(diStats.lZ)
+    if(_diStats.lZ)
       wheel++;
     else
       wheel--;
@@ -1059,7 +1070,7 @@ void osiMouse::update() {
     bool t;
     
     for(short a= 0; a< 8; a++) {
-      t= diStats.rgbButtons[a]? true: false;
+      t= _diStats.rgbButtons[a]? true: false;
       if((b[a].down)&& !t) {                  /// a button press ended
         b[a].lastTimeStart= b[a].timeStart;
         b[a].lastTimeEnded= present;
@@ -1072,6 +1083,7 @@ void osiMouse::update() {
       }
     }
     #endif /// USING_DIRECTINPUT
+    #endif /// OS_WIN
   } /// pass thru all mouse modes
 }
 
@@ -1094,10 +1106,12 @@ bool osiMouse::aquire() {
   if(mode== 2)                    /// nothing to aquire
     return true;
   if(mode== 3) {
+    #ifdef OS_WIN
     #ifdef USING_DIRECTINPUT
-    if(diDevice->Acquire()== DI_OK)
+    if(_diDevice->Acquire()== DI_OK)
       return true;
     #endif
+    #endif /// OS_WIN
   }
 
   return false;
@@ -1115,10 +1129,12 @@ bool osiMouse::unaquire() {
     return true;
   
   if(mode== 3) {
+    #ifdef OS_WIN
     #ifdef USING_DIRECTINPUT
-    if(diDevice->Unacquire()== DI_OK)
+    if(_diDevice->Unacquire()== DI_OK)
       return true;
     #endif
+    #endif /// OS_WIN
   }
   return false;
 }
@@ -1152,24 +1168,26 @@ manipTyped(40, sizeof(chTyped)) {
 
 osiKeyboard::~osiKeyboard() {
 //	delData();
+  #ifdef OS_WIN
   #ifdef USING_DIRECTINPUT
-  if(diDevice) {
-    diDevice->Unacquire();
-    diDevice->Release();
-    diDevice= null;
+  if(_diDevice) {
+    _diDevice->Unacquire();
+    _diDevice->Release();
+    _diDevice= null;
   }
   #endif
+  #endif /// OS_WIN
 }
 
 
 void osiKeyboard::delData() {
-  key= buffer1;
-  lastCheck= buffer2;
+  key= _buffer1;
+  lastCheck= _buffer2;
   capsLock= scrollLock= numLock= false;       /// the 3 toggle locks
 
   /// clear buffers
   for(short a= 0; a< MAX_KEYBOARD_KEYS; a++) {
-    buffer1[a]= buffer2[a]= 0;
+    _buffer1[a]= _buffer2[a]= 0;
     keyTime[a]= 0;
     //    repeat[a]= 0;
   }
@@ -1193,24 +1211,26 @@ bool osiKeyboard::init(short mode) {
 
 
     // MOVE ALL THIS? SCRAP INIT????? <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    #ifdef OS_WIN
     #ifdef USING_DIRECTINPUT
     long hr= 0;
         
-    hr= in.dInput->CreateDevice(GUID_SysKeyboard, &diDevice, NULL);
-    hr= diDevice->SetDataFormat(&c_dfDIKeyboard);
-    hr= diDevice->SetCooperativeLevel(osi.win[0].hWnd, DISCL_EXCLUSIVE| DISCL_FOREGROUND);
-    diDevice->Acquire();
+    hr= in._dInput->CreateDevice(GUID_SysKeyboard, &_diDevice, NULL);
+    hr= _diDevice->SetDataFormat(&c_dfDIKeyboard);
+    hr= _diDevice->SetCooperativeLevel(osi.win[0]._hWnd, DISCL_EXCLUSIVE| DISCL_FOREGROUND);
+    _diDevice->Acquire();
 
     if(hr!= DI_OK) {
       error.simple("Could not initialize the keyboard under DirectInput.");
       return false;
     }
 
-    if(diDevice== NULL)
+    if(_diDevice== NULL)
       return false;
 
     return true;
     #endif /// USING_DIRECTINPUT
+    #endif /// OS_WIN
   }
   return false;
 }
@@ -1235,11 +1255,13 @@ void osiKeyboard::update() {
   }
 
   if(mode== 3) {
+    #ifdef OS_WIN
     #ifdef USING_DIRECTINPUT
     swapBuffers();
-    diDevice->GetDeviceState(MAX_KEYBOARD_KEYS, key);
+    _diDevice->GetDeviceState(MAX_KEYBOARD_KEYS, key);
     /// do not return
     #endif
+    #endif /// OS_WIN
   }
   
   
@@ -1259,7 +1281,7 @@ void osiKeyboard::update() {
       k.timeUp= 0;
       k.timeDT= 0;
 
-      log(k);
+      _log(k);
     }
     else if((lastCheck[a]& 0x80)&& !(key[a]& 0x80)) {     // key depressed
       bool found= false;
@@ -1283,7 +1305,7 @@ void osiKeyboard::update() {
         k.timeDown= presentMilli- 1;
         k.timeUp= presentMilli;
         k.timeDT= 1;
-        log(k);                                     /// put it in history buffer
+        _log(k);                                     /// put it in history buffer
       }
     }
   #endif /// OS_WIN
@@ -1327,10 +1349,12 @@ bool osiKeyboard::aquire() {
   if(mode== 2)                    /// nothing to aquire
     return true;
   if(mode== 3) {
+    #ifdef OS_WIN
     #ifdef USING_DIRECTINPUT
-    if(diDevice->Acquire()== DI_OK)
+    if(_diDevice->Acquire()== DI_OK)
       return true;
     #endif
+    #endif /// OS_WIN
   }
   return false;
 }
@@ -1346,10 +1370,12 @@ bool osiKeyboard::unaquire() {
   if(mode== 2)
     return true;
   if(mode== 3) {
+    #ifdef OS_WIN
     #ifdef USING_DIRECTINPUT
-    if(diDevice->Unacquire()== DI_OK)
+    if(_diDevice->Unacquire()== DI_OK)
       return true;
     #endif
+    #endif /// OS_WIN
   }
   return false;
 }
@@ -1369,7 +1395,7 @@ void osiKeyboard::clearTypedBuffer() {
 void osiKeyboard::resetButtons() {
   /// clear all buffers
   for(short a= 0; a< MAX_KEYBOARD_KEYS; a++) {
-    buffer1[a]= buffer2[a]= 0;
+    _buffer1[a]= _buffer2[a]= 0;
     keyTime[a]= 0;
   }
 
@@ -1428,7 +1454,7 @@ ulong osiKeyboard::getManip() {
 }
 
 // [internal]
-void osiKeyboard::addChar(ulong c, uint64 *time) {
+void osiKeyboard::_addChar(ulong c, uint64 *time) {
   if(!c) return;
 
   /// clear old typed characters (must have stayed in buffer longer than 1 sec)
@@ -1446,7 +1472,7 @@ void osiKeyboard::addChar(ulong c, uint64 *time) {
 
 
 // [internal] identical as addChar...
-void osiKeyboard::addManip(ulong c, uint64 *time) {
+void osiKeyboard::_addManip(ulong c, uint64 *time) {
   if(!c) return;
 
   /// clear old typed characters (must have stayed in buffer longer than 1 sec)
@@ -1476,12 +1502,12 @@ short osiKeyboard::getFirstKey() {
 /// internal stuff
 void osiKeyboard::swapBuffers() {
   lastCheck= key;
-  key= (key== buffer1)? buffer2: buffer1;
+  key= (key== _buffer1)? _buffer2: _buffer1;
 }
 
 
 // [internal] logs a key to histoty of keys that were pressed
-void osiKeyboard::log(const osiKeyboard::KeyPressed &k) {
+void osiKeyboard::_log(const osiKeyboard::KeyPressed &k) {
   for(short a= MAX_KEYS_LOGGED- 1; a> 0; a--)
     lastKey[a]= lastKey[a- 1];
   lastKey[0]= k;
@@ -1516,8 +1542,8 @@ osiJoystick::osiJoystick() {
 
   #ifdef OS_WIN
   #ifdef USING_DIRECTINPUT
-  diDevice= null;
-  diID= {0};
+  _diDevice= null;
+  _diID= {0};
   #endif
   #endif
 
@@ -1545,20 +1571,20 @@ void osiJoystick::delData() {
   x= y= x2= y2= throttle= rudder= u= v= 0;
   pov= -1;
   
-  b= buffer1;
-  lastCheck= buffer2;
+  b= _buffer1;
+  lastCheck= _buffer2;
 
   resetButtons();
 
   #ifdef OS_WIN
-  id= -1;
+  _id= -1;
   #ifdef USING_DIRECTINPUT
-  if(diDevice) {
-    diDevice->Unacquire();
-    diDevice->Release();
-    diDevice= null;
+  if(_diDevice) {
+    _diDevice->Unacquire();
+    _diDevice->Release();
+    _diDevice= null;
   }
-  diID= { 0 };
+  _diID= { 0 };
   #endif /// USING_DIRECTINPUT
   #endif /// OS_WIN
 
@@ -2011,9 +2037,9 @@ ReadAgain:
 
   // -----------============ MODE 2 JOYSTICKS ============------------
   } else if(mode== 2) {       // win(DirectInput) linux(n/a) mac(n/a)
-    
+    #ifdef OS_WIN
     #ifdef USING_DIRECTINPUT
-    if(diDevice->GetDeviceState(sizeof(DIJOYSTATE2), (LPVOID)&diStats)== DIERR_INPUTLOST) {   /// device DISCONNECTED
+    if(_diDevice->GetDeviceState(sizeof(DIJOYSTATE2), (LPVOID)&_diStats)== DIERR_INPUTLOST) {   /// device DISCONNECTED
       if(chatty) printf("DirectInput: hid[%s] DISCONNECTED\n", name.d);
       /// clear all axis / buttons data / dinput driver
       delData();
@@ -2026,55 +2052,55 @@ ReadAgain:
     }
 
     /// adjust axis to osi standard (-32767 / +32767)
-    if(diStats.lX> 32768) diStats.lX--; diStats.lX= diStats.lX- 32767;
-    if(diStats.lY> 32768) diStats.lY--; diStats.lY= diStats.lY- 32767;
-    if(diStats.lZ> 32768) diStats.lZ--; diStats.lZ= diStats.lZ- 32767;
-    if(diStats.lRx> 32768) diStats.lRx--; diStats.lRx= diStats.lRx- 32767;
-    if(diStats.lRy> 32768) diStats.lRy--; diStats.lRy= diStats.lRy- 32767;
-    if(diStats.lRz> 32768) diStats.lRz--; diStats.lRz= diStats.lRz- 32767;
-    if(diStats.rglSlider[0]> 32768) diStats.rglSlider[0]--; diStats.rglSlider[0]= diStats.rglSlider[0]- 32767;
-    if(diStats.rglSlider[1]> 32768) diStats.rglSlider[1]--; diStats.rglSlider[1]= diStats.rglSlider[1]- 32767;
+    if(_diStats.lX> 32768) _diStats.lX--; _diStats.lX= _diStats.lX- 32767;
+    if(_diStats.lY> 32768) _diStats.lY--; _diStats.lY= _diStats.lY- 32767;
+    if(_diStats.lZ> 32768) _diStats.lZ--; _diStats.lZ= _diStats.lZ- 32767;
+    if(_diStats.lRx> 32768) _diStats.lRx--; _diStats.lRx= _diStats.lRx- 32767;
+    if(_diStats.lRy> 32768) _diStats.lRy--; _diStats.lRy= _diStats.lRy- 32767;
+    if(_diStats.lRz> 32768) _diStats.lRz--; _diStats.lRz= _diStats.lRz- 32767;
+    if(_diStats.rglSlider[0]> 32768) _diStats.rglSlider[0]--; _diStats.rglSlider[0]= _diStats.rglSlider[0]- 32767;
+    if(_diStats.rglSlider[1]> 32768) _diStats.rglSlider[1]--; _diStats.rglSlider[1]= _diStats.rglSlider[1]- 32767;
 
     // ---=== JOYSTICK axis ===---
-    x=          diStats.lX;           /// main stick X
-    y=          -diStats.lY;          /// main stick Y
-    throttle=   diStats.lZ;           /// throttle
-    rudder=     diStats.lRz;          /// rudder
-    pov=        diStats.rgdwPOV[0];   /// pov
-    u=          diStats.lRx;          /// extra axis 1
-    v=          -diStats.lRy;         /// extra axis 2
+    x=          _diStats.lX;           /// main stick X
+    y=          -_diStats.lY;          /// main stick Y
+    throttle=   _diStats.lZ;           /// throttle
+    rudder=     _diStats.lRz;          /// rudder
+    pov=        _diStats.rgdwPOV[0];   /// pov
+    u=          _diStats.lRx;          /// extra axis 1
+    v=          -_diStats.lRy;         /// extra axis 2
 
     // ---=== GAMEPAD axis ===---
-    _gp->lx=    diStats.lX;           /// left stick X
-    _gp->ly=    -diStats.lY;          /// left stick Y
-    _gp->pov=   diStats.rgdwPOV[0];   /// pov (0- 359 degrees * 100, -1 neutral)
+    _gp->lx=    _diStats.lX;           /// left stick X
+    _gp->ly=    -_diStats.lY;          /// left stick Y
+    _gp->pov=   _diStats.rgdwPOV[0];   /// pov (0- 359 degrees * 100, -1 neutral)
 
     if(_gp->type== 0) {                // ps3 compatible
-      _gp->rx= diStats.lZ;            /// right stick X
-      _gp->ry= -diStats.lRz;          /// right stick Y
-      _gp->lt= 32767- diStats.lRx;           /// left trigger
-      _gp->rt= 32767- diStats.lRy;           /// right trigger
+      _gp->rx= _diStats.lZ;            /// right stick X
+      _gp->ry= -_diStats.lRz;          /// right stick Y
+      _gp->lt= 32767- _diStats.lRx;           /// left trigger
+      _gp->rt= 32767- _diStats.lRy;           /// right trigger
     } else if(_gp->type== 1) {         // xbone compatible
-      _gp->rx= diStats.lRx;           /// right stick X
-      _gp->ry= -diStats.lRy;          /// right stick Y
-      _gp->lt= -diStats.lZ;           /// left trigger
+      _gp->rx= _diStats.lRx;           /// right stick X
+      _gp->ry= -_diStats.lRy;          /// right stick Y
+      _gp->lt= -_diStats.lZ;           /// left trigger
       // this is probably a Direct Input BUG; they meant diStats.lRz; as it is now, 2 axis are fused into 1... wich is GREAT!
-      _gp->rt= -diStats.lZ;  /// right trigger
+      _gp->rt= -_diStats.lZ;  /// right trigger
     }
 
     // ---=== GAMEWHEEL axis ===---
-    _gw->wheel= diStats.lX;           /// wheel position
-    _gw->a1=    diStats.lY;           /// other axis 1
-    _gw->a2=    diStats.lZ;           /// other axis 2
-    _gw->a3=    diStats.lRx;          /// other axis 3
-    _gw->a4=    diStats.lRy;          /// other axis 4
-    _gw->a5=    diStats.lRz;          /// other axis 5
+    _gw->wheel= _diStats.lX;           /// wheel position
+    _gw->a1=    _diStats.lY;           /// other axis 1
+    _gw->a2=    _diStats.lZ;           /// other axis 2
+    _gw->a3=    _diStats.lRx;          /// other axis 3
+    _gw->a4=    _diStats.lRy;          /// other axis 4
+    _gw->a5=    _diStats.lRz;          /// other axis 5
 
     // ---=== stick/pad/wheel BUTTONS ===---
     uchar but, extra;
-    swapBuffers();                      /// lastCheck will hold the previous buttons states
-    _gp->swapBuffers();
-    _gw->swapBuffers();
+    _swapBuffers();                      /// lastCheck will hold the previous buttons states
+    _gp->_swapBuffers();
+    _gw->_swapBuffers();
 
     // >> something wrong with all buttons from dinput&OS drivers
     // >> test if mode 1 reads ok the xbox controller... if not, scrape, check what WM_messages there are...
@@ -2107,7 +2133,7 @@ ReadAgain:
       } /// check type of gamepad
 
       /// update current button state
-      b[a]= diStats.rgbButtons[a]? 1: 0;
+      b[a]= _diStats.rgbButtons[a]? 1: 0;
       _gp->b[but]= b[a];
       _gw->b[a]= b[a];
 
@@ -2123,10 +2149,10 @@ ReadAgain:
         blog.timeDown= presentMilli;
         blog.timeUp= 0;
         blog.timeDT= 0;
-        log(blog);
-        _gw->log(blog);
+        _log(blog);
+        _gw->_log(blog);
         blog.b= but;
-        _gp->log(blog);
+        _gp->_log(blog);
         if(chatty) printf("DirectInput: hid[%s] button PRESS nr[%d] arranged[%d]\n", name.d, a, but);
       
       // --------------============= BUTTON RELEASE ===============-----------------
@@ -2163,10 +2189,10 @@ ReadAgain:
           blog.timeDown= presentMilli- 1; /// mark it as insta down-up
           blog.timeUp= presentMilli;
           blog.timeDT= 1;
-          log(blog);                      /// put it in history buffer
-          _gw->log(blog);
+          _log(blog);                      /// put it in history buffer
+          _gw->_log(blog);
           blog.b= but;
-          _gp->log(blog);
+          _gp->_log(blog);
         } /// failsafe
 
         if(chatty) printf("DirectInput: hid[%s] button RELEASE nr[%d] arranged[%d]\n", name.d, a, but);
@@ -2176,14 +2202,15 @@ ReadAgain:
      
 
     #endif /// USING_DIRECTINPUT
+    #endif /// OS_WIN
 
   // -----------============ MODE 3 JOYSTICKS ============------------
   } else if(mode== 3) {       // win(XInput) linux(n/a) mac(n/a)
-    
+    #ifdef OS_WIN
     #ifdef USING_XINPUT
     XINPUT_STATE xi;
     for(short a= 0; a< sizeof(xi); a++) ((char *)&xi)[a]= 0;    /// zero memory
-    XInputGetState(id, &xi);                                    /// read data from driver (update xi)
+    XInputGetState(_id, &xi);                                   /// read data from driver (update xi)
 
     /// finding pov in degrees* 100
     long tpov;
@@ -2246,9 +2273,9 @@ ReadAgain:
     // ---=== stick/pad/wheel BUTTONS ===---
 
     /// swapbuffers: lastCheck becomes previous button state
-    swapBuffers();
-    _gp->swapBuffers();
-    _gw->swapBuffers();
+    _swapBuffers();
+    _gp->_swapBuffers();
+    _gw->_swapBuffers();
 
     /// XInput button order is all ver the place...
     _gp->b[0]= _gw->b[0]= b[0]= (xi.Gamepad.wButtons& XINPUT_GAMEPAD_A)>> 12;
@@ -2273,9 +2300,9 @@ ReadAgain:
         blog.timeDown= presentMilli;
         blog.timeUp= 0;
         blog.timeDT= 0;
-        log(blog);
-        _gw->log(blog);
-        _gp->log(blog);
+        _log(blog);
+        _gw->_log(blog);
+        _gp->_log(blog);
         if(chatty) printf("XInput: hid[%s] button PRESS nr[%d]\n", name.d, a);
       } else if(b[a]&& !lastCheck[a]) {         // button just got ---=== RELEASED ===---
         /// search thru history for the button, to mark the time it got released
@@ -2308,9 +2335,9 @@ ReadAgain:
           blog.timeDown= presentMilli- 1; /// mark it as insta down-up
           blog.timeUp= presentMilli;
           blog.timeDT= 1;
-          log(blog);                      /// put it in history buffer
-          _gw->log(blog);
-          _gp->log(blog);
+          _log(blog);                      /// put it in history buffer
+          _gw->_log(blog);
+          _gp->_log(blog);
         } /// failsafe
 
         if(chatty) printf("XInput: hid[%s] button RELEASE nr[%d]\n", name.d, a);
@@ -2319,6 +2346,7 @@ ReadAgain:
     } /// for each possible xpad button
 
     #endif /// USING_XINPUT
+    #endif /// OS_WIN
   } /// pass thru all modes
 }
 
@@ -2326,7 +2354,7 @@ ReadAgain:
 void osiJoystick::resetButtons() {
   /// clear all buffers
   for(short a= 0; a< MAX_JOYSTICK_BUTTONS; a++) {
-    buffer1[a]= buffer2[a]= 0;
+    _buffer1[a]= _buffer2[a]= 0;
     bPressure[a]= 0;
     bTime[a]= 0;
   }
@@ -2348,16 +2376,20 @@ void osiJoystick::aquire() {
   }
 
   if(mode== 2) {
+    #ifdef OS_WIN
     #ifdef USING_DIRECTINPUT
-    if(diDevice) diDevice->Acquire();
+    if(_diDevice) _diDevice->Acquire();
     #endif /// USING_DIRECTINPUT
+    #endif /// OS_WIN
     return;
   }
 
   if(mode== 3) {
+    #ifdef OS_WIN
     #ifdef USING_XINPUT
     XInputEnable(TRUE);
     #endif /// USING_XINPUT
+    #endif /// OS_WIN
     return;
   }
 }
@@ -2369,29 +2401,33 @@ void osiJoystick::unaquire() {
   }
 
   if(mode== 2) {
+    #ifdef OS_WIN
     #ifdef USING_DIRECTINPUT
-    if(diDevice) diDevice->Unacquire();
+    if(_diDevice) _diDevice->Unacquire();
     #endif /// USING_DIRECTINPUT
+    #endif /// OS_WIN
     return;
   }
 
   if(mode== 3) {
+    #ifdef OS_WIN
     #ifdef USING_XINPUT
     XInputEnable(FALSE);
     #endif /// USING_XINPUT
+    #endif /// OS_WIN
     return;
   }
 }
 
 
 /// swap button buffers
-void osiJoystick::swapBuffers() {
+void osiJoystick::_swapBuffers() {
   lastCheck= b;
-  b= (b== buffer1)? buffer2: buffer1;
+  b= (b== _buffer1)? _buffer2: _buffer1;
 }
 
 
-void osiJoystick::log(const ButPressed &k) {
+void osiJoystick::_log(const ButPressed &k) {
   for(short a= MAX_KEYS_LOGGED- 1; a> 0; a--)
     lastBut[a]= lastBut[a- 1];
   lastBut[0]= k;
@@ -2428,8 +2464,8 @@ void osiGamePad::delData() {
   u= v= 0;
   pov= -1;
 
-  b= buffer1;
-  lastCheck= buffer2;
+  b= _buffer1;
+  lastCheck= _buffer2;
 
   resetButtons();
 }
@@ -2439,7 +2475,7 @@ void osiGamePad::delData() {
 void osiGamePad::resetButtons() {
   /// clear all buffers
   for(short a= 0; a< MAX_JOYSTICK_BUTTONS; a++) {
-    buffer1[a]= buffer2[a]= 0;
+    _buffer1[a]= _buffer2[a]= 0;
     bPressure[a]= 0;
     bTime[a]= 0;
   }
@@ -2455,13 +2491,13 @@ void osiGamePad::resetButtons() {
 }
 
 
-void osiGamePad::swapBuffers() {
+void osiGamePad::_swapBuffers() {
   lastCheck= b;
-  b= (b== buffer1)? buffer2: buffer1;
+  b= (b== _buffer1)? _buffer2: _buffer1;
 }
 
 
-void osiGamePad::log(const ButPressed &k) {
+void osiGamePad::_log(const ButPressed &k) {
   for(short a= MAX_KEYS_LOGGED- 1; a> 0; a--)
     lastBut[a]= lastBut[a- 1];
   lastBut[0]= k;
@@ -2516,8 +2552,8 @@ void osiGameWheel::delData() {
   a1= a2= a3= a4= a5= 0;      // THIS NEEDS MORE WORK
   // pov starts on -1, off state
   
-  b= buffer1;
-  lastCheck= buffer2;
+  b= _buffer1;
+  lastCheck= _buffer2;
 
   resetButtons();
 }
@@ -2527,7 +2563,7 @@ void osiGameWheel::delData() {
 void osiGameWheel::resetButtons() {
   /// clear all buffers
   for(short a= 0; a< MAX_JOYSTICK_BUTTONS; a++) {
-    buffer1[a]= buffer2[a]= 0;
+    _buffer1[a]= _buffer2[a]= 0;
     bPressure[a]= 0;
     bTime[a]= 0;
   }
@@ -2543,13 +2579,13 @@ void osiGameWheel::resetButtons() {
 }
 
 
-void osiGameWheel::swapBuffers() {
+void osiGameWheel::_swapBuffers() {
   lastCheck= b;
-  b= (b== buffer1)? buffer2: buffer1;
+  b= (b== _buffer1)? _buffer2: _buffer1;
 }
 
 
-void osiGameWheel::log(const ButPressed &k) {
+void osiGameWheel::_log(const ButPressed &k) {
   for(short a= MAX_KEYS_LOGGED- 1; a> 0; a--)
     lastBut[a]= lastBut[a- 1];
   lastBut[0]= k;

@@ -13,9 +13,9 @@ extern void getOTHERfuncs(osiRenderer *);
 void *glExtNULL(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
 
 
-  
-
-
+///=================///
+// osiRENDERER class //
+///=================///
 
 osiRenderer::osiRenderer()
 #ifndef OS_WIN
@@ -36,13 +36,13 @@ osiRenderer::osiRenderer()
 
   short a;
   /// initial ARB list
-  for(a= 0; _glARBlistEmpty[a].desc!= null; a++);   /// find out how big the list is
+  for(a= 0; _glARBlistEmpty[a].desc!= null; a++);     /// find out how big the list is
   glARBlist= new GlExt[a+ 1];
   for(a= 0; _glARBlistEmpty[a].desc!= null; a++)
     glARBlist[a]= _glARBlistEmpty[a];
 
   /// initial EXT list
-  for(a= 0; _glEXTlistEmpty[a].desc!= null; a++);   /// find out how big the list is
+  for(a= 0; _glEXTlistEmpty[a].desc!= null; a++);     /// find out how big the list is
   glEXTlist= new GlExt[a+ 1];
   for(a= 0; _glEXTlistEmpty[a].desc!= null; a++)
     glEXTlist[a]= _glEXTlistEmpty[a];

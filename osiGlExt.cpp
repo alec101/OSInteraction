@@ -1,13 +1,8 @@
 #include "osinteraction.h"
 
-// TODO:
-/*
- * [win] MUST check ogl 1.1, if there are any funcs got from gl.h
- */
-
-
 /// one single struct that holds all the gl extensions, for LINUX and MAC
 /// under windows, each renderer must have it's own functions
+
 #ifndef OS_WIN
 GlExtFuncs glExt;
 #endif /// OS_MAC or OS_LINUX

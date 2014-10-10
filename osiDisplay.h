@@ -44,7 +44,7 @@ public:
   void delData();                       // called by destroyer -standard
 
   #ifdef OS_LINUX
-  int top, bottom, left, right;         /// [internal] used for _NET_WM_FULLSCREEN_MONITORS. check populate(), end of linux part
+  int _top, _bottom, _left, _right;     /// [internal] used for _NET_WM_FULLSCREEN_MONITORS. check populate(), end of linux part
   #endif /// OS_LINUX
 };
 
@@ -63,12 +63,12 @@ struct osiResolution {
   // private stuff from here 
 
   #ifdef OS_LINUX
-  Rotation rotation;          /// [internal] X if it is used...
-  RRMode *resID;              /// [internal] it is tied with frequency (RRMode[nrFreq])
+  Rotation _rotation;         /// [internal] X if it is used...
+  RRMode *_resID;             /// [internal] it is tied with frequency (RRMode[nrFreq])
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
-  uint *id;                   /// [internal] resolution id (mac) - tied with frequency (id[nrFreq])
+  uint *_id;                  /// [internal] resolution id (mac) - tied with frequency (id[nrFreq])
   //possible that a CGDisplayModeRef must be used 
   #endif /// OS_MAC
   
@@ -97,8 +97,7 @@ struct osiMonitor {
   osiRenderer *glr;
 
   #ifdef OS_LINUX
-  //GLXContext glRenderer;    /// oGL rendering context      <<<<<THIS NEEDS A PROPER CODE PosiTION>>>>> here might be too obscured
-  int XineramaID;           /// [internal] used only for _NET_WM_FULLSCREEN_MONITORS, it is found in display.populate() @ end of linux part
+  int _XineramaID;          /// [internal] used only for _NET_WM_FULLSCREEN_MONITORS, it is found in display.populate() @ end of linux part
   #endif /// OS_LINUX
     
   osiMonitor();
@@ -108,25 +107,25 @@ struct osiMonitor {
   // nothing to bother from here on
 
   #ifdef OS_WIN
-  string id;                /// [internal] win- display ID
+  string _id;               /// [internal] win- display ID
   //string name;              /// [internal] display's card name
-  string monitorID;         /// [internal] monitor id (NOT USED FOR ANYTHING?... wincrap rulz)
-  string monitorName;       /// [internal] monitor description (did not find any use for it ina ANY windows function)
+  string _monitorID;        /// [internal] monitor id (NOT USED FOR ANYTHING?... wincrap rulz)
+  string _monitorName;      /// [internal] monitor description (did not find any use for it ina ANY windows function)
   // if a monitor is set to duplicate another monitor, windows returns only one display,
   // with combined resolution options, and monitorID+monitorName for each. Can't do anything with any of them, so im not storing them anywhere.
   #endif /// OS_WIN
   
   #ifdef OS_LINUX
-  int screen;               /// [internal] monitor id (number)
-  Window root;              /// [internal] root window of screen (monitor)
-  RROutput outID;           /// [internal] xrandr output (phisical out that a monitor can be attached to; this output holds connected monitor info/supported modes too)
-  RRCrtc crtcID;            /// [internal] xrandr crtc (some internal graphics card thingie that handles pixels sent to outputs->monitors)
-  osiMonitor *right;        /// [internal] points to a monitor next to this one, to the right, or NULL
-  osiMonitor *bottom;       /// [internal] points to a monitor next to this one, to the bottom, or NULL
+  int _screen;              /// [internal] monitor id (number)
+  Window _root;             /// [internal] root window of screen (monitor)
+  RROutput _outID;          /// [internal] xrandr output (phisical out that a monitor can be attached to; this output holds connected monitor info/supported modes too)
+  RRCrtc _crtcID;           /// [internal] xrandr crtc (some internal graphics card thingie that handles pixels sent to outputs->monitors)
+  osiMonitor *_right;       /// [internal] points to a monitor next to this one, to the right, or NULL
+  osiMonitor *_bottom;      /// [internal] points to a monitor next to this one, to the bottom, or NULL
   #endif /// OS_LINUX
   
   #ifdef OS_MAC
-  uint id;                  /// [internal] quartz monitor id
+  uint _id;                 /// [internal] quartz monitor id
   #endif /// OS_MAC
 private:
   friend class osiDisplay;

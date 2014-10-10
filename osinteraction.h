@@ -114,8 +114,8 @@ int main(int argc, char *argv[], char *envp[]) { \
 
 #ifdef OS_WIN
 //#include <GL/gl.h>
-#include "gl.h"
-#include <GL/glu.h>
+#include <GL/GL.h>
+#include <GL/GLU.h>
 #define WGL_WGLEXT_PROTOTYPES 1
 #include "wglext.h"
 #endif /// OS_WIN
@@ -223,30 +223,30 @@ public:
   // internal data from here
 
   #ifdef OS_WIN
-  HDC hDC;                  /// private GDI device context
-  HWND hWnd;                /// holds program window handle
-  HINSTANCE hInstance;      /// holds the instance of the application ?? isn't this per window...
+  HDC _hDC;                  /// private GDI device context
+  HWND _hWnd;                /// holds program window handle
+  HINSTANCE _hInstance;      /// holds the instance of the application ?? isn't this per window...
     
-  static MSG msg;           /// windows message struct... this is just needed for checkMSG();
+  static MSG _msg;           /// windows message struct... this is just needed for checkMSG();
   #endif ///OS_WIN
 
   #ifdef OS_LINUX
-  Window root;              /// root window (it is different on each monitor)
-  static Display *dis;      /// display 'handle'. nowadays there is only 1 display, and 1 big (virtual) screen.
-  Window win;               /// window 'handle' or watever
-  XWindowAttributes gwa;    /// window attributes (size/etc)
-  XVisualInfo *vi;
+  Window _root;              /// root window (it is different on each monitor)
+  static Display *_dis;      /// display 'handle'. nowadays there is only 1 display, and 1 big (virtual) screen.
+  Window _win;               /// window 'handle' or watever
+  XWindowAttributes _gwa;    /// window attributes (size/etc)
+  XVisualInfo *_vi;
   
-  bool isMapped;            // internal flag used when resolution is changing <<NOT USED ANYMORE I THINK>>
+  bool _isMapped;            // internal flag used when resolution is changing <<NOT USED ANYMORE I THINK>>
 
   /// specific linux window propreties functions
-  void setWMprop(string8 wmID, string8 wmProp, uint val1, uint val2= 0); /// documentation is @ end of osinteraction.h
-  void setWMstate(uint val, string8 prop1, string8 prop2= (cchar*)0); /// documentation is @ end of osinteraction.h
+  void _setWMprop(string8 wmID, string8 wmProp, uint val1, uint val2= 0); /// documentation is @ end of osinteraction.h
+  void _setWMstate(uint val, string8 prop1, string8 prop2= (cchar*)0); /// documentation is @ end of osinteraction.h
   #endif
 
   #ifdef OS_MAC
-  void *win;                 /// MacWindow
-  void *view;                /// MacGLview
+  void *_win;                 /// MacWindow
+  void *_view;                /// MacGLview
   #endif
 };
 
@@ -329,10 +329,10 @@ public:
 private:
   #ifdef OS_WIN
 
-  LARGE_INTEGER timerFreq;
+  LARGE_INTEGER _timerFreq;
 
-  string getWinName(HWND h);
-  osiWindow *getWin(HWND h);          /// [internal] returns the osiWindow that has the specified HWND
+  string _getWinName(HWND h);
+  osiWindow *_getWin(HWND h);          /// [internal] returns the osiWindow that has the specified HWND
   friend LRESULT CALLBACK processMSG(HWND, UINT, WPARAM, LPARAM);
   #endif /// OS_WIN
 
@@ -343,9 +343,9 @@ private:
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
-  mach_timebase_info_data_t machInfo; /// [internal] mac variant of a performance timer. this var holds cpu frequencies & stuff (similar to QuerryPerformance... in win)
+  mach_timebase_info_data_t _machInfo; /// [internal] mac variant of a performance timer. this var holds cpu frequencies & stuff (similar to QuerryPerformance... in win)
 public:
-  osiWindow *getWin(void *w);         /// [internal] returns the osiWindow that has the specified NSWindow *
+  osiWindow *_getWin(void *w);         /// [internal] returns the osiWindow that has the specified NSWindow *
 private:
   #endif /// OS_MAC
 

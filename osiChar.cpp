@@ -1161,7 +1161,7 @@ struct CodePair {
 
 
 
-void osiInput::keysym2unicode(KeySym *ks, ulong *ret) {
+void osiInput::_keysym2unicode(KeySym *ks, ulong *ret) {
   int min= 0;
   int max= sizeof(ks2unicode)/ sizeof(struct CodePair)- 1;
   int mid;
@@ -1239,60 +1239,60 @@ void osiInput::getUnicode(KeySym *ks, ulong *ret) {
 
 // is this function more tied to OSchar.cpp? should this be in osinput.cpp, as it is part of Keyboard?
 
-void osiKeyboard::doManip() {
+void osiKeyboard::_doManip() {
   // only string manipulator characters/keys are returned
 
   // XK_Tab 0xff09 NOT RETURNED ATM, SUBJECT TO CHANGE?
 
   /// check if shift is pressed; if it is, check for selection changes chars
   if(key[in.Kv.lshift] || key[in.Kv.rshift]) {
-    if(key[in.Kv.home])   { addManip(Kch_selHome, &osi.eventTime);   return; }
-    if(key[in.Kv.end])    { addManip(Kch_selEnd, &osi.eventTime);    return; }
-    if(key[in.Kv.pgup])   { addManip(Kch_selPgUp, &osi.eventTime);   return; }
-    if(key[in.Kv.pgdown]) { addManip(Kch_selPgDown, &osi.eventTime); return; }
-    if(key[in.Kv.left])   { addManip(Kch_selLeft, &osi.eventTime);   return; }
-    if(key[in.Kv.up])     { addManip(Kch_selUp, &osi.eventTime);     return; }
-    if(key[in.Kv.right])  { addManip(Kch_selRight, &osi.eventTime);  return; }
-    if(key[in.Kv.down])   { addManip(Kch_selDown, &osi.eventTime);   return; }
+    if(key[in.Kv.home])   { _addManip(Kch_selHome, &osi.eventTime);   return; }
+    if(key[in.Kv.end])    { _addManip(Kch_selEnd, &osi.eventTime);    return; }
+    if(key[in.Kv.pgup])   { _addManip(Kch_selPgUp, &osi.eventTime);   return; }
+    if(key[in.Kv.pgdown]) { _addManip(Kch_selPgDown, &osi.eventTime); return; }
+    if(key[in.Kv.left])   { _addManip(Kch_selLeft, &osi.eventTime);   return; }
+    if(key[in.Kv.up])     { _addManip(Kch_selUp, &osi.eventTime);     return; }
+    if(key[in.Kv.right])  { _addManip(Kch_selRight, &osi.eventTime);  return; }
+    if(key[in.Kv.down])   { _addManip(Kch_selDown, &osi.eventTime);   return; }
     
     if(!numLock) {
-      if(key[in.Kv.kp7]) { addManip(Kch_selHome, &osi.eventTime);   return; }
-      if(key[in.Kv.kp1]) { addManip(Kch_selEnd, &osi.eventTime);    return; }
-      if(key[in.Kv.kp9]) { addManip(Kch_selPgUp, &osi.eventTime);   return; }
-      if(key[in.Kv.kp3]) { addManip(Kch_selPgDown, &osi.eventTime); return; }
-      if(key[in.Kv.kp4]) { addManip(Kch_selLeft, &osi.eventTime);   return; }
-      if(key[in.Kv.kp8]) { addManip(Kch_selUp, &osi.eventTime);     return; }
-      if(key[in.Kv.kp6]) { addManip(Kch_selRight, &osi.eventTime);  return; }
-      if(key[in.Kv.kp2]) { addManip(Kch_selDown, &osi.eventTime);   return; }
+      if(key[in.Kv.kp7]) { _addManip(Kch_selHome, &osi.eventTime);   return; }
+      if(key[in.Kv.kp1]) { _addManip(Kch_selEnd, &osi.eventTime);    return; }
+      if(key[in.Kv.kp9]) { _addManip(Kch_selPgUp, &osi.eventTime);   return; }
+      if(key[in.Kv.kp3]) { _addManip(Kch_selPgDown, &osi.eventTime); return; }
+      if(key[in.Kv.kp4]) { _addManip(Kch_selLeft, &osi.eventTime);   return; }
+      if(key[in.Kv.kp8]) { _addManip(Kch_selUp, &osi.eventTime);     return; }
+      if(key[in.Kv.kp6]) { _addManip(Kch_selRight, &osi.eventTime);  return; }
+      if(key[in.Kv.kp2]) { _addManip(Kch_selDown, &osi.eventTime);   return; }
     }
   } /// if shift key is pressed
   
-  if(key[in.Kv.enter])     { addManip(Kch_enter, &osi.eventTime);     return; }
-  if(key[in.Kv.kpenter])   { addManip(Kch_enter, &osi.eventTime);     return; }
+  if(key[in.Kv.enter])     { _addManip(Kch_enter, &osi.eventTime);     return; }
+  if(key[in.Kv.kpenter])   { _addManip(Kch_enter, &osi.eventTime);     return; }
 
-  if(key[in.Kv.backspace]) { addManip(Kch_backSpace, &osi.eventTime); return; }
-  if(key[in.Kv.del])       { addManip(Kch_delete, &osi.eventTime);    return; }
-  if(key[in.Kv.kpdel])     { addManip(Kch_delete, &osi.eventTime);    return; }
+  if(key[in.Kv.backspace]) { _addManip(Kch_backSpace, &osi.eventTime); return; }
+  if(key[in.Kv.del])       { _addManip(Kch_delete, &osi.eventTime);    return; }
+  if(key[in.Kv.kpdel])     { _addManip(Kch_delete, &osi.eventTime);    return; }
   
-  if(key[in.Kv.home])      { addManip(Kch_home, &osi.eventTime);      return; }
-  if(key[in.Kv.end])       { addManip(Kch_end, &osi.eventTime);       return; }
-  if(key[in.Kv.pgup])      { addManip(Kch_pgUp, &osi.eventTime);      return; }
-  if(key[in.Kv.pgdown])    { addManip(Kch_pgDown, &osi.eventTime);    return; }
+  if(key[in.Kv.home])      { _addManip(Kch_home, &osi.eventTime);      return; }
+  if(key[in.Kv.end])       { _addManip(Kch_end, &osi.eventTime);       return; }
+  if(key[in.Kv.pgup])      { _addManip(Kch_pgUp, &osi.eventTime);      return; }
+  if(key[in.Kv.pgdown])    { _addManip(Kch_pgDown, &osi.eventTime);    return; }
     
-  if(key[in.Kv.left])      { addManip(Kch_left, &osi.eventTime);      return; }
-  if(key[in.Kv.up])        { addManip(Kch_up, &osi.eventTime);        return; }
-  if(key[in.Kv.right])     { addManip(Kch_right, &osi.eventTime);     return; }
-  if(key[in.Kv.down])      { addManip(Kch_down, &osi.eventTime);      return; }
+  if(key[in.Kv.left])      { _addManip(Kch_left, &osi.eventTime);      return; }
+  if(key[in.Kv.up])        { _addManip(Kch_up, &osi.eventTime);        return; }
+  if(key[in.Kv.right])     { _addManip(Kch_right, &osi.eventTime);     return; }
+  if(key[in.Kv.down])      { _addManip(Kch_down, &osi.eventTime);      return; }
          
   if(!numLock) {         
-    if(key[in.Kv.kp7])  { addManip(Kch_home, &osi.eventTime);      return; }
-    if(key[in.Kv.kp1])  { addManip(Kch_end, &osi.eventTime);       return; }
-    if(key[in.Kv.kp9])  { addManip(Kch_pgUp, &osi.eventTime);      return; }
-    if(key[in.Kv.kp3])  { addManip(Kch_pgDown, &osi.eventTime);    return; }
-    if(key[in.Kv.kp4])  { addManip(Kch_left, &osi.eventTime);      return; }
-    if(key[in.Kv.kp8])  { addManip(Kch_up, &osi.eventTime);        return; }
-    if(key[in.Kv.kp6])  { addManip(Kch_right, &osi.eventTime);     return; }
-    if(key[in.Kv.kp2])  { addManip(Kch_down, &osi.eventTime);      return; }
+    if(key[in.Kv.kp7])  { _addManip(Kch_home, &osi.eventTime);      return; }
+    if(key[in.Kv.kp1])  { _addManip(Kch_end, &osi.eventTime);       return; }
+    if(key[in.Kv.kp9])  { _addManip(Kch_pgUp, &osi.eventTime);      return; }
+    if(key[in.Kv.kp3])  { _addManip(Kch_pgDown, &osi.eventTime);    return; }
+    if(key[in.Kv.kp4])  { _addManip(Kch_left, &osi.eventTime);      return; }
+    if(key[in.Kv.kp8])  { _addManip(Kch_up, &osi.eventTime);        return; }
+    if(key[in.Kv.kp6])  { _addManip(Kch_right, &osi.eventTime);     return; }
+    if(key[in.Kv.kp2])  { _addManip(Kch_down, &osi.eventTime);      return; }
   }
 
 
@@ -1303,36 +1303,36 @@ void osiKeyboard::doManip() {
   /// 'copy' key combination checks
   if((key[in.Kv.lctrl]  || key[in.Kv.rctrl]) &&     /// ctrl +
      (key[in.Kv.insert] || key[in.Kv.kp0])) {       /// insert
-    addManip(Kch_copy, &osi.eventTime);
+    _addManip(Kch_copy, &osi.eventTime);
     return;
   }
   if((key[in.Kv.lctrl] || key[in.Kv.rctrl]) &&      /// ctrl +
       key[in.Kv.c]) {                               /// c
-    addManip(Kch_copy, &osi.eventTime);
+    _addManip(Kch_copy, &osi.eventTime);
     return;
   }
     
   /// 'cut' key combination checks
   if((key[in.Kv.lctrl] || key[in.Kv.rctrl])  &&     /// ctrl +
      (key[in.Kv.del]   || key[in.Kv.kpdel]))  {     /// del
-    addManip(Kch_cut, &osi.eventTime);
+    _addManip(Kch_cut, &osi.eventTime);
     return;
   }
   if((key[in.Kv.lctrl] || key[in.Kv.rctrl]) &&      /// ctrl +
       key[in.Kv.x]) {                               /// x
-    addManip(Kch_cut, &osi.eventTime);
+    _addManip(Kch_cut, &osi.eventTime);
     return;
   }
     
   /// 'paste' key combination checks
   if((key[in.Kv.lshift] || key[in.Kv.rshift]) &&    /// shift +
      (key[in.Kv.insert] || key[in.Kv.kp0])) {       /// insert
-    addManip(Kch_paste, &osi.eventTime);
+    _addManip(Kch_paste, &osi.eventTime);
     return;
   }
   if((key[in.Kv.lctrl] || key[in.Kv.rctrl]) &&      /// ctrl +
       key[in.Kv.v]) {                               /// v
-    addManip(Kch_paste, &osi.eventTime);
+    _addManip(Kch_paste, &osi.eventTime);
     return;
   }
   
