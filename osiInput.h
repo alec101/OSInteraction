@@ -82,16 +82,18 @@ public:
   void delData();
 
 private:  
-  #ifdef USING_DIRECTINPUT
-  LPDIRECTINPUTDEVICE8 diDevice;
-  DIMOUSESTATE2 diStats;
-  #endif
-  int twheel;
+  int _twheel;
 
   friend class Input;
   friend class osinteraction;
   #ifdef OS_WIN
   friend LRESULT CALLBACK processMSG(HWND, UINT, WPARAM, LPARAM);
+
+  #ifdef USING_DIRECTINPUT
+  LPDIRECTINPUTDEVICE8 _diDevice;
+  DIMOUSESTATE2 _diStats;
+  #endif /// USING DIRECT INPUT
+
   #endif /// OS_WIN
 };
 
@@ -147,10 +149,10 @@ public:
   
 // --- NOTHING TO BOTHER from this point on (usually) ---
   bool init(short mode= 1);      // see 'mode' var; can be used to initialize direct input, otherwize, use Input::init()
-  void log(const KeyPressed &); /// [internal] just puts the last key in the last key-history (it logs imediatly when a key is down)
-  void addChar(ulong c, uint64 *time);  /// [internal] used in WM_CHAR message... nothing to bother
-  void addManip(ulong c, uint64 *time); /// [internal] string manipulation keys - enter/del/arrow keys/etc
-  void doManip();                       /// [internal] OSchar.cpp. checks if current keys pressed form a char manip, if they do, calls addManip() 
+  void _log(const KeyPressed &); /// [internal] just puts the last key in the last key-history (it logs imediatly when a key is down)
+  void _addChar(ulong c, uint64 *time);  /// [internal] used in WM_CHAR message... nothing to bother
+  void _addManip(ulong c, uint64 *time); /// [internal] string manipulation keys - enter/del/arrow keys/etc
+  void _doManip();                       /// [internal] OSchar.cpp. checks if current keys pressed form a char manip, if they do, calls addManip() 
   inline void swapBuffers();    /// swaps what key and lastKey point to (so no copying is involved)
 
   osiKeyboard();
@@ -158,11 +160,13 @@ public:
   void delData();               /// standard dealloc func / called by destroyer
   
 private:
-  uchar buffer1[MAX_KEYBOARD_KEYS], buffer2[MAX_KEYBOARD_KEYS];   /// used for the key / lastCheck. buffers are swapped with pointers, so no copying is involved
-  
+  uchar _buffer1[MAX_KEYBOARD_KEYS], _buffer2[MAX_KEYBOARD_KEYS];   /// used for the key / lastCheck. buffers are swapped with pointers, so no copying is involved
+
+  #ifdef OS_WIN  
   #ifdef USING_DIRECTINPUT
-  LPDIRECTINPUTDEVICE8 diDevice;
+  LPDIRECTINPUTDEVICE8 _diDevice;
   #endif /// USING_DIRECTINPUT
+  #endif /// OS_WIN
 
 // TESTING 
   short getFirstKey();
@@ -195,7 +199,7 @@ class osiJoystick {
   friend class osinteraction;
 public:
   
-// CONFIGURATION
+  // CONFIGURATION
   
   short mode;                      // [MODE0]: disabled, can check against this
                                    // [MODE1]: OS native
@@ -205,7 +209,7 @@ public:
   short maxButtons;               /// nr of buttons the gameWheel has
   bool active;                    /// this variable must be set from the program; if it's not true, there won't be reads from the stick
 
-// AXIS
+  // AXIS
   
   long x, y;                      /// main stick x and y axis
   long x2, y2;                    /// second stick x and y axis (these are reserved as i don't think these are used atm)
@@ -214,7 +218,7 @@ public:
   long u, v;                      /// fifth/ sixth axis (reserved, i guess, they might be used by some sticks tho)
   long pov;                       /// POV angle (multiplied by 100, so 35,900(max)= 359 degrees)
   
-// BUTTONS state / history / everything
+  // BUTTONS state / history / everything
   
   uchar *b;                             /// buttons state
   long bPressure[MAX_JOYSTICK_BUTTONS]; /// heck if k knew this existed... guess no game (that i played) uses it; now it's implemented!
@@ -222,7 +226,7 @@ public:
   uchar *lastCheck;                     /// holds what the last time the keys were checked button press info - points to 1 of the buffers
   ButPressed lastBut[MAX_KEYS_LOGGED];  /// history of pressed buttons
 
-// FUNCTIONS
+  // FUNCTIONS
 
   void activate() { active= true; aquire(); }       /// !! activates stick, signaling to update internal values & grabs exclusive control of stick
   void deactivate() { active= false; unaquire(); }  /// deactivates & ungrabs exclusive control of stick
@@ -236,39 +240,40 @@ public:
   ~osiJoystick();
   void delData();
 
-// private data from here on  
+  // private data from here on  
 private:
   osiGamePad *_gp;                /// linked gamepad - each stick has a coresponding gamepad that uses the same 'driver'
   osiGameWheel *_gw;              /// linked gamewheel - each stick has a coresponding gamewheel that uses the same 'driver'
-  uchar buffer1[MAX_JOYSTICK_BUTTONS], buffer2[MAX_JOYSTICK_BUTTONS];   /// used for the key / lastCheck. buffers are swapped with pointers, so no copying is involved
-  inline void swapBuffers();      /// [internal] swaps button buffers
-  void log(const ButPressed &);   /// [internal] just puts the last button in the last button-history (it logs imediatly when a button is down)
+  uchar _buffer1[MAX_JOYSTICK_BUTTONS], _buffer2[MAX_JOYSTICK_BUTTONS];   /// used for the key / lastCheck. buffers are swapped with pointers, so no copying is involved
+  inline void _swapBuffers();     /// [internal] swaps button buffers
+  void _log(const ButPressed &);  /// [internal] just puts the last button in the last button-history (it logs imediatly when a button is down)
   
   /// OS specific stuff
   #ifdef OS_WIN
-  short id;                        // windows id (THIS MIGHT BE UNIVERSAL)
-  #endif /// OS_WIN
-
+  short _id;                       // windows id (THIS MIGHT BE UNIVERSAL)
+  
   #ifdef USING_DIRECTINPUT         // primary
-  friend BOOL CALLBACK diDevCallback(LPCDIDEVICEINSTANCE, LPVOID);
-  LPDIRECTINPUTDEVICE8 diDevice;
+  friend BOOL CALLBACK _diDevCallback(LPCDIDEVICEINSTANCE, LPVOID);
+  LPDIRECTINPUTDEVICE8 _diDevice;
   //LPCDIDEVICEINSTANCE diID;       /// ID of the device; if a new one is plugged, it will differ from current IDs
-  GUID diID;                        /// ID of the device; if a new one is plugged, it will differ from current IDs
-  DIJOYSTATE2 diStats;
+  GUID _diID;                       /// ID of the device; if a new one is plugged, it will differ from current IDs
+  DIJOYSTATE2 _diStats;
   #endif /// USING_DIRECTINPUT
 
   #ifdef USING_XINPUT              // secondary, probly main joysticks are using direct input
   #endif /// USING_XINPUT
 
+  #endif /// OS_WIN
+
   #ifdef OS_LINUX
-  int jsFile;                     /// opened /dev/input/jsNNN  file
-  short jsID;                     /// /dev/input/jsNNN    NNN= id
-  int eventFile;                  /// opened /dev/input/eventNNN eventFile
-  short eventID;                  /// /dev/input/eventNNN NNN= eventID
+  int _jsFile;                    /// opened /dev/input/jsNNN  file
+  short _jsID;                    /// /dev/input/jsNNN    NNN= id
+  int _eventFile;                 /// opened /dev/input/eventNNN eventFile
+  short _eventID;                 /// /dev/input/eventNNN NNN= eventID
   #endif
   
   #ifdef OS_MAC
-  friend void HIDchange(void *, IOReturn, void *, IOHIDValueRef);
+  friend void _HIDchange(void *, IOReturn, void *, IOHIDValueRef);
   #endif
 };
 
@@ -281,7 +286,7 @@ class osiGamePad {
   friend class osiJoystick;
 public:
   
-// CONFIGURATION
+  // CONFIGURATION
   
   short mode;                      // [MODE0]: disabled, can check against this
                                    // [MODE1]: OS native
@@ -291,7 +296,7 @@ public:
   short type;                     /// 0= ps3 compatible; 1= xbox compatible - COULD BE CHANGED by user in-game, and it will work to update the right axis!!!
   short maxButtons;               /// nr of buttons the gamePad has
   
-// AXIS
+  // AXIS
   
   long lx, ly;                    /// stick 1 axis position (left)
   long rx, ry;                    /// stick 2 axis position (right)
@@ -299,7 +304,7 @@ public:
   long u, v;                      /// extra axis - updated but usually not used... usually... can't know what pad they make
   long pov;                       /// POV angle (multiplied by 100, so 35,900(max)= 359 degrees) (-1 usually, if not pressed)
 
-// BUTTONS state / history
+  // BUTTONS state / history
 
   uchar *b;                             /// buttons state
   long bPressure[MAX_JOYSTICK_BUTTONS]; /// heck if k knew this existed... guess no game (that i played) uses it; now it's implemented!
@@ -307,7 +312,8 @@ public:
   uchar *lastCheck;                     /// holds what the last time the keys were checked button press info - points to 1 of the buffers
   ButPressed lastBut[MAX_KEYS_LOGGED];  /// history of pressed buttons
 
-// functions
+  // functions
+
   void activate() { _j->activate(); }     /// !! activates pad, signaling to update it's data values& grabbing exclusive usage
   void deactivate() { _j->deactivate(); } /// deactivates & ungrabs device
 
@@ -323,9 +329,9 @@ public:
 // internals from here on
 private:
   osiJoystick *_j;                      /// linked Joystick class
-  void log(const ButPressed &);         /// [internal] just puts the last button in the last button-history (it logs imediatly when a button is down)
-  uchar buffer1[MAX_JOYSTICK_BUTTONS], buffer2[MAX_JOYSTICK_BUTTONS];   /// used for the key / lastCheck. buffers are swapped with pointers, so no copying is involved
-  inline void swapBuffers();
+  void _log(const ButPressed &);        /// [internal] just puts the last button in the last button-history (it logs imediatly when a button is down)
+  uchar _buffer1[MAX_JOYSTICK_BUTTONS], _buffer2[MAX_JOYSTICK_BUTTONS];   /// used for the key / lastCheck. buffers are swapped with pointers, so no copying is involved
+  inline void _swapBuffers();
   
   #ifdef OS_MAC
   friend void HIDchange(void *, IOReturn, void *, IOHIDValueRef);
@@ -341,7 +347,7 @@ class osiGameWheel {
   friend class osiJoystick;
 public:
   
-// CONFIGURATION
+  // CONFIGURATION
   
   short mode;                      // [MODE0]: disabled, can check against this
                                    // [MODE1]: OS native
@@ -350,13 +356,13 @@ public:
   string name;                    /// wheel name (product name)
   short  maxButtons;              /// nr of buttons the gameWheel has
   
-// AXIS
+  // AXIS
   
   long wheel;                     /// the wheel
   long a1, a2, a3, a4, a5;        /// different axis/ pedals
   // a pov??                       // THIS NEEDS MORE WORK <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-// BUTTONS state / history
+  // BUTTONS state / history
 
   uchar *b;                             /// buttons state
   long bPressure[MAX_JOYSTICK_BUTTONS]; /// heck if k knew this existed... guess no game (that i played) uses it; now it's implemented!
@@ -364,7 +370,8 @@ public:
   uchar *lastCheck;                     /// holds what the last time the keys were checked button press info - points to 1 of the buffers
   ButPressed lastBut[MAX_KEYS_LOGGED];  /// history of pressed buttons
 
-// functions
+  // functions
+
   void activate() { _j->activate(); }     /// !! activates wheel, signaling to update it's data values & grabbing exclusive usage
   void deactivate() { _j->deactivate(); } /// deactivates & ungrabs device
 
@@ -380,13 +387,13 @@ public:
   
 private:
   osiJoystick *_j;                  /// linked Joystick class
-  uchar buffer1[MAX_JOYSTICK_BUTTONS], buffer2[MAX_JOYSTICK_BUTTONS];   /// used for the key / lastCheck. buffers are swapped with pointers, so no copying is involved
+  uchar _buffer1[MAX_JOYSTICK_BUTTONS], _buffer2[MAX_JOYSTICK_BUTTONS];   /// used for the key / lastCheck. buffers are swapped with pointers, so no copying is involved
 
-  void log(const ButPressed &);  /// [internal] puts the last button in the last button-history (it logs imediatly when a button is down)
-  inline void swapBuffers();
+  void _log(const ButPressed &);  /// [internal] puts the last button in the last button-history (it logs imediatly when a button is down)
+  inline void _swapBuffers();
   
   #ifdef OS_MAC
-  friend void HIDchange(void *, IOReturn, void *, IOHIDValueRef);
+  friend void _HIDchange(void *, IOReturn, void *, IOHIDValueRef);
   #endif 
 
 };
@@ -429,7 +436,7 @@ struct _Kv {
 // ================================================================== //
 
 #ifdef USING_DIRECTINPUT
-BOOL CALLBACK diDevCallback(LPCDIDEVICEINSTANCE, LPVOID); /// no, i did not create this crap, this is direct input 'callback' func
+BOOL CALLBACK _diDevCallback(LPCDIDEVICEINSTANCE, LPVOID); /// no, i did not create this crap, this is direct input 'callback' func
 #endif
 
 class osiInput {
@@ -475,7 +482,7 @@ public:
   inline osiGamePad   *getT3gp(short nr) { return &gp[16+ nr]; } /// [win type3= xinput] [linux= nothig] [mac= nothig]
   inline osiGameWheel *getT3gw(short nr) { return &gw[16+ nr]; } /// [win type3= xinput] [linux= nothig] [mac= nothig]
 
-// functions
+  // functions
   
   bool init(int mMode= 1, int kMode= 1);          // ? START (see 'mode' variable for mouse & keyboard for more customization)
   void populate(bool scanMouseKeyboard= false);   // WIP, this might have more use in the future - calls EVERY init ATM 
@@ -486,25 +493,27 @@ public:
   ~osiInput();
   void delData();
   
-// private (internal) stuff from here on
+  // private (internal) stuff from here on
  private:
-   uint64 lastPopulate;
-   
+   uint64 _lastPopulate;
+
+  #ifdef OS_WIN
   #ifdef USING_DIRECTINPUT
-  friend BOOL CALLBACK diDevCallback(LPCDIDEVICEINSTANCE, LPVOID);
-  LPDIRECTINPUT8 dInput;
+  friend BOOL CALLBACK _diDevCallback(LPCDIDEVICEINSTANCE, LPVOID);
+  LPDIRECTINPUT8 _dInput;
   #endif
+  #endif /// OS_WIN
 
   #ifdef OS_LINUX
   // linux keysyms handling (keysyms make windows look good ffs)
   // these funcs are in <OSchar.cpp>, at the end of the file !!!!!!!!!!!!!
-  void keysym2unicode(KeySym *, ulong *ret);  /// converts keysym to unicode (no checks, use getUnicode)
-  void getUnicode(KeySym *, ulong *ret);      /// converts keysym to unicode, verifies that the character is valid
+  void _keysym2unicode(KeySym *, ulong *ret);  /// converts keysym to unicode (no checks, use getUnicode)
+  void _getUnicode(KeySym *, ulong *ret);      /// converts keysym to unicode, verifies that the character is valid
   #endif /// OS_LINUX
 
   #ifdef OS_MAC // MAC MESS <<<--------------- NOTHING TO BOTHER HERE ------
   /// nothing to bother here, all internal vars
-  IOHIDManagerRef manager;        /// [internal] 'manager' that handles all HID devices (this one is set to handle sticks/pads/wheels only)
+  IOHIDManagerRef _manager;        /// [internal] 'manager' that handles all HID devices (this one is set to handle sticks/pads/wheels only)
   #endif // END MAC MESS <<<-----------------------------------------------
 
 // TESTING

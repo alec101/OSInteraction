@@ -6,22 +6,17 @@ bool chatty= false;  /// used only for DEBUG
 //^^^^^^^^^^^^^^^
 
 /* TODO:
- * - all internals to have '_' in front, and all or most funcs that are internal, should be outside their class
+ * - forcing close bool - if not set to false by exit or something similar, destructors should skip deleting stuff and calling funcs, as it will crash
  * - [mac] better glMakeCurrent func, with the coreGl mac stuff << MAX PRIORITY
- *
- * - [win] USING_XINPUT & USING_DIRECTINPUT must be inside OS_WIN
- * - system to create a glRenderer for each graphic card (MUST install a second grcard on a computer) !!!!
- * 
  * - [mac] threads!!!!!!!!!!!!
- *
  * - [linux][mac] set an icon for the window;  [win] WHEN dealing with icons, must remember to develop WM_GETICON too
- *
- * - gamepad vibration under directinput (it is possible) & force feedback (MUST HAVE A VIBRATION GAMEPAD FIRST...)
- *
- * - create a loading window, in the center of the screen? eventually to have image of the game
- *
+ * - [win] gamepad vibration under directinput (it is possible) & force feedback (MUST HAVE A VIBRATION GAMEPAD FIRST...)
+ * - [all] create a loading window, in the center of the screen? eventually to have image of the game
+ * - [all] img formats loading, i guess - lodepng with smallest loading possible, exclude from compile c++ wrappers & everything
+ * - more todo's in osiInput.cpp
  * LOWER PRIORITY:
- * [all] XLock/UnlockDisplay() - keep an eye on, something like this might be implemented for all os-es, for threads
+ * - [all] all utilClasses should be in osi dir, i think. it's too complicated with 2 dirs...
+ * - [linux] XLock/UnlockDisplay() - keep an eye on, somewhere some locks might be needed? dunno VERY LOW PRIO
  * - [linux][mac] prevent screensaver/ monitor low power
  * - [win][linux][mac] what happens on sleep? should be handled like 'app lose focus', or better, another flag, as the app must pause or something (some dont pause on app focus)
  * - windowfocus flag. it's there, but not updated at all
@@ -404,7 +399,7 @@ osinteraction::osinteraction() {
   glr= null;
 
   #ifdef OS_WIN
-  QueryPerformanceFrequency(&timerFreq);     /// read cpu frequency. used for high performance timer (querryPerformanceBlaBla)
+  QueryPerformanceFrequency(&_timerFreq);     /// read cpu frequency. used for high performance timer (querryPerformanceBlaBla)
   /// 'path' string - program path
   char *buf= new char[512];
   GetCurrentDirectory(511, buf);
@@ -530,12 +525,12 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, string name, int
   rect.top=		 display.vdy- display.vy0- (w->y0+ w->dy);  /// coordonate unification changed
   rect.bottom= display.vdy- display.vy0- w->y0;           /// coordonate unification changed
 
-  w->hInstance = GetModuleHandle(NULL);                   /// grab an instance for window
+  w->_hInstance = GetModuleHandle(NULL);                  /// grab an instance for window
   wc.style				 = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;  /// Redraw On Size, And Own DC For Window.
   wc.lpfnWndProc	 = (WNDPROC) processMSG;                // processMSG handles messages
   wc.cbClsExtra		 = 0;                                   /// no extra
   wc.cbWndExtra		 = 0;                                   /// no extra
-  wc.hInstance		 = w->hInstance;                        /// set the aquired instance
+  wc.hInstance		 = w->_hInstance;                       /// set the aquired instance
   wc.hIcon				 = LoadIcon(NULL, IDI_WINLOGO);         // load default icon <<<<<<<<<<<<<<<<<<<<<< ICON WORKS MUST BE MADE
   wc.hCursor			 = LoadCursor(NULL, IDC_ARROW);         /// load arrow pointer
   wc.hbrBackground = NULL;                                /// no backgraound required when using opengl
@@ -578,7 +573,7 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, string name, int
   AdjustWindowRectEx(&rect, dwStyle, FALSE, dwExStyle); // Adjust Window To True Requested Size
 
   // Create The Window
-  if (!(w->hWnd= CreateWindowEx(dwExStyle,              // Extended Style For The Window
+  if (!(w->_hWnd= CreateWindowEx(dwExStyle,             // Extended Style For The Window
                 name,                   // class name           <--- might want a different class name?
                 name,                   /// window title
                 dwStyle |               /// defined window style
@@ -587,9 +582,9 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, string name, int
                 w->x0, (display.vdy- display.vy0)- (w->y0+ w->dy), /// window position (coord unification fixed)
                 rect.right- rect.left,  /// dx
                 rect.bottom- rect.top,  /// dy
-                win[0].hWnd,            /// parent window
+                win[0]._hWnd,           /// parent window
                 NULL,                   /// no menu
-                w->hInstance,           /// instance
+                w->_hInstance,          /// instance
                 NULL)))                 /// don't pass anything to WM_CREATE
   {
     killGLWindow(w);                    // Reset The Display
@@ -626,16 +621,16 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, string name, int
   pfd.dwVisibleMask= 0;
   pfd.dwDamageMask= 0;
   */
-  if (!(w->hDC= GetDC(w->hWnd))) {                  /// get a device context
+  if (!(w->_hDC= GetDC(w->_hWnd))) {                /// get a device context
     killGLWindow(w);
     error.simple(func+ "Can't create a GL DC");
     return false;
   }
   /// get the current pixel format index  
-  int pixelf= GetPixelFormat(w->hDC); 
+  int pixelf= GetPixelFormat(w->_hDC); 
   if(chatty) printf("pixelf= %d\n", pixelf);
   /// obtain a detailed description of that pixel format  
-  DescribePixelFormat(w->hDC, pixelf, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
+  DescribePixelFormat(w->_hDC, pixelf, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
   // double buffer is needed, but causes screen flicker. must check with the other type of wgl_choosePixelFormat()
   pfd.dwFlags= pfd.dwFlags| PFD_DRAW_TO_WINDOW| PFD_DRAW_TO_BITMAP| PFD_SUPPORT_OPENGL| PFD_STEREO_DONTCARE; //| PFD_SWAP_EXCHANGE;//| PFD_NEED_PALETTE;
   if(dblBuffer)
@@ -685,13 +680,13 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, string name, int
   */
 
 
-  if (!(PixelFormat= ChoosePixelFormat(w->hDC, &pfd))) {  /// lots of checks, don't think any needed
+  if (!(PixelFormat= ChoosePixelFormat(w->_hDC, &pfd))) {  /// lots of checks, don't think any needed
     killGLWindow(w);
     error.simple(func+ "Can't aquire a PixelFormat");
     return false;
   }
 
-  if(!SetPixelFormat(w->hDC, PixelFormat, &pfd)) {        /// lots of checks, don't think any needed
+  if(!SetPixelFormat(w->_hDC, PixelFormat, &pfd)) {        /// lots of checks, don't think any needed
     killGLWindow(w);
     error.simple(func+ "Can't set PixelFormat");
     return false;
@@ -714,21 +709,21 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, string name, int
     return false;
   }
 
-  ShowWindow(w->hWnd, SW_SHOW);   /// Show The Window
-  SetForegroundWindow(w->hWnd);   /// Slightly Higher Priority
+  ShowWindow(w->_hWnd, SW_SHOW);  /// Show The Window
+  SetForegroundWindow(w->_hWnd);  /// Slightly Higher Priority
 
-  SetFocus(w->hWnd);              /// Sets Keyboard Focus To The Window
+  SetFocus(w->_hWnd);             /// Sets Keyboard Focus To The Window
 
   w->isCreated= true;
   m->win= w;
 
   w->glr->checkExt();
-  w->glr->getExtFuncs();        /// once a window is created, getExtensions() aquires oGL extensions functions
+  w->glr->getExtFuncs();          /// once a window is created, getExtensions() aquires oGL extensions functions
 
   return true;
   #endif /// OS_WIN
 
-
+  
   #ifdef OS_LINUX //                <---------------------------LINUX
   Colormap cmap;
   XSetWindowAttributes swa;
@@ -743,7 +738,7 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, string name, int
                  None };
   
   w->root= m->root;                                        // 'desktop window'
-  w->dis= primWin->dis; // server connection, created in osinteraction()
+  w->_dis= primWin->_dis; // server connection, created in osinteraction()
   
   if(mode == 2)
     if(!display.changeRes(m, dx, dy, bpp, freq)) {
@@ -755,7 +750,7 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, string name, int
 
   w->mode= mode;
 
-  w->vi= glXChooseVisual(w->dis, m->screen, att);
+  w->_vi= glXChooseVisual(w->_dis, m->_screen, att);
 
   /* !!!!!!!!!!!!!!!!!!
   vi= DefaultVisual(display, 0);
@@ -763,12 +758,12 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, string name, int
   */
 
 
-  if(w->vi == NULL)
+  if(w->_vi == NULL)
     error.simple(func+ "no appropriate visual found\n", true);
   else // DELETE <--------------------------------
     if(chatty) printf("\n\tvisual %p selected\n", (void *)w->vi->visualid); // %p creates hexadecimal output like in glxinfo
 
-  cmap= XCreateColormap(w->dis, w->root, vi->visual, AllocNone);
+  cmap= XCreateColormap(w->_dis, w->_root, w->vi->visual, AllocNone);
   swa.colormap= cmap;
 
 
@@ -789,12 +784,12 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, string name, int
 
   swa.override_redirect= 0;                             // this is very hard to handle if true
 
-  w->win= XCreateWindow(w->dis, w->root,
+  w->_win= XCreateWindow(w->_dis, w->_root,
                         w->x0, display.vdy- display.vy0- (w->y0+ w->dy), w->dx, w->dy,     // position & size (coord unification fixed)
                         0,                              // border size
-                        w->vi->depth,                      // depth can be CopyFromParent
+                        w->_vi->depth,                  // depth can be CopyFromParent
                         InputOutput,                    // InputOnly/ InputOutput/ CopyFromParent
-                        w->vi->visual,                     // can be CopyFromParent
+                        w->_vi->visual,                 // can be CopyFromParent
                         CWColormap| CWEventMask| CWOverrideRedirect,       // tied with &swa
                         &swa);                          //
 
@@ -862,11 +857,11 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, string name, int
   
   /// Fullscreen window on all monitors - MODE 4. Needs XInerama only for monitor IDs (wich sucks, as Xrandr should handle this little aspect)
   if(mode== 4) {
-    Atom fullmons = XInternAtom(w->dis, "_NET_WM_FULLSCREEN_MONITORS", False);
+    Atom fullmons = XInternAtom(w->_dis, "_NET_WM_FULLSCREEN_MONITORS", False);
     XEvent xev;
     for(short a= 0; a< sizeof(xev); a++) ((char*)&xev)[a]= 0;
     xev.type = ClientMessage;
-    xev.xclient.window= w->win;
+    xev.xclient.window= w->_win;
     xev.xclient.message_type = fullmons;
     xev.xclient.format = 32;
     
@@ -879,19 +874,19 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, string name, int
     printf("top[%d] left[%d] bottom[%d] right[%d]\n", display.top, display.left, display.bottom, display.right);
     xev.xclient.data.l[4]= 1;               /// source indication (1 for normal applications, 2 for pagers and other Clients that represent direct user actions)
     
-    XSendEvent (w->dis, DefaultRootWindow(w->dis), False,
+    XSendEvent (w->_dis, DefaultRootWindow(w->_dis), False,
                     SubstructureRedirectMask | SubstructureNotifyMask, &xev);
   }
   
   if(w->mode!= 1)                           /// in all other modes but 1, make window 'on top'
     w->setWMstate(1, "_NET_WM_STATE_ABOVE");
   
-  XMapWindow(w->dis, w->win);               /// map window= finish creation/ show window
+  XMapWindow(w->_dis, w->_win);               /// map window= finish creation/ show window
   
   if(w->mode== 1)                           /// MODE1 seems to need to move the window, x0&y0 in createwindow do nothing
-    XMoveWindow(w->dis, w->win, w->x0, display.vdy- display.vy0- (w->y0+ w->dy));
+    XMoveWindow(w->_dis, w->_win, w->x0, display.vdy- display.vy0- (w->y0+ w->dy));
 
-  XStoreName(w->dis, w->win, name);         /// window name (top bar description/name)
+  XStoreName(w->_dis, w->_win, name);         /// window name (top bar description/name)
 
   /// create / assign existing renderer 
   if(!assignRenderer(w)) {
@@ -904,8 +899,8 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, string name, int
 
   ///  handle the close button WM
   if(w== primWin) {
-    Atom wmDelete= XInternAtom(w->dis, "WM_DELETE_WINDOW", True);
-    XSetWMProtocols(w->dis, w->win, &wmDelete, 1);
+    Atom wmDelete= XInternAtom(w->_dis, "WM_DELETE_WINDOW", True);
+    XSetWMProtocols(w->_dis, w->_win, &wmDelete, 1);
   }
 
   w->monitor= m;
@@ -961,7 +956,7 @@ void osinteraction::setProgramIcon(string file) {
   #ifdef OS_WIN
   HANDLE hIcon= LoadImage(NULL, file, IMAGE_ICON, 64, 64, LR_LOADFROMFILE);
 
-  SendMessage(primWin->hWnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
+  SendMessage(primWin->_hWnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
 
   // small icon???
   //hIconSm = LoadImage(NULL, "menu_two.ico", IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
@@ -1016,13 +1011,15 @@ void osinteraction::setProgramIcon(string file) {
   winHints->icon_pixmap= iconPixmap;
   
   /* pass the hints to the window manager. */
-  XSetWMHints(osi.primWin->dis, osi.primWin->win, winHints);
+  XSetWMHints(osi.primWin->_dis, osi.primWin->_win, winHints);
 
   XFree(winHints);
     
     
 // WIP <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
   #endif
+
+  
 
   #ifdef OS_MAC
   makeme
@@ -1063,7 +1060,7 @@ void osinteraction::startThread(void func(void *)) {
 
 void osinteraction::endThread(int status) {
   #ifdef OS_WIN
-  makeme
+  _endthread();       /// endthreadex() does not close the handle, beware, if used instead of this
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
@@ -1084,16 +1081,16 @@ void osinteraction::endThread(int status) {
 
 
 #ifdef OS_WIN
-string osinteraction::getWinName(HWND h) {
+string osinteraction::_getWinName(HWND h) {
   for(int a= 0; a< MAX_WINDOWS; a++)
-    if(win[a].hWnd== h)
+    if(win[a]._hWnd== h)
       return win[a].name;
   return "unknown window";
 }
 
-osiWindow *osinteraction::getWin(HWND h) {
+osiWindow *osinteraction::_getWin(HWND h) {
   for(int a= 0; a< MAX_WINDOWS; a++)
-    if(win[a].hWnd== h)
+    if(win[a]._hWnd== h)
       return &win[a];
   return null;
 }
@@ -1102,7 +1099,7 @@ osiWindow *osinteraction::getWin(HWND h) {
 #ifdef OS_LINUX
 osiWindow *osinteraction::getWin(Window *w) {
   for(short a= 0; a< MAX_WINDOWS; a++)
-    if(win[a].win== *w)
+    if(win[a]._win== *w)
       return &win[a];
   return null;
 }
@@ -1111,7 +1108,7 @@ osiWindow *osinteraction::getWin(Window *w) {
 #ifdef OS_MAC
 osiWindow *osinteraction::getWin(void *w) {
   for(short a= 0; a< MAX_WINDOWS; a++)
-    if(win[a].win== w)
+    if(win[a]._win== w)
       return &win[a];
   return null;
 }
@@ -1154,7 +1151,7 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       case WM_MOUSEMOVE:                                          /// mouse movement
         /// removed oldx&y, dx&y, they are updated when in.update() is called; deltas are always on, now.
         /// these are inside window positions
-        w= osi.getWin(hWnd);
+        w= osi._getWin(hWnd);
         in.m.x= ((int)(short)LOWORD(lParam));   /// msdn says not to use loword; this is what GET_X_PARAM does
         in.m.y= ((int)(short)HIWORD(lParam));
         /// coordonate unification
@@ -1210,7 +1207,7 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         goto ret;
         //return 0;
       case WM_MOUSEWHEEL:                                         /// wheel
-        in.m.twheel+= (GET_WHEEL_DELTA_WPARAM(wParam)> 0)? 1: -1;
+        in.m._twheel+= (GET_WHEEL_DELTA_WPARAM(wParam)> 0)? 1: -1;
         if(chatty) printf("mouse: wheel rotated\n");
         goto ret;
         //return 0;
@@ -1281,7 +1278,7 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
             k.timeDown= osi.eventTime;
             k.timeUp= 0;
             k.timeDT= 0;
-            in.k.log(k);
+            in.k._log(k);
             /// set the vars
             in.k.key[code]= 128;
             in.k.keyTime[code]= osi.eventTime;
@@ -1289,7 +1286,7 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
           }
           //in.k.repeat[code]+= KF_REPEAT& HIWORD(lParam);   // THIS MIGHT BE DELETED <-------------------------------------------
 
-          in.k.doManip();                          /// check if current pressed keys form a manip char
+          in.k._doManip();                         /// check if current pressed keys form a manip char
           if(chatty) printf("key REPEAT code[0x%X] vcode[0x%X]\n", code, vcode);
           goto ret;
           //return 0;
@@ -1298,13 +1295,13 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         k.code= code;
         k.checked= false;
         k.timeDown= osi.eventTime;
-        in.k.log(k);
+        in.k._log(k);
         /// set the key as pressed & other needed vars
         in.k.key[code]= 128;
         in.k.keyTime[code]= osi.eventTime;
         //in.k.repeat[code]= 1;                  /// a new key press, sets repeat to 1  // MIGHT BE DELETED
         
-        in.k.doManip();                          /// check if current pressed keys form a manip char
+        in.k._doManip();                          /// check if current pressed keys form a manip char
         if(chatty) printf("key PRESS code[0x%X] vcode[0x%X]\n", code, vcode);
         goto ret;
         //return 0;
@@ -1343,7 +1340,7 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
           k.timeDown= osi.eventTime- 1;   /// 1 milisecond before the keyup
           k.timeUp= osi.eventTime;
           k.timeDT= 1;                    /// timeUp- timeDown
-          in.k.log(k);
+          in.k._log(k);
         }
 
         /// set the key as pressed & other vars
@@ -1402,12 +1399,12 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         for(short a= 0; a< MAX_WINDOWS; a++) 
           if(osi.win[a].isCreated)
             if(osi.win[a].mode== 2) {
-              ShowWindow(osi.win[a].hWnd, SW_RESTORE);
+              ShowWindow(osi.win[a]._hWnd, SW_RESTORE);
               osi.flags.minimized= false;
-              MoveWindow(osi.win[a].hWnd, osi.win[a].monitor->x0, osi.win[a].monitor->y0, osi.win[a].dx, osi.win[a].dy, false);
+              MoveWindow(osi.win[a]._hWnd, osi.win[a].monitor->x0, osi.win[a].monitor->y0, osi.win[a].dx, osi.win[a].dy, false);
               if(chatty) printf("window %d x0[%d] y0[%d] dx[%d] dy[%d]\n", a, osi.win[a].monitor->x0, osi.win[a].monitor->y0, osi.win[a].dx, osi.win[a].dy);
             }
-        SetForegroundWindow(osi.primWin->hWnd);
+        SetForegroundWindow(osi.primWin->_hWnd);
         osi.flags.haveFocus= true;        /// set flag, the last
 
       } else {                             // ---=== application LOSES focus ===---
@@ -1428,9 +1425,9 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
           if(osi.win[a].isCreated)
             if(osi.win[a].mode== 2) {
               if(&osi.win[a]== osi.primWin) /// main window gets minimized
-                ShowWindow(osi.win[a].hWnd, SW_MINIMIZE);
+                ShowWindow(osi.win[a]._hWnd, SW_MINIMIZE);
               else                          /// all other windows must be hidden, else they get minimized into a small box
-                ShowWindow(osi.win[a].hWnd, SW_HIDE);
+                ShowWindow(osi.win[a]._hWnd, SW_HIDE);
               osi.flags.minimized= true;
             }
 
@@ -1444,30 +1441,30 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 
       } /// switch gain/lose focus
 
-      if(chatty) printf("WM_ACTIVATEAPP %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam);
+      if(chatty) printf("WM_ACTIVATEAPP %s 0x%x %d %d\n", osi._getWinName(hWnd).d, m, wParam, lParam);
       goto ret;
 
     case WM_CLOSE:
-      if(chatty) printf("WM_CLOSE %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam);
+      if(chatty) printf("WM_CLOSE %s 0x%x %d %d\n", osi._getWinName(hWnd).d, m, wParam, lParam);
       osi.flags.exit= true;     /// main exit flag
       return 0;
     case WM_CHAR:
-      if(chatty) printf("WM_CHAR %s %lc\n", osi.getWinName(hWnd).d, wParam);
+      if(chatty) printf("WM_CHAR %s %lc\n", osi._getWinName(hWnd).d, wParam);
       osi.getMillisecs(&osi.eventTime);
-      in.k.addChar((ulong)wParam, &osi.eventTime);
+      in.k._addChar((ulong)wParam, &osi.eventTime);
       return 0;
     case WM_UNICHAR:
       error.console("WM_UNICHAR not tested");
-      if(chatty) printf("WM_UNICHAR %s %lc\n", osi.getWinName(hWnd).d, wParam);
+      if(chatty) printf("WM_UNICHAR %s %lc\n", osi._getWinName(hWnd).d, wParam);
       osi.getMillisecs(&osi.eventTime);
-      in.k.addChar((ulong)wParam, &osi.eventTime);
+      in.k._addChar((ulong)wParam, &osi.eventTime);
       return 0;
     case WM_DEVICECHANGE:
       in.populate();                        /// a call to in.populate to rescan for joysticks/gamepads/gamewheels
       goto ret;
       break;
     case WM_MOVE:
-      w= osi.getWin(hWnd);
+      w= osi._getWin(hWnd);
       /// hanles normal windows (no fullscreens)
       if(w)
         if(w->mode== 1) {
@@ -1478,7 +1475,7 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       break;
     case WM_SIZE:
       if(wParam== SIZE_RESTORED) {      /// handling only window size change (there are minimize and maximize messages here)
-        w= osi.getWin(hWnd);
+        w= osi._getWin(hWnd);
         if(w)
           if(w->mode== 1) {
             w->dx= LOWORD(lParam);
@@ -1508,14 +1505,14 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 
     // system commands
     case WM_SYSCOMMAND:
-      if(chatty) printf("WM_SYSCOMMAND %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam);
+      if(chatty) printf("WM_SYSCOMMAND %s 0x%x %d %d\n", osi._getWinName(hWnd).d, m, wParam, lParam);
 
       switch (wParam)	{
         case SC_SCREENSAVE:
 				case SC_MONITORPOWER:
 				  return 0;                         /// prevent these from happening by not calling DefWinProc
         case SC_CLOSE: 
-          if(chatty) printf("  SC_CLOSE %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam);
+          if(chatty) printf("  SC_CLOSE %s 0x%x %d %d\n", osi._getWinName(hWnd).d, m, wParam, lParam);
           osi.flags.exit= true;
           return 0;
       } /// switch the type of WM_SYSCOMMAND
@@ -1526,13 +1523,13 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
   /// unhandled frequent windows messages
   if(chatty&& !onlyHandled)
     switch(m) {
-      case WM_ACTIVATE: if(chatty) printf("WM_ACTIVATE %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;
-      case WM_ERASEBKGND: if(chatty) printf("WM_ERASEBKGND %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;
-      case WM_PAINT: if(chatty) printf("WM_PAINT %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;
-      case WM_NCPAINT: if(chatty) printf("WM_NCPAINT %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;
-      case WM_SETFOCUS: if(chatty) printf("WM_SETFOCUS %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;       /// keyboard focus i think
-      case WM_KILLFOCUS: if(chatty) printf("WM_KILLFOCUS %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;     /// keyboard focus i think
-      case WM_NCACTIVATE: if(chatty) printf("WM_NCACTIVATE %s 0x%x %d %d\n", osi.getWinName(hWnd).d, m, wParam, lParam); goto ret;
+      case WM_ACTIVATE: if(chatty) printf("WM_ACTIVATE %s 0x%x %d %d\n", osi._getWinName(hWnd).d, m, wParam, lParam); goto ret;
+      case WM_ERASEBKGND: if(chatty) printf("WM_ERASEBKGND %s 0x%x %d %d\n", osi._getWinName(hWnd).d, m, wParam, lParam); goto ret;
+      case WM_PAINT: if(chatty) printf("WM_PAINT %s 0x%x %d %d\n", osi._getWinName(hWnd).d, m, wParam, lParam); goto ret;
+      case WM_NCPAINT: if(chatty) printf("WM_NCPAINT %s 0x%x %d %d\n", osi._getWinName(hWnd).d, m, wParam, lParam); goto ret;
+      case WM_SETFOCUS: if(chatty) printf("WM_SETFOCUS %s 0x%x %d %d\n", osi._getWinName(hWnd).d, m, wParam, lParam); goto ret;       /// keyboard focus i think
+      case WM_KILLFOCUS: if(chatty) printf("WM_KILLFOCUS %s 0x%x %d %d\n", osi._getWinName(hWnd).d, m, wParam, lParam); goto ret;     /// keyboard focus i think
+      case WM_NCACTIVATE: if(chatty) printf("WM_NCACTIVATE %s 0x%x %d %d\n", osi._getWinName(hWnd).d, m, wParam, lParam); goto ret;
       case WM_GETICON: if(chatty) printf("WM_GETICON\n"); goto ret;              /// usually is used when alt-tabbing, gets an icon for the mini alt-tab list
         // WHEN dealing with icons, must remember to develop WM_GETICON too
       case WM_IME_NOTIFY: if(chatty) printf("WM_IME_NOTIFY\n"); goto ret;
@@ -1543,7 +1540,7 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
     } /// switch
 
   if(chatty&& !onlyHandled)
-    printf("UNKNOWN %s 0x%x %d %d\n", osi.getWinName(hWnd), m, wParam, lParam);
+    printf("UNKNOWN %s 0x%x %d %d\n", osi._getWinName(hWnd), m, wParam, lParam);
   /// this DefWindowProc() handles window movement & resize & rest... without this, moving is not working, for example
 ret:
   if(timeFunc) osi.getNanosecs(&end);
@@ -1560,8 +1557,8 @@ void osinteraction::processMSG()  {
   XEvent event;
   osiWindow *w= null;
 
-  while(XPending(primWin->dis)) {       /// while there are messages in queue, loop thru them
-    XNextEvent(primWin->dis, &event);
+  while(XPending(primWin->_dis)) {       /// while there are messages in queue, loop thru them
+    XNextEvent(primWin->_dis, &event);
     
 // ########################### MOUSE EVENTS ################################# //
       
@@ -1944,10 +1941,10 @@ bool osinteraction::checkMSG() {
   
   #ifdef OS_WIN
   while(1)    // loop thru ALL msgs... i used to peek thru only 1 msg, that was baaad... biig LAG
-    if(PeekMessage(&win[0].msg, NULL, 0, 0, PM_REMOVE)) {	// Is There A Message Waiting?
+    if(PeekMessage(&win[0]._msg, NULL, 0, 0, PM_REMOVE)) {	// Is There A Message Waiting?
       // eventTime= win[0].msg.time; // not reliable. 1 sec after getMillisecs(). this time is in the dang future
-      TranslateMessage(&win[0].msg);
-      DispatchMessage(&win[0].msg);
+      TranslateMessage(&win[0]._msg);
+      DispatchMessage(&win[0]._msg);
 
       ret= true;
     } else
@@ -1980,11 +1977,11 @@ bool osinteraction::checkMSG() {
 // -----------============= WINDOW CLASS =============------------------
 ///=====================================================================
 #ifdef OS_WIN
-MSG osiWindow::msg= {0};
+MSG osiWindow::_msg= {0};
 #endif
 
 #ifdef OS_LINUX
-Display *osiWindow::dis= null;
+Display *osiWindow::_dis= null;
 #endif
 
 osiWindow::osiWindow() {
@@ -1996,21 +1993,21 @@ osiWindow::osiWindow() {
   glr= null;
   
   #ifdef OS_WIN
-  hDC= NULL;
-  hInstance= NULL;
-  hWnd= NULL;
+  _hDC= NULL;
+  _hInstance= NULL;
+  _hWnd= NULL;
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
-  root= 0;              /// root window (desktop/server main window/ watever)
-  win= 0;               /// window 'handle' or watever (per monitor)
-  vi= null;
-  isMapped= false;
+  _root= 0;              /// root window (desktop/server main window/ watever)
+  _win= 0;               /// window 'handle' or watever (per monitor)
+  _vi= null;
+  _isMapped= false;
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
-  win= null;
-  view= null;
+  _win= null;
+  _view= null;
   #endif /// OS_MAC
 }
 
@@ -2030,19 +2027,19 @@ osiWindow::~osiWindow() {
 
 void osiWindow::delData() {
   #ifdef OS_WIN
-  if(hDC) {
-    ReleaseDC(hWnd, hDC);
-    hDC= NULL;
+  if(_hDC) {
+    ReleaseDC(_hWnd, _hDC);
+    _hDC= NULL;
   }
 
-  if(hWnd) {
-    DestroyWindow(hWnd);
-    hWnd= NULL;
+  if(_hWnd) {
+    DestroyWindow(_hWnd);
+    _hWnd= NULL;
   }
 
   if(name.len) {
-    UnregisterClass(name, hInstance);   // << in case class name will differ in future
-    hInstance= NULL;
+    UnregisterClass(name, _hInstance);   // << in case class name will differ in future
+    _hInstance= NULL;
   }
   // do not return;
   #endif /// OS_WIN
@@ -2056,15 +2053,15 @@ void osiWindow::delData() {
     if(mode == 2)
       osi.display.restoreRes(this, monitor);
 
-    XDestroyWindow(dis, win);
-    this->isMapped= false;
+    XDestroyWindow(_dis, _win);
+    this->_isMapped= false;
   }
   // do not return
   #endif
 
   #ifdef OS_MAC
-  win= null;
-  view= null;
+  _win= null;
+  _view= null;
 
   // do not return
   #endif
@@ -2092,7 +2089,7 @@ void osiWindow::setWMprop(string8 wmID, string8 wmProp, uint val1, uint val2) {
   Atom prop= XInternAtom(dis, wmProp, False);
   ulong data[5]= {val1, val2, 0, 0, 0};
 
-  XChangeProperty(dis, win, wm, prop, 32, PropModeReplace, (cuchar*)data, 2);
+  XChangeProperty(_dis, _win, wm, prop, 32, PropModeReplace, (cuchar*)data, 2);
 }
 
 
@@ -2101,16 +2098,16 @@ void osiWindow::setWMstate(uint val, string8 prop1, string8 prop2) {
   for(short a= 0; a< sizeof(xev); a++) ((char*)&xev)[a]= 0;               /// clear xev
 /// set vals
   xev.type= ClientMessage;
-  xev.xclient.window= win;
-  xev.xclient.message_type= XInternAtom(dis, "_NET_WM_STATE", False);
+  xev.xclient.window= _win;
+  xev.xclient.message_type= XInternAtom(_dis, "_NET_WM_STATE", False);
   xev.xclient.format= 32;
   xev.xclient.data.l[0]= val;
-  xev.xclient.data.l[1]= XInternAtom(dis, prop1, False);
+  xev.xclient.data.l[1]= XInternAtom(_dis, prop1, False);
   if(prop2.d)
-    xev.xclient.data.l[2]= XInternAtom(dis, prop2, False);
+    xev.xclient.data.l[2]= XInternAtom(_dis, prop2, False);
   xev.xclient.data.l[3]= 1; // 0= oldApp/ignore, 1= normal app, 2= pagers/other clients
 /// send the message to root
-  XSendEvent(dis, root, False, SubstructureRedirectMask| SubstructureNotifyMask, &xev);
+  XSendEvent(_dis, _root, False, SubstructureRedirectMask| SubstructureNotifyMask, &xev);
 }
 
 #endif /// OS_LINUX
@@ -2138,8 +2135,8 @@ void osinteraction::getNanosecs(uint64 *out) {
 
   uint64 hi= t.QuadPart/ 10000000;
   uint64 lo= t.QuadPart- (hi* 10000000);
-  lo= (lo* 1000000000)/ timerFreq.QuadPart;
-  hi= (hi* 1000000000)/ timerFreq.QuadPart;
+  lo= (lo* 1000000000)/ _timerFreq.QuadPart;
+  hi= (hi* 1000000000)/ _timerFreq.QuadPart;
   
   *out= hi* 10000000+ lo;
   #endif /// OS_WIN
@@ -2166,8 +2163,8 @@ void osinteraction::getMicrosecs(uint64 *out) {
 
   uint64 hi= t.QuadPart/ 10000000;
   uint64 lo= t.QuadPart- (hi* 10000000);
-  hi= (hi* 1000000)/ timerFreq.QuadPart;
-  lo= (lo* 1000000)/ timerFreq.QuadPart;
+  hi= (hi* 1000000)/ _timerFreq.QuadPart;
+  lo= (lo* 1000000)/ _timerFreq.QuadPart;
 
   *out= hi* 10000000+ lo;
 
@@ -2189,7 +2186,7 @@ void osinteraction::getMillisecs(uint64 *out) {
   #ifdef OS_WIN
   LARGE_INTEGER t;
   QueryPerformanceCounter(&t);
-  *out= (t.QuadPart* 1000)/ timerFreq.QuadPart;
+  *out= (t.QuadPart* 1000)/ _timerFreq.QuadPart;
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
@@ -2229,8 +2226,8 @@ void osinteraction::clocks2nanosecs(uint64 *out) {
   /// there has to be a split because ((*out)* 1000000000)/ timerFreq.QuadPart reaches uint64 limit
   uint64 hi= *out/ 10000000;
   uint64 lo= *out- (hi* 10000000);
-  lo= (lo* 1000000000)/ timerFreq.QuadPart;
-  hi= (hi* 1000000000)/ timerFreq.QuadPart;
+  lo= (lo* 1000000000)/ _timerFreq.QuadPart;
+  hi= (hi* 1000000000)/ _timerFreq.QuadPart;
   
   *out= hi* 10000000+ lo;
   #endif /// OS_WIN
@@ -2250,7 +2247,7 @@ void osinteraction::clocks2nanosecs(uint64 *out) {
 // WIP - linux problems
 void osinteraction::clocks2microsecs(uint64 *out) {
   #ifdef OS_WIN
-  *out= (*out* 1000000)/ timerFreq.QuadPart;
+  *out= (*out* 1000000)/ _timerFreq.QuadPart;
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
@@ -2270,7 +2267,7 @@ void osinteraction::clocks2microsecs(uint64 *out) {
 // WIP - linux problems
 void osinteraction::clocks2millisecs(uint64 *out) {
   #ifdef OS_WIN
-  *out= (*out* 1000)/ timerFreq.QuadPart;
+  *out= (*out* 1000)/ _timerFreq.QuadPart;
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
@@ -2322,7 +2319,7 @@ osiRenderer *createRenderer(osiWindow *w) {
   osiRenderer *r= new osiRenderer;
   
   #ifdef OS_WIN
-  r->glContext= wglCreateContext(w->hDC);
+  r->glContext= wglCreateContext(w->_hDC);
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
@@ -2429,7 +2426,7 @@ void osinteraction::swapPrimaryBuffers() {
 void osinteraction::swapBuffers(osiWindow *w) {
   #ifdef OS_WIN
   //SwapBuffers(w->hDC);      /// standard; the wgl one has more possibilities
-  wglSwapLayerBuffers(w->hDC, WGL_SWAP_MAIN_PLANE);
+  wglSwapLayerBuffers(w->_hDC, WGL_SWAP_MAIN_PLANE);
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
@@ -2455,7 +2452,7 @@ bool osinteraction::glMakeCurrent(osiWindow *w) {
 
   #ifdef OS_WIN
   if(w)
-    return wglMakeCurrent(w->hDC, w->glr->glContext)? true: false;
+    return wglMakeCurrent(w->_hDC, w->glr->glContext)? true: false;
   else
     return wglMakeCurrent(null, null)? true: false;
   #endif /// OS_WIN

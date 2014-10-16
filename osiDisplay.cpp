@@ -177,12 +177,12 @@ void osiMonitor::delData() {
   progRes.freq[0]= 0;
   
   #ifdef OS_WIN
-  id= "";
+  _id= "";
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
-  bottom= null;
-  right= null;
+  _bottom= null;
+  _right= null;
   #endif /// OS_LINUX
   
   #ifdef OS_MAC
@@ -433,7 +433,7 @@ void osiDisplay::restoreRes(osiMonitor *m) {
   if(chatty) printf("RESTORE MONITOR RESOLUTION [%s]\n", m->name.d);
   
   #ifdef OS_WIN
-  ChangeDisplaySettingsEx(m->id, NULL, NULL, NULL, NULL);
+  ChangeDisplaySettingsEx(m->_id, NULL, NULL, NULL, NULL);
   ShowCursor(TRUE);   // this needs to be replaced with a in.m.showCursor() <<<<<<<<<<<<<<<<<<<<<<<<<<<<
   #endif
 
@@ -530,7 +530,7 @@ bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, short freq) {
   dm.dmFields= DM_BITSPERPEL| DM_PELSWIDTH| DM_PELSHEIGHT;
 
   /// try to set selected mode and get results.  NOTE: CDS_FULLSCREEN gets rid of start bar
-  if(ChangeDisplaySettingsEx(m->id, &dm, NULL, CDS_FULLSCREEN, NULL)!= DISP_CHANGE_SUCCESSFUL) {
+  if(ChangeDisplaySettingsEx(m->_id, &dm, NULL, CDS_FULLSCREEN, NULL)!= DISP_CHANGE_SUCCESSFUL) {
     error.simple("OSdisplay::changeRes: can't change to requested resolution");
     return false;
   }
@@ -843,10 +843,10 @@ void osiDisplay::populate(osinteraction *t) {
     if(!(dd.StateFlags& DISPLAY_DEVICE_ATTACHED_TO_DESKTOP))        /// should be attached to desktop ...
       continue;
 
-    monitor[d].id= dd.DeviceName;           // <<<<<<<<<<<<<<<<<<<
+    monitor[d]._id= dd.DeviceName;           // <<<<<<<<<<<<<<<<<<<
     monitor[d].name= dd.DeviceString;       // <<<<<<<<<<<<<<<<<<<
     //printf("DEVICE ID: %s\n", dd.DeviceID);
-    if(chatty) printf("%s (%s)", monitor[d].id.d, monitor[d].name.d);
+    if(chatty) printf("%s (%s)", monitor[d]._id.d, monitor[d].name.d);
 
     if(dd.StateFlags& DISPLAY_DEVICE_PRIMARY_DEVICE) {
       monitor[d].primary= true;
@@ -856,7 +856,7 @@ void osiDisplay::populate(osinteraction *t) {
     if(chatty) printf("\n");
     
     /// original monitor settings
-    if(EnumDisplaySettings(monitor[d].id, ENUM_CURRENT_SETTINGS, &dm)) {
+    if(EnumDisplaySettings(monitor[d]._id, ENUM_CURRENT_SETTINGS, &dm)) {
       monitor[d].original.dx= dm.dmPelsWidth;
       monitor[d].original.dy= dm.dmPelsHeight;
       monitor[d].dx= dm.dmPelsWidth;            /// current resolution dx
@@ -870,21 +870,21 @@ void osiDisplay::populate(osinteraction *t) {
     monitor[d]._y0= dm.dmPosition.y;
     monitor[d].y0= vdy- dm.dmPosition.y- dm.dmPelsHeight;   /// coordonate unification
 
-    for(a= 0; EnumDisplayDevices(monitor[d].id, a, &dd, null); a++) {
+    for(a= 0; EnumDisplayDevices(monitor[d]._id, a, &dd, null); a++) {
       if(chatty) printf("found %d ID[%s]\nName[%s]\nString[%s]\n", a, dd.DeviceID, dd.DeviceName, dd.DeviceString);
       if(!dd.StateFlags& DISPLAY_DEVICE_ATTACHED_TO_DESKTOP) printf("!!not attached!!\n");
 
     }
 
-    if(EnumDisplayDevices(monitor[d].id, 0, &dd, null)) {     /// >>> FOR EACH MONITOR ON THAT DISPLAY ADAPTER <<<<
-      monitor[d].monitorID= dd.DeviceName;                  // currently i cant find any use for this
-      monitor[d].monitorName= dd.DeviceString;            //<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    if(EnumDisplayDevices(monitor[d]._id, 0, &dd, null)) {     /// >>> FOR EACH MONITOR ON THAT DISPLAY ADAPTER <<<<
+      monitor[d]._monitorID= dd.DeviceName;                  // currently i cant find any use for this
+      monitor[d]._monitorName= dd.DeviceString;            //<<<<<<<<<<<<<<<<<<<<<<<<<<<
     }
 
-    if(chatty) printf("%s (%s)\n", monitor[d].monitorID.d, monitor[d].monitorName.d);
+    if(chatty) printf("%s (%s)\n", monitor[d]._monitorID.d, monitor[d]._monitorName.d);
 
     /// windows vomit array size
-    for(a= 0, n= 0; EnumDisplaySettings(monitor[d].id, a, &dm) != 0; a++)
+    for(a= 0, n= 0; EnumDisplaySettings(monitor[d]._id, a, &dm) != 0; a++)
       n++;
 
     if(!n) {
@@ -897,7 +897,7 @@ void osiDisplay::populate(osinteraction *t) {
 
     /// compute how many resolutions the monitor can handle
     monitor[d].nrRes= 0;
-    for(a= 0; EnumDisplaySettings(monitor[d].id, a, &dm) != 0; a++) {
+    for(a= 0; EnumDisplaySettings(monitor[d]._id, a, &dm) != 0; a++) {
       if(dm.dmBitsPerPel< 16) continue;     /// res should support at least 16 bpp
 
         found= false;
@@ -946,7 +946,7 @@ void osiDisplay::populate(osinteraction *t) {
       tf[a]= 0;
 
     /// compute the number of frequencies per resolution (res[].nrFreq)
-    for(a= 0; EnumDisplaySettings(monitor[d].id, a, &dm) != 0; a++) {
+    for(a= 0; EnumDisplaySettings(monitor[d]._id, a, &dm) != 0; a++) {
       if(dm.dmDisplayFlags== DM_INTERLACED)	continue;               /// ignore interlaced resolutions
       if(dm.dmDefaultSource) continue;                              /// have no clue what this is
       if(dm.dmBitsPerPel != 32) continue;                           /// only 32bpp
@@ -965,7 +965,7 @@ void osiDisplay::populate(osinteraction *t) {
     
     /// filling all frequencies with only a pass thru all windows big mess table
     /// the less times messing with win table stuff, the quicker (else can get really slow)
-    for(a= 0; EnumDisplaySettings(monitor[d].id, a, &dm) != 0; a++) {
+    for(a= 0; EnumDisplaySettings(monitor[d]._id, a, &dm) != 0; a++) {
       if(dm.dmDisplayFlags== DM_INTERLACED)	continue;               /// ignore interlaced resolutions
       if(dm.dmDefaultSource) continue;                              /// have no clue what this is
       if(dm.dmBitsPerPel != 32) continue;                           /// only 32bpp (could be 16, doesn't matter)
@@ -1704,7 +1704,7 @@ void getMonitorPos(osiMonitor *m) {
   dm.dmSize= sizeof(dm);
 
   // a new call to remake it's internal vomit array might be needed <<<<<<<<<<<<<<<<<<<<<<
-  if(EnumDisplaySettings(m->id, ENUM_CURRENT_SETTINGS, &dm)) {
+  if(EnumDisplaySettings(m->_id, ENUM_CURRENT_SETTINGS, &dm)) {
     m->x0= dm.dmPosition.x;               /// position on VIRTUAL DESKTOP
     m->_y0= dm.dmPosition.y;              /// position on VIRTUAL DESKTOP
     m->y0= osi.display.vdy- m->_y0- m->dy;
