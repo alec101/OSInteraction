@@ -4,6 +4,7 @@
 
 struct osiResolution; // SELFNOTE: decl might work here cuz they are defined in same cpp
 struct osiMonitor;
+struct osiGPU;
 class osinteraction;
 class osiWindow;
 class osiRenderer;
@@ -14,6 +15,7 @@ class osiRenderer;
 ///--------------------------------------------------------------------------///
 class osiDisplay {
   friend class osinteraction;
+
 public:
 
   // call this at PROGRAM START
@@ -21,6 +23,9 @@ public:
   
   short nrMonitors;                     /// nr of active monitors connected to the system
   short vx0, vy0, vdx, vdy;             /// VIRTUAL DESKTOP size (all monitors are placed inside this virtual desktop/ fullscreen virtual desktop mode, uses these)
+
+  short nrGPUs;                         /// nr of GPU's on the current machine - IF THIS IS 0, THERE WAS NO WAY TO AQUIRE THIS DATA
+  osiGPU *GPU;                          /// array with all GPU's on the current machine
 
   osiMonitor *monitor;                  /// all monitors database
   osiMonitor *primary;                  /// pointer to the primary monitor
@@ -77,14 +82,16 @@ struct osiResolution {
 
 // -------------========= osiMonitor =======------------------
 struct osiMonitor {
-  friend bool doChange(osiMonitor *, osiResolution *, int8, short);
+
   string name;              /// monitor name (product description or something that can identify it)
 
   int x0, y0;               /// position on the VIRTUAL DESKTOP
   int dx, dy;               /// current size (resolution size)
   
   bool primary;             /// is it the primary display 
-  osiWindow *win;            /// the window that is on this monitor (if there is one)
+  osiGPU *GPU;              /// on what GPU is attached
+  osiWindow *win;           /// the window that is on this monitor (if there is one)
+  
 
   short nrRes;              /// nr of resolutions monitor can handle
   osiResolution *res;       /// all resolutions the display supports (res[nrRes])
@@ -131,9 +138,26 @@ private:
   friend class osiDisplay;
   friend void getMonitorPos(osiMonitor *m);
   friend void updateVirtualDesktop();
+  friend bool doChange(osiMonitor *, osiResolution *, int8, short);
+  friend LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam);
+  friend void _populateGrCards(osiDisplay *);
+
   int _y0;                  /// not changed, os specific, monitor position on the y axis
 };
 
 
 
+struct osiGPU {
+  string name;
+  int ram;
+  int clock;
 
+  bool primary;
+
+  short nrMonitors;         /// nr monitors attached
+  osiMonitor **monitor;     /// array with all attached monitors; [nrMonitors] in size
+
+  osiGPU() { ram= clock= 0; nrMonitors= 0; monitor= null; primary= false; }
+  void delData() { if(nrMonitors) { delete[] monitor; nrMonitors= 0; monitor= null; } primary= false; name.delData(); ram= clock= 0; }
+  ~osiGPU() { delData(); }
+};

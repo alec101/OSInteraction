@@ -19,9 +19,6 @@
 // DELETE the primary window LAST <<< or better, don't destroy anything, as they are auto-destroyed on program exit
 
 
-// graphics cards are ignored atm; no usefull data that i can think of can be gathered; (windows)
-//   only the monitors that are attached to graphics cards are important - all data is gathered on them
-
 ///===================///
 // COMPILING / LINKING //
 ///===================///
@@ -32,9 +29,12 @@
 
 // LINUX libraries: [GL] [GLU] [Xrandr] [Xinerama]   ([Xi] is scraped)
 // WIN libs: [opengl32] [glu32] 
-//           [winmm]:            crude windows joystick support
-//           [dinput8] [dxguid]: if using direct input (+ #define USING_DIRECTINPUT)
-//           [xinput]:           xinput 1.3, from dxsdk, maybe a path to it, too (+ #define USING_XINPUT)
+//           if any dinput, xinput or direct3d are used, directx sdk must be downloaded
+//           [d3d9]:             [#define USING_DIRECT3D] must be set in osinteraction.h - used only for GPU detection
+//           [dinput8] [dxguid]: [#define USING_DIRECTINPUT] must be set in osinteration.h - used for direct input HIDs - joysticks gamepads etc
+//           [xinput]:           [#define USING_XINPUT] must be set in osinteraction.h - used for xinput HIDs - joysticks / pads / etc
+//           the next libs should be auto-included, but here is the list in case something is missing:
+//             kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)
 // MAC frameworks: [-framework Opengl]: opengl library, basically
 //                 [-framework cocoa]: macOSX api
 //                 [-framework IOKit]: some monitor functions use this lib
@@ -81,33 +81,57 @@ int main(int argc, char *argv[], char *envp[]) { \
 
 
 #ifdef OS_WIN
-#define _CRT_SECURE_NO_WARNINGS
-#define USING_DIRECTINPUT
-#define USING_XINPUT
 
+// WINDOWS SETTINGS / DIRECTORIES vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+
+// the following can be turned off; just comment the lines; the whole DirectX part can be excluded from build;
+#define USING_DIRECTINPUT         // dinput compatible HIDs
+#define USING_XINPUT              // xinput compatible HIDs
+#define USING_DIRECT3D            // used only for graphics card info
+// download directx sdk: http://www.microsoft.com/en-us/download/confirmation.aspx?id=6812
+
+// the following are directory locations; libraries MUST BE MANUALLY included, if not using visual studio (#pragma lib only works in vstudio)
+#define XINPUTINCLUDE "../../dxSDK2010j/include/XInput.h" // xinput header directory location, if used
+#define XINPUTLIB32 "../../dxSDK2010j/lib/x86/xinput"     // xinput 32bit library directory location, if used
+#define XINPUTLIB64 "../../dxSDK2010j/lib/x64/xinput"     // xinput 64bit library directory location, if used
+#define DXGUIDLIB32 "../../dxSDK2010j/lib/x86/dxguid"     // direct input guid 32bit library directory location, if dinput is used
+#define DXGUIDLIB64 "../../dxSDK2010j/lib/x64/dxguid"     // direct input guid 32bit library directory location, if dinput is used
+
+// WINDOWS SETTINGS / DIRECTORIES ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+#define _CRT_SECURE_NO_WARNINGS
 #define _WIN32_WINNT 0x05010000
 #define WINVER 0x0501
 #include <SDKDDKVer.h>
-
 #include <Windows.h>
 #include <process.h>
 #include <mmsystem.h>
+
 #ifdef USING_DIRECTINPUT
   #define DIRECTINPUT_VERSION 0x0800
   #include <dinput.h>
+  #pragma comment(lib, "dinput8")     // if not using visual studio, this lib must be manually included, if using directinput
+  #pragma comment(lib, DXGUIDLIB32)   // if not using visual studio, this lib must be manually included, if using directinput
+  #pragma comment(lib, DXGUIDLIB64)   // if not using visual studio, this lib must be manually included, if using directinput
 #endif
+
 #ifdef USING_XINPUT
-  #include <../../dxSDK2010j/Include/XInput.h>
+  #include XINPUTINCLUDE
+  #pragma comment(lib, XINPUTLIB64)   // if not using visual studio, this lib must be manually included, if using xinput
+  #pragma comment(lib, XINPUTLIB32)   // if not using visual studio, this lib must be manually included, if using xinput
 #endif
+
+#ifdef USING_DIRECT3D
+  #pragma comment(lib, "d3d9.lib")    // if not using visual studio, this lib must be manually included, if using direct3d
+#endif /// USING_DIRECT3D
+
 #endif /// OS_WIN
+
 
 
 #include <stdio.h>
 #include <stdarg.h>
 #include <math.h>
-
-
-
 
 
 // OpenGL headers
@@ -116,13 +140,16 @@ int main(int argc, char *argv[], char *envp[]) { \
 //#include <GL/gl.h>
 #include <GL/GL.h>
 #include <GL/GLU.h>
-#define WGL_WGLEXT_PROTOTYPES 1
+#pragma comment(lib, "opengl32")  // if this pragma does not work, the library must be manually included
+#pragma comment(lib, "glu32")     // if this pragma does not work, the library must be manually included
+
+//#define WGL_WGLEXT_PROTOTYPES 1
 #include "wglext.h"
 #endif /// OS_WIN
 
 #ifdef OS_LINUX
 #define GL_GLEXT_LEGACY 1
-#define GLX_GLXEXT_PROTOTYPES 1
+//#define GLX_GLXEXT_PROTOTYPES 1
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <GL/glx.h>
@@ -136,7 +163,7 @@ int main(int argc, char *argv[], char *envp[]) { \
 // there's a corearb header, too NEEDS CHECKING
 #endif /// OS_MAC
 
-#define GL_GLEXT_PROTOTYPES 1
+//#define GL_GLEXT_PROTOTYPES 1
 #include <glext.h>        // OpenGL extensions header file (OS independant ones)
 
 // os specific
@@ -178,6 +205,7 @@ int main(int argc, char *argv[], char *envp[]) { \
 
 typedef string8 string;         // <<-- string set is here; can be utf-8 / utf-32
 
+
 // osi headers
 
 #include "osiDisplay.h"
@@ -186,14 +214,6 @@ typedef string8 string;         // <<-- string set is here; can be utf-8 / utf-3
 #include "osiChar.h"
 #include "osiInput.h"
 #include "osiCocoa.h"
-
-
-
-
-
-
-
-
 
 
 
@@ -372,7 +392,6 @@ extern "C" void processMSG(void);   /// declared in OScocoa.mm
 
 extern osinteraction osi;   // only 1 global class
 extern ErrorHandling error;
-
 
 
 

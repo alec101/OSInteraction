@@ -25,37 +25,15 @@ struct js_event {
 };
 #endif /// OS_LINUX
 
-/// if not using precompiled header use the following
-/*
-#include <math.h>
- 
-#ifdef OS_WIN
-#ifdef USING_DIRECTINPUT
-  #define DIRECTINPUT_VERSION 0x0800
-  #include <dinput.h>
-#endif
-#ifdef USING_XINPUT
-  // #include <c:\alec\dxSDK2010j\Include\XInput.h> // USE XINPUT 1.3
-#endif
-#endif /// OS_WIN
 
-#ifdef OS_LINUX
-#include <linux/joystick.h>   // it's not x stuff... lots of crap added, keyboard/mouse, that is not needed
-#include <fcntl.h>
-#endif
 
-#include "../!utilClasses/typeShortcuts.h"
-#include "../!utilClasses/stringClass.h"
-#include "../!utilClasses/errorHandling.h"
-#include "OSchar.h"
-#include "osinput.h"
-*/
 
 // private funcs
 void checkGamepadType(osiGamePad *p);  // it is found in the gamepad area, at the end
   
 /* TODO:
- *
+ * [win] mouse is 1 unit higher (1- 1080 for example - must be 0 - 1079)
+
  * [all]more mouse funcs- showCursor, a grab function that doesn't allow for the cursor to exit the windows (this is not very easy, if the monitors are weirdly positioned, but it is usefull)
  *
  * buttons to be on 32 bit integers? 1<< a is button a? good for copy-ing, 

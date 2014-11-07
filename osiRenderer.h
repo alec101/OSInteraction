@@ -5,7 +5,11 @@
 // RENDERER class - each grCard has one and should have ONLY one //
 ///=============================================================///
 
+struct GlExtFuncs;
+
 class osiRenderer: public chainData {
+  osiRenderer *_createRenderer(osiWindow *, int, int, void *, bool, bool);
+  void _getContextFuncs();
 public:
   
   #ifdef OS_WIN
@@ -81,9 +85,9 @@ public:
   void delData();
 };
 
+extern osiRenderer *_glr; // CURRENTLY ACTIVE RENDERER - same as [osi.glr]
 
-
-
+#include "osiGlExt.h"
 
 
 

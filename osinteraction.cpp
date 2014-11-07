@@ -6,7 +6,10 @@ bool chatty= false;  /// used only for DEBUG
 //^^^^^^^^^^^^^^^
 
 /* TODO:
+ *  *** PRIORITY 0 *** - INSTALL 2 IDENTICAL GRCARDS, TO SEE IF THE STRING RETURNED BY WINDOWS IS THE SAME.
+ *                       MUST TEST ON LINUX TOO, SO MAYBE AFTER LINUX IS INSTALLED
  * - forcing close bool - if not set to false by exit or something similar, destructors should skip deleting stuff and calling funcs, as it will crash
+ * - [win] test that canceling USING_DIRECTBLABLA osi still works
  * - [mac] better glMakeCurrent func, with the coreGl mac stuff << MAX PRIORITY
  * - [mac] threads!!!!!!!!!!!!
  * - [linux][mac] set an icon for the window;  [win] WHEN dealing with icons, must remember to develop WM_GETICON too
@@ -123,30 +126,13 @@ _NET_CLOSE_WINDOW
  *
  */
 
-/*
-opengl extensions; unfortunately, in windows, they are tied to the context; using 2 grcards they are for shure tied to each context
-need that dang computer!!! finish the renderer class / osi
-the pfnblablaFunc stuff works in windows only, it seems; test in linux
-*/
 //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 
-#ifdef OS_WIN
-  #pragma comment(lib, "opengl32")
-  #pragma comment(lib, "glu32")
-  #pragma comment(lib, "Winmm")               /// joystick api support
-  #ifdef USING_DIRECTINPUT
-    #pragma comment(lib, "dinput8")
-    #pragma comment(lib, "../../dxSDK2010j/lib/x86/dxguid")
-    #pragma comment(lib, "../../dxSDK2010j/lib/x64/dxguid")
 
-  #endif
-  #ifdef USING_XINPUT
 
-    #pragma comment(lib, "../../dxSDK2010j/lib/x64/xinput")
-    #pragma comment(lib, "../../dxSDK2010j/lib/x86/xinput")
-  #endif
-#endif /// OS_WIN
+
+
 
 
 // >>> OBJECTS CREATION <<< //
@@ -573,7 +559,8 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, string name, int
   AdjustWindowRectEx(&rect, dwStyle, FALSE, dwExStyle); // Adjust Window To True Requested Size
 
   // Create The Window
-  if (!(w->_hWnd= CreateWindowEx(dwExStyle,             // Extended Style For The Window
+  if (!(w->_hWnd= CreateWindowEx(
+                dwExStyle,              // Extended Style For The Window
                 name,                   // class name           <--- might want a different class name?
                 name,                   /// window title
                 dwStyle |               /// defined window style
@@ -692,6 +679,14 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, string name, int
     return false;
   }
 
+
+  ShowWindow(w->_hWnd, SW_SHOW);  /// Show The Window
+  SetForegroundWindow(w->_hWnd);  /// Slightly Higher Priority
+
+  SetFocus(w->_hWnd);             /// Sets Keyboard Focus To The Window
+
+  //Sleep(500); //<><<<<<<<<<<<<<<<<<<<<>><><><
+
   if(!assignRenderer(w)) {
     osi.killGLWindow(w);
     error.simple("FATAL ERROR: Cannot create oGL renderer (context)");
@@ -709,10 +704,7 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, string name, int
     return false;
   }
 
-  ShowWindow(w->_hWnd, SW_SHOW);  /// Show The Window
-  SetForegroundWindow(w->_hWnd);  /// Slightly Higher Priority
 
-  SetFocus(w->_hWnd);             /// Sets Keyboard Focus To The Window
 
   w->isCreated= true;
   m->win= w;
@@ -1137,18 +1129,22 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 
   int mb= 0;
 
-  // mouse in [MODE 2], THE WHEEL IS NOT POSSIBLE TO READ with funcs, so events are the only way (decent way, anyways)
-  if((in.m.mode== 2)&& osi.flags.haveFocus)
-    if(m== WM_MOUSEWHEEL) {
-      in.m.wheel+= (GET_WHEEL_DELTA_WPARAM(wParam)> 0)? 1: -1;
-      if(chatty) printf("mouse: wheel rotated\n");
+  // mouse messages ==============-------------------
+  if((m>= WM_MOUSEFIRST)&& (m<= WM_MOUSELAST)) {
+    if(!osi.flags.haveFocus)
       goto ret;
-    }
 
-  // mouse vals are handled here, in case mouse is set in [MODE 1]
-  if((in.m.mode== 1)&& osi.flags.haveFocus)
-    switch(m) {
-      case WM_MOUSEMOVE:                                          /// mouse movement
+    /// mouse in [MODE 2], THE WHEEL IS NOT POSSIBLE TO READ with funcs, so events are the only way (decent way, anyways)
+    if(in.m.mode== 2)
+      if(m== WM_MOUSEWHEEL) {
+        in.m.wheel+= (GET_WHEEL_DELTA_WPARAM(wParam)> 0)? 1: -1;
+        //if(chatty) printf("mouse: wheel rotated\n");
+        goto ret;
+      }
+
+    /// mouse in [MODE 1]- all values are handled from here on
+    if(in.m.mode== 1) {
+      if(m== WM_MOUSEMOVE) {
         /// removed oldx&y, dx&y, they are updated when in.update() is called; deltas are always on, now.
         /// these are inside window positions
         w= osi._getWin(hWnd);
@@ -1158,99 +1154,106 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         in.m.y= w->y0+ w->dy- in.m.y;
         in.m.x= w->x0+ in.m.x;
         
-        goto ret;
-        //return 0; // it is faster, but no windows move/resize!!!
-      case WM_SETCURSOR: 
-        goto ret;                             /// to be or not to be
+        goto ret; //return 0; // it is faster, but no windows move/resize!!!
 
-      // mouse buttons in MODE 1
-      case WM_LBUTTONDOWN:                                        /// left mouse button
+      } else if(m== WM_SETCURSOR) {                                         /// to be or not to be
+        goto ret;
+
+      } else if(m== WM_LBUTTONDOWN) {                                       /// left mouse button
         osi.getMillisecs(&in.m.b[0].timeStart);
         in.m.b[0].down= true;
-        if(chatty) printf("mouse: l button pressed\n");
-        goto ret;
-        //return 0;
-      case WM_LBUTTONUP:
+
+        //if(chatty) printf("mouse: l button pressed\n");
+        goto ret; //return 0;
+
+      } else if(m== WM_LBUTTONUP) {
         in.m.b[0].lastTimeStart= in.m.b[0].timeStart;
         osi.getMillisecs(&in.m.b[0].lastTimeEnded);
         in.m.b[0].lastDT= in.m.b[0].lastTimeEnded- in.m.b[0].lastTimeStart;
         in.m.b[0].down= false;
-        if(chatty) printf("mouse: l button released\n");
-        goto ret;
-        //return 0;
-      case WM_RBUTTONDOWN:                                        /// right mouse button
+
+        //if(chatty) printf("mouse: l button released\n");
+        goto ret; //return 0;
+
+      } else if(m== WM_RBUTTONDOWN) {                                       /// right mouse button
         osi.getMillisecs(&in.m.b[1].timeStart);
         in.m.b[1].down= true;
-        if(chatty) printf("mouse: r button pressed\n");
-        goto ret;
-        //return 0;
-      case WM_RBUTTONUP:
+
+        //if(chatty) printf("mouse: r button pressed\n");
+        goto ret; //return 0;
+
+      } else if(m== WM_RBUTTONUP) {
         in.m.b[1].lastTimeStart= in.m.b[1].timeStart;
         osi.getMillisecs(&in.m.b[1].lastTimeEnded);
         in.m.b[1].lastDT= in.m.b[1].lastTimeEnded- in.m.b[1].lastTimeStart;
         in.m.b[1].down= false;
-        if(chatty) printf("mouse: r button released\n");
-        goto ret;
-        //return 0;
-      case WM_MBUTTONDOWN:                                        /// middle mouse button
+
+        //if(chatty) printf("mouse: r button released\n");
+        goto ret; //return 0;
+
+      } else if(m== WM_MBUTTONDOWN) {                                       /// middle mouse button
         osi.getMillisecs(&in.m.b[2].timeStart);
         in.m.b[2].down= true;
-        if(chatty) printf("mouse: m button pressed\n");
-        goto ret;
-        //return 0;
-      case WM_MBUTTONUP:
+
+        //if(chatty) printf("mouse: m button pressed\n");
+        goto ret; //return 0;
+
+      } else if(m== WM_MBUTTONUP) {
         in.m.b[2].lastTimeStart= in.m.b[2].timeStart;
         osi.getMillisecs(&in.m.b[2].lastTimeEnded);
         in.m.b[2].lastDT= in.m.b[2].lastTimeEnded- in.m.b[2].lastTimeStart;
         in.m.b[2].down= false;
-        if(chatty) printf("mouse: m button released\n");
-        goto ret;
-        //return 0;
-      case WM_MOUSEWHEEL:                                         /// wheel
+
+        //if(chatty) printf("mouse: m button released\n");
+        goto ret; //return 0;
+
+      } else if(m== WM_MOUSEWHEEL) {                                        /// wheel
         in.m._twheel+= (GET_WHEEL_DELTA_WPARAM(wParam)> 0)? 1: -1;
-        if(chatty) printf("mouse: wheel rotated\n");
-        goto ret;
-        //return 0;
-      case WM_XBUTTONDOWN:                                        /// buttons 4 & 5
-        if(GET_XBUTTON_WPARAM(wParam)== XBUTTON1) {
+
+        //if(chatty) printf("mouse: wheel rotated\n");
+        goto ret; //return 0;
+
+      } else if(m== WM_XBUTTONDOWN) {
+        if(GET_XBUTTON_WPARAM(wParam)== XBUTTON1) {                         /// button 4 press
           osi.getMillisecs(&in.m.b[3].timeStart);
           in.m.b[3].down= true;
-          if(chatty) printf("mouse: button 4 pressed\n");
-          goto ret;
-          //return 0;
-        }
-        if(GET_XBUTTON_WPARAM(wParam)== XBUTTON2) {
+
+          //if(chatty) printf("mouse: button 4 pressed\n");
+          goto ret; //return 0;
+        } 
+        if(GET_XBUTTON_WPARAM(wParam)== XBUTTON2) {                         /// button 5 press
           osi.getMillisecs(&in.m.b[4].timeStart);
           in.m.b[4].down= true;
-          if(chatty) printf("mouse: button 5 pressed\n");
-          goto ret;
-          //return 0;
+
+          //if(chatty) printf("mouse: button 5 pressed\n");
+          goto ret; //return 0;
         }
-        break;
-      case WM_XBUTTONUP:
-        if(GET_XBUTTON_WPARAM(wParam)== XBUTTON1) {
+      } else if(m== WM_XBUTTONUP) {
+        if(GET_XBUTTON_WPARAM(wParam)== XBUTTON1) {                         /// button 4 release
           in.m.b[3].lastTimeStart= in.m.b[3].timeStart;
           in.m.b[3].lastTimeEnded= osi.eventTime;
           osi.getMillisecs(&in.m.b[3].lastTimeEnded);
           in.m.b[3].down= false;
-          if(chatty) printf("mouse: button 4 released\n");
-          goto ret;
-          //return 0;
-        }
-        if(GET_XBUTTON_WPARAM(wParam)== XBUTTON2) {
+          //if(chatty) printf("mouse: button 4 released\n");
+          goto ret; //return 0;
+
+        } else if(GET_XBUTTON_WPARAM(wParam)== XBUTTON2) {                  /// button 5 release
           in.m.b[4].lastTimeStart= in.m.b[4].timeStart;
           osi.getMillisecs(&in.m.b[4].lastTimeEnded);
           in.m.b[4].lastDT= in.m.b[4].lastTimeEnded- in.m.b[4].lastTimeStart;
           in.m.b[4].down= false;
-          if(chatty) printf("mouse: button 5 released\n");
-          goto ret;
-          //return 0;
+          //if(chatty) printf("mouse: button 5 released\n");
+          goto ret; //return 0;
         }
-        break;
-    };
-
+      } else {
+        if(chatty) printf("UNKNOWN MOUSE MESSAGE\n");
+      } /// pass thru all possible mouse messages
+    } /// if mouse is in [MODE 1]
+  } /// if this is a mouse message
 
   // keyboard messages [MODE 1]
+  if((m>= WM_KEYFIRST)&& (m<= WM_KEYLAST)) {
+
   if(in.k.mode== 1) {
     switch(m) {
       case WM_KEYDOWN:                                          // ***key PRESS***
@@ -1287,9 +1290,8 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
           //in.k.repeat[code]+= KF_REPEAT& HIWORD(lParam);   // THIS MIGHT BE DELETED <-------------------------------------------
 
           in.k._doManip();                         /// check if current pressed keys form a manip char
-          if(chatty) printf("key REPEAT code[0x%X] vcode[0x%X]\n", code, vcode);
-          goto ret;
-          //return 0;
+          //if(chatty) printf("key REPEAT code[0x%X] vcode[0x%X]\n", code, vcode);
+          goto ret; //return 0;
         }
         /// log the key
         k.code= code;
@@ -1302,9 +1304,8 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         //in.k.repeat[code]= 1;                  /// a new key press, sets repeat to 1  // MIGHT BE DELETED
         
         in.k._doManip();                          /// check if current pressed keys form a manip char
-        if(chatty) printf("key PRESS code[0x%X] vcode[0x%X]\n", code, vcode);
-        goto ret;
-        //return 0;
+        //if(chatty) printf("key PRESS code[0x%X] vcode[0x%X]\n", code, vcode);
+        goto ret; //return 0;
       }
       case WM_KEYUP:                              // <<< key DEPRESS >>>
       case WM_SYSKEYUP: {
@@ -1320,7 +1321,7 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         if(wParam== VK_MENU)    code= in.k.key[in.Kv.ralt]?		in.Kv.ralt:   in.Kv.lalt;
         //if(wParam== VK_RETURN)  code= in.k.key[VK_RETURN]?    in.Kv.enter:  in.Kv.kpenter;       // makes no difference (win's fault)
 
-        if(chatty) printf("key RELEASE code[0x%X] vcode[0x%X]\n", code, vcode);
+        //if(chatty) printf("key RELEASE code[0x%X] vcode[0x%X]\n", code, vcode);
 
         /// log the key in history
         bool found= false;
@@ -1348,8 +1349,7 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         in.k.keyTime[code]= 0;
         // in.k.repeat[code]= 0;  // repeat[] is subject for deletion
 
-        goto ret;
-        //return 0;
+        goto ret; //return 0;
       }
     } /// switch
   } /// if keyboard is in mode 1
@@ -1362,20 +1362,11 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       case WM_SYSKEYUP:
         in.k.updateLocks();               /// to be or not to be...  this should be just empty code here...
         in.k.update();
-        if(chatty) printf("key update");
+        //if(chatty) printf("key update");
         goto ret;
     } /// switch
   } /// if keyboard is in mode 2
-
-
-  /// ignore some calls to defwindowproc for speed - PROBLEM IS, no window MOVE/RESIZE, probly no close button either
-
-/*
-  if((m>= WM_MOUSEFIRST)&& (m<= WM_MOUSELAST))
-    return 0;
-  if((m>= WM_KEYFIRST)&& (m<= WM_KEYLAST))
-    return 0;
-*/
+  } /// if this is a keyboard message
 
 
   // handled windows messages
@@ -1401,7 +1392,7 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
             if(osi.win[a].mode== 2) {
               ShowWindow(osi.win[a]._hWnd, SW_RESTORE);
               osi.flags.minimized= false;
-              MoveWindow(osi.win[a]._hWnd, osi.win[a].monitor->x0, osi.win[a].monitor->y0, osi.win[a].dx, osi.win[a].dy, false);
+              MoveWindow(osi.win[a]._hWnd, osi.win[a].monitor->x0, osi.win[a].monitor->_y0, osi.win[a].dx, osi.win[a].dy, false);
               if(chatty) printf("window %d x0[%d] y0[%d] dx[%d] dy[%d]\n", a, osi.win[a].monitor->x0, osi.win[a].monitor->y0, osi.win[a].dx, osi.win[a].dy);
             }
         SetForegroundWindow(osi.primWin->_hWnd);
@@ -1437,8 +1428,6 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
             if(osi.win[a].mode== 2)
               osi.display.restoreRes(osi.win[a].monitor);
 
-
-
       } /// switch gain/lose focus
 
       if(chatty) printf("WM_ACTIVATEAPP %s 0x%x %d %d\n", osi._getWinName(hWnd).d, m, wParam, lParam);
@@ -1448,21 +1437,24 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       if(chatty) printf("WM_CLOSE %s 0x%x %d %d\n", osi._getWinName(hWnd).d, m, wParam, lParam);
       osi.flags.exit= true;     /// main exit flag
       return 0;
+
     case WM_CHAR:
       if(chatty) printf("WM_CHAR %s %lc\n", osi._getWinName(hWnd).d, wParam);
       osi.getMillisecs(&osi.eventTime);
       in.k._addChar((ulong)wParam, &osi.eventTime);
       return 0;
+
     case WM_UNICHAR:
       error.console("WM_UNICHAR not tested");
       if(chatty) printf("WM_UNICHAR %s %lc\n", osi._getWinName(hWnd).d, wParam);
       osi.getMillisecs(&osi.eventTime);
       in.k._addChar((ulong)wParam, &osi.eventTime);
       return 0;
+
     case WM_DEVICECHANGE:
       in.populate();                        /// a call to in.populate to rescan for joysticks/gamepads/gamewheels
       goto ret;
-      break;
+
     case WM_MOVE:
       w= osi._getWin(hWnd);
       /// hanles normal windows (no fullscreens)
@@ -1472,7 +1464,7 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
           w->y0= (osi.display.vdy- 1)- (int)(short)HIWORD(lParam)- w->dy;
         }
       goto ret;
-      break;
+
     case WM_SIZE:
       if(wParam== SIZE_RESTORED) {      /// handling only window size change (there are minimize and maximize messages here)
         w= osi._getWin(hWnd);
@@ -1484,7 +1476,7 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
           }
       }
       goto ret;
-      break;
+
     case WM_WINDOWPOSCHANGING:
       /*
       tw= (WINDOWPOS *)&lParam;
@@ -1499,7 +1491,7 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       }
       */
       goto ret;
-      break;
+
     //case WM_PAINT:      // TEST
 //      return 0;
 
@@ -1516,8 +1508,8 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
           osi.flags.exit= true;
           return 0;
       } /// switch the type of WM_SYSCOMMAND
-    goto ret;
-    //return 0;
+    goto ret; //return 0;
+
   } /// switch message
 
   /// unhandled frequent windows messages
@@ -1543,8 +1535,7 @@ LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
     printf("UNKNOWN %s 0x%x %d %d\n", osi._getWinName(hWnd), m, wParam, lParam);
   /// this DefWindowProc() handles window movement & resize & rest... without this, moving is not working, for example
 ret:
-  if(timeFunc) osi.getNanosecs(&end);
-  if(timeFunc) printf("processMSG lag: %llu\n", end- start);
+  if(timeFunc) { osi.getNanosecs(&end); printf("processMSG lag: %llu\n", end- start); }
   return DefWindowProc(hWnd, m, wParam, lParam);
 }
 
@@ -2314,102 +2305,8 @@ void osinteraction::exit(int retVal) {
 // ============= OPENGL SPECIFIC STUFF ============= //
 ///-------------=======================-------------///
 
-/// [internal]
-osiRenderer *createRenderer(osiWindow *w) {
-  osiRenderer *r= new osiRenderer;
-  
-  #ifdef OS_WIN
-  r->glContext= wglCreateContext(w->_hDC);
-  #endif /// OS_WIN
-
-  #ifdef OS_LINUX
-  r->glContext= glXCreateContext(w->dis, w->vi, NULL, GL_TRUE);
-  
-/* The last parameter decides if direct rendering is enabled. If you want
-   to send the graphical output via network, you have to set it to GL_FALSE.
-   If your application puts its output to the computer you are sitting in
-   front of, use GL_TRUE. Note that some capabilities like vertex buffer objects
-   can only be used with a direct gl context (GL_TRUE). */
-          
-  #endif /// OS_LINUX
-
-  #ifdef OS_MAC
-  makeme
-  #endif /// OS_MAC
-
-  if(!r->glContext) {
-    delete r;
-    return null;
-  }
-  w->glr= r;
-  w->monitor->glr= r;
-  osi.glRenderers.add(r);
-  return r;
-}
-
-/// create or assign a renderer to selected window; returns pointer to the renderer or null if failed, somehow
-osiRenderer *osinteraction::assignRenderer(osiWindow *w) {
-  // make shure w and w's monitor are not null
-  if(!w) return null;
-  if(!w->monitor) return null;
-
-  osiRenderer *r;                  /// tmp var
-
-  /// if there are existing renderers created, check if the requested window can use one of them
-  if(glRenderers.nrNodes) {
-
-    /// check if any renderer is created on current monitor (if there is one, assign it to w)
-    if(w->monitor->glr)
-      return w->glr= w->monitor->glr;
-
-    // quote from MSDN:
-    //  "It need not be the same hdc that was passed to wglCreateContext when hglrc was created,
-    //  but it must be on the same device and have the same pixel format."
-    // if this is true, BINGO! a test can be done to see if a renderer can be activated on a window; if it can, no need for a new one!
-
-    glMakeCurrent(null);
-
-    /// check if it is possible to activate an existing renderer to this window
-    for(r= (osiRenderer *)glRenderers.first; r; r= (osiRenderer *)r->next) {
-      w->glr= r;
-      if(glMakeCurrent(w))           /// try to make it current
-        return w->monitor->glr= r;    // successfull made current
-      w->glr= null;
-    }
-
-    // other tests can be done... need the new computer to test every possibility and OS
-
-    // more tests to be placed here ^^^
-  } /// if there are renderers already created
-
-  if(!createRenderer(w)) return null;         /// reached this point -> create a new renderer
-
-  return w->glr;
-}
 
 
-/// deletes the specified renderer and makes shure that windows and monitors that used it, know about it
-void osinteraction::delRenderer(osiRenderer *r) {
-
-  /// if any window uses this renderer, set it to null
-  for(short a= 0; a< MAX_WINDOWS; a++)
-    if(win[a].glr== r)
-      win[a].glr= null;
-  
-  /// if any monitor uses this renderer, set it to null
-  for(short a= 0; a< display.nrMonitors; a++)
-    if(display.monitor[a].glr== r)
-      display.monitor[a].glr= null;
-
-
-  /// if the selected renderer is the one that has to be deleted, make shure everything is ok
-  if(glr== r) {
-    glr= null;
-    glMakeCurrent(null);
-  }
-  
-  glRenderers.del(r);
-}
 
 
 
@@ -2443,11 +2340,11 @@ void osinteraction::swapBuffers(osiWindow *w) {
 bool osinteraction::glMakeCurrent(osiWindow *w) {
   if(w) {
     if(glr) glr->isActive= false;     /// set not active flag for current renderer
-    glr= w->glr;
+    glr= w->glr; _glr= w->glr;
     if(glr) glr->isActive= true;      /// set active flag of new renderer
   } else {
     if(glr) glr->isActive= false;     /// set not active flag for current renderer
-    glr= null;
+    glr= null; _glr= null;
   }
 
   #ifdef OS_WIN

@@ -1,23 +1,14 @@
 #include "osinteraction.h"
-extern bool chatty;
 
-//#include <stdlib.h>
-//#include <unistd.h>
+#ifdef USING_DIRECT3D
+#include <d3d9.h>
+#endif
 
 #ifdef OS_MAC
 #include <CoreGraphics/CGDirectDisplay.h>
 //#include <CoreGraphics.framework/headers/CGDirectDisplay.h>
 #endif /// OS_MAC
 
-
-/*
-#ifdef OS_WIN
-#include <Windows.h>
-#endif
-
-#include "osinteraction.h"
-#include "OSdisplay.h"
-*/
 
 
 // [MAC]: -restoring monitor resolutions is done with a single function for all monitors. _It is possible to restore resolutions for each monitor, if NEEDED_
@@ -47,16 +38,12 @@ stuff to KEEP AN EYE ON:
  *
  */
 
-#ifdef OS_WIN
-#pragma comment(lib, "opengl32")
-#pragma comment(lib, "glu32")
-#endif /// OS_WIN
 
 
 // small internal funcs i think i will not add to the class anymore; scrap everything private ???
 // check end of file for source
 void updateVirtualDesktop(); 
-void getMonitorPos(osiMonitor *m);
+void getMonitorPos(osiMonitor *m); // SCRAPED I THINK (it still helped, tho, many months later, so do not be hasty in deleting stuff)
 osiResolution *getResolution(int dx, int dy, osiMonitor *gr);
 short getFreq(short freq, osiResolution *r);
 #ifdef OS_LINUX
@@ -191,7 +178,7 @@ void osiMonitor::delData() {
 
 
 
-// SUBJECT OF DELETION
+// SUBJECT OF DELETION - it helped many months later, so don't be hasty in deleting obsolete stuff
 #ifdef OS_WIN
 BOOL CALLBACK monitorData(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData) {
 // MIGHT BE USELESS <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -210,13 +197,19 @@ BOOL CALLBACK monitorData(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor,
 
 
 
+
+
+///======================================================================
 // -----------============= DISPLAY CLASS =============------------------
+///======================================================================
 
 osiDisplay::osiDisplay() {
-  //nrCards= 0;
   nrMonitors= 0;
   monitor= null;
   primary= null;
+  nrGPUs= 0;
+  GPU= null;
+  
   vdx= vdy= vx0= vy0= 0;
 }
 
@@ -228,10 +221,17 @@ void osiDisplay::delData() {
   if(nrMonitors) {
     delete[] monitor;
     monitor= null;
-    nrMonitors= 0;
   }
+
+  if(nrGPUs) {
+    delete[] GPU;
+    GPU= null;
+  }
+
+  nrMonitors= 0;
+  nrGPUs= 0;
+
   primary= null;
-  //nrCards= 0;
   vdx= vdy= vx0= vy0= 0;
 }
 
@@ -252,6 +252,7 @@ bool osiDisplay::changePrimary(short dx, short dy, int8 bpp, short freq) {      
 bool doChange(/*osiWindow *w, */osiMonitor *m, osiResolution *r, int8 bpp, short freq);
 
 bool osiDisplay::changeRes(/*osiWindow *w, */osiMonitor *m, short dx, short dy, int8 bpp, short freq) {
+  bool chatty= false;
   // THERE HAS TO BE ALL THE CHECKS IN HERE, cuz changing 10 times the resolution
   // in 1 second (wich can freaqing happen, due to some crazy request), might
   // blow up your monitor
@@ -427,7 +428,7 @@ void osiDisplay::restoreAllRes() {
 ///----------------------------------------------------------------------///
 
 void osiDisplay::restoreRes(osiMonitor *m) {
-  
+  bool chatty= false;
   if(m->inOriginal)
     return;
   if(chatty) printf("RESTORE MONITOR RESOLUTION [%s]\n", m->name.d);
@@ -515,7 +516,9 @@ void osiDisplay::restoreRes(osiMonitor *m) {
 
 
 
-
+///-----------------------------------------------------------------------------///
+// ----->>>>> doChange - actual per OS steps to change the resolution <<<<<----- //
+///-----------------------------------------------------------------------------///
 
 bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, short freq) {
   #ifdef OS_WIN
@@ -801,7 +804,10 @@ bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, short freq) {
 ///---------------------------------------------------------------------///
 // -------------->>>>>>>>>>>>>>> POPULATE <<<<<<<<<<<<<<<--------------- //
 ///---------------------------------------------------------------------///
+void _populateGrCards(osiDisplay *);
+
 void osiDisplay::populate(osinteraction *t) {
+  bool chatty= true;
   delData();
   #ifdef OS_WIN
     
@@ -837,54 +843,57 @@ void osiDisplay::populate(osinteraction *t) {
   }
 
   monitor= new osiMonitor[nrMonitors];
-
+  
   // loop thru all displays < START <--------------------------------------------------------
-  for(short d= 0; EnumDisplayDevices(null, d, &dd, null); d++) {    /// for each display ADAPTER
+  for(short d= 0, id= -1; EnumDisplayDevices(null, d, &dd, null); d++) {    /// for each display ADAPTER
     if(!(dd.StateFlags& DISPLAY_DEVICE_ATTACHED_TO_DESKTOP))        /// should be attached to desktop ...
       continue;
+    
+    id++; // [id] must be incremented ONLY with a valid monitor
 
-    monitor[d]._id= dd.DeviceName;           // <<<<<<<<<<<<<<<<<<<
-    monitor[d].name= dd.DeviceString;       // <<<<<<<<<<<<<<<<<<<
+    monitor[id]._id= dd.DeviceName;           // <<<<<<<<<<<<<<<<<<<
+    monitor[id].name= dd.DeviceString;       // <<<<<<<<<<<<<<<<<<<
     //printf("DEVICE ID: %s\n", dd.DeviceID);
-    if(chatty) printf("%s (%s)", monitor[d]._id.d, monitor[d].name.d);
+    if(chatty) printf("%s (%s)", monitor[id]._id.d, monitor[id].name.d);
 
     if(dd.StateFlags& DISPLAY_DEVICE_PRIMARY_DEVICE) {
-      monitor[d].primary= true;
-      primary= &monitor[d];
+      monitor[id].primary= true;
+      primary= &monitor[id];
       if(chatty) printf(" primary");
     }
     if(chatty) printf("\n");
     
     /// original monitor settings
-    if(EnumDisplaySettings(monitor[d]._id, ENUM_CURRENT_SETTINGS, &dm)) {
-      monitor[d].original.dx= dm.dmPelsWidth;
-      monitor[d].original.dy= dm.dmPelsHeight;
-      monitor[d].dx= dm.dmPelsWidth;            /// current resolution dx
-      monitor[d].dy= dm.dmPelsHeight;           /// current resolution dy
-      monitor[d].original.freq[0]= (short)dm.dmDisplayFrequency;
+    if(EnumDisplaySettings(monitor[id]._id, ENUM_CURRENT_SETTINGS, &dm)) {
+      monitor[id].original.dx= dm.dmPelsWidth;
+      monitor[id].original.dy= dm.dmPelsHeight;
+      monitor[id].dx= dm.dmPelsWidth;            /// current resolution dx
+      monitor[id].dy= dm.dmPelsHeight;           /// current resolution dy
+      monitor[id].original.freq[0]= (short)dm.dmDisplayFrequency;
     }
 
     /// position on VIRTUAL DESKTOP		<--- if there's a need to find this position after a resolution change, a new func might be needed
     /// to get these vars & some rethinking
-    monitor[d].x0= dm.dmPosition.x;
-    monitor[d]._y0= dm.dmPosition.y;
-    monitor[d].y0= vdy- dm.dmPosition.y- dm.dmPelsHeight;   /// coordonate unification
-
-    for(a= 0; EnumDisplayDevices(monitor[d]._id, a, &dd, null); a++) {
+    monitor[id].x0= dm.dmPosition.x;
+    monitor[id]._y0= dm.dmPosition.y;
+    monitor[id].y0= vdy- dm.dmPosition.y- dm.dmPelsHeight;   /// coordonate unification
+    
+    for(a= 0; EnumDisplayDevices(monitor[id]._id, a, &dd, null); a++) {
       if(chatty) printf("found %d ID[%s]\nName[%s]\nString[%s]\n", a, dd.DeviceID, dd.DeviceName, dd.DeviceString);
       if(!dd.StateFlags& DISPLAY_DEVICE_ATTACHED_TO_DESKTOP) printf("!!not attached!!\n");
 
     }
 
-    if(EnumDisplayDevices(monitor[d]._id, 0, &dd, null)) {     /// >>> FOR EACH MONITOR ON THAT DISPLAY ADAPTER <<<<
-      monitor[d]._monitorID= dd.DeviceName;                  // currently i cant find any use for this
-      monitor[d]._monitorName= dd.DeviceString;            //<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    if(EnumDisplayDevices(monitor[id]._id, 0, &dd, null)) {     /// >>> FOR EACH MONITOR ON THAT DISPLAY ADAPTER <<<<
+      monitor[id]._monitorID= dd.DeviceName;                  // currently i cant find any use for this
+      monitor[id]._monitorName= dd.DeviceString;            //<<<<<<<<<<<<<<<<<<<<<<<<<<<
     }
 
-    if(chatty) printf("%s (%s)\n", monitor[d]._monitorID.d, monitor[d]._monitorName.d);
+    if(chatty) printf("%s (%s)\n", monitor[id]._monitorID.d, monitor[id]._monitorName.d);
+    if(chatty) printf("Monitor metrics: x0[%d] y0[%d] dx[%d] dy[%d]\n", monitor[id].x0, monitor[id].y0, monitor[id].dx, monitor[id].dy);
 
     /// windows vomit array size
-    for(a= 0, n= 0; EnumDisplaySettings(monitor[d]._id, a, &dm) != 0; a++)
+    for(a= 0, n= 0; EnumDisplaySettings(monitor[id]._id, a, &dm) != 0; a++)
       n++;
 
     if(!n) {
@@ -896,23 +905,23 @@ void osiDisplay::populate(osinteraction *t) {
 
 
     /// compute how many resolutions the monitor can handle
-    monitor[d].nrRes= 0;
-    for(a= 0; EnumDisplaySettings(monitor[d]._id, a, &dm) != 0; a++) {
+    monitor[id].nrRes= 0;
+    for(a= 0; EnumDisplaySettings(monitor[id]._id, a, &dm) != 0; a++) {
       if(dm.dmBitsPerPel< 16) continue;     /// res should support at least 16 bpp
 
-        found= false;
+      found= false;
 
-        for(b= 0; b< monitor[d].nrRes; b++)
-          if( (dm.dmPelsWidth == tmp[b].dx) && (dm.dmPelsHeight == tmp[b].dy) )		/// already in the list
-            found= true;
+      for(b= 0; b< monitor[id].nrRes; b++)
+        if( (dm.dmPelsWidth == tmp[b].dx) && (dm.dmPelsHeight == tmp[b].dy) )		/// already in the list
+          found= true;
 
-        if(!found){                         /// if not found in tmp list it means it's a new resolution
-          tmp[monitor[d].nrRes].dx= dm.dmPelsWidth;
-          tmp[monitor[d].nrRes].dy= dm.dmPelsHeight;
-          monitor[d].nrRes++;
-        }
+      if(!found){                         /// if not found in tmp list it means it's a new resolution
+        tmp[monitor[id].nrRes].dx= dm.dmPelsWidth;
+        tmp[monitor[id].nrRes].dy= dm.dmPelsHeight;
+        monitor[id].nrRes++;
       }
-      n= monitor[d].nrRes;                  /// n= name shortcut
+    }
+    n= monitor[id].nrRes;                 /// n= name shortcut
 
     /// width sort
     for(a= 0; a< n; a++)
@@ -933,8 +942,8 @@ void osiDisplay::populate(osinteraction *t) {
           }
 
     /// resolution list build
-    monitor[d].res= new osiResolution[n];
-    p= monitor[d].res;
+    monitor[id].res= new osiResolution[n];
+    p= monitor[id].res;
 
     for(a= 0; a< n; a++) {
       p[a].dx= tmp[a].dx;
@@ -944,9 +953,9 @@ void osiDisplay::populate(osinteraction *t) {
     short tf[256];
     for(a= 0; a< 256; a++)
       tf[a]= 0;
-
+    
     /// compute the number of frequencies per resolution (res[].nrFreq)
-    for(a= 0; EnumDisplaySettings(monitor[d]._id, a, &dm) != 0; a++) {
+    for(a= 0; EnumDisplaySettings(monitor[id]._id, a, &dm) != 0; a++) {
       if(dm.dmDisplayFlags== DM_INTERLACED)	continue;               /// ignore interlaced resolutions
       if(dm.dmDefaultSource) continue;                              /// have no clue what this is
       if(dm.dmBitsPerPel != 32) continue;                           /// only 32bpp
@@ -965,7 +974,7 @@ void osiDisplay::populate(osinteraction *t) {
     
     /// filling all frequencies with only a pass thru all windows big mess table
     /// the less times messing with win table stuff, the quicker (else can get really slow)
-    for(a= 0; EnumDisplaySettings(monitor[d]._id, a, &dm) != 0; a++) {
+    for(a= 0; EnumDisplaySettings(monitor[id]._id, a, &dm) != 0; a++) {
       if(dm.dmDisplayFlags== DM_INTERLACED)	continue;               /// ignore interlaced resolutions
       if(dm.dmDefaultSource) continue;                              /// have no clue what this is
       if(dm.dmBitsPerPel != 32) continue;                           /// only 32bpp (could be 16, doesn't matter)
@@ -997,7 +1006,7 @@ void osiDisplay::populate(osinteraction *t) {
 
     if(chatty)
       for(a= 0; a< n; a++) {
-        printf("%dx%d ", p[a].dx, monitor[d].res[a].dy , monitor[d].res[a].nrFreq);
+        printf("%dx%d ", p[a].dx, monitor[id].res[a].dy , monitor[id].res[a].nrFreq);
         for(b= 0; b< p[a].nrFreq; b++)
           printf("%d ", p[a].freq[b]);
         printf("\n");
@@ -1687,7 +1696,176 @@ void osiDisplay::populate(osinteraction *t) {
   
 // IT'S OVERRRRR ... 
   #endif /// OS_MAC
+
+  _populateGrCards(this);
 }
+
+#ifdef USING_DIRECT3D
+bool _areSameGPUs(const D3DADAPTER_IDENTIFIER9 *a1, const D3DADAPTER_IDENTIFIER9 *a2);
+void _copyDisplay(D3DADAPTER_IDENTIFIER9 *dst, const D3DADAPTER_IDENTIFIER9 *src);
+#endif
+
+void _populateGrCards(osiDisplay *display) {
+  bool chatty= true;
+
+  #ifdef OS_WIN
+  #ifdef USING_DIRECT3D
+  if(chatty) printf("Direct3D GPU detection:\n");
+
+  D3DADAPTER_IDENTIFIER9 *disList= null, *dis= null; /// these will store GPU/adapter/display information (term is foggy for microsoft, it's just one of these)
+  IDirect3D9 *d3d;                          /// pointer to the direct3d object
+
+  d3d= Direct3DCreate9(D3D_SDK_VERSION);    /// direct3d 'creation' (probly this just returns a pointer to the d3d main object)
+
+  /// find out how many 'displays' are on the system
+  int nrDis= d3d->GetAdapterCount();
+  if(!nrDis) { error.console("osiDisplay::populateGrCards(): Direct3D found 0 displays"); return; }
+
+  /// populate disList
+  disList= new D3DADAPTER_IDENTIFIER9[nrDis];
+  
+
+  for(short a= 0; a< nrDis; a++)
+    d3d->GetAdapterIdentifier(a, null, &disList[a]);
+
+  /// populate [dis] - array with only graphics cards
+  dis= new  D3DADAPTER_IDENTIFIER9[nrDis];
+  _copyDisplay(&dis[0], &disList[0]);       /// copy the first gr card, as there must be 1
+  int nrCards= 1;                           /// the true number of graphics cards (start with at least 1)
+
+  for(short a= 0; a< nrDis; a++) {          /// for each 'display' in d3d's disList
+    /// search to see if this (disList[a]) is a new gr card
+    bool found= false;                      /// asume nothing found
+    for(short b= 0; b< nrCards; b++) 
+      if(_areSameGPUs(&dis[b], &disList[a]))/// if these displays are the same (display/grcard/adapter/monitor are strange concepts for microsoft. the foggier, the better, it seems)
+        found= true;                        /// found a card that is identical
+
+    // if no cards are identical, then a new one is found
+    if(!found) {
+      _copyDisplay(&dis[nrCards], &disList[a]);
+      nrCards++;
+      break;
+    }
+  }
+
+  display->nrGPUs= nrCards;                 /// number of graphics cards on the system
+  display->GPU= new osiGPU[nrCards];
+
+  /// populate osiDisplay's GPU array
+  for(short a= 0; a< display->nrGPUs; a++) {
+    display->GPU[a].name= dis[a].Description;
+    if(chatty) printf("Found GPU [%d]: %s\n", a, display->GPU[a].name.d);
+  }
+    
+  /// populate osiDisplay::monitor->GPU - each monitor belongs on what GPU
+  for(short a= 0; a< nrDis; a++) {              /// pass thru all d3d's 'displays'
+
+    /// [a] coresponds to what osiDisplay::GPU [n]
+    short n= -1;
+    for(short b= 0; b< nrCards; b++)
+      if(_areSameGPUs(&dis[b], &disList[a]))    /// dis[] has the same order as osiDisplay::GPU[]
+        n= b;
+
+    if(n== -1) { error.simple("osiDisplay::populateGrCards(): ERROR MARKED @ LOCATION 2"); return; }
+
+    HMONITOR hmon= d3d->GetAdapterMonitor(a);   /// windows HMONITOR handle
+    MONITORINFOEX mon;                          /// monitor info struct
+    mon.cbSize= sizeof(mon);                    /// mark struct's size (windows standard recognition procedure)
+    GetMonitorInfo(hmon, &mon);                 /// populate mon
+
+    /// search thru all osiDisplay's monitors, to find this [mon] (identify by position on virtual desktop)
+    for(short b= 0; b< display->nrMonitors; b++)
+      if(display->monitor[b].x0== mon.rcMonitor.left)
+        if(display->monitor[b]._y0== mon.rcMonitor.top)
+          if(display->monitor[b].x0+ display->monitor[b].dx== mon.rcMonitor.right)
+            if(display->monitor[b]._y0+ display->monitor[b].dy== mon.rcMonitor.bottom) {
+              display->monitor[b].GPU= &display->GPU[n];    // MONITOR FOUND - assign that monitor to this GPU
+              if(chatty) printf("osiDisplay::monitor[%d] belongs to GPU[%d]: %s\n", b, n, display->GPU[n].name.d);
+            }
+    
+    /* // debug tests
+    printf("Description [%s]\n", dis[a].Description);
+    printf("DeviceId [%d]\n", dis[a].DeviceId);
+    printf("DeviceIdentifier [%u][%u][%u][data4notprinted]\n", dis[a].DeviceIdentifier.Data1, dis[a].DeviceIdentifier.Data2, dis[a].DeviceIdentifier.Data3);
+    printf("DeviceName [%s]\n", dis[a].DeviceName);
+    printf("Driver [%s]\n", dis[a].Driver);
+    printf("DriverVersion [%lld]\n", dis[a].DriverVersion);
+    printf("Revision [%u]\n", dis[a].Revision);
+    printf("SubSysId [%u]\n", dis[a].SubSysId);
+    printf("VendorId [%u]\n", dis[a].VendorId);
+    printf("WHQLLevel [%u]\n", dis[a].WHQLLevel);
+    */
+  } /// for each d3d 'display'
+
+
+  /// populate each osiDisplay::GPU[].monitor - array of monitors that belong to this GPU
+  for(short a= 0; a< display->nrGPUs; a++) {
+
+    /// find the number of monitors that belong to this GPU[a]
+    for(short b= 0; b< display->nrMonitors; b++)
+      if(display->monitor[b].GPU== &display->GPU[a])
+        display->GPU[a].nrMonitors++;
+
+    if(display->GPU[a].nrMonitors) {
+      display->GPU[a].monitor= new osiMonitor*[display->GPU[a].nrMonitors];
+
+      short c= 0;
+      for(short b= 0; b< display->nrMonitors; b++) 
+        if(display->monitor[b].GPU== &display->GPU[a])
+          display->GPU[a].monitor[c++]= &display->monitor[b];
+    } /// if there are monitors attached to this GPU
+  }
+
+  display->primary->GPU->primary= true;   /// set primary monitor's GPU as the primary grCard too
+
+  if(dis) delete[] dis;
+  if(disList) delete[] disList;
+
+  #endif /// USING_DIRECT3D
+  #endif /// OS_WIN
+
+  #ifdef OS_LINUX
+  makeme
+  #endif
+
+  #ifdef OS_MAC
+  makeme
+  #endif
+}
+
+#ifdef USING_DIRECT3D
+/// checks if d3dadapters are the same
+bool _areSameGPUs(const D3DADAPTER_IDENTIFIER9 *a1, const D3DADAPTER_IDENTIFIER9 *a2) {
+  bool ret= true;
+  if(string8::strcmp(a1->Description, a2->Description)) ret= false;
+  if(a1->DeviceId!= a2->DeviceId) ret= false;
+  if(a1->DeviceIdentifier.Data1!= a2->DeviceIdentifier.Data1) ret= false;
+  if(a1->DeviceIdentifier.Data2!= a2->DeviceIdentifier.Data2) ret= false;
+  if(a1->DeviceIdentifier.Data3!= a2->DeviceIdentifier.Data3) ret= false;
+  for(short a= 0; a< 8; a++)
+    if(a2->DeviceIdentifier.Data4[a]!= a2->DeviceIdentifier.Data4[a])
+      ret= false;
+  return ret;
+}
+
+/// copies src d3d adapter to dst d3d adapter
+void _copyDisplay(D3DADAPTER_IDENTIFIER9 *dst, const D3DADAPTER_IDENTIFIER9 *src) {
+  string8::strncpy(dst->Description, src->Description, 512);
+  dst->DeviceId= src->DeviceId;
+  dst->DeviceIdentifier.Data1= src->DeviceIdentifier.Data1;
+  dst->DeviceIdentifier.Data2= src->DeviceIdentifier.Data2;
+  dst->DeviceIdentifier.Data3= src->DeviceIdentifier.Data3;
+  for(short a= 0; a< 8; a++)
+    dst->DeviceIdentifier.Data4[a]= src->DeviceIdentifier.Data4[a];
+}
+#endif /// USING_DIRECT3D
+
+
+
+
+
+
+
 
 
 
@@ -1807,6 +1985,331 @@ void updateVirtualDesktop() {
   osi.display.vdx-= osi.display.vx0;
   osi.display.vdy-= osi.display.vy0;
 }
+
+
+
+
+
+// THIS CODE CREATES TEMPORARY WINDOWS/CONTEXTS TO GET GL EXTENSIONS THAT MIGHT DETECT GRAPHICS CARDS
+// BUT ATM, THERE IS NO GL EXTENSION THAT CAN HELP IN IDENTIFIEING GPUs
+// IF IN THE FUTURE THERE WILL BE ONE... 
+/*
+class _TMP_WINDOW{
+public:
+  cchar *wname;
+  HWND hWnd;
+  WNDCLASS wc;
+  HINSTANCE hInstance;
+  HDC hDC;
+  GLuint pixelFormat;
+  PIXELFORMATDESCRIPTOR pfd;
+  DWORD style, exStyle;
+
+  bool createWindow(osiMonitor *);
+
+  _TMP_WINDOW();
+  ~_TMP_WINDOW() { delData(); }
+  void delData();
+};
+
+
+_TMP_WINDOW::_TMP_WINDOW():wname("tmp") {
+  hWnd= 0;
+  hInstance= 0;
+  hDC= 0;
+  pixelFormat= 0;
+  // exStyle= WS_EX_APPWINDOW| WS_EX_WINDOWEDGE;
+  style= WS_OVERLAPPEDWINDOW| WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
+  exStyle= 0; // WS_EX_APPWINDOW; // 0 might not work
+  //style= WS_POPUP| WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
+
+  for(int a= 0; a< sizeof(wc); a++) ((char *)&wc)[a]= 0;  /// wipe [wc] ... lol
+  wc.style=         CS_HREDRAW| CS_VREDRAW| CS_OWNDC;     /// Redraw On Size, And Own DC For Window.
+  wc.lpfnWndProc=   (WNDPROC)processMSG;                  /// processMSG handles messages
+  wc.hInstance=     0;                                    /// set the aquired instance
+  wc.hIcon=         LoadIcon(NULL, IDI_WINLOGO);          /// load default icon
+  wc.hCursor=       LoadCursor(NULL, IDC_ARROW);          /// load arrow pointer
+  wc.lpszClassName= wname;                                /// class name... dunno for shure what this is
+
+
+  exStyle= WS_EX_APPWINDOW| WS_EX_WINDOWEDGE;
+  style= WS_OVERLAPPEDWINDOW;
+
+  wc.style				 = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;  /// Redraw On Size, And Own DC For Window.
+  wc.lpfnWndProc	 = (WNDPROC) processMSG;                // processMSG handles messages
+  wc.cbClsExtra		 = 0;                                   /// no extra
+  wc.cbWndExtra		 = 0;                                   /// no extra
+  wc.hInstance		 = 0;                       /// set the aquired instance
+  wc.hIcon				 = LoadIcon(NULL, IDI_WINLOGO);         // load default icon <<<<<<<<<<<<<<<<<<<<<< ICON WORKS MUST BE MADE
+  wc.hCursor			 = LoadCursor(NULL, IDC_ARROW);         /// load arrow pointer
+  wc.hbrBackground = NULL;                                /// no backgraound required when using opengl
+  wc.lpszMenuName	 = NULL;                                /// no menus
+  wc.lpszClassName = wname;                               /// class name... dunno for shure what this is
+
+
+
+}
+
+
+void _TMP_WINDOW::delData() {
+  if(hDC) ReleaseDC(hWnd, hDC);
+  if(hWnd) DestroyWindow(hWnd);
+  UnregisterClass(wname, hInstance);
+}
+
+
+bool _TMP_WINDOW::createWindow(osiMonitor *m) {
+  bool err= false;
+
+  hInstance= GetModuleHandle(NULL);            /// grab an instance for window
+  wc.hInstance= hInstance;
+  if(!RegisterClass(&wc)) err= true;
+  //if(!(hWnd= CreateWindowEx(exStyle, wname, wname, style, m->x0, m->y0, 100, 100, null, null, hInstance, null))) err= true;
+
+  if (!(hWnd= CreateWindowEx(
+                exStyle,              // Extended Style For The Window
+                wname,                   // class name           <--- might want a different class name?
+                wname,                   /// window title
+                style |               /// defined window style
+                WS_CLIPSIBLINGS |       /// Required Window Style ?? not shure
+                WS_CLIPCHILDREN,        /// Required Window Style ?? not shure
+                m->x0, m->y0, /// window position (coord unification fixed)
+                100, // rect.right- rect.left,  /// dx
+                100, //rect.bottom- rect.top,  /// dy
+                NULL,           /// parent window
+                NULL,                   /// no menu
+                hInstance,          /// instance
+                NULL)))                 /// don't pass anything to WM_CREATE
+  {
+    error.window("Window creation error.");
+    return false;
+  }
+
+
+
+  if(!(hDC= GetDC(hWnd))) err= true;
+
+  /// pixel format
+  int pixelf= GetPixelFormat(hDC); 
+  DescribePixelFormat(hDC, pixelf, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
+  pfd.dwFlags= pfd.dwFlags| PFD_DRAW_TO_WINDOW| PFD_DRAW_TO_BITMAP| PFD_SUPPORT_OPENGL| PFD_STEREO_DONTCARE| PFD_DOUBLEBUFFER;
+  if(!(pixelFormat= ChoosePixelFormat(hDC, &pfd))) err= true;
+  if(!SetPixelFormat(hDC, pixelFormat, &pfd)) err= true;
+  
+  ShowWindow(hWnd, SW_SHOW);
+  SetForegroundWindow(hWnd);  /// Slightly Higher Priority
+  SetFocus(hWnd);             /// Sets Keyboard Focus To The Window
+
+  if(err) return false;
+  return true;
+}
+
+
+template<class T> extern bool getGlProc(cchar *, T&);   /// defined in osiGlExt.cpp
+
+void _populateGrCards(osiDisplay *display) {
+  bool chatty= true;
+
+  #ifdef OS_WIN
+  
+    bool err= false;
+  bool nvAvaible= false, amdAvaible= false;
+  _TMP_WINDOW w;
+
+  if(!w.createWindow(display->primary)) error.window("dummy window failed");
+  
+  /// oGL context creation
+  HGLRC tmp= wglCreateContext(w.hDC);
+  wglMakeCurrent(w.hDC, tmp);
+
+
+
+  int major;
+  char buf[128];
+  cchar *ext;
+  glGetIntegerv(GL_MAJOR_VERSION, &major);         /// oGL major version
+
+
+  if(major< 3) {
+    ext= (cchar *)glGetString(GL_EXTENSIONS);            /// oGL extensions string
+    cchar *p= ext;
+    while(1) {
+      
+      /// parse 1 extension at a time
+      for(short a= 0; a< 128; a++) {
+        if(*p== ' ' || *p== '\0') {  /// extension delimiter or end of string
+          buf[a]= 0;
+          break;
+        }
+
+        buf[a]= *p;
+        p++;
+      } /// for each character in current ext string
+
+      if(!string8::strcmp(buf, "WGL_NV_gpu_affinity"))
+        nvAvaible= true;
+      if(!string8::strcmp(buf, "WGL_AMD_gpu_association"))
+        amdAvaible= true;
+
+      if(*p== '\0')
+        return;                               /// reached the end
+      else
+        p++;                                  /// pass ' ' (space) for next extension
+    } /// for each extension
+  } else {
+    PFNGLGETSTRINGIPROC glGetStringi_tmp;
+    getGlProc("glGetStringi", glGetStringi_tmp);      /// make shure this func is avaible
+
+    int max;
+    glGetIntegerv(GL_NUM_EXTENSIONS, &max);
+
+    for(short a= 0; a< max; a++) {
+      ext= (cchar *)glGetStringi_tmp(GL_EXTENSIONS, a);
+
+      if(!string8::strcmp(ext, "WGL_NV_gpu_affinity"))
+        nvAvaible= true;
+      if(!string8::strcmp(ext, "WGL_AMD_gpu_association"))
+        amdAvaible= true;
+    }
+  }
+
+  /// nvidia extension
+  PFNWGLENUMGPUSNVPROC wglEnumGpusNV_tmp= null;
+  PFNWGLENUMGPUDEVICESNVPROC wglEnumGpuDevicesNV_tmp= null;
+  PFNWGLCREATEAFFINITYDCNVPROC wglCreateAffinityDCNV_tmp= null;
+  PFNWGLENUMGPUSFROMAFFINITYDCNVPROC wglEnumGpusFromAffinityDCNV_tmp= null;
+  PFNWGLDELETEDCNVPROC wglDeleteDCNV_tmp= null;
+  /// amd extension
+  PFNWGLGETGPUIDSAMDPROC wglGetGPUIDsAMD_tmp= null;
+  PFNWGLGETGPUINFOAMDPROC wglGetGPUInfoAMD_tmp= null;
+  PFNWGLGETCONTEXTGPUIDAMDPROC wglGetContextGPUIDAMD_tmp= null;
+  //PFNWGLCREATEASSOCIATEDCONTEXTAMDPROC wglCreateAssociatedContextAMD_tmp= null;
+  //PFNWGLCREATEASSOCIATEDCONTEXTATTRIBSAMDPROC wglCreateAssociatedContextAttribsAMD_tmp= null;
+  //PFNWGLDELETEASSOCIATEDCONTEXTAMDPROC wglDeleteAssociatedContextAMD_tmp= null;
+  //PFNWGLMAKEASSOCIATEDCONTEXTCURRENTAMDPROC wglMakeAssociatedContextCurrentAMD_tmp= null;
+  //PFNWGLGETCURRENTASSOCIATEDCONTEXTAMDPROC wglGetCurrentAssociatedContextAMD_tmp= null;
+  //PFNWGLBLITCONTEXTFRAMEBUFFERAMDPROC wglBlitContextFramebufferAMD_tmp= null;
+
+
+  if(nvAvaible) {
+    getGlProc("wglEnumGpusNV", wglEnumGpusNV_tmp);
+    getGlProc("wglEnumGpuDevicesNV", wglEnumGpuDevicesNV_tmp);
+    getGlProc("wglCreateAffinityDCNV", wglCreateAffinityDCNV_tmp);
+    getGlProc("wglEnumGpusFromAffinityDCNV", wglEnumGpusFromAffinityDCNV_tmp);
+    getGlProc("wglDeleteDCNV", wglDeleteDCNV_tmp);
+  }
+  if(amdAvaible) { // only used funcs are aquired
+    getGlProc("wglGetGPUIDsAMD", wglGetGPUIDsAMD_tmp);
+    getGlProc("wglGetGPUInfoAMD", wglGetGPUInfoAMD_tmp);
+    getGlProc("wglGetContextGPUIDAMD", wglGetContextGPUIDAMD_tmp);
+    //getGlProc("wglCreateAssociatedContextAMD", wglCreateAssociatedContextAMD_tmp);
+    //getGlProc("wglCreateAssociatedContextAttribsAMD", wglCreateAssociatedContextAttribsAMD_tmp);
+    //getGlProc("wglDeleteAssociatedContextAMD", wglDeleteAssociatedContextAMD_tmp);
+    //getGlProc("wglMakeAssociatedContextCurrentAMD", wglMakeAssociatedContextCurrentAMD_tmp);
+    //getGlProc("wglGetCurrentAssociatedContextAMD", wglGetCurrentAssociatedContextAMD_tmp);
+    //getGlProc("wglBlitContextFramebufferAMD", wglBlitContextFramebufferAMD_tmp);
+  }
+
+  
+  if(!amdAvaible && !nvAvaible) {
+    if(chatty) printf("WARNING: neither WGL_NV_gpu_affinity or WGL_AMD_gpu_association is avaible\n");
+  }
+
+  /// favour amd extension, as there is a linux version too
+  if(amdAvaible) {
+
+    display->nrGPUs= wglGetGPUIDsAMD_tmp(0, 0);               /// number of gpus on the system
+    if(display->nrGPUs) {
+      display->GPU= new osiGPU[display->nrGPUs];              /// create list of them
+
+      uint *cards= new uint[display->nrGPUs];                 /// this will hold amd's internal gpu ids
+      wglGetGPUIDsAMD_tmp(display->nrGPUs, cards);
+
+      if(chatty) printf("Found %d GPUs:\n", display->nrGPUs);
+
+      /// gather data on each card
+      for(short a= 0; a< display->nrGPUs; a++) {
+        // WGL_GPU_OPENGL_VERSION_STRING_AMD - highest supported OpenGL version string (GL_UNSIGNED_BYTE string)
+        // WGL_GPU_RENDERER_STRING_AMD - returns name of the GPU (GL_UNSIGNED_BYTE string)
+        // WGL_GPU_FASTEST_TARGET_GPUS_AMD
+        // WGL_GPU_RAM_AMD - the amount of RAM available to GPU in MB
+        // WGL_GPU_CLOCK_AMD - the GPU clock speed in MHz
+        // WGL_GPU_NUM_PIPES_AMD - the nubmer of 3D pipes
+        // WGL_GPU_NUM_SIMD_AMD - the number of SIMD ALU units in each shader pipe
+        // WGL_GPU_NUM_RB_AMD - the number of render backends
+        // WGL_GPU_NUM_SPI_AMD - the number of shader parameter interpolaters
+        char buf[256];
+        wglGetGPUInfoAMD_tmp(cards[a], WGL_GPU_RENDERER_STRING_AMD, GL_UNSIGNED_BYTE, 256, buf);
+        display->GPU[a].id= buf;
+        wglGetGPUInfoAMD_tmp(cards[a], WGL_GPU_RAM_AMD, GL_INT, 1, &display->GPU[a].ram);
+        wglGetGPUInfoAMD_tmp(cards[a], WGL_GPU_CLOCK_AMD, GL_INT, 1, &display->GPU[a].clock);
+        if(chatty) printf("GPU[%d]: id[%s] mem[%d] clock[%d]", a, display->GPU[a].id.d, display->GPU[a].ram, display->GPU[a].clock);
+      } /// for each gr card
+
+      /// try to determine which monitor belongs to which gpu
+      _TMP_WINDOW test;
+      
+      for(short a= 0; a< display->nrMonitors; a++) {
+        test.createWindow(&display->monitor[a]);          /// create dummy window
+        HGLRC testRC= wglCreateContext(test.hDC);         /// create dummy context
+
+        wglMakeCurrent(test.hDC, testRC);
+        int id= wglGetContextGPUIDAMD_tmp(testRC);        /// check on what GPU id was this context created
+
+        /// pass thru all grcards, to match the found id, and assign the monitor to that card
+        for(short b= 0; b< display->nrGPUs; b++)
+          if(cards[b]== id) {
+            display->monitor[a].GPU= &display->GPU[b];
+            display->GPU[a].nrMonitors++;
+            if(chatty) printf("Monitor [%d] belongs to GPU [%d]\n", a, b);
+          }
+
+        wglDeleteContext(testRC);                         /// delete dummy context
+        test.delData();                                   /// delete dummy window
+      } /// for each monitor
+
+
+      /// pass thru all cards, assigning each card the monitors that are attached to it
+      for(short a= 0; a< display->nrGPUs; a++) {
+        if(display->GPU[a].nrMonitors)
+          display->GPU[a].monitor= new osiMonitor*[display->GPU[a].nrMonitors];
+        /// pass thru all monitors, to see if any are part of this GPU
+        for(short b= 0, c= 0; b< display->nrMonitors; b++)
+          if(display->monitor[b].GPU== &display->GPU[a])
+            display->GPU[a].monitor[c++]= &display->monitor[b];
+      }
+
+
+     if(cards) delete[] cards;
+
+    }
+
+  } else if(nvAvaible) {
+
+
+
+  }
+
+
+
+  wglMakeCurrent(NULL, NULL);
+  wglDeleteContext(tmp);
+
+
+  #endif /// OS_WIN
+}
+
+THIS IS NOT WORKING. IF ANY OPENGL EXTENSION IS AVAIBLE IN THE FUTURE, THIS CODE WILL WORK FOR THAT SAID EXTENSION
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+*/
+
+
+
+
+
+
+
+
 
 
 
