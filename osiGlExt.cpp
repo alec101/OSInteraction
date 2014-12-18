@@ -26,6 +26,7 @@ GlExtFuncs glExt;
 
 
 /// [internal] function that will be called for each extension function
+/*
 template<class T> bool getGlProc(cchar *name, T& address) {
   bool chatty= true;
   #ifdef OS_WIN
@@ -41,22 +42,48 @@ template<class T> bool getGlProc(cchar *name, T& address) {
   #endif /// OS_MAC
   if(address) return true; else return false;
 }
+*/
 
-#define GETGLPROCMACRO(_x_x) getGlProc(#_x_x, r->glExt. _x_x);
+bool getGlProc(cchar *name, void **address) {
+  bool chatty= true;
+  if(!address) return false;
+  
+  #ifdef OS_WIN
+  *address= (void *)wglGetProcAddress(name);
+  #endif /// OS_WIN
+  
+  #ifdef OS_LINUX
+  *address= (void *)glXGetProcAddressARB((const GLubyte *)name);
+  #endif /// OS_LINUX
+  
+  #ifdef OS_MAC
+  needed?
+  #endif /// OS_MAC
+    
+  return (address? true: false);
+}
+
+
+
+
+#define GETGLPROCMACRO(_x_x) getGlProc(#_x_x,  (void **)&r->glExt. _x_x  );
+
+
 
 
 ///=============================///
 // OpenGL version funcs aquiring //
 ///=============================///
+
 void getVERfuncs(osiRenderer *r, int major, int minor) {
-  getGlProc("glTexImage3DEXT", r->glExt.glTexImage3D);
+  //getGlProc("glTexImage3DEXT", r->glExt.glTexImage3D);
   
   #ifdef OS_LINUX
   // linux GLX versions //
   ///==================///
 
   /// GLX_VERSION_1_3
-  getGlProc("glXGetFBConfigs", r->glExt.glXGetFBConfigs); //GETGLPROCMACRO(glXGetFBConfigs)
+  GETGLPROCMACRO(glXGetFBConfigs)   //getGlProc("glXGetFBConfigs", r->glExt.glXGetFBConfigs); // << what should look like
   GETGLPROCMACRO(glXChooseFBConfig)
   GETGLPROCMACRO(glXGetFBConfigAttrib)
   GETGLPROCMACRO(glXGetVisualFromFBConfig)
@@ -85,13 +112,7 @@ void getVERfuncs(osiRenderer *r, int major, int minor) {
   if(major== 1 && minor< 2)
     return;
 
-  /*
-  getGlProc("glDrawRangeElements", r->glExt.glDrawRangeElements);
-  getGlProc("glTexImage3D", r->glExt.glTexImage3D);
-  getGlProc("glTexSubImage3D", r->glExt.glTexSubImage3D);
-  getGlProc("glCopyTexSubImage3D", r->glExt.glCopyTexSubImage3D);
-  */
-  GETGLPROCMACRO(glDrawRangeElements)
+  GETGLPROCMACRO(glDrawRangeElements) // getGlProc("glDrawRangeElements", r->glExt.glDrawRangeElements); // <<< what should look like
   GETGLPROCMACRO(glTexImage3D)
   GETGLPROCMACRO(glTexSubImage3D)
   GETGLPROCMACRO(glCopyTexSubImage3D)

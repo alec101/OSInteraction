@@ -120,6 +120,7 @@ struct osiMonitor {
   string _monitorName;      /// [internal] monitor description (did not find any use for it ina ANY windows function)
   // if a monitor is set to duplicate another monitor, windows returns only one display,
   // with combined resolution options, and monitorID+monitorName for each. Can't do anything with any of them, so im not storing them anywhere.
+  friend LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam);
   #endif /// OS_WIN
   
   #ifdef OS_LINUX
@@ -139,7 +140,7 @@ private:
   friend void getMonitorPos(osiMonitor *m);
   friend void updateVirtualDesktop();
   friend bool doChange(osiMonitor *, osiResolution *, int8, short);
-  friend LRESULT CALLBACK processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam);
+
   friend void _populateGrCards(osiDisplay *);
 
   int _y0;                  /// not changed, os specific, monitor position on the y axis
