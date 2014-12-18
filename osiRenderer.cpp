@@ -5,7 +5,8 @@ int searchARB(osiRenderer *, cchar *);
 int searchEXT(osiRenderer *, cchar *);
 int searchOTHER(osiRenderer *, cchar *);
 
-template<class T> extern bool getGlProc(cchar *, T&);
+//template<class T> extern bool getGlProc(cchar *, T&);
+extern bool getGlProc(cchar *, void **); /// [kinda internal]OpenGL func pointer retriever; pass the name of the function, and the pointer to aquire the address
 extern void getVERfuncs(osiRenderer *, int, int);
 extern void getARBfuncs(osiRenderer *);
 extern void getEXTfuncs(osiRenderer *);
@@ -64,11 +65,12 @@ osiRenderer *_createRenderer(osiWindow *w, int major= 3, int minor= 2, void *sha
   r->glContext= wglCreateContext(w->_hDC);
 
 
-
+  if(chatty) printf("Renderer created: context[%d] win hDC[%d]\n", (int)r->glContext, (int)w->_hDC);
+  
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
-  r->glContext= glXCreateContext(w->dis, w->vi, NULL, GL_TRUE);
+  r->glContext= glXCreateContext(w->_dis, w->_vi, NULL, GL_TRUE);
   
 /* The last parameter decides if direct rendering is enabled. If you want
    to send the graphical output via network, you have to set it to GL_FALSE.
@@ -85,7 +87,7 @@ osiRenderer *_createRenderer(osiWindow *w, int major= 3, int minor= 2, void *sha
 
     
 
-  if(chatty) printf("Renderer created: context[%d] win hDC[%d]\n", (int)r->glContext, (int)w->_hDC);
+
   if(!r->glContext) {
     delete r;
     return null;
@@ -270,7 +272,7 @@ void osiRenderer::delData() {
 /// big stack for arguments, to avoid memory corruption - hopefully no function has more than 24* sizeof(void *) argument size...
 void *glExtNULL(void *a, void *b, void *c, void *d, void *e, void *f, void *g, void *h, void *i, void *j, void *k, void *l, void *m, void *n, void *o, void *p, void *q, void *r, void *s, void *t, void *u, void *v, void *x, void *y, void *z) {     /// it has a big stack for arguments
   // this can be further customized to pop an error, or mark an error somewhere
-  printf("glExtNULL func called!!!\n");
+  printf("glExtNULL func called!!! - a oGL func that the system could not aquire a pointer too, was called\n");
   return null;
 }
 
@@ -283,20 +285,23 @@ template<class T> void setGlProcNULL(T& address) {
 */
 
 void osiRenderer::_getContextFuncs() {
+  
+  // more cleanup must be made. the nvidia/ati extensions don't work (or work for only 1 card)
+  
   int major;
   char buf[128];
   cchar *ext;
-  glGetIntegerv(GL_MAJOR_VERSION, &major);         /// oGL major version
+  glGetIntegerv(GL_MAJOR_VERSION, &major);          /// oGL major version
   
   
   if(major< 3) {
-    ext= (cchar *)glGetString(GL_EXTENSIONS);            /// oGL extensions string
+    ext= (cchar *)glGetString(GL_EXTENSIONS);       /// oGL extensions string
     cchar *p= ext;
     while(1) {
       
       /// parse 1 extension at a time
       for(short a= 0; a< 128; a++) {
-        if(*p== ' ' || *p== '\0') {  /// extension delimiter or end of string
+        if(*p== ' ' || *p== '\0') {                 /// extension delimiter or end of string
           buf[a]= 0;
           break;
         }
@@ -325,7 +330,7 @@ void osiRenderer::_getContextFuncs() {
 
 
   } else {
-    getGlProc("glGetStringi", glExt.glGetStringi);      /// make shure this func is avaible
+    getGlProc("glGetStringi", (void**)&glExt.glGetStringi);      /// make shure this func is avaible
 
     int max;
     glGetIntegerv(GL_NUM_EXTENSIONS, &max);
@@ -358,7 +363,7 @@ void osiRenderer::_getContextFuncs() {
 
   #ifdef OS_LINUX
   if(glARBlist[55].avaible)       /// #56 #75 GLX_ARB_create_context !!! GLX_ARB_create_context_profile http://www.opengl.org/registry/specs/ARB/glx_create_context.txt
-    getGlProc("glXCreateContextAttribsARB", glXCreateContextAttribsARB);
+    getGlProc("glXCreateContextAttribsARB", (void **)&glXCreateContextAttribsARB);
   #endif /// OS_LINUX
 
   #ifdef OS_WIN
@@ -385,7 +390,7 @@ void osiRenderer::_getContextFuncs() {
   }
   #endif
   #ifdef OS_LINUX
-  if(glEXTlist[397].avaible {
+  if(glEXTlist[397].avaible) {
     // MISSING funcs <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
   }
   #endif
@@ -397,6 +402,9 @@ void osiRenderer::_getContextFuncs() {
 
 
 void osiRenderer::checkExt() {
+  
+  // more cleanup must be made (nv/ati ext funcs that should determine gpu affinity don't work...)
+  
   #ifdef OS_MAC
   return;     // under mac, all extensions are avaible
   #endif
@@ -412,7 +420,7 @@ void osiRenderer::checkExt() {
   glGetIntegerv(GL_MINOR_VERSION, &glVerMinor);                 /// oGL minor version
   glGetIntegerv(GL_MAX_TEXTURE_UNITS_ARB, &maxTexelUnits);      /// maximum texel units
   glGetIntegerv(GL_MAX_3D_TEXTURE_SIZE_EXT, &max3Dtexture);     /// maximum 3D texture size
-  if(chatty) printf("context[%d]\n", (int)this->glContext);
+  if(chatty) printf("context[%lld]\n", (long long)(this->glContext));
   //if(chatty) printf("GL extensions: %s\n", glGetString(GL_EXTENSIONS));
   if(chatty) printf("Vendor Name: %s\n", glVendor.d);
   if(chatty) printf("Graphic Card: %s\n", glRenderer.d);
@@ -473,7 +481,7 @@ void osiRenderer::checkExt() {
 
   /// OpenGL 3.x and over
   } else {
-    getGlProc("glGetStringi", glExt.glGetStringi);      /// make shure this func is avaible
+    getGlProc("glGetStringi", (void **)&glExt.glGetStringi);      /// make shure this func is avaible
 
     int max, i;
     glGetIntegerv(GL_NUM_EXTENSIONS, &max);
@@ -508,8 +516,8 @@ void osiRenderer::checkExt() {
 
   } /// lower than gl3.x or over gl3.x
 
-  printf("WGL_AMD_gpu_association is %s\n", glEXTlist[360].avaible? "AVAIBLE": "NOT avaible");
-  printf("WGL_NV_gpu_affinity is %s\n", glEXTlist[354].avaible? "AVAIBLE": "NOT avaible");
+  if(chatty) printf("WGL_AMD_gpu_association is %s\n", glEXTlist[360].avaible? "AVAIBLE": "NOT avaible");
+  if(chatty) printf("WGL_NV_gpu_affinity is %s\n", glEXTlist[354].avaible? "AVAIBLE": "NOT avaible");
 }
 
 

@@ -1,8 +1,6 @@
-#ifdef OS_MAC
 #include "osinteraction.h"
-extern bool chatty;
 
-
+#ifdef OS_MAC
 
 /// cocoa uses these, unfortunately...
 #undef uint
@@ -728,13 +726,13 @@ bool osiCocoa::createWindow(osiWindow *w) {
   
   /// window style
   uint winStyle;
-	if(w->mode== 1)                     /// windowed style
+	if(w->mode== 1)                                 /// windowed style
     winStyle=
       NSTitledWindowMask|
       NSClosableWindowMask|
       NSMiniaturizableWindowMask|
       NSResizableWindowMask;
-  if(w->mode== 3 || w->mode== 2 || w->mode== 4)      /// fullscreen / fullscreen window style / extended on all monitors
+  if(w->mode== 3 || w->mode== 2 || w->mode== 4)   /// fullscreen / fullscreen window style / extended on all monitors
     winStyle=
     //      NSTitledWindowMask|
       NSClosableWindowMask|
@@ -796,7 +794,7 @@ bool osiCocoa::createWindow(osiWindow *w) {
   [win makeKeyAndOrderFront: nil];
   
   /* this crashes cocoa, dunno why
-  if(w== &osi.win[0])
+  if(w== primWin)
     [win makeMainWindow];
    */
   
@@ -829,7 +827,8 @@ void osiCocoa::getWindowSize(osiWindow *w, int *dx, int *dy) {
 ///=================================================================///
 // -------------------->>> PROCESS MSGS <<<------------------------- //
 ///=================================================================///
-void processMSG(void) {
+bool _processMSG(void) {
+  bool ret= false;
   NSAutoreleasePool *pool=[[NSAutoreleasePool alloc] init];
 
   while(1) {
@@ -851,11 +850,13 @@ void processMSG(void) {
     if(event!= nil) {
       [NSApp sendEvent: event];
       [NSApp updateWindows];
+      ret= true;
     } else {
       break;
     }
 	}
 	[pool release];	
+  return ret;
 }
 
 

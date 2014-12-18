@@ -9,22 +9,18 @@
 //#include <CoreGraphics.framework/headers/CGDirectDisplay.h>
 #endif /// OS_MAC
 
+/* TODO:
+ * [linux] restore mouse cursor for change res... ?
+ * xrand has some event handling, must be checked
+ */
 
 
 // [MAC]: -restoring monitor resolutions is done with a single function for all monitors. _It is possible to restore resolutions for each monitor, if NEEDED_
 //        - alt-tabbing sets fullscreen windows to the back; the other option would be to autohide - it would be easy to set (in cocoa.mm cocoa.createWindow() )
 //          there is a single line that is commented. This mode seems pretty nice, tho; the back window can be hidden with right-click on it's taskbar icon...
-/* TODO:
- * [linux] restore mouse cursor for change res... ?
- * WIN: to use progRes
- * WIN: move getMonitorPos in populate(). it's win only, and small, used only in populate() anyways
- * xrand has some event handling, must be checked
- *  
- * 
  
 
- 
-stuff to KEEP AN EYE ON:
+/* stuff to KEEP AN EYE ON:
  * "horizontal span" nvidia/ati specific opengl extension
  *
  * AMD's EyeFinity, or more specifically SLS (Single Large Surface), creates a large,
@@ -62,8 +58,8 @@ osiResolution::osiResolution() {
   nrFreq= 0;
   freq= null;
   #ifdef OS_LINUX
-  resID= null;
-  rotation= 0;
+  _resID= null;
+  _rotation= 0;
   #endif /// OS_LINUX
   
   #ifdef OS_MAC
@@ -83,11 +79,11 @@ void osiResolution::delData() {
   }
 
   #ifdef OS_LINUX
-  if(resID) {
-    delete[] resID;
-    resID= null;
+  if(_resID) {
+    delete[] _resID;
+    _resID= null;
   }
-  rotation= 0;
+  _rotation= 0;
   #endif /// OS_LINUX
   
   #ifdef OS_MAC
@@ -124,12 +120,12 @@ osiMonitor::osiMonitor() {
   progRes.freq[0]= 0;
 
   #ifdef OS_LINUX
-  original.resID= new RRMode[1];
-  original.resID[0]= 0;
-  progRes.resID= new RRMode[1];
-  progRes.resID[0]= 0;
-  bottom= null;
-  right= null;
+  original._resID= new RRMode[1];
+  original._resID[0]= 0;
+  progRes._resID= new RRMode[1];
+  progRes._resID[0]= 0;
+  _bottom= null;
+  _right= null;
   #endif /// OS_LINUX
   
   #ifdef OS_MAC
@@ -375,7 +371,7 @@ bool osiDisplay::changeRes(/*osiWindow *w, */osiMonitor *m, short dx, short dy, 
   }
   
   #ifdef OS_LINUX
-  m->progRes.resID[0]= r->resID[f];
+  m->progRes._resID[0]= r->_resID[f];
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
@@ -521,6 +517,7 @@ void osiDisplay::restoreRes(osiMonitor *m) {
 ///-----------------------------------------------------------------------------///
 
 bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, short freq) {
+  bool chatty= false;
   #ifdef OS_WIN
   DEVMODE dm;
   for(short a= 0; a< sizeof(DEVMODE); a++) ((char *)&dm)[a]= 0;
@@ -551,9 +548,9 @@ bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, short freq) {
   bool grab= false;                         // grab the server
   
   if(grab)
-    XGrabServer(m->win->dis);                    // GRAB SERVER
+    XGrabServer(osi._dis);                  // GRAB SERVER
   
-  XRRScreenResources *scr= XRRGetScreenResources(m->win->dis, m->root);
+  XRRScreenResources *scr= XRRGetScreenResources(m->win->_dis, m->_root);
   XRRCrtcInfo *crtc;
   Status s;
   
@@ -566,13 +563,13 @@ bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, short freq) {
   RROutput **outs = new RROutput*[osi.display.nrMonitors];
   
   for(short a= 0; a< osi.display.nrMonitors; a++) { /// for each monitor
-    crtc= XRRGetCrtcInfo(osi.primWin->dis, scr, osi.display.monitor[a].crtcID);
+    crtc= XRRGetCrtcInfo(osi._dis, scr, osi.display.monitor[a]._crtcID);
     /// remember what outputs this crtc was pumping information
     nouts[a]= crtc->noutput;
     outs[a]= new RROutput[nouts[a]];
     for(short b= 0; b< nouts[a]; b++) {
       outs[a][b]= crtc->outputs[b];
-      if(chatty) printf("storing info: crtc[%lu] out[a%d][b%d/%d]= %lu\n", osi.display.monitor[a].crtcID, a, b, nouts[a], outs[a][b]);
+      if(chatty) printf("storing info: crtc[%lu] out[a%d][b%d/%d]= %lu\n", osi.display.monitor[a]._crtcID, a, b, nouts[a], outs[a][b]);
     }
     XRRFreeCrtcInfo(crtc);
   } /// for each monitor
@@ -581,12 +578,12 @@ bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, short freq) {
   
   /// disable all crtcs (basically disabling all monitors) - needed for virtual desktop resize
   for(short a= 0; a< osi.display.nrMonitors; a++) {
-    scr= XRRGetScreenResources(osi.primWin->dis, m->root);
-    crtc= XRRGetCrtcInfo(osi.primWin->dis, scr, osi.display.monitor[a].crtcID);
+    scr= XRRGetScreenResources(osi._dis, m->_root);
+    crtc= XRRGetCrtcInfo(osi._dis, scr, osi.display.monitor[a]._crtcID);
     /// actual disable
-    if(chatty) printf("disabling crtc[%lu] [%s]\n", osi.display.monitor[a].crtcID, osi.display.monitor[a].name.d);
+    if(chatty) printf("disabling crtc[%lu] [%s]\n", osi.display.monitor[a]._crtcID, osi.display.monitor[a].name.d);
     if(change)  // DEBUG
-    XRRSetCrtcConfig(osi.primWin->dis, scr, osi.display.monitor[a].crtcID,
+    XRRSetCrtcConfig(osi._dis, scr, osi.display.monitor[a]._crtcID,
                      CurrentTime, 0, 0, None, RR_Rotate_0, NULL, 0);
     
     //sleep(1); //?????? maybe?
@@ -628,17 +625,17 @@ bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, short freq) {
   m->dy= r->dy;
   
   /// pass thru all monitors on the right
-  m2= m->right;
+  m2= m->_right;
   while(m2) {
     m2->x0+= changex;                   /// right monitor x0 position adjust
-    m2= m2->right;
+    m2= m2->_right;
   }
   
   /// pass thru all monitors below m
-  m2= m->bottom;
+  m2= m->_bottom;
   while(m2) {
     m2->_y0+= changey;                   /// bottom monitor y0 position adjust
-    m2= m2->bottom;
+    m2= m2->_bottom;
   }
   
   /// change the virtual desktop size
@@ -647,8 +644,8 @@ bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, short freq) {
   if(chatty) printf("virtual desktop UPDATE: x[%d], y[%d] (delta x[%d], y[%d])\n", osi.display.vdx, osi.display.vdy, changex, changey);
   
   if(change)
-  XRRSetScreenSize(m->win->dis, DefaultRootWindow(osi.primWin->dis), osi.display.vdx, osi.display.vdy,
-              DisplayWidthMM(m->win->dis, 0), DisplayHeightMM(m->win->dis, 0)); // the size in mm is kinda hard to compute, but doable... it might be NOT NEEDED
+  XRRSetScreenSize(osi._dis, DefaultRootWindow(osi._dis), osi.display.vdx, osi.display.vdy,
+              DisplayWidthMM(m->win->_dis, 0), DisplayHeightMM(m->win->_dis, 0)); // the size in mm is kinda hard to compute, but doable... it might be NOT NEEDED
   
   /// set panning for all monitors
   /* THIS MIGHT NOT BE NEEDED AT ALL, as all monitors are disabled & re-enabled with updated positions
@@ -659,7 +656,7 @@ bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, short freq) {
     p.width= monitor[a].dx;
     p.height= monitor[a].dy;
   
-    //XRRSetPanning(w->dis, scr, monitor[a].crtcID, &p);
+    //XRRSetPanning(osi._dis, scr, monitor[a].crtcID, &p);
   } /// for each monitor
   */
   
@@ -683,15 +680,15 @@ bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, short freq) {
       /// skip if in pass 1 and this is the primary monitor (already activated)
       if((prim== 1) && osi.display.monitor[a].primary) continue;
         
-      XRRScreenResources *scr= XRRGetScreenResources(m->win->dis, m->root);
-      crtc= XRRGetCrtcInfo(osi.primWin->dis, scr, osi.display.monitor[a].crtcID);
+      XRRScreenResources *scr= XRRGetScreenResources(osi._dis, m->_root);
+      crtc= XRRGetCrtcInfo(osi._dis, scr, osi.display.monitor[a]._crtcID);
       
       if(chatty) printf("monitor%d[%s]:", a, osi.display.monitor[a].name.d);
       if(m== &osi.display.monitor[a]) {           /// current monitor that is changing resolution
         r2= r;
         id= freq;                                 /// id is supplied
         if(chatty) printf(" requested resChange x[%d], y[%d] id[%d] crtc[%lu] nouts[%d] out1[%lu]\n",
-                          r2->dx, r2->dy, id, osi.display.monitor[a].crtcID, nouts[a], outs[a][0]);
+                          r2->dx, r2->dy, id, osi.display.monitor[a]._crtcID, nouts[a], outs[a][0]);
       } else {                                    /// rest of monitors
         if(osi.display.monitor[a].inOriginal) {
           r2= &osi.display.monitor[a].original;   /// if in original resolution
@@ -702,20 +699,20 @@ bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, short freq) {
         }
         id= 0;                                    /// first resolution in progRes or originalRes
         if(chatty) printf(" x[%d], y[%d] id[%d] crtc[%lu] nouts[%d] out1[%lu]\n",
-                          r2->dx, r2->dy, id, osi.display.monitor[a].crtcID, nouts[a], outs[a][0]);
+                          r2->dx, r2->dy, id, osi.display.monitor[a]._crtcID, nouts[a], outs[a][0]);
       }
     
       if(chatty) printf("monitor position: x[%d], y[%d]\n", osi.display.monitor[a].x0, osi.display.monitor[a]._y0);
       s= Success;
     
       if(change) // DEBUG
-      s= XRRSetCrtcConfig(m->win->dis, scr,               /// server connection, screen resources (virtual desktop)
-                          osi.display.monitor[a].crtcID,  /// crt that will change the res
+      s= XRRSetCrtcConfig(osi._dis, scr,              /// server connection, screen resources (virtual desktop)
+                          osi.display.monitor[a]._crtcID, /// crt that will change the res
                           CurrentTime,                    /// time
                           osi.display.monitor[a].x0,      /// x monitor position on virtual desktop
                           osi.display.monitor[a]._y0,     /// y monitor position on virtual desktop (the one not changed by coordonate unification)
-                          r2->resID[id],                  /// resolution id (paired with frequency)
-                          r2->rotation,                   /// rotation
+                          r2->_resID[id],                 /// resolution id (paired with frequency)
+                          r2->_rotation,                  /// rotation
                           outs[a],                        /// outputs that will be 'pumped data to'
                           nouts[a]);                      /// number of outputs (monitors) that will change res
     
@@ -735,7 +732,7 @@ bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, short freq) {
         m->dy= tmpy;
 
         if(grab)
-          XUngrabServer(m->win->dis);               // UNGRAB SERVER
+          XUngrabServer(osi._dis);               // UNGRAB SERVER
       
         if(chatty) printf("error: XRRSetCrtcConfig not sucessful\n");
         error.simple("doChange: Critical error while changing monitor resolution"); // , true); DISABLED QUIT, do something in other funcs
@@ -747,7 +744,7 @@ bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, short freq) {
   /// free memory from here on, then exit
   //XRRFreeScreenResources(scr);
   if(grab)
-    XUngrabServer(m->win->dis);                  // UNGRAB SERVER
+    XUngrabServer(osi._dis);                  // UNGRAB SERVER
   
   for(short a= 0; a< osi.display.nrMonitors; a++) {
     delete[] outs[a];
@@ -804,6 +801,7 @@ bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, short freq) {
 ///---------------------------------------------------------------------///
 // -------------->>>>>>>>>>>>>>> POPULATE <<<<<<<<<<<<<<<--------------- //
 ///---------------------------------------------------------------------///
+
 void _populateGrCards(osiDisplay *);
 
 void osiDisplay::populate(osinteraction *t) {
@@ -1039,12 +1037,12 @@ void osiDisplay::populate(osinteraction *t) {
   XRRCrtcInfo *crtc;
   XRRScreenResources *scr;
   
-  scr= XRRGetScreenResourcesCurrent(t->primWin->dis, DefaultRootWindow(t->primWin->dis));
+  scr= XRRGetScreenResourcesCurrent(t->_dis, DefaultRootWindow(t->_dis));
   if(chatty) printf("Screen info: outputs= %d; modes= %d; crtcs= %d\n",scr->noutput, scr->nmode, scr->ncrtc);
   
   /// find the number of connected monitors  
   for(a= 0; a< scr->noutput; a++) {
-     out= XRRGetOutputInfo(t->primWin->dis, scr, scr->outputs[a]);
+     out= XRRGetOutputInfo(t->_dis, scr, scr->outputs[a]);
      if(chatty) printf("output %d: %s %s (crtc%lu)\n", a, out->name, (out->connection== RR_Connected)? "active": "no connection", out->crtc);
      
      if(out->connection== RR_Connected)
@@ -1056,7 +1054,7 @@ void osiDisplay::populate(osinteraction *t) {
   monitor= new osiMonitor[nrMonitors];
 
   for(a= 0, b= 0; a< scr->noutput; a++) { /// for each output (empty outputs will be ignored)
-    out= XRRGetOutputInfo(t->primWin->dis, scr, scr->outputs[a]);
+    out= XRRGetOutputInfo(t->_dis, scr, scr->outputs[a]);
     /// if there is nothing connected to this output, skip it
     if(out->connection!= RR_Connected) {
       XRRFreeOutputInfo(out);
@@ -1064,7 +1062,7 @@ void osiDisplay::populate(osinteraction *t) {
     } 
     
     /// crtc that handles this output (output that IS connected to a monitor)
-    crtc= XRRGetCrtcInfo(t->primWin->dis, scr, out->crtc);
+    crtc= XRRGetCrtcInfo(t->_dis, scr, out->crtc);
     /// can ge usefull data from a crtc
     if(chatty) {
       printf("out%lu: is on crtc%lu\n", scr->outputs[a], out->crtc);
@@ -1076,17 +1074,17 @@ void osiDisplay::populate(osinteraction *t) {
     
     
       
-    monitor[b].screen= DefaultScreen(t->primWin->dis);;  // can it be possible anymore to be a different value???
-    monitor[b].root= RootWindow(t->primWin->dis, monitor[b].screen);
-    monitor[b].outID= scr->outputs[a];
-    monitor[b].crtcID= out->crtc;
+    monitor[b]._screen= DefaultScreen(t->_dis);;  // can it be possible anymore to be a different value???
+    monitor[b]._root= RootWindow(t->_dis, monitor[b]._screen);
+    monitor[b]._outID= scr->outputs[a];
+    monitor[b]._crtcID= out->crtc;
     monitor[b].x0= crtc->x;
     monitor[b]._y0= crtc->y;
     monitor[b].name= out->name;
     monitor[b].original.dx= crtc->width;
     monitor[b].original.dy= crtc->height;
-    monitor[b].original.resID[0]= crtc->mode; /// this is the only use
-    monitor[b].original.rotation= crtc->rotation;
+    monitor[b].original._resID[0]= crtc->mode; /// this is the only use
+    monitor[b].original._rotation= crtc->rotation;
     
     
     
@@ -1098,7 +1096,7 @@ void osiDisplay::populate(osinteraction *t) {
     monitor[b].dx= crtc->width;
     monitor[b].dy= crtc->height;
     
-    if(chatty) printf("monitor [%s] position %d,%d crtc[%lu] out[%lu]\n", monitor[b].name.d, monitor[b].x0, monitor[b].y0, monitor[b].crtcID, monitor[b].outID);
+    if(chatty) printf("monitor [%s] position %d,%d crtc[%lu] out[%lu]\n", monitor[b].name.d, monitor[b].x0, monitor[b].y0, monitor[b]._crtcID, monitor[b]._outID);
 
     /* crtc transform tests. SEEMS NOTHING USEFULL IS HERE (not going into zooms and scales)
     XRRCrtcTransformAttributes *attr;
@@ -1139,9 +1137,9 @@ void osiDisplay::populate(osinteraction *t) {
       
       if(crtc->noutput> 1)
         for(d= 0; d< crtc->noutput; d++) {    // for each out that is duplicating
-          if(monitor[b].outID == crtc->outputs[d]) continue; /// don't test against itself
+          if(monitor[b]._outID == crtc->outputs[d]) continue; /// don't test against itself
 
-          out2= XRRGetOutputInfo(t->primWin->dis, scr, crtc->outputs[d]);
+          out2= XRRGetOutputInfo(t->_dis, scr, crtc->outputs[d]);
         
           found2= false;                      /// start with false(res not found in out2), mark as true if found
           
@@ -1190,7 +1188,7 @@ void osiDisplay::populate(osinteraction *t) {
       /// finally populate the rest of the stuff
       monitor[b].res[c].dx= i->width;
       monitor[b].res[c].dy= i->height;
-      monitor[b].res[c].rotation= RR_Rotate_0;
+      monitor[b].res[c]._rotation= RR_Rotate_0;
     }
 
     /// populate frequencies and modeIDs  (
@@ -1210,14 +1208,14 @@ void osiDisplay::populate(osinteraction *t) {
       /// got the number of freq/resIDs (in e)
       monitor[b].res[c].nrFreq= e;
       monitor[b].res[c].freq= new short[e];
-      monitor[b].res[c].resID= new RRMode[e];
+      monitor[b].res[c]._resID= new RRMode[e];
       /// populate both frequencies & resolutionIDs
       e= 0;
       for(d= 0; d< tmpSize; d++) {
         j= getMode(scr, tmp[d]);
         if((i->width== j->width) && (i->height== j->height)) {
           monitor[b].res[c].freq[e]= (j->dotClock? (j->dotClock/ (j->hTotal* j->vTotal)): 0);
-          monitor[b].res[c].resID[e++]= j->id;
+          monitor[b].res[c]._resID[e++]= j->id;
         }
       } 
     } /// for each resolution
@@ -1248,14 +1246,14 @@ void osiDisplay::populate(osinteraction *t) {
 
       if((my> m1->_y0) && (my< (m1->_y0+ m1->original.dy)))/// if it is approx on the same x axis
         if(m2->x0== (m1->x0+ m1->original.dx))            /// if it is glued on the right
-          m1->right= m2;
+          m1->_right= m2;
       
       /// check if m2 is glued on the bottom of m1
       mx= m2->x0+ (m2->original.dx/ 2);
 
       if((mx> m1->x0) && (mx< (m1->x0+ m1->original.dx))) /// if it is approx on the same y axis
         if(m2->_y0== (m1->_y0+ m1->original.dy))          /// if it is glued on the bottom
-          m1->bottom= m2;
+          m1->_bottom= m2;
     } /// for each monitor again
   } /// for each monitor
   
@@ -1267,7 +1265,7 @@ void osiDisplay::populate(osinteraction *t) {
       for(b= 0; b< monitor[a].nrRes; b++) {
         printf("[%dx%d]", monitor[a].res[b].dx, monitor[a].res[b].dy);
         for(c= 0; c< monitor[a].res[b].nrFreq; c++) 
-          printf(" %d[id%lu]", monitor[a].res[b].freq[c], monitor[a].res[b].resID[c]);
+          printf(" %d[id%lu]", monitor[a].res[b].freq[c], monitor[a].res[b]._resID[c]);
         printf("\n");
       }
 
@@ -1277,30 +1275,30 @@ void osiDisplay::populate(osinteraction *t) {
   /// i found that xinerama has the exact oposite order for the monitors as XRandr
   /// (i might be wrong, but if it is not installed, this is a dud anyway)
   for(a= nrMonitors- 1; a>= 0; a--)
-    monitor[a].XineramaID= a;
+    monitor[a]._XineramaID= a;
   
     
   /// try to get the XineramaID for the monitor (this is the only thing Xinerama is used for)
   int dummy1, dummy2, heads;
   
-  if(!XineramaQueryExtension(osi.primWin->dis, &dummy1, &dummy2)) {
+  if(!XineramaQueryExtension(t->_dis, &dummy1, &dummy2)) {
     error.console("No Xinerama extension");
     return;
   }
   
-  if(!XineramaIsActive(osi.primWin->dis)) {
+  if(!XineramaIsActive(t->_dis)) {
     error.console("Xinerama not active");
     return;
   }
 
-  XineramaScreenInfo *xi= XineramaQueryScreens(osi.primWin->dis, &heads);
+  XineramaScreenInfo *xi= XineramaQueryScreens(t->_dis, &heads);
   
   for (a= 0; a< heads; a++) {
     if(chatty) printf("XINERAMA: monitor[%d/%d]: size[x y] position[%dx %dy]\n", a, heads, xi[a].x_org, xi[a].y_org);
     for(b= 0; b< nrMonitors; b++) {
       if(xi[a].x_org== monitor[b].x0 && xi[a].y_org== monitor[b]._y0) {
-        monitor[b].XineramaID= a;
-        if(chatty) printf("monitor[%d] xineramaID[%d]\n", b, monitor[b].XineramaID);
+        monitor[b]._XineramaID= a;
+        if(chatty) printf("monitor[%d] xineramaID[%d]\n", b, monitor[b]._XineramaID);
       }
     }
   }
@@ -1700,10 +1698,7 @@ void osiDisplay::populate(osinteraction *t) {
   _populateGrCards(this);
 }
 
-#ifdef USING_DIRECT3D
-bool _areSameGPUs(const D3DADAPTER_IDENTIFIER9 *a1, const D3DADAPTER_IDENTIFIER9 *a2);
-void _copyDisplay(D3DADAPTER_IDENTIFIER9 *dst, const D3DADAPTER_IDENTIFIER9 *src);
-#endif
+
 
 void _populateGrCards(osiDisplay *display) {
   bool chatty= true;
@@ -1712,48 +1707,59 @@ void _populateGrCards(osiDisplay *display) {
   #ifdef USING_DIRECT3D
   if(chatty) printf("Direct3D GPU detection:\n");
 
-  D3DADAPTER_IDENTIFIER9 *disList= null, *dis= null; /// these will store GPU/adapter/display information (term is foggy for microsoft, it's just one of these)
+  D3DADAPTER_IDENTIFIER9 *disList= null;    /// this will store GPU/adapter/display information (term is foggy for microsoft, it's just one of these)
   IDirect3D9 *d3d;                          /// pointer to the direct3d object
 
   d3d= Direct3DCreate9(D3D_SDK_VERSION);    /// direct3d 'creation' (probly this just returns a pointer to the d3d main object)
+  
 
   /// find out how many 'displays' are on the system
   int nrDis= d3d->GetAdapterCount();
   if(!nrDis) { error.console("osiDisplay::populateGrCards(): Direct3D found 0 displays"); return; }
 
-  /// populate disList
+  // populate disList
   disList= new D3DADAPTER_IDENTIFIER9[nrDis];
   
-
-  for(short a= 0; a< nrDis; a++)
+  D3DCAPS9 caps;
+  int *masterAdapterID= new int[nrDis];
+  
+  for(short a= 0; a< nrDis; a++) {
     d3d->GetAdapterIdentifier(a, null, &disList[a]);
-
-  /// populate [dis] - array with only graphics cards
-  dis= new  D3DADAPTER_IDENTIFIER9[nrDis];
-  _copyDisplay(&dis[0], &disList[0]);       /// copy the first gr card, as there must be 1
-  int nrCards= 1;                           /// the true number of graphics cards (start with at least 1)
-
-  for(short a= 0; a< nrDis; a++) {          /// for each 'display' in d3d's disList
-    /// search to see if this (disList[a]) is a new gr card
-    bool found= false;                      /// asume nothing found
-    for(short b= 0; b< nrCards; b++) 
-      if(_areSameGPUs(&dis[b], &disList[a]))/// if these displays are the same (display/grcard/adapter/monitor are strange concepts for microsoft. the foggier, the better, it seems)
-        found= true;                        /// found a card that is identical
-
-    // if no cards are identical, then a new one is found
-    if(!found) {
-      _copyDisplay(&dis[nrCards], &disList[a]);
-      nrCards++;
-      break;
-    }
+    d3d->GetDeviceCaps(a, D3DDEVTYPE_HAL, &caps);
+    // monitors that are part of a gr card have THE SAME masterAdapterOrdinal. MasterAdapterOrdinal can be any number, as i saw id1 was just gone once
+    masterAdapterID[a]= caps.MasterAdapterOrdinal;
   }
 
+ 
+  // find out how many GPUs are on the system
+  int *gpuID= new int[nrDis];       /// this list stores id's of grcards found (yes, it's very cryptic, but everything in windows is)
+
+  /// the first card
+  int nrCards= 1;
+  gpuID[0]= masterAdapterID[0];
+
+  /// search the rest of 'displays' to see if any belong where... (/cry)
+  for(short a= 1; a< nrDis; a++) {
+    bool found= false;
+    for(short b= 0; b< nrCards; b++)
+      if(masterAdapterID[a]== gpuID[b]) found= true;
+
+    if(!found)  // a new id is found, belonging to another card
+      gpuID[nrCards++]= masterAdapterID[a];
+  }
+
+  // populate osiDisplay::GPU
   display->nrGPUs= nrCards;                 /// number of graphics cards on the system
   display->GPU= new osiGPU[nrCards];
 
   /// populate osiDisplay's GPU array
   for(short a= 0; a< display->nrGPUs; a++) {
-    display->GPU[a].name= dis[a].Description;
+    int c;
+    for(c= 0; c< nrDis; c++)
+      if(masterAdapterID[c]== gpuID[a])
+        break;
+
+    display->GPU[a].name= disList[c].Description;
     if(chatty) printf("Found GPU [%d]: %s\n", a, display->GPU[a].name.d);
   }
     
@@ -1761,12 +1767,10 @@ void _populateGrCards(osiDisplay *display) {
   for(short a= 0; a< nrDis; a++) {              /// pass thru all d3d's 'displays'
 
     /// [a] coresponds to what osiDisplay::GPU [n]
-    short n= -1;
-    for(short b= 0; b< nrCards; b++)
-      if(_areSameGPUs(&dis[b], &disList[a]))    /// dis[] has the same order as osiDisplay::GPU[]
-        n= b;
-
-    if(n== -1) { error.simple("osiDisplay::populateGrCards(): ERROR MARKED @ LOCATION 2"); return; }
+    short n;
+    for(n= 0; n< nrCards; n++)
+      if(masterAdapterID[a]== gpuID[n])
+        break;
 
     HMONITOR hmon= d3d->GetAdapterMonitor(a);   /// windows HMONITOR handle
     MONITORINFOEX mon;                          /// monitor info struct
@@ -1783,17 +1787,19 @@ void _populateGrCards(osiDisplay *display) {
               if(chatty) printf("osiDisplay::monitor[%d] belongs to GPU[%d]: %s\n", b, n, display->GPU[n].name.d);
             }
     
-    /* // debug tests
-    printf("Description [%s]\n", dis[a].Description);
-    printf("DeviceId [%d]\n", dis[a].DeviceId);
-    printf("DeviceIdentifier [%u][%u][%u][data4notprinted]\n", dis[a].DeviceIdentifier.Data1, dis[a].DeviceIdentifier.Data2, dis[a].DeviceIdentifier.Data3);
-    printf("DeviceName [%s]\n", dis[a].DeviceName);
-    printf("Driver [%s]\n", dis[a].Driver);
-    printf("DriverVersion [%lld]\n", dis[a].DriverVersion);
-    printf("Revision [%u]\n", dis[a].Revision);
-    printf("SubSysId [%u]\n", dis[a].SubSysId);
-    printf("VendorId [%u]\n", dis[a].VendorId);
-    printf("WHQLLevel [%u]\n", dis[a].WHQLLevel);
+    /* // debug tests - unfortunately, for same model cards, these descriptions are the same, so nothing can be counted on
+    printf("=========================================\n");
+    printf("Description [%s]\n", disList[a].Description);
+    printf("DeviceId [%d]\n", disList[a].DeviceId);
+    printf("DeviceIdentifier [%u][%u][%u][data4notprinted]\n", disList[a].DeviceIdentifier.Data1, disList[a].DeviceIdentifier.Data2, disList[a].DeviceIdentifier.Data3);
+    printf("DeviceName [%s]\n", disList[a].DeviceName);
+    printf("Driver [%s]\n", disList[a].Driver);
+    printf("DriverVersion [%lld]\n", disList[a].DriverVersion);
+    printf("Revision [%u]\n", disList[a].Revision);
+    printf("SubSysId [%u]\n", disList[a].SubSysId);
+    printf("VendorId [%u]\n", disList[a].VendorId);
+    printf("WHQLLevel [%u]\n", disList[a].WHQLLevel);
+    printf("=========================================\n");
     */
   } /// for each d3d 'display'
 
@@ -1818,50 +1824,23 @@ void _populateGrCards(osiDisplay *display) {
 
   display->primary->GPU->primary= true;   /// set primary monitor's GPU as the primary grCard too
 
-  if(dis) delete[] dis;
+  /// memory deallocation
+  if(gpuID) delete[] gpuID;
+  if(masterAdapterID) delete[] masterAdapterID;
   if(disList) delete[] disList;
+  d3d->Release();
 
   #endif /// USING_DIRECT3D
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
-  makeme
+  // makeme <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
   #endif
 
   #ifdef OS_MAC
   makeme
   #endif
 }
-
-#ifdef USING_DIRECT3D
-/// checks if d3dadapters are the same
-bool _areSameGPUs(const D3DADAPTER_IDENTIFIER9 *a1, const D3DADAPTER_IDENTIFIER9 *a2) {
-  bool ret= true;
-  if(string8::strcmp(a1->Description, a2->Description)) ret= false;
-  if(a1->DeviceId!= a2->DeviceId) ret= false;
-  if(a1->DeviceIdentifier.Data1!= a2->DeviceIdentifier.Data1) ret= false;
-  if(a1->DeviceIdentifier.Data2!= a2->DeviceIdentifier.Data2) ret= false;
-  if(a1->DeviceIdentifier.Data3!= a2->DeviceIdentifier.Data3) ret= false;
-  for(short a= 0; a< 8; a++)
-    if(a2->DeviceIdentifier.Data4[a]!= a2->DeviceIdentifier.Data4[a])
-      ret= false;
-  return ret;
-}
-
-/// copies src d3d adapter to dst d3d adapter
-void _copyDisplay(D3DADAPTER_IDENTIFIER9 *dst, const D3DADAPTER_IDENTIFIER9 *src) {
-  string8::strncpy(dst->Description, src->Description, 512);
-  dst->DeviceId= src->DeviceId;
-  dst->DeviceIdentifier.Data1= src->DeviceIdentifier.Data1;
-  dst->DeviceIdentifier.Data2= src->DeviceIdentifier.Data2;
-  dst->DeviceIdentifier.Data3= src->DeviceIdentifier.Data3;
-  for(short a= 0; a< 8; a++)
-    dst->DeviceIdentifier.Data4[a]= src->DeviceIdentifier.Data4[a];
-}
-#endif /// USING_DIRECT3D
-
-
-
 
 
 
@@ -1943,33 +1922,33 @@ void updateVirtualDesktop() {
   #ifdef OS_LINUX
   /// linux has _NET_WM_FULLSCREEN_MONITORS (http://standards.freedesktop.org/wm-spec/wm-spec-latest.html)
   /// top, bottom, left, right monitors are all Xinerama monitor IDs, and must be found here
-  osi.display.left= osi.display.top= osi.display.primary->XineramaID;
-  osi.display.right= osi.display.bottom= osi.display.primary->XineramaID;
+  osi.display._left= osi.display._top= osi.display.primary->_XineramaID;
+  osi.display._right= osi.display._bottom= osi.display.primary->_XineramaID;
   #endif 
   
   for(short a= 0; a< osi.display.nrMonitors; a++) {                              /// for each monitor
     if(osi.display.monitor[a].x0< osi.display.vx0) {                             /// <<
       osi.display.vx0= osi.display.monitor[a].x0;
       #ifdef OS_LINUX
-      osi.display.left= osi.display.monitor[a].XineramaID;
+      osi.display._left= osi.display.monitor[a]._XineramaID;
       #endif
     }
     if(osi.display.monitor[a]._y0< osi.display.vy0) {                            /// ^^
       osi.display.vy0= osi.display.monitor[a]._y0;
       #ifdef OS_LINUX
-      osi.display.top= osi.display.monitor[a].XineramaID;
+      osi.display._top= osi.display.monitor[a]._XineramaID;
       #endif
     }
     if(osi.display.monitor[a].x0+ osi.display.monitor[a].dx> osi.display.vdx) {  /// >>
       osi.display.vdx= osi.display.monitor[a].x0+ osi.display.monitor[a].dx;
       #ifdef OS_LINUX
-      osi.display.right= osi.display.monitor[a].XineramaID;
+      osi.display._right= osi.display.monitor[a]._XineramaID;
       #endif
     }
     if(osi.display.monitor[a]._y0+ osi.display.monitor[a].dy> osi.display.vdy) { /// vv
       osi.display.vdy= osi.display.monitor[a]._y0+ osi.display.monitor[a].dy;
       #ifdef OS_LINUX
-      osi.display.bottom= osi.display.monitor[a].XineramaID;
+      osi.display._bottom= osi.display.monitor[a]._XineramaID;
       #endif
     }
   } /// for each monitor

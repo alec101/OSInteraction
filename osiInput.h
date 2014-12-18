@@ -247,7 +247,8 @@ private:
   uchar _buffer1[MAX_JOYSTICK_BUTTONS], _buffer2[MAX_JOYSTICK_BUTTONS];   /// used for the key / lastCheck. buffers are swapped with pointers, so no copying is involved
   inline void _swapBuffers();     /// [internal] swaps button buffers
   void _log(const ButPressed &);  /// [internal] just puts the last button in the last button-history (it logs imediatly when a button is down)
-  
+  bool _bGrabbed;                 /// [internal] the HID is currently grabbed (while app don't have focus it will be ungrabbed)
+
   /// OS specific stuff
   #ifdef OS_WIN
   short _id;                       // windows id (THIS MIGHT BE UNIVERSAL)
@@ -256,7 +257,7 @@ private:
   friend BOOL CALLBACK _diDevCallback(LPCDIDEVICEINSTANCE, LPVOID);
   LPDIRECTINPUTDEVICE8 _diDevice;
   //LPCDIDEVICEINSTANCE diID;       /// ID of the device; if a new one is plugged, it will differ from current IDs
-  GUID _diID;                       /// ID of the device; if a new one is plugged, it will differ from current IDs
+  GUID _diID;                     /// ID of the device; if a new one is plugged, it will differ from current IDs
   DIJOYSTATE2 _diStats;
   #endif /// USING_DIRECTINPUT
 

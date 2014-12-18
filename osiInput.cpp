@@ -1,6 +1,5 @@
 #include "osinteraction.h"
 
-extern bool chatty;
 
 #ifdef OS_LINUX
 //#include <linux/joystick.h>   // it's not x stuff... lots of crap added, keyboard/mouse, that is not needed. IT'S POSSIBLE TO AVOID THIS HEADER, only some function definitions are needed.
@@ -12,11 +11,11 @@ typedef unsigned char __u8;
 #define JS_EVENT_BUTTON 0x01                              // button pressed/released
 #define JS_EVENT_AXIS   0x02                              // joystick moved
 #define JS_EVENT_INIT   0x80
-#define JSIOCGVERSION		_IOR('j', 0x01, __u8)             // get driver version
+#define JSIOCGVERSION   _IOR('j', 0x01, __u8)             // get driver version
 #define JSIOCGAXES      _IOR('j', 0x11, __u8)             // get number of axes
 #define JSIOCGBUTTONS   _IOR('j', 0x12, __u8)             // get number of buttons
 #define JSIOCGNAME(len) _IOC(_IOC_READ, 'j', 0x13, len)   // get identifier string
-#define EVIOCGNAME(len)		_IOC(_IOC_READ, 'E', 0x06, len) // get device name
+#define EVIOCGNAME(len) _IOC(_IOC_READ, 'E', 0x06, len)   // get device name
 struct js_event {
   unsigned int time;    // event timestamp in milliseconds
   short value;          // value
@@ -32,30 +31,27 @@ struct js_event {
 void checkGamepadType(osiGamePad *p);  // it is found in the gamepad area, at the end
   
 /* TODO:
- * [win] mouse is 1 unit higher (1- 1080 for example - must be 0 - 1079)
 
  * [all]more mouse funcs- showCursor, a grab function that doesn't allow for the cursor to exit the windows (this is not very easy, if the monitors are weirdly positioned, but it is usefull)
+ *        but, the mouse position can be checked against some boxes, if not in any box (window/ desktop window) then move it back
+ * [maybe] buttons to be on 32 bit integers? 1<< a is button a? good for copy-ing, 
  *
- * buttons to be on 32 bit integers? 1<< a is button a? good for copy-ing, 
+ * [mac] gamepad unification - check linux version
  *
- * [win][mac] gamepad unification - check linux version
- *
- * [all]: pov must be in degrees * 100
+ * [mac+linux]: pov must be in degrees * 100
  * 
- * every COORDONATE UNIFICATION: x0,y0 -> left,bottom (as in OpenGL, MAC.  NOT AS IN: windows, (i think linux too)
+ * every COORDONATE UNIFICATION: x0, y0 -> left,bottom (as in OpenGL, MAC. NOT AS IN: windows, (i think linux too)
       this includes mouseWheel (+y means UP, as in the real cood system)
  * 
  * could set, that if program chooses Direct Input mode, under linux/mac to choose MODE 1 <<<<<<<<<
  *   or basically, if a mode is unavaible, go for mode 1 - maybe m.update() / k.update() to simply return under linux/mac (if cant make mode 2/3 work
  * 
- * 
- * i think every time variable should be int64... dunno for shure. nanosecs are int64, mili= nano* 1,000,000... still way more data to hold in a int64
- *    they may be a little slower... dunno, but not by much
- *
  * buy a ffeedback joystick
  * buy a wheel
  * 
  * [linux] Input::populate() joystick name might be null
+ *
+ * [maybe] buttons to be on 32 bit integers? 1<< a is button a? good for copy-ing, 
  */
 
 
@@ -396,6 +392,7 @@ bool osiInput::init(int mMode, int kMode) {
 bool jConnected[8];
 void osiInput::populate(bool scanMouseKeyboard) {
   /// debug
+  bool chatty= false;
   uint64 start, end;
   bool timer= false;
 
@@ -507,7 +504,7 @@ skipWinOSsearch:
     /// check if this id is already in use by some joystick struct
     found= false;
     for(short b= 0; b< 8; b++) {
-      if(j[b].jsID== a)
+      if(j[b]._jsID== a)
         found= true;
     }
     if(found) continue;                         /// if found, this file id is already open
@@ -538,8 +535,8 @@ skipWinOSsearch:
       if(!j[b].mode) {
         /// all joysticks/gamepads/gamewheels share the same file (driver). 
         j[b].mode= gp[b].mode= gw[b].mode= 1;   /// mode 1 sticks = system handled (the only type atm in linux)
-        j[b].jsFile= f;                         /// joystick class handles this
-        j[b].jsID= a;                           /// joystick class handles this
+        j[b]._jsFile= f;                        /// joystick class handles this
+        j[b]._jsID= a;                          /// joystick class handles this
         j[b].name= gp[b].name= gw[b].name= name;/// stick name / product name
 
         /*
@@ -581,7 +578,7 @@ skipWinOSsearch:
     /// search thru all joysticks for this id
     found= false;
     for(short b= 0; b< 8; b++) {
-      if(j[b].eventID== a)
+      if(j[b]._eventID== a)
         found= true;
     }
     if(found) continue;                             /// if found, this file is already open
@@ -604,10 +601,10 @@ skipWinOSsearch:
     /// search for a joystick struct that has no 'event' file & check if name matches with 'event' file's joystick name
     found= false;
     for(short b= 0; b< 8; b++)
-      if(j[b].jsFile!= -1)                          /// joystick struct must have a js file
-        if((j[b].eventFile== -1) && (j[b].name== name)) {
-          j[b].eventFile= f;
-          j[b].eventID= a;
+      if(j[b]._jsFile!= -1)                          /// joystick struct must have a js file
+        if((j[b]._eventFile== -1) && (j[b].name== name)) {
+          j[b]._eventFile= f;
+          j[b]._eventID= a;
           if(chatty) printf("event file: %s%d belongs to joystick %d\n", s2.d, a, b);
           found= true;
           break;
@@ -713,6 +710,8 @@ skipWinOSsearch:
 #ifdef OS_WIN
 #ifdef USING_DIRECTINPUT
 BOOL CALLBACK _diDevCallback(LPCDIDEVICEINSTANCE inst, LPVOID extra) {
+  bool chatty= false;
+
   /// can't handle more than 8 direct input sticks (don't think this will change very soon)
   if(in.nr.jT2== 8)
     return DIENUM_CONTINUE;
@@ -914,6 +913,7 @@ bool osiMouse::init(short mode) {
   if(mode== 3) {
     #ifdef OS_WIN
     #ifdef USING_DIRECTINPUT
+    // if(!primWin) return false;      /// primary window is needed for direct input
     long hr= 0;
     DIDATAFORMAT mouseformat;
     mouseformat= c_dfDIMouse;
@@ -922,7 +922,8 @@ bool osiMouse::init(short mode) {
     hr= in._dInput->CreateDevice(GUID_SysMouse, &_diDevice, NULL);
 
     hr= _diDevice->SetDataFormat(&mouseformat);
-    hr= _diDevice->SetCooperativeLevel(osi.win[0]._hWnd, DISCL_EXCLUSIVE| DISCL_FOREGROUND);
+    if(osi.primWin)
+      hr= _diDevice->SetCooperativeLevel(osi.primWin->_hWnd, DISCL_EXCLUSIVE| DISCL_FOREGROUND);
     _diDevice->Acquire();
 
     if(hr!= DI_OK) {
@@ -946,7 +947,7 @@ bool osiMouse::init(short mode) {
 // ########################## MOUSE UPDATE ##############################
 // when not using default MODE 1, call this func to update mouse vars - or better, call Input::update()
 void osiMouse::update() {
-  static int tx= 0, ty= 0, twheel= 0;      /// temporary vars, used in mouse positioning and the wheel
+  static int tx= 0, ty= 0;      /// temporary vars, used in mouse positioning and the wheel
 
   if(!osi.flags.haveFocus)
     return;
@@ -963,9 +964,9 @@ void osiMouse::update() {
     ty= y;
     dx= x- oldx;
     dy= y- oldy;
-    wheel= twheel;      /// twheel is updated using system messages, and set to 0 here, after it's read
-    twheel= 0;
-
+    wheel= _twheel;      /// twheel is updated using system messages, and set to 0 here, after it's read
+    _twheel= 0;
+    
   /// manual update mode
   } else if(mode== 2) {
     #ifdef OS_WIN
@@ -1016,8 +1017,8 @@ void osiMouse::update() {
     //error.simple("Mouse cannot be manually updated under linux. use [MODE 1]");
     #endif /// OS_LINUX
 
-    #ifdef OS_MAC       // <-----------------------------------
-  //    makeme
+    #ifdef OS_MAC
+    //    makeme .., very low priority tho
     #endif /// OS_MAC
 
     
@@ -1068,14 +1069,15 @@ void osiMouse::update() {
 
 /// grab exclusive control of the mouse (if possible)
 bool osiMouse::aquire() {
+  if(!osi.primWin) return false;
   if(mode== 1) {
     #ifdef OS_LINUX
-    XGrabPointer(osi.primWin->dis, osi.primWin->win,
+    XGrabPointer(osi._dis, osi.primWin->_win,
                  True,              // send events or not
                  ButtonPressMask| ButtonReleaseMask| PointerMotionMask,
                  GrabModeSync,      // pointer - GrabMode[Async/Sync]
                  GrabModeSync,      // keyboard- GrabMode[Async/Sync]
-                 osi.primWin->win,  // confine cursor to a window
+                 osi.primWin->_win, // confine cursor to a window
                  None,              // mouse cursor (graphics)
                  CurrentTime);
     #endif /// OS_LINUX
@@ -1099,7 +1101,7 @@ bool osiMouse::aquire() {
 bool osiMouse::unaquire() {
   if(mode== 1) {
     #ifdef OS_LINUX
-    XUngrabPointer(osi.primWin->dis, CurrentTime);
+    XUngrabPointer(osi._dis, CurrentTime);
     #endif
     return true;
   }
@@ -1191,11 +1193,13 @@ bool osiKeyboard::init(short mode) {
     // MOVE ALL THIS? SCRAP INIT????? <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     #ifdef OS_WIN
     #ifdef USING_DIRECTINPUT
+    if(!osi.primWin) return false;      /// a primary window must exist for directInput to work
+    
     long hr= 0;
         
     hr= in._dInput->CreateDevice(GUID_SysKeyboard, &_diDevice, NULL);
     hr= _diDevice->SetDataFormat(&c_dfDIKeyboard);
-    hr= _diDevice->SetCooperativeLevel(osi.win[0]._hWnd, DISCL_EXCLUSIVE| DISCL_FOREGROUND);
+    hr= _diDevice->SetCooperativeLevel(osi.primWin->_hWnd, DISCL_EXCLUSIVE| DISCL_FOREGROUND);
     _diDevice->Acquire();
 
     if(hr!= DI_OK) {
@@ -1300,7 +1304,7 @@ void osiKeyboard::updateLocks() {
 
   #ifdef OS_LINUX
   uint n;
-  XkbGetIndicatorState(osi.primWin->dis, XkbUseCoreKbd, &n);
+  XkbGetIndicatorState(osi.primWin->_dis, XkbUseCoreKbd, &n);
   capsLock=   (n& 0x01);
   numLock=    (n& 0x02);
   scrollLock= (n& 0x04);
@@ -1314,9 +1318,11 @@ void osiKeyboard::updateLocks() {
 
 // grab exclusive control of the keyboard (if possible)
 bool osiKeyboard::aquire() {
+  if(!osi.primWin) return false; /// a main window must be created first
+  
   if(mode== 1) {
     #ifdef OS_LINUX
-    XGrabKeyboard(osi.primWin->dis, osi.primWin->win,
+    XGrabKeyboard(osi.primWin->_dis, osi.primWin->_win,
                   True,           // continue to send events or not
                   GrabModeSync,   // pointer - GrabMode[Async/Sync]
                   GrabModeSync,   // keyboard- GrabMode[Async/Sync]
@@ -1339,21 +1345,26 @@ bool osiKeyboard::aquire() {
 
 // ungrab exclusive control of the keyboard
 bool osiKeyboard::unaquire() {
+  
   if(mode== 1) {
     #ifdef OS_LINUX
-    XUngrabKeyboard(osi.primWin->dis, CurrentTime);
+    if(!osi.primWin) return false;
+    XUngrabKeyboard(osi.primWin->_dis, CurrentTime);
     #endif /// OS_LINUX
     return true;
   }
-  if(mode== 2)
-    return true;
-  if(mode== 3) {
+  /// DInput
+  if(mode== 2) {
     #ifdef OS_WIN
     #ifdef USING_DIRECTINPUT
     if(_diDevice->Unacquire()== DI_OK)
       return true;
     #endif
     #endif /// OS_WIN
+  }
+  /// XInput
+  if(mode== 3) {
+    return true;
   }
   return false;
 }
@@ -1526,10 +1537,10 @@ osiJoystick::osiJoystick() {
   #endif
 
   #ifdef OS_LINUX
-  jsFile= -1;
-  eventFile= -1;
-  jsID= -1;
-  eventID= -1;
+  _jsFile= -1;
+  _eventFile= -1;
+  _jsID= -1;
+  _eventID= -1;
   #endif /// OS_LINUX
 
   delData();
@@ -1568,15 +1579,15 @@ void osiJoystick::delData() {
 
   #ifdef OS_LINUX
   /// close driver files if currently opened
-  if(jsFile!= -1)
-    close(jsFile);
-  if(eventFile!= -1)
-    close(eventFile);
+  if(_jsFile!= -1)
+    close(_jsFile);
+  if(_eventFile!= -1)
+    close(_eventFile);
 
-  jsFile= -1;
-  jsID= -1;
-  eventFile= -1;
-  eventID= -1;
+  _jsFile= -1;
+  _jsID= -1;
+  _eventFile= -1;
+  _eventID= -1;
   #endif /// OS_LINUX
   deactivate();
 }
@@ -1587,6 +1598,8 @@ void osiJoystick::delData() {
 /// handles pads/wheels too. might be a good ideea to call this func if others are called, dunno (or just remove update() from gp/gw)
 
 void osiJoystick::update() {
+  bool chatty= false;
+
   if(!active) return;                             /// a stick/pad/wheel must be marked as active, for updating to take place
                                                   /// this must be used, as updating same device with mutiple drives, will create a bad mess
 
@@ -1755,7 +1768,7 @@ void osiJoystick::update() {
   
 ReadAgain:
     /// read as many events as possible in 1 go
-    n= read(jsFile, ev, sizeof(ev));
+    n= read(_jsFile, ev, sizeof(ev));
 
     if(n== -1) {                            /// no event happened / joystick unplugged
 
@@ -1841,10 +1854,10 @@ ReadAgain:
           blog.timeDown= bTime[but];
           blog.timeUp= 0;
           blog.timeDT= 0;
-          log(blog);
-          _gw->log(blog);
+          _log(blog);
+          _gw->_log(blog);
           blog.b= but;
-          _gp->log(blog);
+          _gp->_log(blog);
           if(chatty) printf("hid[%s] button PRESS nr[%d] arranged[%d]\n", name.d, ev[a].number, but);
         } else if(ev[a].value== 0) {               // button RELEASE
           /// search thru history for the button, to mark the time it got released
@@ -1878,10 +1891,10 @@ ReadAgain:
             blog.timeDown= ev[a].time- 1;   /// mark it as insta down-up
             blog.timeUp= ev[a].time;
             blog.timeDT= 1;
-            log(blog);                      /// put it in history buffer
-            _gw->log(blog);
+            _log(blog);                     /// put it in history buffer
+            _gw->_log(blog);
             blog.b= but;
-            _gp->log(blog);
+            _gp->_log(blog);
           } /// failsafe
         
           if(chatty) printf("hid[%s] button RELEASE nr[%d] arranged[%d]\n", name.d, ev[a].number, but);
@@ -1994,10 +2007,10 @@ ReadAgain:
             _gp->v= ev[a].value;
             break;
           default:
-            printf("unhandled axis event!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+            if(chatty) printf("unhandled axis event!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
         }
       } else
-        printf("unhandled other joystick event!!!!!!!!!!!!!!!!!!!!!\n");
+        if(chatty) printf("unhandled other joystick event!!!!!!!!!!!!!!!!!!!!!\n");
       
         
     } /// for each event
@@ -2017,6 +2030,7 @@ ReadAgain:
   } else if(mode== 2) {       // win(DirectInput) linux(n/a) mac(n/a)
     #ifdef OS_WIN
     #ifdef USING_DIRECTINPUT
+    if(!_bGrabbed) return;
     if(_diDevice->GetDeviceState(sizeof(DIJOYSTATE2), (LPVOID)&_diStats)== DIERR_INPUTLOST) {   /// device DISCONNECTED
       if(chatty) printf("DirectInput: hid[%s] DISCONNECTED\n", name.d);
       /// clear all axis / buttons data / dinput driver
@@ -2030,14 +2044,14 @@ ReadAgain:
     }
 
     /// adjust axis to osi standard (-32767 / +32767)
-    if(_diStats.lX> 32768) _diStats.lX--; _diStats.lX= _diStats.lX- 32767;
-    if(_diStats.lY> 32768) _diStats.lY--; _diStats.lY= _diStats.lY- 32767;
-    if(_diStats.lZ> 32768) _diStats.lZ--; _diStats.lZ= _diStats.lZ- 32767;
-    if(_diStats.lRx> 32768) _diStats.lRx--; _diStats.lRx= _diStats.lRx- 32767;
-    if(_diStats.lRy> 32768) _diStats.lRy--; _diStats.lRy= _diStats.lRy- 32767;
-    if(_diStats.lRz> 32768) _diStats.lRz--; _diStats.lRz= _diStats.lRz- 32767;
-    if(_diStats.rglSlider[0]> 32768) _diStats.rglSlider[0]--; _diStats.rglSlider[0]= _diStats.rglSlider[0]- 32767;
-    if(_diStats.rglSlider[1]> 32768) _diStats.rglSlider[1]--; _diStats.rglSlider[1]= _diStats.rglSlider[1]- 32767;
+    _diStats.lX-=           (_diStats.lX>  32768?          32768: 32767);
+    _diStats.lY-=           (_diStats.lY>  32768?          32768: 32767);
+    _diStats.lZ-=           (_diStats.lZ>  32768?          32768: 32767);
+    _diStats.lRx-=          (_diStats.lRx> 32768?          32768: 32767);
+    _diStats.lRy-=          (_diStats.lRy> 32768?          32768: 32767);
+    _diStats.lRz-=          (_diStats.lRz> 32768?          32768: 32767);
+    _diStats.rglSlider[0]-= (_diStats.rglSlider[0]> 32768? 32768: 32767);
+    _diStats.rglSlider[1]-= (_diStats.rglSlider[1]> 32768? 32768: 32767);
 
     // ---=== JOYSTICK axis ===---
     x=          _diStats.lX;           /// main stick X
@@ -2056,8 +2070,8 @@ ReadAgain:
     if(_gp->type== 0) {                // ps3 compatible
       _gp->rx= _diStats.lZ;            /// right stick X
       _gp->ry= -_diStats.lRz;          /// right stick Y
-      _gp->lt= 32767- _diStats.lRx;           /// left trigger
-      _gp->rt= 32767- _diStats.lRy;           /// right trigger
+      _gp->lt= (32767- _diStats.lRx)/ 2;    /// left trigger
+      _gp->rt= (32767- _diStats.lRy)/ 2;    /// right trigger
     } else if(_gp->type== 1) {         // xbone compatible
       _gp->rx= _diStats.lRx;           /// right stick X
       _gp->ry= -_diStats.lRy;          /// right stick Y
@@ -2108,6 +2122,11 @@ ReadAgain:
       } else if(_gp->type== 1) {
         /// direct input i don't think will ever see extra buttons... i got 1 extra and it's nowhere to be found
 
+        /// the first 4 buttons are arranged as the ps3 pad
+        if(a< 4)
+          if(a== 0)      but= 1;
+          else if(a== 1) but= 2;
+          else if(a== 2) but= 0;
       } /// check type of gamepad
 
       /// update current button state
@@ -2218,14 +2237,14 @@ ReadAgain:
     if(xi.Gamepad.sThumbLY< 0) xi.Gamepad.sThumbLY++;
     if(xi.Gamepad.sThumbRX< 0) xi.Gamepad.sThumbRX++;
     if(xi.Gamepad.sThumbRY< 0) xi.Gamepad.sThumbRY++;
-    xi.Gamepad.bLeftTrigger= (xi.Gamepad.bLeftTrigger* 65534)/ 255;
-    xi.Gamepad.bRightTrigger= (xi.Gamepad.bRightTrigger* 65534)/ 255;  
+    ushort _lt= (xi.Gamepad.bLeftTrigger*  32767)/ 255; /// temp vars used, as it gotta be converted to short
+    ushort _rt= (xi.Gamepad.bRightTrigger* 32767)/ 255; /// temp vars used, as it gotta be converted to short
 
     // ---=== JOYSTICK axis ===---
     x=        xi.Gamepad.sThumbLX;        /// main stick X
     y=        xi.Gamepad.sThumbLY;        /// main stick Y
-    throttle= xi.Gamepad.bRightTrigger;   /// throttle
-    rudder=   xi.Gamepad.bLeftTrigger;    /// rudder
+    throttle= _rt;                        /// throttle
+    rudder=   _lt;                        /// rudder
     pov=      tpov;                       /// pov
     u=        xi.Gamepad.sThumbRX;        /// extra axis 1
     v=        xi.Gamepad.sThumbRY;        /// extra axis 2
@@ -2236,8 +2255,8 @@ ReadAgain:
     _gp->ly=  xi.Gamepad.sThumbLY;        /// left stick Y
     _gp->rx=  xi.Gamepad.sThumbRX;        /// right stick X
     _gp->ry=  xi.Gamepad.sThumbRY;        /// right stick Y
-    _gp->lt=  xi.Gamepad.bLeftTrigger;    /// left trigger
-    _gp->rt=  xi.Gamepad.bRightTrigger;   /// right trigger
+    _gp->lt=  _lt;                        /// left trigger
+    _gp->rt=  _rt;                        /// right trigger
     _gp->pov= tpov;                       /// pov (0- 359 degrees * 100, -1 neutral)
 
     // ---=== GAMEWHEEL axis ===---
@@ -2245,8 +2264,8 @@ ReadAgain:
     _gw->a1=    xi.Gamepad.sThumbLY;      /// other axis 1
     _gw->a2=    xi.Gamepad.sThumbRX;      /// other axis 2
     _gw->a3=    xi.Gamepad.sThumbRY;      /// other axis 3
-    _gw->a4=    xi.Gamepad.bLeftTrigger;  /// other axis 4
-    _gw->a5=    xi.Gamepad.bRightTrigger; /// other axis 5
+    _gw->a4=    _lt;                      /// other axis 4
+    _gw->a5=    _rt;                      /// other axis 5
 
     // ---=== stick/pad/wheel BUTTONS ===---
 
@@ -2255,11 +2274,12 @@ ReadAgain:
     _gp->_swapBuffers();
     _gw->_swapBuffers();
 
-    /// XInput button order is all ver the place...
-    _gp->b[0]= _gw->b[0]= b[0]= (xi.Gamepad.wButtons& XINPUT_GAMEPAD_A)>> 12;
-    _gp->b[1]= _gw->b[1]= b[1]= (xi.Gamepad.wButtons& XINPUT_GAMEPAD_B)>> 13;
-    _gp->b[2]= _gw->b[2]= b[2]= (xi.Gamepad.wButtons& XINPUT_GAMEPAD_X)>> 14;
-    _gp->b[3]= _gw->b[3]= b[3]= (xi.Gamepad.wButtons& XINPUT_GAMEPAD_Y)>> 15;
+    /// XInput button order is all 'ver the place...
+    _gp->b[0]= _gw->b[0]= b[0]= (xi.Gamepad.wButtons& XINPUT_GAMEPAD_X)>> 14; // button unification change
+    _gp->b[1]= _gw->b[1]= b[1]= (xi.Gamepad.wButtons& XINPUT_GAMEPAD_A)>> 12; // button unification change
+    _gp->b[2]= _gw->b[2]= b[2]= (xi.Gamepad.wButtons& XINPUT_GAMEPAD_B)>> 13; // button unification change
+    _gp->b[3]= _gw->b[3]= b[3]= (xi.Gamepad.wButtons& XINPUT_GAMEPAD_Y)>> 15; // button unification change
+
     _gp->b[4]= _gw->b[4]= b[4]= (xi.Gamepad.wButtons& XINPUT_GAMEPAD_LEFT_SHOULDER)>> 8;
     _gp->b[5]= _gw->b[5]= b[5]= (xi.Gamepad.wButtons& XINPUT_GAMEPAD_RIGHT_SHOULDER)>> 9;
     _gp->b[6]= _gw->b[6]= b[6]= (xi.Gamepad.wButtons& XINPUT_GAMEPAD_BACK)>> 5;
@@ -2350,6 +2370,7 @@ void osiJoystick::resetButtons() {
 // grab exclusive control of the joystick (if possible)
 void osiJoystick::aquire() {
   if(mode== 1) {
+    _bGrabbed= true;
     return;
   }
 
@@ -2357,6 +2378,7 @@ void osiJoystick::aquire() {
     #ifdef OS_WIN
     #ifdef USING_DIRECTINPUT
     if(_diDevice) _diDevice->Acquire();
+    _bGrabbed= true;
     #endif /// USING_DIRECTINPUT
     #endif /// OS_WIN
     return;
@@ -2366,6 +2388,7 @@ void osiJoystick::aquire() {
     #ifdef OS_WIN
     #ifdef USING_XINPUT
     XInputEnable(TRUE);
+    _bGrabbed= true;
     #endif /// USING_XINPUT
     #endif /// OS_WIN
     return;

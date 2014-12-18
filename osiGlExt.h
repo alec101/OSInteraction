@@ -4,6 +4,7 @@
 
 // TODO
 /*
+ * [linux] line 5367- glxGetProcAddress - don't know how exacty it works, so tests must be made
 
 */
 
@@ -29,6 +30,8 @@ struct GlExt {
 extern GlExt _glARBlistEmpty[];   /// [internal] each renderer will create it's starting glARBlist from this
 extern GlExt _glEXTlistEmpty[];   /// [internal] each renderer will create it's starting glEXTlist from this
 extern GlExt _glOTHERlistEmpty[];   /// [internal] each renderer will create it's starting glOTHERlist from this
+
+//extern bool getGlProc(cchar *, void **); /// [kinda internal]OpenGL func pointer retriever; pass the name of the function, and the pointer to aquire the address
 
 
 ///====================================================///
@@ -4334,51 +4337,6 @@ inline GLAPI void APIENTRY glBindVertexBuffers (GLuint first, GLsizei count, con
   _glr->glExt.glBindVertexBuffers (first, count, buffers, offsets, strides);}
 
 
-#ifdef OS_LINUX
-///==================///
-// linux GLX versions //
-///==================///
-
-/// GLX_VERSION_1_3
-inline GLXFBConfig *glXGetFBConfigs (Display *dpy, int screen, int *nelements) {
-  return _glr->glExt.glXGetFBConfigs (dpy, screen, nelements);}
-inline GLXFBConfig *glXChooseFBConfig (Display *dpy, int screen, const int *attrib_list, int *nelements) {
-  return _glr->glExt.glXChooseFBConfig (dpy, screen, attrib_list, nelements);}
-inline int glXGetFBConfigAttrib (Display *dpy, GLXFBConfig config, int attribute, int *value) {
-  return _glr->glExt.glXGetFBConfigAttrib (dpy, config, attribute, value);}
-inline XVisualInfo *glXGetVisualFromFBConfig (Display *dpy, GLXFBConfig config) {
-  return _glr->glExt.glXGetVisualFromFBConfig (dpy, config);}
-inline GLXWindow glXCreateWindow (Display *dpy, GLXFBConfig config, Window win, const int *attrib_list) {
-  return _glr->glExt.glXCreateWindow (dpy, config, win, attrib_list);}
-inline void glXDestroyWindow (Display *dpy, GLXWindow win) {
-  _glr->glExt.glXDestroyWindow (dpy, win);}
-inline GLXPixmap glXCreatePixmap (Display *dpy, GLXFBConfig config, Pixmap pixmap, const int *attrib_list) {
-  return _glr->glExt.glXCreatePixmap (dpy, config, pixmap, attrib_list);}
-inline void glXDestroyPixmap (Display *dpy, GLXPixmap pixmap) {
-  _glr->glExt.glXDestroyPixmap (dpy, pixmap);}
-inline GLXPbuffer glXCreatePbuffer (Display *dpy, GLXFBConfig config, const int *attrib_list) {
-  return _glr->glExt.glXCreatePbuffer (dpy, config, attrib_list);}
-inline void glXDestroyPbuffer (Display *dpy, GLXPbuffer pbuf) {
-  _glr->glExt.glXDestroyPbuffer (dpy, pbuf);}
-inline void glXQueryDrawable (Display *dpy, GLXDrawable draw, int attribute, unsigned int *value) {
-  _glr->glExt.glXQueryDrawable (dpy, draw, attribute, value);}
-inline GLXContext glXCreateNewContext (Display *dpy, GLXFBConfig config, int render_type, GLXContext share_list, Bool direct) {
-  return _glr->glExt.glXCreateNewContext (dpy, config, render_type, share_list, direct);}
-inline Bool glXMakeContextCurrent (Display *dpy, GLXDrawable draw, GLXDrawable read, GLXContext ctx) {
-  return _glr->glExt.glXMakeContextCurrent (dpy, draw, read, ctx);}
-inline GLXDrawable glXGetCurrentReadDrawable (void) {
-  return _glr->glExt.glXGetCurrentReadDrawable ();}
-inline int glXQueryContext (Display *dpy, GLXContext ctx, int attribute, int *value) {
-  return _glr->glExt.glXQueryContext (dpy, ctx, attribute, value);}
-inline void glXSelectEvent (Display *dpy, GLXDrawable draw, unsigned long event_mask) {
-  _glr->glExt.glXSelectEvent (dpy, draw, event_mask);}
-inline void glXGetSelectedEvent (Display *dpy, GLXDrawable draw, unsigned long *event_mask) {
-  _glr->glExt.glXGetSelectedEvent (dpy, draw, event_mask);}
-
-/// GLX_VERSION_1_4
-// well, how can one get the pointer for the function that gets the pointer?
-#endif /// OS_LINUX
-
 
 
 
@@ -5394,7 +5352,7 @@ inline GLXPbuffer glXCreatePbuffer (Display *dpy, GLXFBConfig config, const int 
 inline void glXDestroyPbuffer (Display *dpy, GLXPbuffer pbuf) {
   _glr->glExt.glXDestroyPbuffer (dpy, pbuf);}
 inline void glXQueryDrawable (Display *dpy, GLXDrawable draw, int attribute, unsigned int *value) {
-  _glr->glExt.glXQueryDrawable (dpy, draw, attribute, *value);}
+  _glr->glExt.glXQueryDrawable (dpy, draw, attribute, value);}
 inline GLXContext glXCreateNewContext (Display *dpy, GLXFBConfig config, int render_type, GLXContext share_list, Bool direct) {
   return _glr->glExt.glXCreateNewContext (dpy, config, render_type, share_list, direct);}
 inline Bool glXMakeContextCurrent (Display *dpy, GLXDrawable draw, GLXDrawable read, GLXContext ctx) {
@@ -5409,16 +5367,16 @@ inline void glXGetSelectedEvent (Display *dpy, GLXDrawable draw, unsigned long *
   _glr->glExt.glXGetSelectedEvent (dpy, draw, event_mask);}
 
 // GLX_VERSION_1_4
-inline __GLXextFuncPtr glXGetProcAddress (const GLubyte *procName) {
-  return _glr->glExt.glXGetProcAddress (procName);}
+//inline __GLXextFuncPtr glXGetProcAddress (const GLubyte *procName) {
+  //return _glr->glExt.glXGetProcAddress (procName);}
 
 // GLX_ARB_create_context
 inline GLXContext glXCreateContextAttribsARB (Display *dpy, GLXFBConfig config, GLXContext share_context, Bool direct, const int *attrib_list) {
   return _glr->glExt.glXCreateContextAttribsARB (dpy, config, share_context, direct, attrib_list);}
 
 // GLX_ARB_get_proc_address
-inline __GLXextFuncPtr glXGetProcAddressARB (const GLubyte *procName) {
-  return _glr->glExt.glXGetProcAddressARB (procName);}
+//inline __GLXextFuncPtr glXGetProcAddressARB (const GLubyte *procName) {
+  //return _glr->glExt.glXGetProcAddressARB (procName);}
 
 // GLX_EXT_import_context
 inline Display *glXGetCurrentDisplayEXT (void) {
@@ -5452,7 +5410,7 @@ inline void glXCopySubBufferMESA (Display *dpy, GLXDrawable drawable, int x, int
 
 // GLX_MESA_pixmap_colormap
 inline GLXPixmap glXCreateGLXPixmapMESA (Display *dpy, XVisualInfo *visual, Pixmap pixmap, Colormap cmap) {
-  _glr->glExt.glXCreateGLXPixmapMESA (dpy, visual, pixmap, cmap);}
+  return _glr->glExt.glXCreateGLXPixmapMESA (dpy, visual, pixmap, cmap);}
 
 // GLX_MESA_release_buffers
 inline Bool glXReleaseBuffersMESA (Display *dpy, GLXDrawable drawable) {
@@ -5525,8 +5483,10 @@ inline Bool glXWaitForSbcOML (Display *dpy, GLXDrawable drawable, int64_t target
   return _glr->glExt.glXWaitForSbcOML (dpy, drawable, target_sbc, ust, msc, sbc);}
 
 // GLX_SGIX_dmbuffer
+#ifdef _DM_BUFFER_H_
 inline Bool glXAssociateDMPbufferSGIX (Display *dpy, GLXPbufferSGIX pbuffer, DMparams *params, DMbuffer dmbuffer) {
   return _glr->glExt.glXAssociateDMPbufferSGIX (dpy, pbuffer, params, dmbuffer);}
+#endif // _DM_BUFFER_H included
 
 // GLX_SGIX_fbconfig
 inline int glXGetFBConfigAttribSGIX (Display *dpy, GLXFBConfigSGIX config, int attribute, int *value) {
@@ -5595,10 +5555,12 @@ inline int glXChannelRectSyncSGIX (Display *display, int screen, int channel, GL
   return _glr->glExt.glXChannelRectSyncSGIX (display, screen, channel, synctype);}
 
 // GLX_SGIX_video_source
+#ifdef _VL_H
 inline GLXVideoSourceSGIX glXCreateGLXVideoSourceSGIX (Display *display, int screen, VLServer server, VLPath path, int nodeClass, VLNode drainNode) {
   return _glr->glExt.glXCreateGLXVideoSourceSGIX (display, screen, server, path, nodeClass, drainNode);}
 inline void glXDestroyGLXVideoSourceSGIX (Display *dpy, GLXVideoSourceSGIX glxvideosource) {
   _glr->glExt.glXDestroyGLXVideoSourceSGIX (dpy, glxvideosource);}
+#endif /// _VL_H included
 
 // GLX_SGI_cushion
 inline void glXCushionSGI (Display *dpy, Window window, float cushion) {
@@ -7565,10 +7527,6 @@ inline GLAPI void APIENTRY glEndConditionalRenderNV (void) {
 // #376 GL_NV_copy_image WGL_NV_copy_image GLX_NV_copy_image
 inline GLAPI void APIENTRY glCopyImageSubDataNV (GLuint srcName, GLenum srcTarget, GLint srcLevel, GLint srcX, GLint srcY, GLint srcZ, GLuint dstName, GLenum dstTarget, GLint dstLevel, GLint dstX, GLint dstY, GLint dstZ, GLsizei width, GLsizei height, GLsizei depth) {
   _glr->glExt.glCopyImageSubDataNV (srcName, srcTarget, srcLevel, srcX, srcY, srcZ, dstName, dstTarget, dstLevel, dstX, dstY, dstZ, width, height, depth);}
-#ifdef OS_LINUX
-inline void glXCopyImageSubDataNV (Display *dpy, GLXContext srcCtx, GLuint srcName, GLenum srcTarget, GLint srcLevel, GLint srcX, GLint srcY, GLint srcZ, GLXContext dstCtx, GLuint dstName, GLenum dstTarget, GLint dstLevel, GLint dstX, GLint dstY, GLint dstZ, GLsizei width, GLsizei height, GLsizei depth) {
-  _glr->glExt. glXCopyImageSubDataNV (dpy, srcCtx, srcName, srcTarget, srcLevel, srcX, srcY, srcZ, dstCtx, dstName, dstTarget, dstLevel, dstX, dstY, dstZ, width, height, depth);}
-#endif /// OS_LINUX
 #ifdef OS_WIN
 inline BOOL WINAPI wglCopyImageSubDataNV (HGLRC hSrcRC, GLuint srcName, GLenum srcTarget, GLint srcLevel, GLint srcX, GLint srcY, GLint srcZ, HGLRC hDstRC, GLuint dstName, GLenum dstTarget, GLint dstLevel, GLint dstX, GLint dstY, GLint dstZ, GLsizei width, GLsizei height, GLsizei depth) {
   return _glr->glExt.wglCopyImageSubDataNV (hSrcRC, srcName, srcTarget, srcLevel, srcX, srcY, srcZ, hDstRC, dstName, dstTarget, dstLevel, dstX, dstY, dstZ, width, height, depth);}
@@ -7924,12 +7882,6 @@ inline GLAPI void APIENTRY glGetVideoi64vNV (GLuint video_slot, GLenum pname, GL
   _glr->glExt.glGetVideoi64vNV (video_slot, pname, params);}
 inline GLAPI void APIENTRY glGetVideoui64vNV (GLuint video_slot, GLenum pname, GLuint64EXT *params) {
   _glr->glExt.glGetVideoui64vNV (video_slot, pname, params);}
-#ifdef OS_LINUX
-inline unsigned int *glXEnumerateVideoDevicesNV (Display *dpy, int screen, int *nelements) {
-  return _glr->glExt.glXEnumerateVideoDevicesNV (dpy, screen, nelements);}
-inline int glXBindVideoDeviceNV (Display *dpy, unsigned int video_slot, unsigned int video_device, const int *attrib_list) {
-  return _glr->glExt.glXBindVideoDeviceNV (dpy, video_slot, video_device, attrib_list);}
-#endif /// OS_LINUX
 
 
 
