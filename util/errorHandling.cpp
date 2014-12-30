@@ -35,7 +35,7 @@
 #include <stdarg.h>
 
 #include "typeShortcuts.h"
-#include "stringClass8.h"
+#include "str8.h"
 #include "errorHandling.h"
 
 
@@ -58,7 +58,7 @@ void ErrorHandling::delData() {
 }
 
 
-void ErrorHandling::simple(string8 txt, bool exit, void (*exitFunc)(void)) {
+void ErrorHandling::simple(cchar *txt, bool exit, void (*exitFunc)(void)) {
 
 // print to ConsoleClass
   if(useConsoleFlag) {
@@ -79,7 +79,7 @@ void ErrorHandling::simple(string8 txt, bool exit, void (*exitFunc)(void)) {
 }
 
 
-void ErrorHandling::console(string8 txt, bool exit, void (*exitFunc)(void)) {
+void ErrorHandling::console(cchar *txt, bool exit, void (*exitFunc)(void)) {
 #ifdef USING_CONSOLE
   console.print(txt);
   if(exit) {
@@ -94,7 +94,7 @@ void ErrorHandling::console(string8 txt, bool exit, void (*exitFunc)(void)) {
 }
 
 
-void ErrorHandling::window(string8 txt, bool exit, void (*exitFunc)(void)) {
+void ErrorHandling::window(cchar *txt, bool exit, void (*exitFunc)(void)) {
 #ifdef OS_WIN
   MessageBox(null, txt, "PROGRAM ERROR", MB_OK);
   if(exit) {
@@ -108,13 +108,14 @@ void ErrorHandling::window(string8 txt, bool exit, void (*exitFunc)(void)) {
 
 
 #ifdef OS_LINUX
-    messageBox(txt);
-    if(exit) {
-        if(exitFunc)
-            (*exitFunc)();
-        ::exit(EXIT_FAILURE);
-    }
-  return;
+messageBox(txt);
+if(exit) {
+  if(exitFunc)
+    (*exitFunc)();
+  ::exit(EXIT_FAILURE);
+}
+
+return;
 #endif /// OS_LINUX
 
 
@@ -127,8 +128,8 @@ void ErrorHandling::window(string8 txt, bool exit, void (*exitFunc)(void)) {
 }
 
 
-void ErrorHandling::terminal(string8 txt, bool exit, void (*exitFunc)(void)) {
-  printf("%s\n", txt.d);
+void ErrorHandling::terminal(cchar *txt, bool exit, void (*exitFunc)(void)) {
+  printf("%s\n", txt);
   if(exit) {
     if(exitFunc)
       (*exitFunc)();
@@ -139,7 +140,7 @@ void ErrorHandling::terminal(string8 txt, bool exit, void (*exitFunc)(void)) {
 
 // linux message box window
 #ifdef OS_LINUX
-void ErrorHandling::messageBox(string8 text) {
+void ErrorHandling::messageBox(cchar *text) {
   Display *display;
   Visual *visual;
   int depth, x0, y0, dx, dy;
@@ -170,7 +171,7 @@ void ErrorHandling::messageBox(string8 text) {
 
   font= XLoadQueryFont(display, "10x20");
   XGetWindowAttributes(display, RootWindow(display, 0), &desktop);
-  XTextExtents(font, text, text.len, &tDir, &tAscent, &tDescent, &tStr);
+  XTextExtents(font, text, Str::strlen8(text), &tDir, &tAscent, &tDescent, &tStr);
 
 // window size & position computations based on text & desktop size
   dx= tStr.width+ 20;
@@ -200,7 +201,7 @@ void ErrorHandling::messageBox(string8 text) {
     XNextEvent(display, (XEvent *)&event);
     switch (event.type) {
       case Expose: {
-        XDrawString(display, win, grContext, tx, ty, text, text.nrchars);
+        XDrawString(display, win, grContext, tx, ty, text, Str::strchars8(text));
         break;
       }
       case KeyPress: {            /// destroy window on keypress
@@ -229,8 +230,8 @@ void ErrorHandling::messageBox(string8 text) {
 
 
 #ifdef USING_DIRECTINPUT
-void ErrorHandling::dinput(long n) {
-  string8 s;
+void ErrorHandling::dinput(int32 n) {
+  Str8 s;
   switch(n) {
     case S_FALSE:                   { s= "S_FALSE: DI_BUFFEROVERFLOW: The device buffer overflowed and some input was lost.\nDI_NOEFFECT: The operation had no effect.\nDI_NOTATTACHED: The device exists but is not currently attached to the user's computer.\nDI_PROPNOEFFECT: The change in device properties had no effect."; break; }
     case DI_DOWNLOADSKIPPED:        { s= "DI_DOWNLOADSKIPPED: The parameters of the effect were successfully updated,\nbut the effect could not be downloaded because the associated device\nwas not acquired in exclusive mode."; break; }
@@ -293,17 +294,17 @@ int ErrorHandling::glError(cchar *text) {
   if(!ret) return 0;        // fast return if no error
 
   if(ret== GL_INVALID_ENUM)
-    simple(text? string8(text)+ " GL ERROR: GL_INVALID_ENUM": "OpenGL ERROR: GL_INVALID_ENUM");
+    simple(text? Str8(text)+ " GL ERROR: GL_INVALID_ENUM": "OpenGL ERROR: GL_INVALID_ENUM");
   else if(ret== GL_INVALID_VALUE)
-    simple(text? string8(text)+ " GL ERROR: GL_INVALID_VALUE": "OpenGL ERROR: GL_INVALID_VALUE");
+    simple(text? Str8(text)+ " GL ERROR: GL_INVALID_VALUE": "OpenGL ERROR: GL_INVALID_VALUE");
   else if(ret== GL_INVALID_OPERATION)
-    simple(text? string8(text)+ " GL ERROR: GL_INVALID_OPERATION": "OpenGL ERROR: GL_INVALID_OPERATION");
+    simple(text? Str8(text)+ " GL ERROR: GL_INVALID_OPERATION": "OpenGL ERROR: GL_INVALID_OPERATION");
   else if(ret== GL_OUT_OF_MEMORY)
-    simple(text? string8(text)+ " GL ERROR: GL_OUT_OF_MEMORY": "OpenGL ERROR: GL_OUT_OF_MEMORY");
+    simple(text? Str8(text)+ " GL ERROR: GL_OUT_OF_MEMORY": "OpenGL ERROR: GL_OUT_OF_MEMORY");
   else if(ret== GL_STACK_UNDERFLOW)
-    simple(text? string8(text)+ " GL ERROR: GL_STACK_UNDERFLOW": "OpenGL ERROR: GL_STACK_UNDERFLOW");
+    simple(text? Str8(text)+ " GL ERROR: GL_STACK_UNDERFLOW": "OpenGL ERROR: GL_STACK_UNDERFLOW");
   else if(ret== GL_STACK_OVERFLOW)
-    simple(text? string8(text)+ " GL ERROR: GL_STACK_OVERFLOW": "OpenGL ERROR: GL_STACK_OVERFLOW");
+    simple(text? Str8(text)+ " GL ERROR: GL_STACK_OVERFLOW": "OpenGL ERROR: GL_STACK_OVERFLOW");
 
   return ret;  
 }

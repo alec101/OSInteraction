@@ -214,15 +214,15 @@
 
 // utility classes
 #include "util/typeShortcuts.h"
-#include "util/stringClass32.h"
-#include "util/stringClass8.h"
+#include "util/str32.h"
+#include "util/str8.h"
 #include "util/errorHandling.h"
 #include "util/chainList.h"
 #include "util/segList.h"
 #include "util/filePNG.h"
 #include "util/fileTGA.h"
 
-typedef string8 string;         // <<< string set is here; can be utf-8 / utf-32 (as internal data)
+//typedef Str8 string;         // <<< string set is here; can be utf-8 / utf-32 (as internal data)
 
 // osi headers
 
@@ -232,6 +232,7 @@ typedef string8 string;         // <<< string set is here; can be utf-8 / utf-32
 #include "osiChar.h"
 #include "osiInput.h"
 #include "osiCocoa.h"
+#include "osiWindow.h"
 
 
 // WIP vvv - works, but i don't like this
@@ -245,59 +246,8 @@ int main(int argc, char *argv[], char *envp[]) { \
 // WIP ^^^
 
 
-// 64 may be too much i think...
-#define MAX_WINDOWS 64
 
 class osiRenderer;
-
-// -----------------============ WINDOW CLASS =============---------------------
-class osiWindow {
-  friend class osinteraction;
-public:
-  osiWindow();
-  ~osiWindow();
-  void delData();
-
-  string name;              /// window name (program name)
-  bool isCreated;           /// window has been created flag
-  bool hasFocus;            /// has input focus (if no window has focus, program lost focus)
-  short x0, y0, dx, dy;     /// window position & size
-  int8 bpp;                 /// bits per pixel (if in fullscreen)
-  short freq;               /// frequency (if used - fullscreen)
-  int8 mode;                /// 1= windowed, 2= fullscreen, 3= fullscreen window, 4= full virtual desktop
-  osiMonitor *monitor;      /// on what monitor it is drawn
-  osiRenderer *glr;         /// the oGL renderer assigned to this window
-
-  // internal data from here
-
-  #ifdef OS_WIN
-  HDC _hDC;                  /// private GDI device context
-  HWND _hWnd;                /// holds program window handle
-  HINSTANCE _hInstance;      /// holds the instance of the application ?? isn't this per window...
-    
-  static MSG _msg;           /// windows message struct... this is just needed for checkMSG();
-  #endif ///OS_WIN
-
-  #ifdef OS_LINUX
-  Window _root;              /// root window (it is different on each monitor)
-  static Display *_dis;      /// display 'handle'. nowadays there is only 1 display, and 1 big (virtual) screen.
-  Window _win;               /// window 'handle' or watever
-  XWindowAttributes _gwa;    /// window attributes (size/etc)
-  XVisualInfo *_vi;
-  
-  bool _isMapped;            // internal flag used when resolution is changing <<NOT USED ANYMORE I THINK>>
-
-  /// specific linux window propreties functions
-  void _setWMprop(string8 wmID, string8 wmProp, uint val1, uint val2= 0); /// documentation is @ end of osinteraction.h
-  void _setWMstate(uint val, string8 prop1, string8 prop2= (cchar*)0); /// documentation is @ end of osinteraction.h
-  #endif
-
-  #ifdef OS_MAC
-  void *_win;                 /// MacWindow
-  void *_view;                /// MacGLview
-  #endif
-};
-
 
 
 
@@ -307,9 +257,10 @@ public:
 ///================================================================================///
 
 class osinteraction {
+  Str8 _iconFile;
 public:
-  string8 path;                        /// program path
-  string8 cmdLine;                     /// command line
+  Str8 path;                          /// program path
+  Str8 cmdLine;                       /// command line
   int argc;                           /// command line nr of arguments, same as the main(int argc..)
   char **argv;                        /// command line arguments list, same as the main(.. , char *argv[])
 
@@ -326,7 +277,9 @@ public:
     bool exit;                         // system wants program to CLOSE
     bool keyPress;                     // a keyboard key is pressed - autoupdates @ checkMSG()
     bool buttonPress;                  // a mouse button is pressed - autoupdates @ checkMSG()
-    bool systemInSuspend;              // the system entered a suspend mode - THIS IS VERY IMPORTANT TO CHECK nowadays - there HAS to be some kind of pause
+    //bool systemInSuspend;              // CAN'T FIND FOR LINUX the system entered a suspend mode - THIS IS VERY IMPORTANT TO CHECK nowadays - there HAS to be some kind of pause
+    /// if you use the next flags MANUALLY SET THE FLAG FALSE AFTER USE
+    bool windowResized;                // [MANUALLY SET THE FLAG TO FALSE IF USE THIS] one of the windows was resized (usually need a gl aspect ratio recompute) - only for window mode 1
   } flags;
 
   
@@ -345,16 +298,17 @@ public:
   
   // createGLWindow is the main function to use
   // [mode1]: windowed, using size, center screen [mode2] fullscreen [mode3] fullscreen window [mode4] full Virtual Screen window, on all monitors
-  bool createGLWindow(osiWindow *w, osiMonitor *m, string name, int dx, int dy, int8 bpp, int8 mode, short freq= 0, bool dblBuffer= true);
+  bool createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int dx, int dy, int8 bpp, int8 mode, short freq= 0, bool dblBuffer= true, cchar *iconFile= null);
   bool killGLWindow(osiWindow *w);    /// destroys a specific opengl window
   
   // next funcs call createGLWindow / killGLWindow; they might make life easier, but nothing more
   
   ///frequency must be the same for all windows...
-  bool primaryGLWindow(string name, int dx, int dy, int8 bpp, int8 mode, short freq= 0); // mode: 1= windowed, 2= fullscreen, 3= fullscreeen window(must research this one), 4= fullscreen virtual desktop (every monitor)
+  bool primaryGLWindow(cchar *name, int dx, int dy, int8 bpp, int8 mode, int16 freq= 0); // mode: 1= windowed, 2= fullscreen, 3= fullscreeen window(must research this one), 4= fullscreen virtual desktop (every monitor)
   bool primaryGLWindow();             /// creates a basic window, fullscreen
   bool killPrimaryGLWindow();         /// calls restoreResolution, if in fullscreen
-  void setProgramIcon(cchar *file);   /// sets program icon 
+  void setProgramIcon(cchar *fileName);/// sets program icon - CALL BEFORE ANY WINDOW CREATION, or pass icon file to each window
+  //void setWindowIcon(osiWindow *w, cchar *file);   /// sets a specific window icon 
   bool createSplashWindow(osiWindow *w, osiMonitor *m, cchar *file);
   
   
@@ -364,12 +318,14 @@ public:
   void getNanosecs(uint64 *out);      /// performance timer in nanoseconds
   void getMicrosecs(uint64 *out);     /// performance timer in microseconds
   void getMillisecs(uint64 *out);     /// performance timer in miliseconds
-  void getClocks(uint64 *out);        /// performance timer in raw clocks     N/A LINUX... trying to make it work
-  void clocks2nanosecs(uint64 *out);  /// convert raw clocks to nanoseconds   N/A LINUX... trying to make it work
-  void clocks2microsecs(uint64 *out); /// convert raw clocks to microseconds  N/A LINUX... trying to make it work
-  void clocks2millisecs(uint64 *out); /// convert raw clocks to milliseconds  N/A LINUX... trying to make it work
+  void sleep(uint64 millisecs);       /// sleeps for specified milliseconds
   void exit(int retVal= 0);           /// restores all monitor resolutions & exits. call this instead of _exit() or exit() func
-
+  
+  void getClocks(uint64 *out);        /// WIP performance timer in raw clocks     N/A LINUX... trying to make it work
+  void clocks2nanosecs(uint64 *out);  /// WIP convert raw clocks to nanoseconds   N/A LINUX... trying to make it work
+  void clocks2microsecs(uint64 *out); /// WIP convert raw clocks to microseconds  N/A LINUX... trying to make it work
+  void clocks2millisecs(uint64 *out); /// WIP convert raw clocks to milliseconds  N/A LINUX... trying to make it work
+  
   // opengl funcs
 
   void swapBuffers(osiWindow *w);     /// swap buffers of specific window
@@ -387,13 +343,13 @@ private:
 
   LARGE_INTEGER _timerFreq;
 
-  string _getWinName(HWND h);
+  char *_getWinName(HWND h);
   osiWindow *_getWin(HWND h);          /// [internal] returns the osiWindow that has the specified HWND
   friend LRESULT CALLBACK _processMSG(HWND, UINT, WPARAM, LPARAM);  /// windows processMSG() is outside class
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
-  osiWindow *getWin(Window *w);       /// [internal] returns the osiWindow that has the specified Window *
+  osiWindow *_getWin(Window *w);      /// [internal] returns the osiWindow that has the specified X11 Window *
   //void setFullScreen(osiWindow *w, bool fullScreen);  /// sets _NET_WM_STATE_FULLSCREEN attribute for selected window
   //void sendWMProp(int wmID, int wmProp, bool activate); /// documentation is @ end of osinteraction.h
   bool _processMSG();                  // linux MESSAGE HANDLER variant -don't call it, use OS independent checkMSG()
@@ -410,7 +366,7 @@ private:
 
   // friending funcs (happy happy joy joy)
   
-  friend bool doChange(osiMonitor *, osiResolution *, int8, short);
+  friend bool doChange(osiMonitor *, osiResolution *, int8, int16);
   friend void _populateGrCards(osiDisplay *);
   friend class osiDisplay;
   friend class osiMouse;

@@ -52,15 +52,15 @@ class PNG {
 public:
   
   void *bitmap;         /// raw data
-  uint dx, dy;          /// image size
-  uchar bpp, bpc;       /// bits per pixel / bits per channel
+  int32 dx, dy;        /// image size
+  int8 bpp, bpc;       /// bits per pixel / bits per channel
   ImageType type;       /// image type - check ImageType enum
 
-  uchar *cmap;          /// color map palette
-  uchar cmapBpp;        /// color palette bits per color (16 / 24 / 32)
+  uint8 *cmap;          /// color map palette
+  int8 cmapBpp;        /// color palette bits per color (16 / 24 / 32)
 
   bool hasTrnCol;       /// indicates that the image uses the transparent (trnCol);
-  struct { ushort r, g, b; } trnCol;  /// the transparent color, can be used in RGB / GREY image types
+  struct { uint16 r, g, b; } trnCol;  /// the transparent color, can be used in RGB / GREY image types
 
   // saving / loading
 
@@ -69,7 +69,7 @@ public:
   
   // error handling
 
-  ushort err;           /// error number - 0= no errors
+  uint16 err;           /// error number - 0= no errors
   cchar *getError();    /// returns error as text
 
   // constructor / destructor

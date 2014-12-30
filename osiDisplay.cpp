@@ -41,7 +41,7 @@
 void updateVirtualDesktop(); 
 void getMonitorPos(osiMonitor *m); // SCRAPED I THINK (it still helped, tho, many months later, so do not be hasty in deleting stuff)
 osiResolution *getResolution(int dx, int dy, osiMonitor *gr);
-short getFreq(short freq, osiResolution *r);
+int16 getFreq(int16 freq, osiResolution *r);
 #ifdef OS_LINUX
 XRRModeInfo *getMode(XRRScreenResources* s, RRMode id);
 #endif
@@ -108,13 +108,13 @@ osiMonitor::osiMonitor() {
 
   /// original & program resolutions
   original.nrFreq= 1;
-  original.freq= new short[1];
+  original.freq= new int16[1];
   original.dx= 0;
   original.dy= 0;
   original.freq[0]= 0;
 
   progRes.nrFreq= 1;
-  progRes.freq= new short[1];
+  progRes.freq= new int16[1];
   progRes.dx= 0;
   progRes.dy= 0;
   progRes.freq[0]= 0;
@@ -233,7 +233,7 @@ void osiDisplay::delData() {
 
 
 
-bool osiDisplay::changePrimary(short dx, short dy, int8 bpp, short freq) {      // change primary display& primary monitor resolution
+bool osiDisplay::changePrimary(int32 dx, int32 dy, int8 bpp, int16 freq) {      // change primary display& primary monitor resolution
   return changeRes(/*osi.primWin, */primary, dx, dy, bpp, freq);
 }
 
@@ -245,9 +245,9 @@ bool osiDisplay::changePrimary(short dx, short dy, int8 bpp, short freq) {      
 
 // doChange is doing the actual resolution change, whitout any checks. safety/ rest of handling is in osiDisplay::changeRes
 // doChange is private, no need to put it in osiDisplay, as calling it won't do anything
-bool doChange(/*osiWindow *w, */osiMonitor *m, osiResolution *r, int8 bpp, short freq);
+bool doChange(/*osiWindow *w, */osiMonitor *m, osiResolution *r, int8 bpp, int16 freq);
 
-bool osiDisplay::changeRes(/*osiWindow *w, */osiMonitor *m, short dx, short dy, int8 bpp, short freq) {
+bool osiDisplay::changeRes(/*osiWindow *w, */osiMonitor *m, int32 dx, int32 dy, int8 bpp, int16 freq) {
   bool chatty= false;
   // THERE HAS TO BE ALL THE CHECKS IN HERE, cuz changing 10 times the resolution
   // in 1 second (wich can freaqing happen, due to some crazy request), might
@@ -274,7 +274,7 @@ bool osiDisplay::changeRes(/*osiWindow *w, */osiMonitor *m, short dx, short dy, 
   if(chatty) printf("requested RESOLUTION CHANGE: %dx%d %dHz (%s)\n", r->dx, r->dy, freq, m->name.d);
   
   /// if a frequency is provided, get it's ID from databanks
-  short f= 0;                             /// this will help with frequencyes
+  int16 f= 0;                             /// this will help with frequencyes
   if(freq) f= getFreq(freq, r);
   
   if(f== -1) {                            /// getFreq returns -1 if none found
@@ -333,7 +333,7 @@ bool osiDisplay::changeRes(/*osiWindow *w, */osiMonitor *m, short dx, short dy, 
       }
 
       /// all window positions can change after 1 monitor resolution change
-      for(short a= 0; a< nrMonitors; a++)
+      for(int16 a= 0; a< nrMonitors; a++)
         if(monitor[a].win) 
           if(monitor[a].win->mode== 2 || monitor[a].win->mode== 3) {
             monitor[a].win->x0= monitor[a].x0;
@@ -397,7 +397,7 @@ bool osiDisplay::changeRes(/*osiWindow *w, */osiMonitor *m, short dx, short dy, 
   }
 
   /// all window positions can change after 1 monitor resolution change
-  for(short a= 0; a< nrMonitors; a++)
+  for(int16 a= 0; a< nrMonitors; a++)
     if(monitor[a].win) 
       if(monitor[a].win->mode== 2 || monitor[a].win->mode== 3) {
         monitor[a].win->x0= monitor[a].x0;
@@ -516,11 +516,11 @@ void osiDisplay::restoreRes(osiMonitor *m) {
 // ----->>>>> doChange - actual per OS steps to change the resolution <<<<<----- //
 ///-----------------------------------------------------------------------------///
 
-bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, short freq) {
+bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, int16 freq) {
   bool chatty= false;
   #ifdef OS_WIN
   DEVMODE dm;
-  for(short a= 0; a< sizeof(DEVMODE); a++) ((char *)&dm)[a]= 0;
+  for(short a= 0; a< sizeof(DEVMODE); a++) ((int8 *)&dm)[a]= 0;
   dm.dmSize= sizeof(dm);
   dm.dmPelsWidth= r->dx;            /// selected screen width
   dm.dmPelsHeight= r->dy;           /// selected screen height
@@ -661,7 +661,7 @@ bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, short freq) {
   */
   
   osiResolution *r2;                              /// temporary, used in next loop
-  short id;                                       /// temporary, used in next loop
+  int16 id;                                       /// temporary, used in next loop
   bool primaryActivated= false;
 
   /// will pass thru all monitors twice. first time to activate primary monitor first, then the rest of monitors
@@ -811,7 +811,7 @@ void osiDisplay::populate(osinteraction *t) {
     
   int a, b, n, tx, ty;//, m;
   osiResolution *p;
-  string s;
+  Str8 s;
   
   bool found;
   DISPLAY_DEVICE dd= { 0 };
@@ -843,7 +843,7 @@ void osiDisplay::populate(osinteraction *t) {
   monitor= new osiMonitor[nrMonitors];
   
   // loop thru all displays < START <--------------------------------------------------------
-  for(short d= 0, id= -1; EnumDisplayDevices(null, d, &dd, null); d++) {    /// for each display ADAPTER
+  for(int32 d= 0, id= -1; EnumDisplayDevices(null, d, &dd, null); d++) {    /// for each display ADAPTER
     if(!(dd.StateFlags& DISPLAY_DEVICE_ATTACHED_TO_DESKTOP))        /// should be attached to desktop ...
       continue;
     
@@ -867,7 +867,7 @@ void osiDisplay::populate(osinteraction *t) {
       monitor[id].original.dy= dm.dmPelsHeight;
       monitor[id].dx= dm.dmPelsWidth;            /// current resolution dx
       monitor[id].dy= dm.dmPelsHeight;           /// current resolution dy
-      monitor[id].original.freq[0]= (short)dm.dmDisplayFrequency;
+      monitor[id].original.freq[0]= (int16)dm.dmDisplayFrequency;
     }
 
     /// position on VIRTUAL DESKTOP		<--- if there's a need to find this position after a resolution change, a new func might be needed
@@ -948,7 +948,7 @@ void osiDisplay::populate(osinteraction *t) {
       p[a].dy= tmp[a].dy;
     }
 
-    short tf[256];
+    int16 tf[256];
     for(a= 0; a< 256; a++)
       tf[a]= 0;
     
@@ -965,7 +965,7 @@ void osiDisplay::populate(osinteraction *t) {
 
     /// alloc the list per resolution (got the max numbers)
     for(a= 0; a< n; a++) {
-      p[a].freq= new short[p[a].nrFreq];
+      p[a].freq= new int16[p[a].nrFreq];
       for(b= 0; b< p[a].nrFreq; b++)
         p[a].freq[b]= 0;				/// fill all frequencies with 0, this is used in next part
     }
@@ -1407,7 +1407,7 @@ void osiDisplay::populate(osinteraction *t) {
   const void *resid;
   uint32_t flags;
   bool found;
-  char buf[512];
+  uint8 buf[512];
   
   /// find the number of displays on the system
   CGDirectDisplayID *dis= new CGDirectDisplayID[MAX_WINDOWS];
@@ -1955,9 +1955,11 @@ void updateVirtualDesktop() {
 
   #ifndef OS_MAC /// LINUX + WIN
   /// coordonate unification - switch vdy and vy0
+  /* THIS IS WRONG - DELETE INCOMING
   int t= osi.display.vdy;
   osi.display.vdy= osi.display.vy0;
   osi.display.vy0= t;
+  */
   #endif /// OS_WIN + OS_LINUX
 
   /// vdx & vdy currently hold an end coordonate- they need to be delta x & y

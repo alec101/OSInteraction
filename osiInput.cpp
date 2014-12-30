@@ -7,7 +7,7 @@
 #include <sys/ioctl.h>
 
 // avoid including joystick.h, wich includes tons of unneeded stuff
-typedef unsigned char __u8;
+typedef uint8 __u8;
 #define JS_EVENT_BUTTON 0x01                              // button pressed/released
 #define JS_EVENT_AXIS   0x02                              // joystick moved
 #define JS_EVENT_INIT   0x80
@@ -17,10 +17,10 @@ typedef unsigned char __u8;
 #define JSIOCGNAME(len) _IOC(_IOC_READ, 'j', 0x13, len)   // get identifier string
 #define EVIOCGNAME(len) _IOC(_IOC_READ, 'E', 0x06, len)   // get device name
 struct js_event {
-  unsigned int time;    // event timestamp in milliseconds
-  short value;          // value
-  unsigned char type;   // event type
-  unsigned char number;	// axis/button number
+  uint32 time;    // event timestamp in milliseconds
+  uint16 value;          // value
+  uint8 type;   // event type
+  uint8 number;	// axis/button number
 };
 #endif /// OS_LINUX
 
@@ -133,7 +133,7 @@ void osiInput::vibrate() {
 
 
   // wLeftMotorSpeed
-    long hr= 0;
+    int32 hr= 0;
         DWORD    rgdwAxes[2] = { DIJOFS_X, DIJOFS_Y };  // X- and y-axis
         LONG rglDirection[2] = { 0, 0 };
 
@@ -311,12 +311,12 @@ void osiInput::delData() {
 // ############ Input::init() - MUST call @ PROGRAM START ##############
 /// set mouse & keyboard mode with this func too (better leave on default)
 bool osiInput::init(int mMode, int kMode) {
-  m.mode= mMode;
-  k.mode= kMode;
+  m.mode= (int8)mMode;
+  k.mode= (int8)kMode;
   #ifdef OS_WIN
   #ifdef USING_DIRECTINPUT
   if(!_dInput)
-    if(DirectInput8Create(osi.win[0]._hInstance, DIRECTINPUT_VERSION, IID_IDirectInput8, (void**)&_dInput, NULL)!= DI_OK) {
+    if(DirectInput8Create(osi.primWin->_hInstance, DIRECTINPUT_VERSION, IID_IDirectInput8, (void**)&_dInput, NULL)!= DI_OK) {
       error.simple("Could not initialize Direct Input");
       return false;
     }
@@ -479,18 +479,22 @@ skipWinOSsearch:
   #ifdef OS_LINUX
   if(timer) osi.getNanosecs(&start);
   // xlib xinput research: ... after some time, found nothing. TOO OLD LIB?
+  
   // this function takes 5-10 mil nanosecs (5-10 millisecs), which is HUGE
   // linux [MODE 1] using "linux/joystick.h". system driver
   
   int f;
   int version, axes= 0, buttons= 0;
-  char name[128];
+  uint8 name[256];
   //short id= 0;
   bool addEventFile= false;
   bool found;
-  static string s1("/dev/input/js");
-  static string s2("/dev/input/event");
-  string s3;
+  
+  /// big speed increase can be made with static pointers "/dev/input/js  " (space for 2 decimals)
+  /// and just put 2 numbers in there with nr/10, nr%10
+  static Str8 s1("/dev/input/js");
+  static Str8 s2("/dev/input/event");
+  Str8 s3;
   
   /// searching for 32 js[X] files
   for(short a= 0; a< 32; a++) {
@@ -547,7 +551,7 @@ skipWinOSsearch:
         
         j[b].maxButtons= 
           gp[b].maxButtons= 
-          gw[b].maxButtons= (short)buttons;     /// nr of buttons the stick has
+          gw[b].maxButtons= (int16)buttons;     /// nr of buttons the stick has
         
         addEventFile= true;                     /// set flag to search for it's event file too
     
@@ -567,7 +571,7 @@ skipWinOSsearch:
   /// if no event file needs to be found, just return
   if(!addEventFile) {
     if(timer) osi.getNanosecs(&end);
-    if(timer) printf("linux joystick scan: %llu nanosecs\n", end- start);
+    if(timer) printf("linux joystick scan: %llu nanosecs\n", (unsigned long long)(end- start));
 
     return;
   }
@@ -585,7 +589,7 @@ skipWinOSsearch:
 
     /// try to open this file & read what joystick it belongs to    
     f= version= axes= buttons= name[0]= 0;
-    s3.f("%s%d", s2.d, a);                           /// '/dev/input/event[a]'
+    s3.f("%s%d", s2.d, a);                          /// '/dev/input/event[a]'
     
     f= open(s3, O_RDONLY| O_NONBLOCK);
     if(f== -1) continue;                            /// file not found- next!
@@ -616,7 +620,7 @@ skipWinOSsearch:
   } /// for each possible 'event' file
 
   if(timer) osi.getNanosecs(&end);
-  if(timer) printf("linux joystick scan: %llu nanosecs\n", end- start);
+  if(timer) printf("linux joystick scan: %llu nanosecs\n", (unsigned long long)(end- start));
   #endif /// OS_LINUX
   
   #ifdef OS_MAC
@@ -736,7 +740,7 @@ BOOL CALLBACK _diDevCallback(LPCDIDEVICEINSTANCE inst, LPVOID extra) {
   bool fail= false;
   if(in._dInput->CreateDevice(inst->guidInstance, &in.j[id]._diDevice, NULL)                     != DI_OK) fail= true;
   if(in.j[id]._diDevice->SetDataFormat(&c_dfDIJoystick2)                                         != DI_OK) fail= true;
-  if(in.j[id]._diDevice->SetCooperativeLevel(osi.win[0]._hWnd, DISCL_EXCLUSIVE| DISCL_FOREGROUND)!= DI_OK) fail= true;
+  if(in.j[id]._diDevice->SetCooperativeLevel(osi.primWin->_hWnd, DISCL_EXCLUSIVE| DISCL_FOREGROUND)!= DI_OK) fail= true;
 
   if(fail) {
     error.console("diDevCallback(): couldn't add the new device");
@@ -755,7 +759,7 @@ BOOL CALLBACK _diDevCallback(LPCDIDEVICEINSTANCE inst, LPVOID extra) {
   in.j[id]._diDevice->GetCapabilities(&caps);
   //(FORCE FEEDBACK FLAG? maybe?)<<<<<<<<<
 
-  in.j[id].maxButtons= (short)caps.dwButtons; /// number of buttons device has
+  in.j[id].maxButtons= (int16)caps.dwButtons; /// number of buttons device has
   in.gp[id].maxButtons= in.j[id].maxButtons;
   in.gw[id].maxButtons= in.j[id].maxButtons;
 
@@ -838,7 +842,7 @@ void osiInput::update() {
         j[a].update();
 
   if(timer) osi.getNanosecs(&end);
-  if(timer) printf("Input::update() timer: %llu nanosecs\n", end- start); // it's nothing
+  if(timer) printf("Input::update() timer: %llu nanosecs\n", (unsigned long long)(end- start)); // it's nothing
   
 }
 
@@ -900,7 +904,7 @@ void osiMouse::delData() {
 }
 
 
-bool osiMouse::init(short mode) {
+bool osiMouse::init(int8 mode) {
   delData();
   this->mode= mode;
   if(mode== 1) {          /// no init required atm
@@ -914,7 +918,7 @@ bool osiMouse::init(short mode) {
     #ifdef OS_WIN
     #ifdef USING_DIRECTINPUT
     // if(!primWin) return false;      /// primary window is needed for direct input
-    long hr= 0;
+    int32 hr= 0;
     DIDATAFORMAT mouseformat;
     mouseformat= c_dfDIMouse;
     mouseformat.dwFlags= DIDF_RELAXIS; 
@@ -1180,7 +1184,7 @@ void osiKeyboard::delData() {
 
 
 // could be called, but using in.init() is better, as it inits every device
-bool osiKeyboard::init(short mode) {
+bool osiKeyboard::init(int8 mode) {
   this->mode= mode;
   if(mode== 1)
     return true;
@@ -1195,7 +1199,7 @@ bool osiKeyboard::init(short mode) {
     #ifdef USING_DIRECTINPUT
     if(!osi.primWin) return false;      /// a primary window must exist for directInput to work
     
-    long hr= 0;
+    int32 hr= 0;
         
     hr= in._dInput->CreateDevice(GUID_SysKeyboard, &_diDevice, NULL);
     hr= _diDevice->SetDataFormat(&c_dfDIKeyboard);
@@ -1401,7 +1405,7 @@ void osiKeyboard::resetButtons() {
 
 
 // returns a character that user has typed (from a buffer wich has 1 second lifetime)
-ulong osiKeyboard::getChar() {
+uint32 osiKeyboard::getChar() {
   if(!charTyped.nrNodes)
     return 0;
 
@@ -1415,14 +1419,14 @@ ulong osiKeyboard::getChar() {
       break;
 
   /// return the last character in buffer (usually there is only 1... maybe in cases of low framerate, loading stuff while typeing... etc)
-  ulong ret= ((chTyped*)(charTyped.last))->c;
+  uint32 ret= ((chTyped*)(charTyped.last))->c;
   charTyped.del(charTyped.last);                            /// del character from buffer
   return ret;
 }
 
 
 // basically same func as getChar, but for the other stream of string manipulation keys
-ulong osiKeyboard::getManip() {
+uint32 osiKeyboard::getManip() {
   if(!manipTyped.nrNodes)
     return 0;
   
@@ -1436,14 +1440,14 @@ ulong osiKeyboard::getManip() {
       break;
 
   /// return the last character in buffer (usually there is only 1... maybe in cases of low framerate, loading stuff while typeing... etc)
-  ulong ret= ((chTyped*)(manipTyped.last))->c;
+  uint32 ret= ((chTyped*)(manipTyped.last))->c;
   manipTyped.del(manipTyped.last);                          /// del character from buffer
   return ret;
   
 }
 
 // [internal]
-void osiKeyboard::_addChar(ulong c, uint64 *time) {
+void osiKeyboard::_addChar(uint32 c, uint64 *time) {
   if(!c) return;
 
   /// clear old typed characters (must have stayed in buffer longer than 1 sec)
@@ -1461,7 +1465,7 @@ void osiKeyboard::_addChar(ulong c, uint64 *time) {
 
 
 // [internal] identical as addChar...
-void osiKeyboard::_addManip(ulong c, uint64 *time) {
+void osiKeyboard::_addManip(uint32 c, uint64 *time) {
   if(!c) return;
 
   /// clear old typed characters (must have stayed in buffer longer than 1 sec)
@@ -1479,7 +1483,7 @@ void osiKeyboard::_addManip(ulong c, uint64 *time) {
 
 
 // might never be used... gets the first key that is down... not much uses for this other than checking if any key is pressed
-short osiKeyboard::getFirstKey() {
+int16 osiKeyboard::getFirstKey() {
   for(short a= 0; a< MAX_KEYBOARD_KEYS; a++)
     if(key[a])
       return a;
@@ -1652,12 +1656,12 @@ void osiJoystick::update() {
     
     // ---=== JOYSTICK axis ===---
     x=        jinfo.dwXpos- 32767;                    /// main stick X axis
-    y=        -(long)jinfo.dwYpos+ 32767;             /// main stick Y axis
+    y=        -(int32)jinfo.dwYpos+ 32767;            /// main stick Y axis
     throttle= jinfo.dwZpos;                           /// throttle? need a joystick...
     rudder=   jinfo.dwRpos;                           /// rudder
     pov=      (jinfo.dwPOV== 65535)? -1: jinfo.dwPOV; /// pov in degrees* 100
     v=        jinfo.dwVpos- 32767;                    /// extra axis 6
-    u=        -(long)jinfo.dwUpos+ 32767;             /// extra axis 5
+    u=        -(int32)jinfo.dwUpos+ 32767;            /// extra axis 5
     
 
     // ---=== GAMEPAD axis ===---
@@ -1808,7 +1812,7 @@ ReadAgain:
         *   xbox 'xbox button' is on 9 ...
         */
         
-        short but, extra;
+        int16 but, extra;
         but= ev[a].number;
         /// gamepad buttons unification. extra buttons (including xbox main button are set after button 10)
         
@@ -1839,9 +1843,9 @@ ReadAgain:
         _gw->lastCheck[ev[a].number]= b[ev[a].number];
         
         /// update button state
-        b[ev[a].number]=  (uchar)ev[a].value;
-        _gp->b[but]= (uchar)ev[a].value;
-        _gw->b[ev[a].number]= (uchar)ev[a].value;
+        b[ev[a].number]=  (uint8)ev[a].value;
+        _gp->b[but]= (uint8)ev[a].value;
+        _gw->b[ev[a].number]= (uint8)ev[a].value;
         
         /// update history
         if(ev[a].value== 1) {                      // button PRESS
@@ -1955,7 +1959,7 @@ ReadAgain:
             break;
           case 6:                         // [POV X?]    / [POV X]     / [wheel???]
           case 7:                         // [POV Y?]    / [POV Y]     / [wheel???]
-            long tx, ty;          // they gotta be integers for exact 0 degrees or 90 degrees, else there are problems
+            int32 tx, ty;          // they gotta be integers for exact 0 degrees or 90 degrees, else there are problems
             double tpov;
             
             /// get axis from current pov position (wich is in degrees)
@@ -2089,7 +2093,7 @@ ReadAgain:
     _gw->a5=    _diStats.lRz;          /// other axis 5
 
     // ---=== stick/pad/wheel BUTTONS ===---
-    uchar but, extra;
+    uint8 but, extra;
     _swapBuffers();                      /// lastCheck will hold the previous buttons states
     _gp->_swapBuffers();
     _gw->_swapBuffers();
@@ -2097,7 +2101,7 @@ ReadAgain:
     // >> something wrong with all buttons from dinput&OS drivers
     // >> test if mode 1 reads ok the xbox controller... if not, scrape, check what WM_messages there are...
 
-    for(uchar a= 0; a< maxButtons; a++) {     /// for each possible button
+    for(int16 a= 0; a< maxButtons; a++) {     /// for each possible button
       /*
         * gamepad buttons are messy. there should be an order in buttons, done by osi, i think, for GAMEPAD UNIFICATION
         *   the first 10 buttons are on all gamepads
@@ -2108,7 +2112,7 @@ ReadAgain:
         */
       
       /// gamepad buttons unification. extra buttons (including xbox main button are set after button 9)
-      but= a;    
+      but= (uint8)a;    
       // ps3 compatible pad
       if(_gp->type== 0) {
         extra= _gp->maxButtons- 10;     /// gamepads have 10 normal buttons. the rest are marked as extra, and moved on button 10+
@@ -2141,7 +2145,7 @@ ReadAgain:
         _gp->bTime[but]= bTime[a];
         _gw->bTime[a]= bTime[a];
         /// log the button in history
-        blog.b= a;
+        blog.b= (uint8)a;
         blog.checked= false;
         blog.timeDown= presentMilli;
         blog.timeUp= 0;
@@ -2181,7 +2185,7 @@ ReadAgain:
         // THIS FAILSAFE CODE COULD GO AWAY vvvvvvvvvvvvvvvvv
         if(!found) {                      /// failsafe - normally it is found (but things can happen ... alt-tab?)
           // some debug stuff can be done here, tho
-          blog.b= a;
+          blog.b= (uint8)a;
           blog.checked= false;
           blog.timeDown= presentMilli- 1; /// mark it as insta down-up
           blog.timeUp= presentMilli;
@@ -2206,11 +2210,12 @@ ReadAgain:
     #ifdef OS_WIN
     #ifdef USING_XINPUT
     XINPUT_STATE xi;
-    for(short a= 0; a< sizeof(xi); a++) ((char *)&xi)[a]= 0;    /// zero memory
-    XInputGetState(_id, &xi);                                   /// read data from driver (update xi)
+
+    Str::memclr(&xi, sizeof(xi));                             /// zero memory
+    XInputGetState(_id, &xi);                                 /// read data from driver (update xi)
 
     /// finding pov in degrees* 100
-    long tpov;
+    int32 tpov;
     if(xi.Gamepad.wButtons& XINPUT_GAMEPAD_DPAD_UP) {
       if(xi.Gamepad.wButtons& XINPUT_GAMEPAD_DPAD_RIGHT)
         tpov= 4500;
@@ -2237,8 +2242,8 @@ ReadAgain:
     if(xi.Gamepad.sThumbLY< 0) xi.Gamepad.sThumbLY++;
     if(xi.Gamepad.sThumbRX< 0) xi.Gamepad.sThumbRX++;
     if(xi.Gamepad.sThumbRY< 0) xi.Gamepad.sThumbRY++;
-    ushort _lt= (xi.Gamepad.bLeftTrigger*  32767)/ 255; /// temp vars used, as it gotta be converted to short
-    ushort _rt= (xi.Gamepad.bRightTrigger* 32767)/ 255; /// temp vars used, as it gotta be converted to short
+    uint16 _lt= (xi.Gamepad.bLeftTrigger*  32767)/ 255; /// temp vars used, as it gotta be converted to short
+    uint16 _rt= (xi.Gamepad.bRightTrigger* 32767)/ 255; /// temp vars used, as it gotta be converted to short
 
     // ---=== JOYSTICK axis ===---
     x=        xi.Gamepad.sThumbLX;        /// main stick X
@@ -2293,7 +2298,7 @@ ReadAgain:
         /// mark button press time
         _gp->bTime[a]= _gw->bTime[a]= bTime[a]= presentMilli;
         /// log the button in history
-        blog.b= (uchar)a;
+        blog.b= (uint8)a;
         blog.checked= false;
         blog.timeDown= presentMilli;
         blog.timeUp= 0;
@@ -2328,7 +2333,7 @@ ReadAgain:
         // THIS FAILSAFE CODE COULD GO AWAY vvvvvvvvvvvvvvvvv
         if(!found) {                      /// failsafe - normally it is found (but things can happen ... alt-tab?)
           // some debug stuff can be done here, tho
-          blog.b= (uchar)a;
+          blog.b= (uint8)a;
           blog.checked= false;
           blog.timeDown= presentMilli- 1; /// mark it as insta down-up
           blog.timeUp= presentMilli;
@@ -2609,12 +2614,12 @@ void osiGameWheel::_log(const ButPressed &k) {
 /// part of HIDDriver structure. each 'element' can be a button or axis in a stick/pad/wheel
 struct HIDElement {
   // SUBJECT OF DELETION  
-  char type;                    /// 1= axis, 2= button THIS MIGHT GO AWAY/ usagePage IS A BETTER 'TYPE'
+  int8 type;                    /// 1= axis, 2= button THIS MIGHT GO AWAY/ usagePage IS A BETTER 'TYPE'
   
-  short id;                     /// button or axis number (0 - max buttons / 0 - max axis)
-  long usage, usagePage;        /// [most inportant] characteristics about this element (is it an x axis, is it a button etc)
-  long logicalMin;              /// minimum value it can have
-  long logicalMax;              /// maximum value it can have
+  int16 id;                     /// button or axis number (0 - max buttons / 0 - max axis)
+  int32 usage, usagePage;        /// [most inportant] characteristics about this element (is it an x axis, is it a button etc)
+  int32 logicalMin;              /// minimum value it can have
+  int32 logicalMax;              /// maximum value it can have
   bool hasNULLstate;
 
   bool isHat;                   /// is it a hat switch / dPad
@@ -2628,8 +2633,8 @@ struct HIDElement {
 struct HIDDriver {              /// [internal]
   bool inUse;                   /// is this in use?
   IOHIDDeviceRef device;        /// coresponding 'device' that this stick/pad/wheel is tied to
-  short nrButtons;              /// number of buttons that this stick/pad/wheel has
-  short nrAxis;                 /// number of axis this stick/pad/wheel has
+  int16 nrButtons;              /// number of buttons that this stick/pad/wheel has
+  int16 nrAxis;                 /// number of axis this stick/pad/wheel has
   HIDElement *elem;             /// array of elements the device has
   
   /// standard constructor/destructor/delData(); everything will be set to 0 and memory will be auto-deallocated if allocated
@@ -2676,7 +2681,7 @@ static void HIDadded(void *context, IOReturn result, void *sender, IOHIDDeviceRe
   if(chatty) printf("%s\n", __FUNCTION__);
 
   /// find the first non-in-use joystick
-  short a;
+  int16 a;
   for(a= 0; a< MAX_JOYSTICKS; a++)
     if(!driver[a].inUse)
       break;
@@ -2704,7 +2709,7 @@ static void HIDadded(void *context, IOReturn result, void *sender, IOHIDDeviceRe
 		
 		CFStringGetBytes(name, CFRangeMake(0, CFStringGetLength(name)), kCFStringEncodingUTF8, '?', false, NULL, 100, &length);
     
-    in.j[a].name.d= new char[length+ 1];
+    in.j[a].name.d= new uint8[length+ 1];
                              
 		CFStringGetBytes(name, CFRangeMake(0, CFStringGetLength(name)), kCFStringEncodingUTF8, '?', false, (UInt8 *) in.j[a].name.d, length+ 1, NULL);
 		in.j[a].name.d[length]= 0;  /// terminator
@@ -2734,7 +2739,7 @@ static void HIDadded(void *context, IOReturn result, void *sender, IOHIDDeviceRe
   driver[a].elem= new HIDElement[CFArrayGetCount(elems)];
   
   /// populate driver struct
-  short c= 0, d= 0; /// c will hold counter for axis, d for buttons
+  int16 c= 0, d= 0; /// c will hold counter for axis, d for buttons
   for(short b= 0; b< CFArrayGetCount(elems); b++) {
 		elem= (IOHIDElementRef)CFArrayGetValueAtIndex(elems, b);
 		type= IOHIDElementGetType(elem);
@@ -2796,7 +2801,7 @@ static void HIDremoved(void *context, IOReturn result, void *sender, IOHIDDevice
   if(chatty) printf("%s", __FUNCTION__);
 
   /// find removed device in 'driver' struct
-  short a;
+  int16 a;
   for(a= 0; a< MAX_JOYSTICKS; a++)
     if(driver[a].device== device)
       break;
@@ -2841,7 +2846,7 @@ void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDValueRef
   IOHIDElementCookie cookie= IOHIDElementGetCookie(elem)- 1; /// cookies represent a unique identifier for a HID element (also first element they point to is 1, and the list starts with 0)
 
   /// find the stick/pad/wheel this change belongs to
-  short a;
+  int16 a;
   for(a= 0; a< in.nr.jOS; a++)
     if(driver[a].device== device)         /// found it
       break;
@@ -2851,13 +2856,13 @@ void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDValueRef
   if(!e->type) return;                    /// only type1(axis) and type2(butons) are handled. rest, return quick
     
   /// value translation to -32767 : +32767
-  long amin= e->logicalMin< 0? -e->logicalMin: e->logicalMin; /// faster than calling abs()
-  long amax= e->logicalMax< 0? -e->logicalMax: e->logicalMax; /// faster than calling abs()
+  int32 amin= e->logicalMin< 0? -e->logicalMin: e->logicalMin; /// faster than calling abs()
+  int32 amax= e->logicalMax< 0? -e->logicalMax: e->logicalMax; /// faster than calling abs()
 
   if((e->type== 1) && amin+ amax == 0)    /// quick way to eliminate trash (dunno what other 'axis' that mac reports are) / would be div by zero error too
     return;
   
-  long v= IOHIDValueGetIntegerValue(val); /// the actual value that changed
+  int32 v= IOHIDValueGetIntegerValue(val); /// the actual value that changed
   //  double v2= IOHIDValueGetScaledValue(val, kIOHIDValueScaleTypeCalibrated); /// it could be used
   //  double v3= IOHIDValueGetScaledValue(val, kIOHIDValueScaleTypePhysical);   /// i saw there are not big changes from v
 
@@ -2868,7 +2873,7 @@ void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDValueRef
   if(chatty)  printf("%s", in.j[a].name.d);
 
   if(e->usagePage== kHIDPage_GenericDesktop) {            // ---=== axis ===---
-    long t= (((v+ amin)* 65534)/ (amin+ amax))- 32767;   /// value scaled to min[-32767] max[+32767], 65535 total possible units (65534+ unit 0)
+    int32 t= (((v+ amin)* 65534)/ (amin+ amax))- 32767;   /// value scaled to min[-32767] max[+32767], 65535 total possible units (65534+ unit 0)
     if(t> -150&& t< 150) t= 0;                           /// this is due to bug in mac HID api. center position is not centered.
     
     switch(e->usage) {
@@ -2937,7 +2942,7 @@ void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDValueRef
               // GAMEWHEEL NOT DONE <<<<<<<<<<<<<<<
             }
             
-          long x, y;                        /// they gotta be ints for exact 0 degrees or 90 degrees, else there are problems
+          int32 x, y;                        /// they gotta be ints for exact 0 degrees or 90 degrees, else there are problems
           double pov;
           
           /// get axis from current pov position (wich is in degrees)
@@ -2950,7 +2955,7 @@ void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDValueRef
           }
           
           /// update from changed value (v)
-          long t= (((v+ amin)* 65534)/ (amin+ amax))- 32767;
+          int32 t= (((v+ amin)* 65534)/ (amin+ amax))- 32767;
           if(e->hatAxis1)                   /// this is x axis
             x= (t> -150 && t< 150)? 0: t;
           else                              /// else is y axis
@@ -2994,7 +2999,7 @@ void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDValueRef
     ///   so swapbuffers must be handled differently
     
     /// gamepad button unification
-    short but, extra;
+    int16 but, extra;
     but= e->id;
     // ps3 compatible pad
     if(in.gp[a].type== 0) {
@@ -3016,9 +3021,9 @@ void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDValueRef
         but-= 1;                      /// move start & back to positions 8 & 9
     }
     
-    in.j[a].b[e->id]= (uchar)v;
-    in.gp[a].b[but]= (uchar)v;
-    in.gw[a].b[e->id]= (uchar)v;
+    in.j[a].b[e->id]= (uint8)v;
+    in.gp[a].b[but]= (uint8)v;
+    in.gw[a].b[e->id]= (uint8)v;
     
     ButPressed blog;
     
@@ -3080,7 +3085,7 @@ void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDValueRef
     } /// if press / release
     
   } else if(e->usagePage== kHIDPage_VendorDefinedStart) { // ---=== button pressure / other vendor specifics ===---
-    long t;
+    int32 t;
     if(e->usage>= 0x20 && e->usage<= 0x2B)/// button pressure range
       t= (((v+ amin)* 65534)/ (amin+ amax))- 32767;     /// value scaled to min[-32767] max[+32767], 65535 total possible units (65534+ unit 0)    
     switch(e->usage) {

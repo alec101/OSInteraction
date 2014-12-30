@@ -36,7 +36,7 @@ class osiMouse {
 public:
   // USAGE / settings
   
-  short mode;              // [MODE 1]: OS events(default) - works on every OS
+  int8 mode;               // [MODE 1]: OS events(default) - works on every OS
                            // [MODE 2]: manual update() using different funcs (can't make it work under linux/mac, but still researching ways...)
                            // [MODE 3]: win(direct input) / linux(n/a) / mac(n/a)
   
@@ -68,7 +68,7 @@ public:
 
   // funcs
 
-  bool init(short mode);  /// can init mouse with this function (usually is best to call in.init(..) instead of this)
+  bool init(int8 mode);   /// can init mouse with this function (usually is best to call in.init(..) instead of this)
   void update();          /// if not using mode 1, update mouse values with this
   
   bool aquire();          /// exclusive control of the mouse (if possible)
@@ -87,7 +87,7 @@ private:
   friend class Input;
   friend class osinteraction;
   #ifdef OS_WIN
-  friend LRESULT CALLBACK processMSG(HWND, UINT, WPARAM, LPARAM);
+  friend LRESULT CALLBACK _processMSG(HWND, UINT, WPARAM, LPARAM);
 
   #ifdef USING_DIRECTINPUT
   LPDIRECTINPUTDEVICE8 _diDevice;
@@ -104,21 +104,21 @@ private:
 class osiKeyboard {
   friend class osiInput;
 public:
-  short mode;                   // [MODE1]: OS events (default)  [MODE2]: manual update()  [MODE3]: directinput  [MODE4]: windows raw data
+  int8 mode;                     // [MODE1]: OS events (default)  [MODE2]: manual update()  [MODE3]: directinput  [MODE4]: windows raw data
   
   void update();                /// MAIN LOOP FUNC: updates keys pressed array (key[] / lastCheck[])  (maybe toggle the locks? - N/A ATM)
 
   /// use Input::Kv structure if you need to find a certain key. EX: in.k.key[Kv.enter] is the enter key status (pressed or not pressed)
-  uchar *key;                   // all keys button status - it points to buffer1/buffer2. there is a clever swap between the two buffers, so there is no copying involved
+  uint8 *key;                   // all keys button status - it points to buffer1/buffer2. there is a clever swap between the two buffers, so there is no copying involved
   uint64 keyTime[MAX_KEYBOARD_KEYS]; /// time @ key started to be pressed
-  uchar *lastCheck;             /// holds what the last time the keys were checked button press info - points to 1 of the buffers
+  uint8 *lastCheck;             /// holds what the last time the keys were checked button press info - points to 1 of the buffers
   bool capsLock, scrollLock, numLock;     /// the 3 toggle locks <<< there are other 'locks'... on foreign keyboards
   
   
   struct KeyPressed {
-    int code;                   /// scan code of the keyboard key (Input::Kv structure has all the keyboard key codes for each os)
+    int32 code;                 /// scan code of the keyboard key (Input::Kv structure has all the keyboard key codes for each os)
     bool checked;               /// checked & lastKey[] used for mortal kombat style of keyboard check
-    uint64 timeDown, timeUp, timeDT;   /// when the key was pressed & released and for how long it was pressed (timeDT) (timeUp & timeDT can be 0, indicating the key is still down)
+    uint64 timeDown, timeUp, timeDT;   /// when the key was pressed & released and for how int32 it was pressed (timeDT) (timeUp & timeDT can be 0, indicating the key is still down)
     
     KeyPressed(const KeyPressed &o): code(o.code), checked(o.checked), timeDown(o.timeDown), timeUp(o.timeUp), timeDT(o.timeDT) {};
     KeyPressed(): code(0), checked(false), timeDown(0), timeUp(0), timeDT(0) {}
@@ -127,7 +127,7 @@ public:
 // character input/ character manipulation keys (enter/arrows/del/etc)
   class chTyped:public segData {/// uses the segment chainlist class(segList.cpp/h), check constructor in Keyboard()
   public:
-    ulong c;                    /// character typed (unicode); call getChar() to get the first character typed (it removes it from the list too)
+    uint32 c;                    /// character typed (unicode); call getChar() to get the first character typed (it removes it from the list too)
     uint64 time;                /// time when the character was typed
   };
 
@@ -136,8 +136,8 @@ public:
   segList manipTyped;           /// list with string manip chars (arrow keys, backspace, del, enter, etc)
 
   /// the main functions to call to get a char / string manip char
-  ulong getChar();              /// returns a character typed @ keyboard or null if nothing is typed. (call it until it returns 0, or for each charTyped.nrNodes)
-  ulong getManip();             /// returns a str manip key press. (call it until it returns 0, or for each manipTyped.nrNodes)
+  uint32 getChar();              /// returns a character typed @ keyboard or null if nothing is typed. (call it until it returns 0, or for each charTyped.nrNodes)
+  uint32 getManip();             /// returns a str manip key press. (call it until it returns 0, or for each manipTyped.nrNodes)
   void clearTypedBuffer();      /// clears all character buffers, ususally called when switching to a new/ existing input box / control
   
 // useful functions
@@ -148,10 +148,10 @@ public:
   // <<< ON SOME KEYBOARDS THIS MUST BE UPDATED TO HANDLE SPECIAL LOCK KEYS >>>
   
 // --- NOTHING TO BOTHER from this point on (usually) ---
-  bool init(short mode= 1);      // see 'mode' var; can be used to initialize direct input, otherwize, use Input::init()
+  bool init(int8 mode= 1);        // see 'mode' var; can be used to initialize direct input, otherwize, use Input::init()
   void _log(const KeyPressed &); /// [internal] just puts the last key in the last key-history (it logs imediatly when a key is down)
-  void _addChar(ulong c, uint64 *time);  /// [internal] used in WM_CHAR message... nothing to bother
-  void _addManip(ulong c, uint64 *time); /// [internal] string manipulation keys - enter/del/arrow keys/etc
+  void _addChar(uint32 c, uint64 *time);  /// [internal] used in WM_CHAR message... nothing to bother
+  void _addManip(uint32 c, uint64 *time); /// [internal] string manipulation keys - enter/del/arrow keys/etc
   void _doManip();                       /// [internal] OSchar.cpp. checks if current keys pressed form a char manip, if they do, calls addManip() 
   inline void swapBuffers();    /// swaps what key and lastKey point to (so no copying is involved)
 
@@ -160,7 +160,7 @@ public:
   void delData();               /// standard dealloc func / called by destroyer
   
 private:
-  uchar _buffer1[MAX_KEYBOARD_KEYS], _buffer2[MAX_KEYBOARD_KEYS];   /// used for the key / lastCheck. buffers are swapped with pointers, so no copying is involved
+  uint8 _buffer1[MAX_KEYBOARD_KEYS], _buffer2[MAX_KEYBOARD_KEYS];   /// used for the key / lastCheck. buffers are swapped with pointers, so no copying is involved
 
   #ifdef OS_WIN  
   #ifdef USING_DIRECTINPUT
@@ -169,7 +169,7 @@ private:
   #endif /// OS_WIN
 
 // TESTING 
-  short getFirstKey();
+  int16 getFirstKey();
   void printPressed();
   
 // to be or not to be - THIS REALLY SEEMS ARE USELESS (31.01.2014) maybe if extending to ps4/xbone...
@@ -182,8 +182,8 @@ private:
 
 
 struct ButPressed {
-  uchar b;                        /// button number
-  bool checked;                   /// this is just a helper flag that can be messed with; always starts on false when a new key is added (osi doesn't use it for anything)
+  uint8 b;                          /// button number
+  bool checked;                     /// this is just a helper flag that can be messed with; always starts on false when a new key is added (osi doesn't use it for anything)
   uint64 timeDown, timeUp, timeDT;  /// timeDown: when button was pressed; timeUp:  when button was released (0= button is STILL pressed); timeDT: how much time was pressed (time delta)
   
   ButPressed(const ButPressed &o): b(o.b), checked(o.checked), timeDown(o.timeDown), timeUp(o.timeUp), timeDT(o.timeDT) {};
@@ -201,29 +201,29 @@ public:
   
   // CONFIGURATION
   
-  short mode;                      // [MODE0]: disabled, can check against this
+  int8 mode;                       // [MODE0]: disabled, can check against this
                                    // [MODE1]: OS native
                                    // [MODE2]: win(directinput) / linux(n/a) / mac(n/a)
                                    // [MODE3]: win(xinput)      / linux(n/a) / mac(n/a)
-  string name;                    /// joystick name (product name)
-  short maxButtons;               /// nr of buttons the gameWheel has
+  Str8 name;                      /// joystick name (product name)
+  int16 maxButtons;               /// nr of buttons the gameWheel has
   bool active;                    /// this variable must be set from the program; if it's not true, there won't be reads from the stick
 
   // AXIS
   
-  long x, y;                      /// main stick x and y axis
-  long x2, y2;                    /// second stick x and y axis (these are reserved as i don't think these are used atm)
-  long throttle;                  /// 3rd axis usually throttle
-  long rudder;                    /// 4th axis usually rudder
-  long u, v;                      /// fifth/ sixth axis (reserved, i guess, they might be used by some sticks tho)
-  long pov;                       /// POV angle (multiplied by 100, so 35,900(max)= 359 degrees)
+  int32 x, y;                     /// main stick x and y axis
+  int32 x2, y2;                   /// second stick x and y axis (these are reserved as i don't think these are used atm)
+  int32 throttle;                 /// 3rd axis usually throttle
+  int32 rudder;                   /// 4th axis usually rudder
+  int32 u, v;                     /// fifth/ sixth axis (reserved, i guess, they might be used by some sticks tho)
+  int32 pov;                      /// POV angle (multiplied by 100, so 35,900(max)= 359 degrees)
   
   // BUTTONS state / history / everything
   
-  uchar *b;                             /// buttons state
-  long bPressure[MAX_JOYSTICK_BUTTONS]; /// heck if k knew this existed... guess no game (that i played) uses it; now it's implemented!
+  uint8 *b;                             /// buttons state
+  int32 bPressure[MAX_JOYSTICK_BUTTONS];/// heck if k knew this existed... guess no game (that i played) uses it; now it's implemented!
   uint64 bTime[MAX_JOYSTICK_BUTTONS];   /// time @ key started to be pressed
-  uchar *lastCheck;                     /// holds what the last time the keys were checked button press info - points to 1 of the buffers
+  uint8 *lastCheck;                     /// holds what the last time the keys were checked button press info - points to 1 of the buffers
   ButPressed lastBut[MAX_KEYS_LOGGED];  /// history of pressed buttons
 
   // FUNCTIONS
@@ -244,14 +244,14 @@ public:
 private:
   osiGamePad *_gp;                /// linked gamepad - each stick has a coresponding gamepad that uses the same 'driver'
   osiGameWheel *_gw;              /// linked gamewheel - each stick has a coresponding gamewheel that uses the same 'driver'
-  uchar _buffer1[MAX_JOYSTICK_BUTTONS], _buffer2[MAX_JOYSTICK_BUTTONS];   /// used for the key / lastCheck. buffers are swapped with pointers, so no copying is involved
+  uint8 _buffer1[MAX_JOYSTICK_BUTTONS], _buffer2[MAX_JOYSTICK_BUTTONS];   /// used for the key / lastCheck. buffers are swapped with pointers, so no copying is involved
   inline void _swapBuffers();     /// [internal] swaps button buffers
   void _log(const ButPressed &);  /// [internal] just puts the last button in the last button-history (it logs imediatly when a button is down)
   bool _bGrabbed;                 /// [internal] the HID is currently grabbed (while app don't have focus it will be ungrabbed)
 
   /// OS specific stuff
   #ifdef OS_WIN
-  short _id;                       // windows id (THIS MIGHT BE UNIVERSAL)
+  int16 _id;                       // windows id (THIS MIGHT BE UNIVERSAL)
   
   #ifdef USING_DIRECTINPUT         // primary
   friend BOOL CALLBACK _diDevCallback(LPCDIDEVICEINSTANCE, LPVOID);
@@ -267,10 +267,10 @@ private:
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
-  int _jsFile;                    /// opened /dev/input/jsNNN  file
-  short _jsID;                    /// /dev/input/jsNNN    NNN= id
-  int _eventFile;                 /// opened /dev/input/eventNNN eventFile
-  short _eventID;                 /// /dev/input/eventNNN NNN= eventID
+  int32 _jsFile;                  /// opened /dev/input/jsNNN  file
+  int16 _jsID;                    /// /dev/input/jsNNN    NNN= id
+  int32 _eventFile;               /// opened /dev/input/eventNNN eventFile
+  int16 _eventID;                 /// /dev/input/eventNNN NNN= eventID
   #endif
   
   #ifdef OS_MAC
@@ -289,28 +289,28 @@ public:
   
   // CONFIGURATION
   
-  short mode;                      // [MODE0]: disabled, can check against this
+  int8 mode;                       // [MODE0]: disabled, can check against this
                                    // [MODE1]: OS native
                                    // [MODE2]: win(directinput) / linux(n/a) / mac(n/a)
                                    // [MODE3]: win(xinput)      / linux(n/a) / mac(n/a)
-  string name;                    /// gamepad name (product name)
-  short type;                     /// 0= ps3 compatible; 1= xbox compatible - COULD BE CHANGED by user in-game, and it will work to update the right axis!!!
-  short maxButtons;               /// nr of buttons the gamePad has
+  Str8 name;                      /// gamepad name (product name)
+  int16 type;                     /// 0= ps3 compatible; 1= xbox compatible - COULD BE CHANGED by user in-game, and it will work to update the right axis!!!
+  int16 maxButtons;               /// nr of buttons the gamePad has
   
   // AXIS
   
-  long lx, ly;                    /// stick 1 axis position (left)
-  long rx, ry;                    /// stick 2 axis position (right)
-  long lt, rt;                    /// left and right triggers
-  long u, v;                      /// extra axis - updated but usually not used... usually... can't know what pad they make
-  long pov;                       /// POV angle (multiplied by 100, so 35,900(max)= 359 degrees) (-1 usually, if not pressed)
+  int32 lx, ly;                   /// stick 1 axis position (left)
+  int32 rx, ry;                   /// stick 2 axis position (right)
+  int32 lt, rt;                   /// left and right triggers
+  int32 u, v;                     /// extra axis - updated but usually not used... usually... can't know what pad they make
+  int32 pov;                      /// POV angle (multiplied by 100, so 35,900(max)= 359 degrees) (-1 usually, if not pressed)
 
   // BUTTONS state / history
 
-  uchar *b;                             /// buttons state
-  long bPressure[MAX_JOYSTICK_BUTTONS]; /// heck if k knew this existed... guess no game (that i played) uses it; now it's implemented!
+  uint8 *b;                             /// buttons state
+  int32 bPressure[MAX_JOYSTICK_BUTTONS];/// heck if k knew this existed... guess no game (that i played) uses it; now it's implemented!
   uint64 bTime[MAX_JOYSTICK_BUTTONS];   /// time @ key started to be pressed
-  uchar *lastCheck;                     /// holds what the last time the keys were checked button press info - points to 1 of the buffers
+  uint8 *lastCheck;                     /// holds what the last time the keys were checked button press info - points to 1 of the buffers
   ButPressed lastBut[MAX_KEYS_LOGGED];  /// history of pressed buttons
 
   // functions
@@ -331,7 +331,7 @@ public:
 private:
   osiJoystick *_j;                      /// linked Joystick class
   void _log(const ButPressed &);        /// [internal] just puts the last button in the last button-history (it logs imediatly when a button is down)
-  uchar _buffer1[MAX_JOYSTICK_BUTTONS], _buffer2[MAX_JOYSTICK_BUTTONS];   /// used for the key / lastCheck. buffers are swapped with pointers, so no copying is involved
+  uint8 _buffer1[MAX_JOYSTICK_BUTTONS], _buffer2[MAX_JOYSTICK_BUTTONS];   /// used for the key / lastCheck. buffers are swapped with pointers, so no copying is involved
   inline void _swapBuffers();
   
   #ifdef OS_MAC
@@ -350,25 +350,25 @@ public:
   
   // CONFIGURATION
   
-  short mode;                      // [MODE0]: disabled, can check against this
+  int16 mode;                      // [MODE0]: disabled, can check against this
                                    // [MODE1]: OS native
                                    // [MODE2]: win(directinput) / linux(n/a) / mac(n/a)
                                    // [MODE3]: win(xinput)      / linux(n/a) / mac(n/a)
-  string name;                    /// wheel name (product name)
-  short  maxButtons;              /// nr of buttons the gameWheel has
+  Str8 name;                      /// wheel name (product name)
+  int16  maxButtons;              /// nr of buttons the gameWheel has
   
   // AXIS
   
-  long wheel;                     /// the wheel
-  long a1, a2, a3, a4, a5;        /// different axis/ pedals
+  int32 wheel;                     /// the wheel
+  int32 a1, a2, a3, a4, a5;        /// different axis/ pedals
   // a pov??                       // THIS NEEDS MORE WORK <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
   // BUTTONS state / history
 
-  uchar *b;                             /// buttons state
-  long bPressure[MAX_JOYSTICK_BUTTONS]; /// heck if k knew this existed... guess no game (that i played) uses it; now it's implemented!
+  uint8 *b;                             /// buttons state
+  int32 bPressure[MAX_JOYSTICK_BUTTONS]; /// heck if k knew this existed... guess no game (that i played) uses it; now it's implemented!
   uint64 bTime[MAX_JOYSTICK_BUTTONS];   /// time @ key started to be pressed
-  uchar *lastCheck;                     /// holds what the last time the keys were checked button press info - points to 1 of the buffers
+  uint8 *lastCheck;                     /// holds what the last time the keys were checked button press info - points to 1 of the buffers
   ButPressed lastBut[MAX_KEYS_LOGGED];  /// history of pressed buttons
 
   // functions
@@ -388,7 +388,7 @@ public:
   
 private:
   osiJoystick *_j;                  /// linked Joystick class
-  uchar _buffer1[MAX_JOYSTICK_BUTTONS], _buffer2[MAX_JOYSTICK_BUTTONS];   /// used for the key / lastCheck. buffers are swapped with pointers, so no copying is involved
+  uint8 _buffer1[MAX_JOYSTICK_BUTTONS], _buffer2[MAX_JOYSTICK_BUTTONS];   /// used for the key / lastCheck. buffers are swapped with pointers, so no copying is involved
 
   void _log(const ButPressed &);  /// [internal] puts the last button in the last button-history (it logs imediatly when a button is down)
   inline void _swapBuffers();
@@ -410,7 +410,7 @@ private:
 ///    (there is no 'play' button on some crappy keyboard manufacturer)
 /// -on some keyboards, SOME of these keys MIGHT NOT EXIST!!!!
 struct _Kv {
-  uchar esc, enter, kpenter,
+  uint8 esc, enter, kpenter,
         tab, space, backspace,
         insert, del, home, end, pgup, pgdown,
         rshift, lshift, rctrl, lctrl, ralt, lalt,
@@ -453,35 +453,35 @@ public:
   _Kv Kv;                         /// struct with most inportant keycodes: in.k.key[Kv.space] is possible. OS independant/ if keyboard is changed in any way, just call Kv.populate()
   
   /// each driver type name (EX: j[0].mode==1 -> system default driver j[8].mode== 2 -> Direct Input handled)
-  string mode1Name;             /// under all systems, this is 'System Handled' or 'System Default' <<<<<<<<<<<<<<<<<<< CHOSE A GOOD NAME
-  string mode2Name;             /// under windows, this should be 'DirectInput', under the others 'Not Used'
-  string mode3Name;             /// under windows, this should be 'XInput', under the others 'Not Used'
+  Str8 mode1Name;             /// under all systems, this is 'System Handled' or 'System Default' <<<<<<<<<<<<<<<<<<< CHOSE A GOOD NAME
+  Str8 mode2Name;             /// under windows, this should be 'DirectInput', under the others 'Not Used'
+  Str8 mode3Name;             /// under windows, this should be 'XInput', under the others 'Not Used'
   
   struct InputNumbers {
-    short jFound;             /// nr of joysticks found on system in total (for win, os+directinput+xinput)
-    short gpFound;            /// nr of gamepads found on system
-    short gwFound;            /// nr of gamewheels found on system
+    int16 jFound;             /// nr of joysticks found on system in total (for win, os+directinput+xinput)
+    int16 gpFound;            /// nr of gamepads found on system
+    int16 gwFound;            /// nr of gamewheels found on system
 
-    short jOS;                /// (max 8) nr of normal driver joysticks found
-    short gpOS;               /// (max 8) nr of normal driver joysticks found
-    short gwOS;               /// (max 8) nr of normal driver joysticks found
+    int16 jOS;                /// (max 8) nr of normal driver joysticks found
+    int16 gpOS;               /// (max 8) nr of normal driver joysticks found
+    int16 gwOS;               /// (max 8) nr of normal driver joysticks found
 
-    short jT2;                /// (max 8) nr of directinput joysticks found  (nothing in linux/mac, but the code will compile)
-    short gpT2;               /// (max 8) nr of directinput gamepads found   (nothing in linux/mac, but the code will compile)
-    short gwT2;               /// (max 8) nr of directinput gamewheels found (nothing in linux/mac, but the code will compile)
+    int16 jT2;                /// (max 8) nr of directinput joysticks found  (nothing in linux/mac, but the code will compile)
+    int16 gpT2;               /// (max 8) nr of directinput gamepads found   (nothing in linux/mac, but the code will compile)
+    int16 gwT2;               /// (max 8) nr of directinput gamewheels found (nothing in linux/mac, but the code will compile)
 
-    short jT3;                /// (max 4) nr of xinput joysticks found  (nothing in linux/mac, but the code will compile)
-    short gpT3;               /// (max 4) nr of xinput gamepads found   (nothing in linux/mac, but the code will compile)
-    short gwT3;               /// (max 4) nr of xinput gamewheels found (nothing in linux/mac, but the code will compile)
+    int16 jT3;                /// (max 4) nr of xinput joysticks found  (nothing in linux/mac, but the code will compile)
+    int16 gpT3;               /// (max 4) nr of xinput gamepads found   (nothing in linux/mac, but the code will compile)
+    int16 gwT3;               /// (max 4) nr of xinput gamewheels found (nothing in linux/mac, but the code will compile)
   } nr;                       /// all different numbers of HID found
 
-  inline osiJoystick  *getT2j (short nr) { return  &j[8+ nr]; } /// [win type2 = direct input] [linux= nothig] [mac= nothig]
-  inline osiGamePad   *getT2gp(short nr) { return &gp[8+ nr]; } /// [win type2 = direct input] [linux= nothig] [mac= nothig]
-  inline osiGameWheel *getT2gw(short nr) { return &gw[8+ nr]; } /// [win type2 = direct input] [linux= nothig] [mac= nothig]
+  inline osiJoystick  *getT2j (int16 nr) { return  &j[8+ nr]; } /// [win type2 = direct input] [linux= nothig] [mac= nothig]
+  inline osiGamePad   *getT2gp(int16 nr) { return &gp[8+ nr]; } /// [win type2 = direct input] [linux= nothig] [mac= nothig]
+  inline osiGameWheel *getT2gw(int16 nr) { return &gw[8+ nr]; } /// [win type2 = direct input] [linux= nothig] [mac= nothig]
 
-  inline osiJoystick  *getT3j (short nr) { return  &j[16+ nr]; } /// [win type3= xinput] [linux= nothig] [mac= nothig]
-  inline osiGamePad   *getT3gp(short nr) { return &gp[16+ nr]; } /// [win type3= xinput] [linux= nothig] [mac= nothig]
-  inline osiGameWheel *getT3gw(short nr) { return &gw[16+ nr]; } /// [win type3= xinput] [linux= nothig] [mac= nothig]
+  inline osiJoystick  *getT3j (int16 nr) { return  &j[16+ nr]; } /// [win type3= xinput] [linux= nothig] [mac= nothig]
+  inline osiGamePad   *getT3gp(int16 nr) { return &gp[16+ nr]; } /// [win type3= xinput] [linux= nothig] [mac= nothig]
+  inline osiGameWheel *getT3gw(int16 nr) { return &gw[16+ nr]; } /// [win type3= xinput] [linux= nothig] [mac= nothig]
 
   // functions
   
@@ -508,8 +508,8 @@ public:
   #ifdef OS_LINUX
   // linux keysyms handling (keysyms make windows look good ffs)
   // these funcs are in <OSchar.cpp>, at the end of the file !!!!!!!!!!!!!
-  void _keysym2unicode(KeySym *, ulong *ret);  /// converts keysym to unicode (no checks, use getUnicode)
-  void _getUnicode(KeySym *, ulong *ret);      /// converts keysym to unicode, verifies that the character is valid
+  void _keysym2unicode(KeySym *, uint32 *ret);  /// converts keysym to unicode (no checks, use getUnicode)
+  void _getUnicode(KeySym *, uint32 *ret);      /// converts keysym to unicode, verifies that the character is valid
   #endif /// OS_LINUX
 
   #ifdef OS_MAC // MAC MESS <<<--------------- NOTHING TO BOTHER HERE ------

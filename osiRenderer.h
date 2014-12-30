@@ -60,9 +60,9 @@ public:
   
   // RENDERER CHARACTERISTICS COULD BE IN A struct, IF TOO MANY
 
-  string8 glVendor;       /// this can be used for various checks, as it never changes
-  string8 glRenderer;     /// this can be used for various checks, as it never changes
-  string8 glVersion;      /// OpenGL version
+  Str8 glVendor;          /// this can be used for various checks, as it never changes
+  Str8 glRenderer;        /// this can be used for various checks, as it never changes
+  Str8 glVersion;         /// OpenGL version
   int glVerMajor, glVerMinor; /// OpenGL version
 
   GlExt *glARBlist;       /// all openGL ARB extensions list and their avaibility on this renderer

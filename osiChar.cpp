@@ -79,8 +79,8 @@ extern osinteraction osi;
 #          with U0000.
 */
 struct CodePair {
-  ushort keysym;
-  ushort unicode;
+  uint16 keysym;
+  uint16 unicode;
 } ks2unicode[]= {
 { 0x01a1, 0x0104 }, // [.] Aogonek
 { 0x01a2, 0x02d8 }, // [.] breve
@@ -1160,7 +1160,7 @@ struct CodePair {
 
 
 
-void osiInput::_keysym2unicode(KeySym *ks, ulong *ret) {
+void osiInput::_keysym2unicode(KeySym *ks, uint32 *ret) {
   int min= 0;
   int max= sizeof(ks2unicode)/ sizeof(struct CodePair)- 1;
   int mid;
@@ -1199,7 +1199,7 @@ void osiInput::_keysym2unicode(KeySym *ks, ulong *ret) {
 
 
 
-void osiInput::_getUnicode(KeySym *ks, ulong *ret) {
+void osiInput::_getUnicode(KeySym *ks, uint32 *ret) {
   
   // only unicode printable characters are returned
   // this func can return 0! STRING TERMINATOR CONFUSION warning!!!!

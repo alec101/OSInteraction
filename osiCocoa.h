@@ -11,18 +11,18 @@ public:
   
   void setProgramPath();              /// under mac is not certain that it is set, it seems
   bool createWindow(osiWindow *w);
-  bool changeRes(osiWindow *w, osiMonitor *m, short dx, short dy, int8 bpp, short freq= 0);
+  bool changeRes(osiWindow *w, osiMonitor *m, int32 dx, int32 dy, int8 bpp, int16 freq= 0);
   void checkMSG();
   
   
-  void getWindowSize(osiWindow *w, int *dx, int *dy);
+  void getWindowSize(osiWindow *w, int32 *dx, int32 *dy);
   void sleep(int ms);                 /// cocoa sleep function (in miliseconds)
   
   int passedTime(void);               /// this might be scraped
   
   void swapBuffers(osiWindow *w);
   void makeCurrent(osiWindow *w);
-  bool displayName(unsigned long id, string8 *out);  // returns in out the name of the display
+  bool displayName(uint32 id, string8 *out);  // returns in out the name of the display
   
   osiCocoa();
   ~osiCocoa();

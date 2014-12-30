@@ -67,12 +67,12 @@ class TGA {
 public:
   
   void *bitmap;             /// raw data
-  ushort dx, dy;            /// image size
-  uchar bpp, bpc;           /// bits per pixel / bits per channel
+  int32 dx, dy;             /// image size
+  int8 bpp, bpc;            /// bits per pixel / bits per channel
   ImageType type;           /// type value is the number of channels too
 
-  uchar *cmap;              /// color palette
-  uchar cmapBpp;            /// color palette bits per color (16 / 24 / 32)
+  uint8 *cmap;              /// color palette
+  int8 cmapBpp;             /// color palette bits per color (16 / 24 / 32)
 
   // saving / loading
 
@@ -84,7 +84,7 @@ public:
 
   // error handling
 
-  short err;                /// see beggining of file
+  uint err;                 /// see beggining of file
   cchar *getError();        /// returns error as text
 
   // constructor / destructor

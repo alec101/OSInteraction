@@ -176,7 +176,7 @@ osiCocoa cocoa;
       if(chatty) printf("program is ACTIVE\n");
       
       /// loop thru all created windows
-      for(short a= 0; a< MAX_WINDOWS; a++)
+      for(int16 a= 0; a< MAX_WINDOWS; a++)
         if(osi.win[a].isCreated) {
 
           /// set all created windows below the current window, if the program just activated
@@ -305,8 +305,8 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 - (void) flagsChanged: (NSEvent *)theEvent {
   // find out all flagsChanged!!!!!!!!!!
   
-  ulong flags= [theEvent modifierFlags];
-  uchar code= [theEvent keyCode];
+  uint32 flags= [theEvent modifierFlags];
+  uint8 code= [theEvent keyCode];
   
   osi.eventTime= osi.present/ 1000000;       /// event time; using osi.present time - not gonna call osi.getMillisecs for 100% precision
   
@@ -314,7 +314,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
   
   //MUST TEST THIS, it is INPOSSIBLE OTHERWISE...
   /// caps lock
-  uchar press= 0;
+  uint8 press= 0;
   if(code== in.Kv.capslock) {
     if(flags& NSAlphaShiftKeyMask) {
       press= 128;
@@ -411,11 +411,11 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 - (void) keyDown:(NSEvent *)theEvent {
   // string UCKeytranslate(b,a,c);<< this one is "very low". hopefully, everything is ok with what cocoa has as a basic.
   
-  uchar code= [theEvent keyCode];
+  uint8 code= [theEvent keyCode];
   
   /// different vars that might be needed some day (atm, everything seems set with keyboard, tho):
-  // ulong flags= [theEvent modifierFlags];
-  // long unicode;
+  // uint32 flags= [theEvent modifierFlags];
+  // int32 unicode;
   // NSString *chrs= [theEvent characters];
   // NSString *chrsNoMod= [theEvent charactersIgnoringModifiers];
   
@@ -451,7 +451,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
   osi.eventTime= osi.present/ 1000000;       /// event time; using osi.present time - not gonna call osi.getMillisecs for 100% precision  
   osi.flags.keyPress= false;
   
-  uchar code= [theEvent keyCode];
+  uint8 code= [theEvent keyCode];
   
   if(chatty) printf("key RELEASE code[0x%x] [keyUp]\n", code);
   
@@ -484,7 +484,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 
 // -------------============== CHARACTER(s) INPUT ==============----------------
 - (void)insertText:(id)string {
-  long unicode;
+  uint32 unicode;
 
   for(short a= 0; a< [string length]; a++) {
     unicode= [string characterAtIndex: a];

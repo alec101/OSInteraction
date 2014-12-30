@@ -23,7 +23,7 @@ USAGE ==========================================================================
 
 class ErrorHandling {
   #ifdef __linux__
-  void messageBox(string8 text);   // linux specific messageBox window
+  void messageBox(cchar *text);   // linux specific messageBox window
   #endif /// OS_LINUX
     
 public:
@@ -32,15 +32,15 @@ public:
   bool useWindowsFlag;    // use OS windows (MessageBox/ XBlaBla/ etc)
 
 // main call funcs
-  void simple(string8 txt, bool exit= false, void (*exitFunc)(void)= null);  // exitFunc: func to call before exit program
+  void simple(cchar *txt, bool exit= false, void (*exitFunc)(void)= null);  // exitFunc: func to call before exit program
   
 // these funcs will force a type of window/ print to something
-  void window(string8 txt, bool exit= false, void (*exitFunc)(void)= null);
-  void console(string8 txt, bool exit= false, void (*exitFunc)(void)= null);
-  void terminal(string8 txt, bool exit= false, void (*exitFunc)(void)= null);
+  void window(cchar *txt, bool exit= false, void (*exitFunc)(void)= null);
+  void console(cchar *txt, bool exit= false, void (*exitFunc)(void)= null);
+  void terminal(cchar *txt, bool exit= false, void (*exitFunc)(void)= null);
   
   #ifdef USING_DIRECTINPUT
-  void dinput(long nr);   // direct input error nr as text (msgbox etc)
+  void dinput(int32 nr);   // direct input error nr as text (msgbox etc)
   #endif
   
   #ifdef USING_OPENGL

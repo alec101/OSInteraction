@@ -41,7 +41,7 @@ _segment::_segment() {
 
 _segment::~_segment() {
   if(data)
-    delete[] (char *)data;
+    delete[] (int8 *)data;
   if(freeSpc)
     delete[] freeSpc;
 }
@@ -111,12 +111,12 @@ void segList::delData() {
 
 void segList::addSegment() {
   _segment *p= new _segment;
-  p->data= new char[unitSize* segSize];
+  p->data= new int8[unitSize* segSize];
   p->freeSpc= new void*[segSize];
 
   /// set free space to point to the data allocated
   for(int a= 0; a< segSize; a++)
-     p->freeSpc[a]= (char*)p->data+ a* unitSize;
+     p->freeSpc[a]= (int8*)p->data+ a* unitSize;
 
   p->freeSpcPeak= segSize;
   p->timeIdle= 0;
@@ -246,7 +246,9 @@ void segList::deli(int nr) {
   for(int a= 0; a< nr; a++)      // <<< THIS PART COULD BE SLOW IN A BIG LIST >>>
     p= p->next;
 
+  #ifdef CHAINLIST_SAFECHECKS
   if(!p) return;                /// failsafe
+  #endif
 
   /// set the next-prev link
   if(p->prev) p->prev->next= p->next;
@@ -293,7 +295,7 @@ int segList::search(segData *e) {
 }
 
 
-// call this func from time to time to clear idle allocated segments... from time to time as in very rarely... no need to include it in every frame
+// call this func from time to time to clear idle allocated segments... from time to time as in very rarely... 1 time per minute? (maybe rarer)
 void segList::checkIdle() {
   if(seg.nrNodes == 1)    // it wont dealloc the first segment
     return;

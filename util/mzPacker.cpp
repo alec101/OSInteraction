@@ -228,8 +228,8 @@ tdefl_status tdefl_compress(tdefl_compressor *d, const void *pIn_buf, size_t *pI
 tinfl_status tinfl_decompress(tinfl_decompressor *r, const uint8 *pIn_buf_next, size_t *pIn_buf_size, uint8 *pOut_buf_start, uint8 *pOut_buf_next, size_t *pOut_buf_size, const uint32 decomp_flags);
 
 /// util miniz funcs
-ulong mz_adler32(uint32 adler, const uchar *ptr, size_t buf_len);  // returns 1 when ptr==NULL
-ulong mz_crc32(uint32 crc, const uchar *ptr, size_t buf_len);      // returns 0 when ptr==NULL
+uint32 mz_adler32(uint32 adler, const uint8 *ptr, size_t buf_len);  // returns 1 when ptr==NULL
+//uint32 mzPacker::mz_crc32(uint32 crc, const uint8 *ptr, size_t buf_len);      // returns 0 when ptr==NULL
 
 
 
@@ -276,7 +276,7 @@ ulong mz_crc32(uint32 crc, const uchar *ptr, size_t buf_len);      // returns 0 
 
 #define MZ_MAX(a,b) (((a)> (b))? (a): (b))
 #define MZ_MIN(a,b) (((a)< (b))? (a): (b))
-#define MZ_CLEAR_OBJ(obj) for(size_t _a= 0; _a< sizeof(obj); _a++) ((uchar *)&(obj))[_a]= 0; // _MEMSET(&(obj), 0, sizeof(obj))
+#define MZ_CLEAR_OBJ(obj) for(size_t _a= 0; _a< sizeof(obj); _a++) ((uint8 *)&(obj))[_a]= 0; // _MEMSET(&(obj), 0, sizeof(obj))
 
 #if MINIZ_USE_UNALIGNED_LOADS_AND_STORES && MINIZ_LITTLE_ENDIAN
   #define MZ_READ_LE16(p) *((const uint16 *)(p))
@@ -300,11 +300,12 @@ ulong mz_crc32(uint32 crc, const uchar *ptr, size_t buf_len);      // returns 0 
 
 
 /// this adler stuff is linked to zlib stuff, i think
-ulong mz_adler32(uint32 adler, const uchar *ptr, size_t buf_len) {
+uint32 mz_adler32(uint32 adler, const uint8 *ptr, int64 buf_len) {
   if (!ptr) return 1; // MZ_ADLER32_INIT;
-  
-  uint32 i, s1= (uint32)(adler& 0xffff), s2= (uint32)(adler>> 16);
-  size_t block_len= buf_len% 5552;
+
+  int32 i;
+  uint32 s1= (uint32)(adler& 0xffff), s2= (uint32)(adler>> 16);
+  int64 block_len= buf_len% 5552;
   
   while(buf_len) {
     for(i= 0; i+ 7 < block_len; i+= 8, ptr+= 8) {
@@ -320,10 +321,11 @@ ulong mz_adler32(uint32 adler, const uchar *ptr, size_t buf_len) {
     
     
 // Karl Malbrain's compact CRC-32. See "A compact CCITT crc16 and crc32 C implementation that balances processor cache usage against speed"
-ulong mzPacker::crc32(uint32 crc, const uint8 *ptr, size_t buf_len) {
+uint32 mzPacker::crc32(uint32 crc, cvoid *dat, int64 buf_len) {
+  uint8 *ptr= (uint8 *)dat;
   static const uint32 s_crc32[16] = { 0,          0x1db71064, 0x3b6e20c8, 0x26d930ac, 0x76dc4190, 0x6b6b51f4, 0x4db26158, 0x5005713c,
                                       0xedb88320, 0xf00f9344, 0xd6d6a3e8, 0xcb61b38c, 0x9b64c2b0, 0x86d3d2d4, 0xa00ae278, 0xbdbdf21c };
-  uint32 crcu32 = (uint32)crc;
+  uint32 crcu32 = crc;
   if (!ptr) return 0; // MZ_CRC32_INIT;
   crcu32 = ~crcu32;
   while (buf_len--) {
@@ -344,8 +346,8 @@ ulong mzPacker::crc32(uint32 crc, const uint8 *ptr, size_t buf_len) {
 // ------------------- Low-level Decompression (completely independent from all compression API's)
 ///===============================================================================================
 
-#define _MEMCPY(d, s, l) for(size_t _a= 0; _a< (l); _a++) ((uchar*)d)[_a]= ((uchar *)s)[_a]  //memcpy(d, s, l)
-#define _MEMSET(p, c, l) for(size_t _a= 0; _a< (l); _a++) ((uchar*)p)[_a]= (c);              //memset(p, c, l)
+#define _MEMCPY(d, s, l) for(size_t _a= 0; _a< (l); _a++) ((uint8*)d)[_a]= ((uint8 *)s)[_a]  //memcpy(d, s, l)
+#define _MEMSET(p, c, l) for(size_t _a= 0; _a< (l); _a++) ((uint8*)p)[_a]= (c);              //memset(p, c, l)
 
 
 
@@ -657,10 +659,8 @@ common_exit:
     }
     r->m_check_adler32 = (s2 << 16) + s1;
     
-    printf("decomp adler32: %llu\n", r->m_check_adler32);
-    printf("adler32: %llu\n", r->m_z_adler32);
-    if((status == TINFL_STATUS_DONE) && (decomp_flags & TINFL_FLAG_PARSE_ZLIB_HEADER) && (r->m_check_adler32 != r->m_z_adler32))
-      status = TINFL_STATUS_ADLER32_MISMATCH;
+    if((status== TINFL_STATUS_DONE) && (decomp_flags& TINFL_FLAG_PARSE_ZLIB_HEADER) && (r->m_check_adler32!= r->m_z_adler32))
+      status= TINFL_STATUS_ADLER32_MISMATCH;
   }
   return status;
 }
@@ -1723,9 +1723,9 @@ void mzPacker::delData() {
 }
 
 mzPacker::~mzPacker() {
-  delete (uchar*)_partComp;
-  delete (uchar*)_partDecomp;
-  if(_inBuffer) delete[] _inBuffer;
+  delete (int8 *)_partComp;
+  delete (int8 *)_partDecomp;
+  if(_inBuffer)  delete[] _inBuffer;
   if(_outBuffer) delete[] _outBuffer;
   delData();
 }
@@ -1760,20 +1760,20 @@ void mzPacker::_mzPackerResults::delPartialData() {
 
 
 /// from miniz::deflateBound
-uint64 mzPacker::compressBound(uint64 srcSize) {
+int64 mzPacker::compressBound(int64 srcSize) {
   // This is really over conservative. (And lame, but it's actually pretty tricky to compute a true upper bound given the way tdefl's blocking works.)
-  uint64 a= 128+ (srcSize* 110)/ 100;
-  uint64 b= 128+ srcSize+ ((srcSize/ (31* 1024))+ 1)* 5;
+  int64 a= 128+ (srcSize* 110)/ 100;
+  int64 b= 128+ srcSize+ ((srcSize/ (31* 1024))+ 1)* 5;
   return (a> b)? a: b;
 }
 
 /// from miniz::inflateBound
-uint64 mzPacker::decompressBound(uint64 srcSize) {
+int64 mzPacker::decompressBound(int64 srcSize) {
   return compressBound(srcSize);
 }
 
 
-void mzPacker::setCompressionLevel(char c) {
+void mzPacker::setCompressionLevel(int8 c) {
   if(c< 0)
     c= 0;
   if(c> 10)
@@ -1786,7 +1786,7 @@ void mzPacker::setCompressionLevel(char c) {
 ///================///
 // COMPRESSION func //
 ///================///
-bool mzPacker::compress(const void *src, uint64 srcLen, void *out, uint64 outLen) {
+bool mzPacker::compress(const void *src, int64 srcLen, void *out, int64 outLen) {
 
   results.delData();    /// clear results; this struct holds useful return values after compression is done
   /// parameter check
@@ -1813,8 +1813,8 @@ bool mzPacker::compress(const void *src, uint64 srcLen, void *out, uint64 outLen
   comp.init(out, flags);
 
   // compression is done here ============-------------
-  size_t l1= srcLen;    /// l1 will hold the length of the source data to be compressed; will decrease when the data is compressed, indicating how much data was compressed
-  size_t l2= outLen;    /// l2 will hold the length of the output buffer that holds the compressed data; it will decrease after compression, indicating how much of the buffer size is left
+  size_t l1= (size_t)srcLen;    /// l1 will hold the length of the source data to be compressed; will decrease when the data is compressed, indicating how much data was compressed
+  size_t l2= (size_t)outLen;    /// l2 will hold the length of the output buffer that holds the compressed data; it will decrease after compression, indicating how much of the buffer size is left
 
   tdefl_status r= tdefl_compress(&comp, src, &l1, out, &l2, TDEFL_FINISH); // COMPRESSION func call <<<
   
@@ -1844,7 +1844,7 @@ bool mzPacker::compress(const void *src, uint64 srcLen, void *out, uint64 outLen
 ///==================///
 // DECOMPRESSION func //
 ///==================///
-bool mzPacker::decompress(const void *src, uint64 srcLen, void *out, uint64 outLen) {
+bool mzPacker::decompress(const void *src, int64 srcLen, void *out, int64 outLen) {
   results.delData();
   /// parameter check
   err= 0;
@@ -1855,8 +1855,8 @@ bool mzPacker::decompress(const void *src, uint64 srcLen, void *out, uint64 outL
 
 
   // decompressing is done here
-  size_t l1= srcLen;  /// holds the compressed data size - after decompression, this will decrease, indicating how much of the data was processed
-  size_t l2= outLen;  /// holds the output buffer size - after decompression, this will decrease, indicating how much it got filled
+  size_t l1= (size_t)srcLen;  /// holds the compressed data size - after decompression, this will decrease, indicating how much of the data was processed
+  size_t l2= (size_t)outLen;  /// holds the output buffer size - after decompression, this will decrease, indicating how much it got filled
 
   tinfl_decompressor decomp;  /// miniz decompression struct
   decomp.init();
@@ -1895,7 +1895,7 @@ bool mzPacker::decompress(const void *src, uint64 srcLen, void *out, uint64 outL
 // ---=== advanced decompiler ===--- //
 ///=================================///
 
-bool mzPacker::startAdvDecomp(size_t nrBytes, mzTarget srcType, cvoid *src, size_t srcLen, mzTarget outType, cvoid *out, size_t outLen) {
+bool mzPacker::startAdvDecomp(int64 nrBytes, mzTarget srcType, cvoid *src, int64 srcLen, mzTarget outType, cvoid *out, int64 outLen) {
   ((tinfl_decompressor *)_partDecomp)->init();
   results.delData();
   err= 0;
@@ -1911,12 +1911,12 @@ bool mzPacker::startAdvDecomp(size_t nrBytes, mzTarget srcType, cvoid *src, size
 
   // source type
   if(srcType== USR_BUFFER) {
-    _inUsr= (uchar *)src;
+    _inUsr= (uint8 *)src;
     _inUsrSize= srcLen;
-    _pIn= (uchar *)src;
+    _pIn= (uint8 *)src;
     _inSize= srcLen;
   } else {
-    if(!_inBuffer) _inBuffer= new uchar[MZ_BUFFER_SIZE];
+    if(!_inBuffer) _inBuffer= new uint8[MZ_BUFFER_SIZE];
     _pIn= _inBuffer;
     _inSize= MZ_BUFFER_SIZE;
   }
@@ -1931,12 +1931,12 @@ bool mzPacker::startAdvDecomp(size_t nrBytes, mzTarget srcType, cvoid *src, size
   
   // output type
   if(outType== USR_BUFFER) {                /// user buffer
-    _outUsr= (uchar *)out;
+    _outUsr= (uint8 *)out;
     _outUsrSize= outLen;
-    _pOut= (uchar *)out;
+    _pOut= (uint8 *)out;
     _outSize= outLen;
   } else {                                  /// everything else uses internal buffers as output
-    if(!_outBuffer) _outBuffer= new uchar[MZ_BUFFER_SIZE];
+    if(!_outBuffer) _outBuffer= new uint8[MZ_BUFFER_SIZE];
     _pOut= _outBuffer;
     _outSize= MZ_BUFFER_SIZE;
   }
@@ -1952,14 +1952,14 @@ bool mzPacker::startAdvDecomp(size_t nrBytes, mzTarget srcType, cvoid *src, size
 
 
 
-void *mzPacker::doAdvDecomp(size_t chunkSize, size_t *retLen) {
+void *mzPacker::doAdvDecomp(int64 chunkSize, int64 *retLen) {
   if(_nrBytes- _bytesProcessed== 0) { if(retLen) *retLen= 0; return null; }   // JOB DONE, return null
 
   results.delPartialData();
   err= 0;
 
-  size_t maxIn;
-  size_t inBufSize= (_inType== USR_BUFFER? _inUsrSize: MZ_BUFFER_SIZE);
+  int64 maxIn;
+  int64 inBufSize= (_inType== USR_BUFFER? _inUsrSize: MZ_BUFFER_SIZE);
 
   while(1) {
     /// how many bytes can be processed (max)
@@ -2031,8 +2031,8 @@ void *mzPacker::doAdvDecomp(size_t chunkSize, size_t *retLen) {
 
     } /// start or continue of a comp process
 
-    size_t s1= _inSize;
-    size_t s2= _outSize;
+    size_t s1= (size_t)_inSize;
+    size_t s2= (size_t)_outSize;
 
     tinfl_status r= tinfl_decompress((tinfl_decompressor *)_partDecomp, _pIn, &s1, (_outType== USR_BUFFER? _outUsr:_outBuffer), _pOut, &s2, 
                                    (_bAllIn? 0: TINFL_FLAG_HAS_MORE_INPUT)|   /// [in has all the source]
@@ -2108,7 +2108,7 @@ void *mzPacker::doAdvDecomp(size_t chunkSize, size_t *retLen) {
   if(retLen)
     *retLen= results.outFilled;
 
-  uchar *ret= null; /// this val is for ret++, down the if-else
+  uint8 *ret= null; /// this val is for ret++, down the if-else
 
   if(err)
     ret= null;
@@ -2126,7 +2126,7 @@ void *mzPacker::doAdvDecomp(size_t chunkSize, size_t *retLen) {
 // ---=== advanced compiler ===--- //
 ///===============================///
 
-bool mzPacker::startAdvComp(size_t nrBytes, mzTarget srcType, cvoid *src, size_t srcLen, mzTarget outType, cvoid *out, size_t outLen) {
+bool mzPacker::startAdvComp(int64 nrBytes, mzTarget srcType, cvoid *src, int64 srcLen, mzTarget outType, cvoid *out, int64 outLen) {
   // compressor init, based on compression level
   /// compression level [0 - 10]; avoid level 10: it's miniz's 'uber' compression
   if(compressionLevel< 0)  compressionLevel= 0;
@@ -2156,12 +2156,12 @@ bool mzPacker::startAdvComp(size_t nrBytes, mzTarget srcType, cvoid *src, size_t
 
   // source type
   if(srcType== USR_BUFFER) {
-    _inUsr= (uchar *)src;
+    _inUsr= (uint8 *)src;
     _inUsrSize= srcLen;
-    _pIn= (uchar *)src;
+    _pIn= (uint8 *)src;
     _inSize= srcLen;
   } else {
-    if(!_inBuffer) _inBuffer= new uchar[MZ_BUFFER_SIZE];
+    if(!_inBuffer) _inBuffer= new uint8[MZ_BUFFER_SIZE];
     _pIn= _inBuffer;
     _inSize= MZ_BUFFER_SIZE;
   }
@@ -2176,12 +2176,12 @@ bool mzPacker::startAdvComp(size_t nrBytes, mzTarget srcType, cvoid *src, size_t
   
   // output type
   if(outType== USR_BUFFER) {                /// user buffer
-    _outUsr= (uchar *)out;
+    _outUsr= (uint8 *)out;
     _outUsrSize= outLen;
-    _pOut= (uchar *)out;
+    _pOut= (uint8 *)out;
     _outSize= outLen;
   } else {                                  /// everything else uses internal buffers as output
-    if(!_outBuffer) _outBuffer= new uchar[MZ_BUFFER_SIZE];
+    if(!_outBuffer) _outBuffer= new uint8[MZ_BUFFER_SIZE];
     _pOut= _outBuffer;
     _outSize= MZ_BUFFER_SIZE;
   }
@@ -2197,14 +2197,14 @@ bool mzPacker::startAdvComp(size_t nrBytes, mzTarget srcType, cvoid *src, size_t
 
 
 
-void *mzPacker::doAdvComp(size_t chunkSize, size_t *retLen) {
+void *mzPacker::doAdvComp(int64 chunkSize, int64 *retLen) {
   if(_nrBytes- _bytesProcessed== 0) { if(retLen) *retLen= 0; return null; }   // JOB DONE, return null
 
   results.delPartialData();
   err= 0;
 
-  size_t maxIn;
-  size_t inBufSize= (_inType== USR_BUFFER? _inUsrSize: MZ_BUFFER_SIZE);
+  int64 maxIn;
+  int64 inBufSize= (_inType== USR_BUFFER? _inUsrSize: MZ_BUFFER_SIZE);
 
   while(1) {
     /// how many bytes can be processed (max)
@@ -2276,8 +2276,8 @@ void *mzPacker::doAdvComp(size_t chunkSize, size_t *retLen) {
 
     } /// start or continue of a comp process
 
-    size_t s1= _inSize;
-    size_t s2= _outSize;
+    size_t s1= (size_t)_inSize;
+    size_t s2= (size_t)_outSize;
 
     tdefl_status r= tdefl_compress((tdefl_compressor *)_partComp, _pIn, &s1, _pOut, &s2, _bAllIn? TDEFL_FINISH: TDEFL_NO_FLUSH);
 

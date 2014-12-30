@@ -1,3 +1,10 @@
+#ifdef _WIN32
+#ifndef _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+#endif
+
+
 //#include "OSinteraction.h"
 #include <stdio.h>
 
@@ -9,23 +16,23 @@
 
 // TGA file header
 struct TGAH {
-  uchar idlen;      // 1B imgDesc size
-  uchar cmapFlag;   // 1B tga has a cmap (true/false)
-  uchar imgType;    // 1B RGB/GREY/INDEX/ compressed(for all prev types)
-  short cmapOrig;   // 2B should always be 0; other values not handled / not shure why this even exists
-  short cmapLen;    // 2B pal size should be 256 only. bigger than this, just do a rgb16 image ffs
-  char cmapBpc;     // 1B bits per color 16 / 24 / 32 (512-1024 pal size)
-  ushort x0;        // 2B image x origin ... not shure if ever used
-  ushort y0;        // 2B image y origin ... not shure if ever used
-  ushort dx;        // 2B image width
-  ushort dy;        // 2B image height
-  uchar bpp;        // 1B 16 / 24 / 32
-  uchar imgDesc;    // 1B   TOTAl 18 + idlen
-  char *id;         // idlen
+  uint8 idlen;      // 1B imgDesc size
+  uint8 cmapFlag;   // 1B tga has a cmap (true/false)
+  uint8 imgType;    // 1B RGB/GREY/INDEX/ compressed(for all prev types)
+  int16 cmapOrig;   // 2B should always be 0; other values not handled / not shure why this even exists
+  int16 cmapLen;    // 2B pal size should be 256 only. bigger than this, just do a rgb16 image ffs
+  int8 cmapBpc;     // 1B bits per color 16 / 24 / 32 (512-1024 pal size)
+  uint16 x0;        // 2B image x origin ... not shure if ever used
+  uint16 y0;        // 2B image y origin ... not shure if ever used
+  uint16 dx;        // 2B image width
+  uint16 dy;        // 2B image height
+  uint8 bpp;        // 1B 16 / 24 / 32
+  uint8 imgDesc;    // 1B   TOTAl 18 + idlen
+  int8 *id;         // idlen
 
-  TGAH() { id= null; }
+  TGAH() { id= null; delData(); }
   ~TGAH() { delData(); }
-  void delData() { if(id) delete[] id; id= null; }
+  void delData() { if(id) delete[] id; id= null; idlen= cmapFlag= imgType= 0; cmapOrig= cmapLen= 0; cmapBpc= 0; x0= y0= dx= dy= 0; bpp= imgDesc= 0; }
 };
 
 
@@ -38,8 +45,8 @@ TGA::TGA() {
 
 
 void TGA::delData() {
-  if(bitmap)  delete[] (char *)bitmap;  bitmap= NULL;
-  if(cmap)    delete[] cmap;    cmap= NULL;
+  if(bitmap) delete[] (int8 *)bitmap; bitmap= NULL;
+  if(cmap)   delete[] cmap;           cmap= NULL;
   
   type= IMG_NONE;
   dx= dy= 0;
@@ -55,10 +62,10 @@ bool TGA::load(cchar *filename) {
   bool compressed= false;
   bool swap= false;
 
-  uchar *tb= null;
-  uchar t[4];
-  uchar h, n, c, swp;
-  short i;
+  uint8 *tb= null;
+  uint8 t[4];
+  uint8 h, n, c, swp;
+  int16 i;
   TGAH tgah;
   err= 0;
 
@@ -82,7 +89,7 @@ bool TGA::load(cchar *filename) {
   if(fread(&tgah.imgDesc,  1, 1, f)!= 1) goto ReadError;    /// 1B   TOTAL 18 + idlen
 
   if(tgah.idlen> 0) {
-    tgah.id= new char[tgah.idlen+ 1];
+    tgah.id= new int8[tgah.idlen+ 1];
     if(!tgah.id) { err= 4; delData(); fclose(f); return false; } // alloc failed
     if(fread(tgah.id, tgah.idlen, 1, f)!= 1)   /// tgah.idlen in size
       goto ReadError;
@@ -140,14 +147,14 @@ bool TGA::load(cchar *filename) {
 
   /// load palette for CMAP (color map palette)
   if(type== IMG_CMAP) {
-    uchar *tp;
-    uchar t[4];
+    uint8 *tp;
+    uint8 t[4];
     
-    cmap= new uchar[768];	if(!cmap) {err= 4; delData(); fclose(f); return false;}
+    cmap= new uint8[768]; if(!cmap) {err= 4; delData(); fclose(f); return false;}
     cmapBpp= 24;
 
     tp= cmap;
-    for(short a= 0; a< 256; a++) {
+    for(int16 a= 0; a< 256; a++) {
       if(fread(t, cmapBpp/ 8, 1, f)!= 1)  /// read color value to be multiplied
         goto ReadError;
 
@@ -164,14 +171,14 @@ bool TGA::load(cchar *filename) {
   
     
   /// bitmap memory alloc
-  bitmap= new char[dx* dy* c];
+  bitmap= new int8[dx* dy* c];
   if(!bitmap) { err= 4; delData(); fclose(f); return false;}
-  tb= (uchar *)bitmap;                    /// tb will 'walk' the bitmap
+  tb= (uint8 *)bitmap;                    /// tb will 'walk' the bitmap
 
   // not compressed TGA image
   if(!compressed) {
     if(type== IMG_RGBA|| type== IMG_RGB|| type== IMG_RGB16|| type== IMG_RGBA16) {
-      for(size_t a= 0; a< dx* dy; a++, tb+= c) {
+      for(int64 a= 0; a< dx* dy; a++, tb+= c) {
         if(fread(tb, c, 1, f)!= 1)        /// read BGR
           goto ReadError;
 
@@ -199,7 +206,7 @@ bool TGA::load(cchar *filename) {
 
   // compressed TGA image
   } else {
-    for(size_t a= 0; a< dx* dy;) {
+    for(int64 a= 0; a< dx* dy;) {
       if(fread(&h, 1, 1, f)!= 1)         // read chunk header
         goto ReadError;
 
@@ -212,17 +219,17 @@ bool TGA::load(cchar *filename) {
           goto ReadError;
 
         /// assign t to n pixels
-        for(short b= 0; b< n; b++) {
+        for(int16 b= 0; b< n; b++) {
           i= b* c;
-          for(short x= 0; x< c; x++)    /// for each pixel channel
+          for(int16 x= 0; x< c; x++)    /// for each pixel channel
             tb[i+ x]= t[x];
 
           /// swap BGR to RGB if neccesary
           if(swap) {
             if(bpp== 16) {
               // convert from [GGGBBBBB ARRRRRGG] to [RRRRRGGG GGBBBBBA]
-              uchar b1= (tb[i+ 1]<< 1)+ (tb[i]>> 7);  /// t[0]= RRRRRGG0+ 0000000G= RRRRRGGG
-              uchar b2= (tb[i]<< 1)+ (tb[i+ 1]>> 7);  /// t[1]= GGBBBBB0+ 0000000A= GGBBBBBA
+              uint8 b1= (tb[i+ 1]<< 1)+ (tb[i]>> 7);  /// t[0]= RRRRRGG0+ 0000000G= RRRRRGGG
+              uint8 b2= (tb[i]<< 1)+ (tb[i+ 1]>> 7);  /// t[1]= GGBBBBB0+ 0000000A= GGBBBBBA
               tb[i]= b1;
               tb[i+ 1]= b2;
             } else {
@@ -243,7 +250,7 @@ bool TGA::load(cchar *filename) {
         /// swap BGR to RBG
         if(swap) {
           if(bpp== 16) {
-            for(short x= 0; x< n; x++) {
+            for(int16 x= 0; x< n; x++) {
               i= x* c;
               // convert from [GGGBBBBB ARRRRRGG] to [RRRRRGGG GGBBBBBA]
               t[0]= (tb[i+ 1]<< 1)+ (tb[i]>> 7); /// t[0]= RRRRRGG0+ 0000000G= RRRRRGGG
@@ -254,7 +261,7 @@ bool TGA::load(cchar *filename) {
               tb[i+ 1]= t[1];
             }
           } else {
-            for(short x= 0; x< n; x++) {
+            for(int16 x= 0; x< n; x++) {
               i= x* c;
               swp= tb[i];
               tb[i]= tb[i+ 2];
@@ -344,26 +351,26 @@ bool TGA::save(cchar *filename) {
   fwrite(&tgah.bpp,       1, 1, f);	/// 1B
   fwrite(&tgah.imgDesc,   1, 1, f);	/// 1B    TOTAl 18 + idlen
   
-  int a, b;
+  
 
   if(type== IMG_CMAP) {             /// write palette
-    uchar *t= cmap;
-    for(a= 0; a< 256; a++)	{
-      for(b= 0; b< 3; b++)
+    uint8 *t= cmap;
+    for(uint a= 0; a< 256; a++)	{
+      for(int b= 0; b< 3; b++)
         fwrite(&t[2- b], 1, 1, f);  /// convert to BGR
       t+= 3;
     }
   }
 
-  uchar *t= (uchar*)bitmap;
+  uint8 *t= (uint8 *)bitmap;
 
   if(bpp== 8)
     fwrite(bitmap, dx* dy, 1, f);
 
   /// 16 bpp
   else if(bpp== 16) {
-    uchar b1, b2;
-    for(a= 0; a< dx* dy; a++) {
+    uint8 b1, b2;
+    for(int64 a= 0; a< dx* dy; a++) {
       // [RRRRRGGG GGBBBBBA] -> [GGGBBBBB ARRRRRGG]
       b1= (t[1]>> 1)+ (t[0]<< 7);
       b2= (t[0]>> 1)+ (t[1]<< 7);
@@ -375,8 +382,8 @@ bool TGA::save(cchar *filename) {
     }
   /// 24 & 32 bpp
   } else if(bpp== 24|| bpp== 32) {
-    for(a= 0; a< dx* dy; a++) {
-      for(b= 0; b< 3; b++)
+    for(int64 a= 0; a< dx* dy; a++) {
+      for(int b= 0; b< 3; b++)
         fwrite(&t[2- b], 1, 1, f);  /// convert RGB to BGR
       if(bpp== 32)                  /// write alpha channel if there is one
         fwrite(&t[3], 1, 1, f);
@@ -405,7 +412,7 @@ cchar *TGA::getError() {
 
 
 bool TGA::loadPalette(cchar *name) {
-  if(cmap==NULL) cmap= new uchar[768];
+  if(cmap==NULL) cmap= new uint8[768];
 
   FILE *f= fopen(name,"rb");
   if(!f) {

@@ -14,7 +14,7 @@ extern void getOTHERfuncs(osiRenderer *);
 void *glExtNULL(void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *, void *);
 
 
-
+using namespace Str;
 
 
 
@@ -218,7 +218,7 @@ osiRenderer::osiRenderer()
 
   #endif
 
-  short a;
+  int16 a;
   /// initial ARB list
   for(a= 0; _glARBlistEmpty[a].desc!= null; a++);     /// find out how big the list is
   glARBlist= new GlExt[a+ 1];
@@ -239,7 +239,7 @@ osiRenderer::osiRenderer()
 
   /// set all glExt funcs to point to the glExtNULL func (defined in osiGlExt.cpp)
   void **p= (void **)&glExt.glDrawRangeElements;      // glDrawRangeElements must be the first func in the structure
-  for(int a= 0; a< ((sizeof(glExt)- sizeof(char))/ sizeof(void *)); a++) {
+  for(int a= 0; a< ((sizeof(glExt)- sizeof(int8))/ sizeof(void *)); a++) {
     *p= (void*)&glExtNULL;
     p++;
   }
@@ -289,14 +289,14 @@ void osiRenderer::_getContextFuncs() {
   // more cleanup must be made. the nvidia/ati extensions don't work (or work for only 1 card)
   
   int major;
-  char buf[128];
-  cchar *ext;
+  uint8 buf[128];
+  cuint8 *ext;
   glGetIntegerv(GL_MAJOR_VERSION, &major);          /// oGL major version
   
   
   if(major< 3) {
-    ext= (cchar *)glGetString(GL_EXTENSIONS);       /// oGL extensions string
-    cchar *p= ext;
+    ext= (cuint8 *)glGetString(GL_EXTENSIONS);       /// oGL extensions string
+    cuint8 *p= ext;
     while(1) {
       
       /// parse 1 extension at a time
@@ -312,19 +312,19 @@ void osiRenderer::_getContextFuncs() {
 
 
       /// WGL_ARB_create_context #55 / WGL_ARB_create_context_profile #74 http://www.opengl.org/registry/specs/ARB/wgl_create_context.txt
-      if(!string8::strcmp(buf, glARBlist[54].desc) || !string8::strcmp(buf, "WGL_ARB_create_context_profile"))
+      if(!strcmp8(buf, glARBlist[54].desc) || !strcmp8(buf, "WGL_ARB_create_context_profile"))
       { glARBlist[54].avaible= 1; glARBlist[73].avaible= 1; }
       /// GLX_ARB_create_context #56 / GLX_ARB_create_context_profile #75 
-      if(!string8::strcmp(buf, glARBlist[55].desc) || !string8::strcmp(buf, "GLX_ARB_create_context_profile"))
+      if(!strcmp8(buf, glARBlist[55].desc) || !strcmp8(buf, "GLX_ARB_create_context_profile"))
       { glARBlist[55].avaible= 1; glARBlist[74].avaible= 1; }
       /// WGL_NV_gpu_affinity #355 http://www.opengl.org/registry/specs/NV/gpu_affinity.txt
-      if(!string8::strcmp(buf, glEXTlist[354].desc))
+      if(!strcmp8(buf, glEXTlist[354].desc))
         glEXTlist[354].avaible= 1;
       /// WGL_AMD_gpu_association #361 http://www.opengl.org/registry/specs/AMD/wgl_gpu_association.txt
-      if(!string8::strcmp(buf, glEXTlist[360].desc))
+      if(!strcmp8(buf, glEXTlist[360].desc))
         glEXTlist[360].avaible= 1;
       /// GLX_AMD_gpu_association #398 http://www.opengl.org/registry/specs/AMD/glx_gpu_association.txt
-      if(!string8::strcmp(buf, glEXTlist[397].desc))
+      if(!strcmp8(buf, glEXTlist[397].desc))
         glEXTlist[397].avaible= 1;
     } /// pass thru all extensions
 
@@ -336,29 +336,29 @@ void osiRenderer::_getContextFuncs() {
     glGetIntegerv(GL_NUM_EXTENSIONS, &max);
 
     for(short a= 0; a< max; a++) {
-      ext= (cchar *)glGetStringi(GL_EXTENSIONS, a);
+      ext= (cuint8 *)glGetStringi(GL_EXTENSIONS, a);
 
       /// WGL_ARB_create_context / WGL_ARB_create_context_profile http://www.opengl.org/registry/specs/ARB/wgl_create_context.txt
-      if(!string8::strcmp(ext, glARBlist[54].desc) || !string8::strcmp(ext, "WGL_ARB_create_context_profile"))
+      if(!strcmp8(ext, glARBlist[54].desc) || !strcmp8(ext, "WGL_ARB_create_context_profile"))
       { glARBlist[54].avaible= 1; glARBlist[73].avaible= 1; }
       /// GLX_ARB_create_context / GLX_ARB_create_context_profile 
-      if(!string8::strcmp(ext, glARBlist[55].desc) || !string8::strcmp(ext, "GLX_ARB_create_context_profile"))
+      if(!strcmp8(ext, glARBlist[55].desc) || !strcmp8(ext, "GLX_ARB_create_context_profile"))
       { glARBlist[55].avaible= 1; glARBlist[74].avaible= 1; }
       /// WGL_NV_gpu_affinity http://www.opengl.org/registry/specs/NV/gpu_affinity.txt
-      if(!string8::strcmp(ext, glEXTlist[354].desc))
+      if(!strcmp8(ext, glEXTlist[354].desc))
         glEXTlist[354].avaible= 1;
       /// WGL_AMD_gpu_association http://www.opengl.org/registry/specs/AMD/wgl_gpu_association.txt
-      if(!string8::strcmp(ext, glEXTlist[360].desc))
+      if(!strcmp8(ext, glEXTlist[360].desc))
         glEXTlist[360].avaible= 1;
       /// GLX_AMD_gpu_association
-      if(!string8::strcmp(ext, glEXTlist[397].desc))
+      if(!strcmp8(ext, glEXTlist[397].desc))
         glEXTlist[397].avaible= 1;
     }
   }
 
   #ifdef OS_WIN
   if(glARBlist[54].avaible)        /// #55 #74 !!! WGL_ARB_create_context !!! WGL_ARB_create_context_profile http://www.opengl.org/registry/specs/ARB/wgl_create_context.txt
-    getGlProc("wglCreateContextAttribsARB", glExt.wglCreateContextAttribsARB);
+    getGlProc("wglCreateContextAttribsARB", (void **)glExt.wglCreateContextAttribsARB);
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
@@ -368,25 +368,25 @@ void osiRenderer::_getContextFuncs() {
 
   #ifdef OS_WIN
   if(glEXTlist[354].avaible) {    /// #355 WGL_NV_gpu_affinity http://www.opengl.org/registry/specs/NV/gpu_affinity.txt
-    getGlProc("wglEnumGpusNV", glExt.wglEnumGpusNV);
-    getGlProc("wglEnumGpuDevicesNV", glExt.wglEnumGpuDevicesNV);
-    getGlProc("wglCreateAffinityDCNV", glExt.wglCreateAffinityDCNV);
-    getGlProc("wglEnumGpusFromAffinityDCNV", glExt.wglEnumGpusFromAffinityDCNV);
-    getGlProc("wglDeleteDCNV", glExt.wglDeleteDCNV);
+    getGlProc("wglEnumGpusNV", (void **)&glExt.wglEnumGpusNV);
+    getGlProc("wglEnumGpuDevicesNV", (void **)&glExt.wglEnumGpuDevicesNV);
+    getGlProc("wglCreateAffinityDCNV", (void **)&glExt.wglCreateAffinityDCNV);
+    getGlProc("wglEnumGpusFromAffinityDCNV", (void **)&glExt.wglEnumGpusFromAffinityDCNV);
+    getGlProc("wglDeleteDCNV", (void **)&glExt.wglDeleteDCNV);
   }
   #endif
 
   #ifdef OS_WIN
   if(glEXTlist[360].avaible) {    /// #361 WGL_AMD_gpu_association http://www.opengl.org/registry/specs/AMD/wgl_gpu_association.txt
-    getGlProc("wglGetGPUIDsAMD", glExt.wglGetGPUIDsAMD);
-    getGlProc("wglGetGPUInfoAMD", glExt.wglGetGPUInfoAMD);
-    getGlProc("wglGetContextGPUIDAMD", glExt.wglGetContextGPUIDAMD);
-    getGlProc("wglCreateAssociatedContextAMD", glExt.wglCreateAssociatedContextAMD);
-    getGlProc("wglCreateAssociatedContextAttribsAMD", glExt.wglCreateAssociatedContextAttribsAMD);
-    getGlProc("wglDeleteAssociatedContextAMD", glExt.wglDeleteAssociatedContextAMD);
-    getGlProc("wglMakeAssociatedContextCurrentAMD", glExt.wglMakeAssociatedContextCurrentAMD);
-    getGlProc("wglGetCurrentAssociatedContextAMD", glExt.wglGetCurrentAssociatedContextAMD);
-    getGlProc("wglBlitContextFramebufferAMD", glExt.wglBlitContextFramebufferAMD);
+    getGlProc("wglGetGPUIDsAMD", (void **)&glExt.wglGetGPUIDsAMD);
+    getGlProc("wglGetGPUInfoAMD", (void **)&glExt.wglGetGPUInfoAMD);
+    getGlProc("wglGetContextGPUIDAMD", (void **)&glExt.wglGetContextGPUIDAMD);
+    getGlProc("wglCreateAssociatedContextAMD", (void **)&glExt.wglCreateAssociatedContextAMD);
+    getGlProc("wglCreateAssociatedContextAttribsAMD", (void **)&glExt.wglCreateAssociatedContextAttribsAMD);
+    getGlProc("wglDeleteAssociatedContextAMD", (void **)&glExt.wglDeleteAssociatedContextAMD);
+    getGlProc("wglMakeAssociatedContextCurrentAMD", (void **)&glExt.wglMakeAssociatedContextCurrentAMD);
+    getGlProc("wglGetCurrentAssociatedContextAMD", (void **)&glExt.wglGetCurrentAssociatedContextAMD);
+    getGlProc("wglBlitContextFramebufferAMD", (void **)&glExt.wglBlitContextFramebufferAMD);
   }
   #endif
   #ifdef OS_LINUX
@@ -409,17 +409,18 @@ void osiRenderer::checkExt() {
   return;     // under mac, all extensions are avaible
   #endif
   bool chatty= true;
-  char buf[128];      /// hopefully extension names won't be bigger than 128... 
-  cchar *ext= null;
+  uint8 buf[128];      /// hopefully extension names won't be bigger than 128... 
+  cuint8 *ext= null;
 
   /// basic renderer characteristics
-  glVendor= (cchar *)glGetString(GL_VENDOR);                    /// graphics card vendor string
-  glRenderer= (cchar *)glGetString(GL_RENDERER);                /// oGL 'renderer' string
-  glVersion= (cchar *)glGetString(GL_VERSION);                  /// oGL version in a string format
+  glVendor= (cuint8 *)glGetString(GL_VENDOR);                    /// graphics card vendor string
+  glRenderer= (cuint8 *)glGetString(GL_RENDERER);                /// oGL 'renderer' string
+  glVersion= (cuint8 *)glGetString(GL_VERSION);                  /// oGL version in a string format
   glGetIntegerv(GL_MAJOR_VERSION, &glVerMajor);                 /// oGL major version
   glGetIntegerv(GL_MINOR_VERSION, &glVerMinor);                 /// oGL minor version
   glGetIntegerv(GL_MAX_TEXTURE_UNITS_ARB, &maxTexelUnits);      /// maximum texel units
   glGetIntegerv(GL_MAX_3D_TEXTURE_SIZE_EXT, &max3Dtexture);     /// maximum 3D texture size
+
   if(chatty) printf("context[%lld]\n", (long long)(this->glContext));
   //if(chatty) printf("GL extensions: %s\n", glGetString(GL_EXTENSIONS));
   if(chatty) printf("Vendor Name: %s\n", glVendor.d);
@@ -432,15 +433,15 @@ void osiRenderer::checkExt() {
   /// OpenGL 2.x and less
   if(glVerMajor< 3) {
     /// there are 2 extensions for windows and linux, but they do the same thing: a big string with all supported extensions
-    ext= (cchar *)glGetString(GL_EXTENSIONS);
-    cchar *p= ext;
+    ext= (cuint8 *)glGetString(GL_EXTENSIONS);
+    cuint8 *p= ext;
 
     if(!p) return;  // fail to aquire the string... very unlikely
 
     while(1) {
-
+      
       /// parse 1 extension at a time
-      for(short a= 0; a< 128; a++) {
+      for(int16 a= 0; a< 128; a++) {
         if(*p== ' ' || *p== '\0') {  /// extension delimiter or end of string
           buf[a]= 0;
           break;
@@ -451,19 +452,19 @@ void osiRenderer::checkExt() {
       } /// for each character in current ext string
 
       /// search the ARB list
-      int i= searchARB(this, buf);
+      int i= searchARB(this, (cchar *)buf);
       if(i != -1) {
         glARBlist[i].avaible= true;           /// found it in ARB
 
       /// search EXT list
       } else {
-        i= searchEXT(this, buf);
+        i= searchEXT(this, (cchar *)buf);
         if(i != -1) {
           glEXTlist[i].avaible= true;         /// found it in EXT
 
         /// search OTHER list
         } else {
-          i= searchOTHER(this, buf);
+          i= searchOTHER(this, (cchar *)buf);
           if(i != -1) {
             glOTHERlist[i].avaible= true;     /// found it in OTHER
 
@@ -487,22 +488,22 @@ void osiRenderer::checkExt() {
     glGetIntegerv(GL_NUM_EXTENSIONS, &max);
 
     for(short a= 0; a< max; a++) {
-      ext= (cchar *)glGetStringi(GL_EXTENSIONS, a);
+      ext= (cuint8 *)glGetStringi(GL_EXTENSIONS, a);
 
       /// search ARB list
-      i= searchARB(this, ext);
+      i= searchARB(this, (cchar *)ext);
       if(i != -1) {
         glARBlist[i].avaible= true;           /// found it in ARB
 
       /// search EXT list
       } else {
-        i= searchEXT(this, ext);
+        i= searchEXT(this, (cchar *)ext);
         if(i != -1) {
           glEXTlist[i].avaible= true;         /// found it in EXT list
 
         /// search OTHER list
         } else {
-          i= searchOTHER(this, ext);
+          i= searchOTHER(this, (cchar *)ext);
           if(i != -1) {
             glOTHERlist[i].avaible= true;     /// found it in OTHER list
 
@@ -540,23 +541,23 @@ void osiRenderer::getExtFuncs() {
 /// [internal] searches for specified extension's array index, returns -1 if not found 
 int searchARB(osiRenderer *r, cchar *s) {
   for(short a= 0; r->glARBlist[a].desc!= null; a++)   /// pass thru r's ARB extensions
-    if(!string8::strcmp(r->glARBlist[a].desc, s))     /// found
+    if(!strcmp8(r->glARBlist[a].desc, s))     /// found
       return a;
 
-  if(!string8::strcmp("GLX_ARB_multisample", s)) return 4;
-  if(!string8::strcmp("WGL_ARB_multisample", s)) return 4;
-  if(!string8::strcmp("GLX_ARB_vertex_buffer_object", s)) return 27;
-  if(!string8::strcmp("WGL_ARB_pixel_format_float", s)) return 38;
-  if(!string8::strcmp("GLX_ARB_fbconfig_float", s)) return 38;
-  if(!string8::strcmp("GLX_ARB_framebuffer_sRGB", s)) return 45;
-  if(!string8::strcmp("WGL_ARB_framebuffer_sRGB", s)) return 45;
-  //if(!string8::strcmp("WGL_ARB_create_context_profile", s)) return 54;
-  //if(!string8::strcmp("GLX_ARB_create_context_profile", s)) return 55;
-  if(!string8::strcmp("GL_ARB_robustness_share_group_isolation", s)) return 125;
-  if(!string8::strcmp("GLX_ARB_robustness_share_group_isolation", s)) return 141;
-  if(!string8::strcmp("WGL_ARB_robustness_share_group_isolation", s)) return 142;
-  if(!string8::strcmp("GLX_ARB_context_flush_control", s)) return 167;
-  if(!string8::strcmp("WGL_ARB_context_flush_control", s)) return 167;
+  if(!strcmp8("GLX_ARB_multisample", s)) return 4;
+  if(!strcmp8("WGL_ARB_multisample", s)) return 4;
+  if(!strcmp8("GLX_ARB_vertex_buffer_object", s)) return 27;
+  if(!strcmp8("WGL_ARB_pixel_format_float", s)) return 38;
+  if(!strcmp8("GLX_ARB_fbconfig_float", s)) return 38;
+  if(!strcmp8("GLX_ARB_framebuffer_sRGB", s)) return 45;
+  if(!strcmp8("WGL_ARB_framebuffer_sRGB", s)) return 45;
+  //if(!strcmp8("WGL_ARB_create_context_profile", s)) return 54;
+  //if(!strcmp8("GLX_ARB_create_context_profile", s)) return 55;
+  if(!strcmp8("GL_ARB_robustness_share_group_isolation", s)) return 125;
+  if(!strcmp8("GLX_ARB_robustness_share_group_isolation", s)) return 141;
+  if(!strcmp8("WGL_ARB_robustness_share_group_isolation", s)) return 142;
+  if(!strcmp8("GLX_ARB_context_flush_control", s)) return 167;
+  if(!strcmp8("WGL_ARB_context_flush_control", s)) return 167;
 
   return -1;                                          /// not found (if reached this point)
 }
@@ -564,39 +565,39 @@ int searchARB(osiRenderer *r, cchar *s) {
 /// [internal] searches for specified extension's array index, returns -1 if not found
 int searchEXT(osiRenderer *r, cchar *s) {
   for(short a= 0; r->glEXTlist[a].desc!= null; a++)   /// pass thru r's EXT extensions
-    if(!string8::strcmp(r->glEXTlist[a].desc, s))     /// found
+    if(!strcmp8(r->glEXTlist[a].desc, s))     /// found
       return a;
 
-  if(!string8::strcmp("GL_SGIX_pixel_texture", s)) return 14;
-  if(!string8::strcmp("GLX_SGIS_multisample", s)) return 24;
-  if(!string8::strcmp("GLX_SGIX_dmbuffer", s)) return 85;
-  if(!string8::strcmp("GLX_SGIS_color_range", s)) return 114;
-  if(!string8::strcmp("GLX_EXT_scene_marker", s)) return 119;
-  if(!string8::strcmp("GL_SUN_multi_draw_arrays", s)) return 147;
-  if(!string8::strcmp("GLX_3DFX_multisample", s)) return 206;
-  if(!string8::strcmp("WGL_3DFX_multisample", s)) return 206;
-  if(!string8::strcmp("WGL_EXT_multisample", s)) return 208;
-  if(!string8::strcmp("GL_SGIX_vertex_preclip_hint", s)) return 209;
-  if(!string8::strcmp("WGL_NV_float_buffer", s)) return 280;
-  if(!string8::strcmp("GLX_NV_float_buffer", s)) return 280;
-  if(!string8::strcmp("WGL_EXT_pixel_format_packed_float", s)) return 327;
-  if(!string8::strcmp("GLX_EXT_fbconfig_packed_float", s)) return 327;
-  if(!string8::strcmp("GL_NV_texture_compression_latc", s)) return 330;
-  if(!string8::strcmp("GLX_EXT_framebuffer_sRGB", s)) return 336;
-  if(!string8::strcmp("WGL_EXT_framebuffer_sRGB", s)) return 336;
-  if(!string8::strcmp("GLX_NV_present_video", s)) return 346;
-  if(!string8::strcmp("WGL_NV_present_video", s)) return 346;
-  if(!string8::strcmp("GLX_NV_video_capture", s)) return 373;
-  if(!string8::strcmp("WGL_NV_video_capture", s)) return 373;
-  if(!string8::strcmp("WGL_NV_copy_image", s)) return 375;
-  if(!string8::strcmp("GLX_NV_copy_image", s)) return 375;
-  if(!string8::strcmp("GL_NV_gpu_program_fp64", s)) return 387;
-  if(!string8::strcmp("GLX_NV_multisample_coverage", s)) return 392;
-  if(!string8::strcmp("WGL_NV_multisample_coverage", s)) return 392;
-  if(!string8::strcmp("GLX_EXT_create_context_es2_profile", s)) return 398;
-  if(!string8::strcmp("WGL_EXT_create_context_es2_profile", s)) return 399;
-  if(!string8::strcmp("GL_NV_blend_equation_advanced_coherent", s)) return 432;
-  if(!string8::strcmp("GL_KHR_blend_equation_advanced_coherent", s)) return 457;
+  if(!strcmp8("GL_SGIX_pixel_texture", s)) return 14;
+  if(!strcmp8("GLX_SGIS_multisample", s)) return 24;
+  if(!strcmp8("GLX_SGIX_dmbuffer", s)) return 85;
+  if(!strcmp8("GLX_SGIS_color_range", s)) return 114;
+  if(!strcmp8("GLX_EXT_scene_marker", s)) return 119;
+  if(!strcmp8("GL_SUN_multi_draw_arrays", s)) return 147;
+  if(!strcmp8("GLX_3DFX_multisample", s)) return 206;
+  if(!strcmp8("WGL_3DFX_multisample", s)) return 206;
+  if(!strcmp8("WGL_EXT_multisample", s)) return 208;
+  if(!strcmp8("GL_SGIX_vertex_preclip_hint", s)) return 209;
+  if(!strcmp8("WGL_NV_float_buffer", s)) return 280;
+  if(!strcmp8("GLX_NV_float_buffer", s)) return 280;
+  if(!strcmp8("WGL_EXT_pixel_format_packed_float", s)) return 327;
+  if(!strcmp8("GLX_EXT_fbconfig_packed_float", s)) return 327;
+  if(!strcmp8("GL_NV_texture_compression_latc", s)) return 330;
+  if(!strcmp8("GLX_EXT_framebuffer_sRGB", s)) return 336;
+  if(!strcmp8("WGL_EXT_framebuffer_sRGB", s)) return 336;
+  if(!strcmp8("GLX_NV_present_video", s)) return 346;
+  if(!strcmp8("WGL_NV_present_video", s)) return 346;
+  if(!strcmp8("GLX_NV_video_capture", s)) return 373;
+  if(!strcmp8("WGL_NV_video_capture", s)) return 373;
+  if(!strcmp8("WGL_NV_copy_image", s)) return 375;
+  if(!strcmp8("GLX_NV_copy_image", s)) return 375;
+  if(!strcmp8("GL_NV_gpu_program_fp64", s)) return 387;
+  if(!strcmp8("GLX_NV_multisample_coverage", s)) return 392;
+  if(!strcmp8("WGL_NV_multisample_coverage", s)) return 392;
+  if(!strcmp8("GLX_EXT_create_context_es2_profile", s)) return 398;
+  if(!strcmp8("WGL_EXT_create_context_es2_profile", s)) return 399;
+  if(!strcmp8("GL_NV_blend_equation_advanced_coherent", s)) return 432;
+  if(!strcmp8("GL_KHR_blend_equation_advanced_coherent", s)) return 457;
 
   return -1;
 }
@@ -604,7 +605,7 @@ int searchEXT(osiRenderer *r, cchar *s) {
 /// [internal] searches for specified extension's array index, returns -1 if not found
 int searchOTHER(osiRenderer *r, cchar *s) {
   for(short a= 0; r->glOTHERlist[a].desc!= null; a++) /// pass thru r's OTHER extensions
-    if(!string8::strcmp(r->glOTHERlist[a].desc, s))     /// found
+    if(!strcmp8(r->glOTHERlist[a].desc, s))     /// found
       return a;
 
   return -1;                                          /// not found (if reached this point)
