@@ -1,61 +1,36 @@
 #include "osinteraction.h"
-#include "imgUtil.h"
+//#include <X11/extensions/Xrender.h> // -lXrender
 
-// TOP PRIORITY vvvvvvvvvvvvvvvvvvvvvvv
-/*
-  http://developer.download.nvidia.com/devzone/devcenter/gamegraphics/files/OptimusRenderingPolicies.pdf
-
-  Global Variable NvOptimusEnablement (new in Driver Release 302)
-
-  Starting with the Release 302 drivers, application developers can direct the Optimus
-driver at runtime to use the High Performance Graphics to render any application–even
-those applications for which there is no existing application profile. They can do this by
-exporting a global variable named NvOptimusEnablement. The Optimus driver looks for
-the existence and value of the export. Only the LSB of the DWORD matters at this time. A
-value of 0x00000001 indicates that rendering should be performed using High
-Performance Graphics. A value of 0x00000000 indicates that this method should be
-ignored.
-
-Example Usage:
-
-extern "C" {
-  _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
-}
-
-*/ 
-
-// TOP PRIORITY ^^^^^^^^^^^^^^^^^^^
-
-// Create a 'probe' context on each monitor, see what it (OpenGL) returns (a product ID or something)
-//^^^^^^^^^^^^^^^
 
 /* TODO:
- *  *** PRIORITY 0 *** - INSTALL 2 IDENTICAL GRCARDS, TO SEE IF THE STRING RETURNED BY WINDOWS IS THE SAME.
+ *  *** PRIORITY 0 *** - INSTALL 2 IDENTICAL GRCARDS, TO SEE IF THE STRING RETURNED BY WINDOWS IS THE SAME. <<< IT IS THE SAME, QUIT YELLING, scrape that, use direct3d >>>
  *                       MUST TEST ON LINUX TOO, SO MAYBE AFTER LINUX IS INSTALLED
+ * - [renderer] - there have to be some setting to request a renderer per window or per graphics card (default) or just 1, or manual
+   - [renderer] - there have to be a request for a specific oGL version
+   - [renderer] - there have to be a createRenderer func, customized, for to be asigned to specific windows
+   - [renderer] - special oGL window (hidden)+ renderer, that are specialized only for graphics card mathematical computations (use the grcard as another CPU)
+ * - [linux][mac] - optimus enablement (windows ver should just work)
  * - [mac] callback system for the HIDs is not gonna work. need to make an 'event' system, and in.update() must update the variables
  *         from that event system. If a variable is being updated while another part of the program reads from it?
  *         if(j.x== bla) { [update happens] j.x is a diff thing, you still do code with j.x @ start position. BUGS HAPPEN here , espetially when dealing with the logging system}
  * 
  * - [mac] better glMakeCurrent func, with the coreGl mac stuff << MAX PRIORITY
  * -xx [mac] threads !!!SCRAPE?! why: std::threads adopted in c++11, which is already needed xx
- * - [mac] set an icon for the window;  [win] WHEN dealing with icons, must remember to develop WM_GETICON too
- *          linux exe's don't have icons :( - http://linuxcritic.wordpress.com/2010/04/07/anatomy-of-a-desktop-file/ 
+ * - [mac] set an icon for the window;
+ * - [mac] processMSG is using functions for each event - it can EASILY be made into 1 big func like on the other OSes
+ *   [linux] exe's don't have icons :( - http://linuxcritic.wordpress.com/2010/04/07/anatomy-of-a-desktop-file/ a clever .desktop must be autocreated
  * - [win] gamepad vibration under directinput (it is possible) & force feedback (MUST HAVE A VIBRATION GAMEPAD FIRST...)
  * - [mac] create a loading window, in the center of the screen? eventually to have image of the game
  * - more todo's in osiInput.cpp
  * - [mac] program command line (argv / getCommandLine) 
  * LOWER PRIORITY:
+ * - [all]: mouse cursor change - there should be multiple mouse cursors that can be initialized and fast-set from, and a func that just changes the mouse based on data
+ * - [linux]: multiple screens handling? this might be a thing of the past, tho (multiple screens)
  * - [linux]: input: using Str8 strings to read from certain files. should do a Str32, when a new Str::format is done
  * - [linux]: transparent splash window
- * - [all] HIDs: a bool for (_bGrabbed) is done for sticks... (partially, not fully done), maybe this bGrabbed should be a big important flag
- *               that osiInput checks when in.update() is called, for any HID... and if the OS has funcs for the current mode, use them
- *               dunno what to say... or if the app has focus, just silently use the grab/ungrab mechanism...
- *               this 'grabbing' concept is kinda fuzzy for me, so more thinking on the matter must be done, and all HIDs should use only 1 system
- *               now, there's grabbing for some hids, it's a mess
  * - [all] mouse 'grabbing' is not that easy. using the system 'grab' funcs will not work on multiple windows
  *         therefore, the mouse cursor must be 'kept' inside the bounds of the created windows...
  *         if the windows have a monitor gap between them, the cursor must jump over the gap. VERY HARD <<<<<
- * - [linux] XLock/UnlockDisplay() - keep an eye on, somewhere some locks might be needed? dunno VERY LOW PRIO
  * - [linux][mac] LINUX NOT FOUND prevent screensaver/ monitor low power
  * - [linux][mac] LINUX NOT FOUND what happens on sleep? should be handled like 'app lose focus', or better, another flag, as the app must pause or something (some dont pause on app focus)
  * - [mac] windowfocus flag. it's there, but not updated at all
@@ -66,7 +41,8 @@ extern "C" {
  * 
  * - [win][linux][mac] joystick, wheel (BUY THEM first)
  *
- * - [linux] test monitors on duplicate (on mirror, on whatever crap the os calls them)
+ * - [linux] monitors on duplicate are not handled atm. maybe a duplicate flag must be set, and both monitors with the same coords, must change res
+ *           or something with monitors with the same crtc -> bla bla
  *
  * - window to change a monitor without problems (unplug?)
  *    but on multiple monitor mode, mark it as closed? something like this... notify the program somehow, so a rearrangement will be done
@@ -164,14 +140,15 @@ _NET_CLOSE_WINDOW
 
 
 #ifdef OS_WIN
+/// NVidia optimus http://developer.download.nvidia.com/devzone/devcenter/gamegraphics/files/OptimusRenderingPolicies.pdf
+extern "C" { _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001; }
+#endif
+
+#ifdef OS_WIN
 #define IDI_LARGE 100
 #define IDI_SMALL 101
-#define OSI_ICON_LARGE "icon_64.ico"
+#define OSI_ICON_LARGE "icon_64.ico" /// <<< set an executable icon from here (windows)
 #define OSI_ICON_SMALL "icon_64.ico"
-
-//IDI_PROJECTNAME	ICON	"icon_64.ico"
-
-//IDI_SMALL	ICON	"small.ico"
 #endif /// OS_WIN
 
 
@@ -201,6 +178,8 @@ osinteraction::osinteraction() {
   primWin= null;
   
   glr= null;
+  argv= null;
+  argc= 0;
 
   #ifdef OS_WIN
   QueryPerformanceFrequency(&_timerFreq);   /// read cpu frequency. used for high performance timer (querryPerformanceBlaBla)
@@ -234,15 +213,35 @@ osinteraction::osinteraction() {
   
   /// command line
   cmdLine.delData();
+  
   FILE *f= fopen("/proc/self/cmdline", "rb");
   if(f) {
-    uint32 uni;
-    while(fread(&uni, 4, 1, f))
-      cmdLine+= uni;
-    
+    uint8 c;
+    /// string length
+    int32 l= 0;
+    while(fread(&c, 1, 1, f))
+      l++;
     fclose(f);
+    
+    /// read what's in file (unknown format - i found out that it can be either utf8 or utf32, probly many more, but not dealing with those)
+    uint8 *buf= new uint8[l+ 1];
+    Str::memclr(buf, l+ 1);
+    
+    f= fopen("/proc/self/cmdline", "rb");
+    fread(buf, l, 1, f);
+    fclose(f);
+    
+    Str8 utf8(buf);
+    /// if string length is less than 2 chars, there's a problem (not a utf8 string, probly ... hopefully)
+    if(utf8.len<= 2) {
+      
+      /// if the string length is divided by 4, it can be utf-32. if actually is not utf-32... well, shit happens i guess
+      if(!(l% 4)) 
+        cmdLine= (uint32 *)buf;
+    } else cmdLine= utf8;
+    
+    delete[] buf;
   }
-  
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
@@ -257,11 +256,16 @@ osinteraction::osinteraction() {
 
 
 osinteraction::~osinteraction() {
+  display.restoreAllRes();
   if(argv) {
-    for(int a= 0; a< argc; a++)
-      if(argv[a]) delete[] argv[a];
+    for(int a= 0; a< argc; a++) {
+      if(argv[a])
+        delete[] argv[a];
+    }
     delete[] argv;
   }
+  argv= null;
+  argc= 0;
 
   #ifdef OS_LINUX
 // it seems system already destroys the display/windows and calling any of these causes segmentation error
@@ -276,8 +280,8 @@ osinteraction::~osinteraction() {
 
 void osinteraction::delData() {
   /// destroy every window. kinda useless...
-  for(short a= 0; a< MAX_WINDOWS; a++)
-    if(win[a].isCreated) win[a].delData();
+  //for(short a= 0; a< MAX_WINDOWS; a++)
+    //if(win[a].isCreated) win[a].delData();
 }
 
 
@@ -293,7 +297,7 @@ void _parseCmdLine(osinteraction *o) {
   o->argc= 1;    /// allways at least 1
   
   bool apostrophe= false, quote= false;
-  for(int a= 0; a< o->cmdLine.len; a++) {
+  for(int a= 0; a< o->cmdLine.nrChars; a++) {
     uint32 c= s.d[a];                /// c will hold the current character
 
     /// quotes - everything under will be 1 cmd argument
@@ -329,7 +333,7 @@ void _parseCmdLine(osinteraction *o) {
   int n= 0;                     /// current argument number (max = argc)
   apostrophe= quote= false;     /// if under a quote or doublequote, whitespaces are ignored
 
-  for(int a= 0; a< s.len+ 1; a++) {
+  for(int a= 0; a< s.nrChars+ 1; a++) {
     uint32 c= s.d[a];
     
     /// quotes - everything under will be 1 cmd argument
@@ -455,8 +459,11 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
   w->freq= freq;
   if(!primWin) primWin= w;                          /// if no primary window is set, this will be the primary
   
+  printf("win x[%d] y[%d], monitor x[%d] y[%d]\n", w->x0, w->y0, m->x0, m->y0);
+  
   #ifdef OS_WIN
-
+  
+          
   GLuint PixelFormat;   // Holds The Results After Searching For A Match
   WNDCLASS wc;          // Windows Class Structure
   DWORD dwExStyle;      // Window Extended Style
@@ -694,7 +701,7 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
                  GLX_GREEN_SIZE, 8,
                  GLX_BLUE_SIZE, 8,
                  GLX_ALPHA_SIZE, 8,
-                 GLX_DEPTH_SIZE, XDefaultDepth(_dis, 0),
+                 GLX_DEPTH_SIZE, 24,
                  (dblBuffer? GLX_DOUBLEBUFFER: 0),
                  None };
   
@@ -708,7 +715,7 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
       w->dy= m->dy;
       mode= 3;
     }
-
+  
   w->mode= mode;
 
   w->_vi= glXChooseVisual(w->_dis, m->_screen, att);
@@ -775,8 +782,9 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
   }
   
   /// fullscreen mode linux specific msgs settings
-  if((mode== 2) || (mode== 3) || (mode== 4))
+  if((mode== 2) || (mode== 3) || (mode== 4)) {
     w->_setWMstate(1, "_NET_WM_STATE_FULLSCREEN");
+  }
   
   /// Fullscreen window on all monitors - MODE 4. Needs XInerama only for monitor IDs (wich sucks, as Xrandr should handle this little aspect)
   if(mode== 4) {
@@ -817,7 +825,7 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
   }
 
   
-  // glMakeCurrent(w);                         // osi variant. works on every OS
+  glMakeCurrent(w);                         // osi variant. works on every OS
 
   ///  handle the close button WM
   if(w== primWin) {
@@ -832,8 +840,9 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
   w->glr->checkExt();           /// checks for extension avaibility on this oGL renderer
   w->glr->getExtFuncs();        /// once a window is created, getExtensions() aquires oGL extensions functions
   
-  w->show();                    /// map window= finish creation/ show window
   
+  w->show();                    /// map window= finish creation/ show window
+  w->move(w->x0, w->y0);
   
   return true;
 
@@ -934,8 +943,8 @@ bool osinteraction::createSplashWindow(osiWindow *w, osiMonitor *m, cchar *file)
   }
   
   /// window attributes
-  w->dx= dx;
-  w->dy= dy;
+  w->dx= dx+ 20;
+  w->dy= dy+ 20;
   w->x0= m->x0+ ((m->dx- w->dx)/ 2);
   w->y0= m->y0+ ((m->dy- w->dy)/ 2);
   w->name= "Splash Window";
@@ -1053,9 +1062,9 @@ Fail:
   
   /// if _NET_WM_WINDOW_TYPE_SPLASH is not working, overide redirect should work
   swa.override_redirect= 0;                           // window manager can't touch the window - this is very hard to handle if true
-  
+  swa.background_pixmap = None;
+  swa.border_pixmap = None;
   swa.border_pixel= 0;
-  swa.background_pixel= 0;
   
   static XVisualInfo vi;
   w->_vi= &vi;
@@ -1064,7 +1073,7 @@ Fail:
   
   w->_root= m->_root;
   w->_dis= _dis;
-  w->_win= XCreateWindow(_dis, w->_root, w->x0, w->y0, w->dx, w->dy, 0, w->_vi->depth, CopyFromParent, w->_vi->visual, CWEventMask| CWOverrideRedirect| CWBorderPixel | CWBackPixel, &swa);
+  w->_win= XCreateWindow(_dis, w->_root, w->x0, w->y0, w->dx, w->dy, 0, w->_vi->depth, CopyFromParent, w->_vi->visual, CWEventMask| CWOverrideRedirect| CWBorderPixel | CWBackPixmap, &swa);
   w->_isMapped= true;
   w->isCreated= true;
   
@@ -1124,12 +1133,21 @@ Fail:
   }
   
   w->_img= XCreateImage(_dis, XDefaultVisual(_dis, 0), XDefaultDepth(_dis, 0), ZPixmap, 0, (char *)w->_imgData, dx, dy, 32, 0);
-  w->_gc= XCreateGC(_dis, /*w->_win*/ XRootWindow(_dis, 0), 0, null);
+  
+  // try transparent 8bit pixmap - no time now. the gc functions, they all are crap. -->clipmap to a pixmap<-- (hopefully is not 0 and 1 only)
+  // http://stackoverflow.com/questions/10513367/xlib-draw-only-set-bits-of-a-bitmap-on-a-window
+      
+  // the defaults just work. if nothing can be done with clipmap, xrender extension shure can, but is more unnecesary code
+  XGCValues gcval;
+  Str::memclr(&gcval, sizeof(gcval));
+  gcval.background= 0;
+  gcval.function= GXcopy;
+  
+  w->_gc= XCreateGC(_dis, w->_root, GCFunction, &gcval);
   
   XPutImage(_dis, w->_win, w->_gc, w->_img, 0, 0, 0, 0, dx, dy);
   
-  osi.checkMSG();
-  
+    
   //GC gc= XCreateGC(_dis, w->_win, 0, null);
   
   //GC gcpix;
@@ -1291,7 +1309,6 @@ osiWindow *osinteraction::getWin(void *w) {
 // -------------------------------------
 #ifdef OS_WIN
 LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
-
   ///===================================================
   // return 0 is faster than defWindowProc(what goto ret does)
   // it would work good for fullscreen/windowed fullscreen, but in windowed mode
@@ -1305,6 +1322,9 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
   osiWindow *w;           /// window that received the message
 //  WINDOWPOS *tw;          /// used for window position change messages
 
+  /// set flags down 
+  osi.flags.windowResized= false;
+  
   if(timeFunc) osi.getNanosecs(&start);
 
   int mb= 0;
@@ -1341,49 +1361,49 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         goto ret;
 
       } else if(m== WM_LBUTTONDOWN) {                                       /// left mouse button
-        osi.getMillisecs(&in.m.b[0].timeStart);
-        in.m.b[0].down= true;
+        osi.getMillisecs(&in.m.but[0].timeStart);
+        in.m.but[0].down= true;
 
         //if(chatty) printf("mouse: l button pressed\n");
         goto ret; //return 0;
 
       } else if(m== WM_LBUTTONUP) {
-        in.m.b[0].lastTimeStart= in.m.b[0].timeStart;
-        osi.getMillisecs(&in.m.b[0].lastTimeEnded);
-        in.m.b[0].lastDT= in.m.b[0].lastTimeEnded- in.m.b[0].lastTimeStart;
-        in.m.b[0].down= false;
+        in.m.but[0].lastTimeStart= in.m.but[0].timeStart;
+        osi.getMillisecs(&in.m.but[0].lastTimeEnded);
+        in.m.but[0].lastDT= in.m.but[0].lastTimeEnded- in.m.but[0].lastTimeStart;
+        in.m.but[0].down= false;
 
         //if(chatty) printf("mouse: l button released\n");
         goto ret; //return 0;
 
       } else if(m== WM_RBUTTONDOWN) {                                       /// right mouse button
-        osi.getMillisecs(&in.m.b[1].timeStart);
-        in.m.b[1].down= true;
+        osi.getMillisecs(&in.m.but[1].timeStart);
+        in.m.but[1].down= true;
 
         //if(chatty) printf("mouse: r button pressed\n");
         goto ret; //return 0;
 
       } else if(m== WM_RBUTTONUP) {
-        in.m.b[1].lastTimeStart= in.m.b[1].timeStart;
-        osi.getMillisecs(&in.m.b[1].lastTimeEnded);
-        in.m.b[1].lastDT= in.m.b[1].lastTimeEnded- in.m.b[1].lastTimeStart;
-        in.m.b[1].down= false;
+        in.m.but[1].lastTimeStart= in.m.but[1].timeStart;
+        osi.getMillisecs(&in.m.but[1].lastTimeEnded);
+        in.m.but[1].lastDT= in.m.but[1].lastTimeEnded- in.m.but[1].lastTimeStart;
+        in.m.but[1].down= false;
 
         //if(chatty) printf("mouse: r button released\n");
         goto ret; //return 0;
 
       } else if(m== WM_MBUTTONDOWN) {                                       /// middle mouse button
-        osi.getMillisecs(&in.m.b[2].timeStart);
-        in.m.b[2].down= true;
+        osi.getMillisecs(&in.m.but[2].timeStart);
+        in.m.but[2].down= true;
 
         //if(chatty) printf("mouse: m button pressed\n");
         goto ret; //return 0;
 
       } else if(m== WM_MBUTTONUP) {
-        in.m.b[2].lastTimeStart= in.m.b[2].timeStart;
-        osi.getMillisecs(&in.m.b[2].lastTimeEnded);
-        in.m.b[2].lastDT= in.m.b[2].lastTimeEnded- in.m.b[2].lastTimeStart;
-        in.m.b[2].down= false;
+        in.m.but[2].lastTimeStart= in.m.but[2].timeStart;
+        osi.getMillisecs(&in.m.but[2].lastTimeEnded);
+        in.m.but[2].lastDT= in.m.but[2].lastTimeEnded- in.m.but[2].lastTimeStart;
+        in.m.but[2].down= false;
 
         //if(chatty) printf("mouse: m button released\n");
         goto ret; //return 0;
@@ -1396,33 +1416,33 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 
       } else if(m== WM_XBUTTONDOWN) {
         if(GET_XBUTTON_WPARAM(wParam)== XBUTTON1) {                         /// button 4 press
-          osi.getMillisecs(&in.m.b[3].timeStart);
-          in.m.b[3].down= true;
+          osi.getMillisecs(&in.m.but[3].timeStart);
+          in.m.but[3].down= true;
 
           //if(chatty) printf("mouse: button 4 pressed\n");
           goto ret; //return 0;
         } 
         if(GET_XBUTTON_WPARAM(wParam)== XBUTTON2) {                         /// button 5 press
-          osi.getMillisecs(&in.m.b[4].timeStart);
-          in.m.b[4].down= true;
+          osi.getMillisecs(&in.m.but[4].timeStart);
+          in.m.but[4].down= true;
 
           //if(chatty) printf("mouse: button 5 pressed\n");
           goto ret; //return 0;
         }
       } else if(m== WM_XBUTTONUP) {
         if(GET_XBUTTON_WPARAM(wParam)== XBUTTON1) {                         /// button 4 release
-          in.m.b[3].lastTimeStart= in.m.b[3].timeStart;
-          in.m.b[3].lastTimeEnded= osi.eventTime;
-          osi.getMillisecs(&in.m.b[3].lastTimeEnded);
-          in.m.b[3].down= false;
+          in.m.but[3].lastTimeStart= in.m.but[3].timeStart;
+          in.m.but[3].lastTimeEnded= osi.eventTime;
+          osi.getMillisecs(&in.m.but[3].lastTimeEnded);
+          in.m.but[3].down= false;
           //if(chatty) printf("mouse: button 4 released\n");
           goto ret; //return 0;
 
         } else if(GET_XBUTTON_WPARAM(wParam)== XBUTTON2) {                  /// button 5 release
-          in.m.b[4].lastTimeStart= in.m.b[4].timeStart;
-          osi.getMillisecs(&in.m.b[4].lastTimeEnded);
-          in.m.b[4].lastDT= in.m.b[4].lastTimeEnded- in.m.b[4].lastTimeStart;
-          in.m.b[4].down= false;
+          in.m.but[4].lastTimeStart= in.m.but[4].timeStart;
+          osi.getMillisecs(&in.m.but[4].lastTimeEnded);
+          in.m.but[4].lastDT= in.m.but[4].lastTimeEnded- in.m.but[4].lastTimeStart;
+          in.m.but[4].down= false;
           //if(chatty) printf("mouse: button 5 released\n");
           goto ret; //return 0;
         }
@@ -1445,7 +1465,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 
         int code= GETBYTE2UINT32(lParam);
         uint vcode= (uint)wParam;
-        osiKeyboard::KeyPressed k;
+        osiKeyboard::osiKeyLog k;
 
         /// left/ right ALT/CONTROL/SHIFT distingush
         if(wParam== VK_SHIFT)   code= (GetKeyState(VK_RSHIFT)& 0x80)?   in.Kv.rshift: in.Kv.lshift;
@@ -1516,7 +1536,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
           }
         /// in case the key was not found in history, add a hist-log with insta-keydown-keyup
         if(!found)  {
-          osiKeyboard::KeyPressed k;
+          osiKeyboard::osiKeyLog k;
           k.code= code;
           k.checked= false;
           k.timeDown= osi.eventTime- 1;   /// 1 milisecond before the keyup
@@ -1555,11 +1575,11 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
     case WM_ACTIVATEAPP:
       if(wParam== 1) {                     // ---=== application GAINS focus ===---
         /// if any HIDs are using exclusive mode, aquire it
-        in.m.aquire();
-        in.k.aquire();
+        in.m.activate();
+        in.k.activate();
         for(short a= 0; a< 20; a++)       /// pass thru all sticks
-          if(in.j[a].active)
-            in.j[a].aquire();
+          if(in.j[a].isActive())
+            in.j[a].grab();
 
         /// change resolution in case of fullscreen
         for(short a= 0; a< MAX_WINDOWS; a++) 
@@ -1583,11 +1603,11 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         osi.flags.haveFocus= false;       /// set flag, first
 
         /// if any HIDs are using exclusive mode, unaquire it
-        in.m.unaquire();
-        in.k.unaquire();
+        in.m.unactivate();
+        in.k.unactivate();
         for(short a= 8; a< 20; a++)      /// direct input & xinput sticks unaquire
-          if(in.j[a].active)
-            in.j[a].unaquire();
+          if(in.j[a].isActive())
+            in.j[a].ungrab();
 
         /// in case of alt-tab all current pressed buttons must be reset
         in.resetPressedButtons();
@@ -1617,11 +1637,11 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 
       // ---=== system ENTERING suspend mode ===---
       if(wParam== PBT_APMSUSPEND) {
-        osi.flags.systemInSuspend= true;
+        // osi.flags.systemInSuspend= true; // NO LINUX VARIANT - MIGHT GET SCRAPED
 
       // ---=== system EXITING suspend mode ===---
       } else if(wParam== PBT_APMRESUMESUSPEND || wParam== PBT_APMRESUMEAUTOMATIC || wParam== PBT_APMRESUMECRITICAL) {
-        osi.flags.systemInSuspend= false;
+        // osi.flags.systemInSuspend= false; // NO LINUX VARIANT - MIGHT GET SCRAPED
       }
       goto ret;
 
@@ -1757,7 +1777,10 @@ bool osinteraction::_processMSG()  {
   bool ret= false;                        /// return value. initially false - if a message is processed, ret= true;
   XEvent event;
   osiWindow *w= null;
-
+  
+  /// set all flags down
+  flags.windowResized= false;
+    
   while(XPending(_dis)) {                 /// while there are messages in queue, loop thru them
     XNextEvent(_dis, &event);
     ret= true;                            /// if a message is processed, return value is true
@@ -1798,8 +1821,8 @@ bool osinteraction::_processMSG()  {
       } else                                  /// the rest of buttons are located after the mouse wheel
         a= event.xbutton.button- 3;
 
-      in.m.b[a].down= true;
-      in.m.b[a].timeStart= eventTime;
+      in.m.but[a].down= true;
+      in.m.but[a].timeStart= eventTime;
       continue;
 
     // -------------============ BUTTON RELEASE ===============-----------------
@@ -1822,16 +1845,16 @@ bool osinteraction::_processMSG()  {
       } else                                  /// the rest of buttons are located after the mouse wheel
         a= event.xbutton.button- 3;
 
-      if(in.m.b[a].down) {                    /// an alt-bab might mess stuff...
-        in.m.b[a].lastTimeStart= in.m.b[a].timeStart;
-        in.m.b[a].lastTimeEnded= eventTime;
-        in.m.b[a].lastDT= in.m.b[a].lastTimeEnded- in.m.b[a].lastTimeStart;
+      if(in.m.but[a].down) {                    /// an alt-bab might mess stuff...
+        in.m.but[a].lastTimeStart= in.m.but[a].timeStart;
+        in.m.but[a].lastTimeEnded= eventTime;
+        in.m.but[a].lastDT= in.m.but[a].lastTimeEnded- in.m.but[a].lastTimeStart;
       } else {                                /// an alt-tab? might mess stuff
-        in.m.b[a].lastTimeEnded= eventTime;
-        in.m.b[a].lastTimeStart= eventTime- 1;
-        in.m.b[a].lastDT= 1;
+        in.m.but[a].lastTimeEnded= eventTime;
+        in.m.but[a].lastTimeStart= eventTime- 1;
+        in.m.but[a].lastDT= 1;
       }
-      in.m.b[a].down= false;
+      in.m.but[a].down= false;
 
       continue;
 
@@ -1871,8 +1894,8 @@ bool osinteraction::_processMSG()  {
       /// if this is a real key press, log it and set vars
       if(!repeat) {
         if(chatty) printf("key PRESS code=%d \n", code);
-        osiKeyboard::KeyPressed k;
-
+        osiKeyboard::osiKeyLog k;
+        
         /// log the key
         k.code= code;
         k.checked= false;
@@ -1926,7 +1949,7 @@ bool osinteraction::_processMSG()  {
       
       /// in case the key was not found in history, add a hist-log with insta-keydown-keyup
       if(!found)  {
-        osiKeyboard::KeyPressed k;
+        osiKeyboard::osiKeyLog k;
         k.code= code;
         k.checked= false;
         k.timeUp= eventTime;
@@ -1954,11 +1977,33 @@ bool osinteraction::_processMSG()  {
       if(!event.xexpose.count) {
         w= _getWin(&event.xexpose.window);
       
-        if(w->_img && w->_isSplashWindow)
-          XPutImage(_dis, w->_win, w->_gc, w->_img, 0, 0, 0, 0, w->dx, w->dy);
+        if(w) {
+          if(w->_img && w->_isSplashWindow)
+            XPutImage(_dis, w->_win, w->_gc, w->_img, 0, 0, 0, 0, w->dx, w->dy);
         
-        if(w->_isMapped)
-          XGetWindowAttributes(_dis, w->_win, &w->_gwa); // update gwa window size / attributes
+          if(w->_isMapped)
+            XGetWindowAttributes(_dis, w->_win, &w->_gwa); // update gwa window size / attributes
+
+//          if(w->mode== 1|| w->mode== 2|| w->mode== 3|| w->mode== 4)   // in case windows get on other monitors after alt-tab, this might be needed
+//            w->move(w->x0, w->y0);
+
+          /// after alt-tab or on window start, this is needed to raise the window over the taskbar
+          if(w->mode== 2|| w->mode== 3) {
+            //w->move(w->x0, w->y0);
+            //w->resize(w->dx, w->dy);
+            //w->move(w->x0, w->y0+ 10);
+            if(flags.haveFocus) {
+              w->_setWMstate(1, "_NET_WM_STATE_FULLSCREEN");
+              w->_setWMstate(1, "_NET_WM_STATE_ABOVE");
+              w->_setWMstate(0, "_NET_WM_STATE_BELOW");
+              XRaiseWindow(_dis, w->_win);                  // this is a must <<<<<<<<<<<
+            } else {
+              w->_setWMstate(0, "_NET_WM_STATE_FULLSCREEN");
+              w->_setWMstate(0, "_NET_WM_STATE_ABOVE");
+              w->_setWMstate(1, "_NET_WM_STATE_BELOW");
+            }
+          }
+        }
       }
       
       if(chatty) printf("Expose event [%s]\n", (event.xexpose.count> 0? "partial redraw - IGNORED": (cchar *)w->name.d));
@@ -1977,7 +2022,7 @@ bool osinteraction::_processMSG()  {
       w= _getWin(&event.xmap.event);
       w->_isMapped= true;
       if(chatty) printf("Window [%s] mapped\n", w->name.d);
- 
+      
       continue;
       
     // -------------=========== UNMAP NOTIFY EVENT ============-----------------
@@ -2014,38 +2059,50 @@ bool osinteraction::_processMSG()  {
     /// once a window is mapped, it is in the hands of WM (window manager)
     /// so use only window manager messages ("_NET_BLABLA")
     } else if(event.type == FocusIn) { // these are spammed
-      if(chatty) printf("focusIn\n");
-
       if(event.xfocus.mode== NotifyNormal) {
+        
         w= _getWin(&event.xfocus.window);
         if(w) w->hasFocus= true;
         
         if(flags.haveFocus) {                    // ignore if already focused
-          if(chatty) printf("FocusIn:IGNORED: xchange focus between internal program windows\n");
+          if(chatty) printf("FocusIn IGNORED: xchange focus between internal program windows\n");
           continue;
         }
-
-      if(chatty) printf("FocusIn:NotifyNormal, haveFocus=%d\n", flags.haveFocus);
-
-        /// fullscreen
-        if(primWin->mode== 2|| primWin->mode== 3|| primWin->mode== 4)
-          for(short a= 0; a< MAX_WINDOWS; a++)  /// for each (created) window
-            if(win[a].isCreated) {
-              /// [mode 2] resolution change
-              if(win[a].mode== 2) {
-                if(chatty) printf("Changing resolution for window [%d]\n", a);
-                display.changeRes(win[a].monitor, win[a].dx, win[a].dy, win[a].bpp, win[a].freq);
-              }
-              /// set the window 'on top' of everything
-              win[a]._setWMstate(1, "_NET_WM_STATE_ABOVE");
-              win[a]._setWMstate(0, "_NET_WM_STATE_BELOW");
-              //setFullScreen(&win[a], true); // THIS IS A POSSIBILITY
-            } /// is window created
-
+        
+        /// aplication gained focus
         flags.minimized= false;
         flags.haveFocus= true;
+        
+        /*
+        /// call every HID's init (if there's one)
+        in.m.aquire();
+        in.k.aquire();
+        for(short a= 0; a< 20; a++)
+          if(in.j[a].active)
+            in.j[a].aquire();
+        */
+        
+        
+        /// fullscreen only: change all monitors resolutions to program resolutions
+        for(short a= 0; a< MAX_WINDOWS; a++)
+          if(win[a].isCreated && win[a].mode== 2)
+            display.changeRes(win[a].monitor, win[a].dx, win[a].dy, win[a].bpp, win[a].freq);
+        
+        /// fullscreen only: set all windows in front of everything
+        for(short a= 0; a< MAX_WINDOWS; a++)
+          if(win[a].isCreated)
+            if(win[a].mode== 2 || win[a].mode== 3 || win[a].mode== 4) {
+              if(win[a].mode== 2) win[a].move(win[a].x0, win[a].y0);              // maybe this might be needed
+              win[a]._setWMstate(1, "_NET_WM_STATE_FULLSCREEN");
+              win[a]._setWMstate(1, "_NET_WM_STATE_ABOVE");
+              win[a]._setWMstate(0, "_NET_WM_STATE_BELOW");
+              XRaiseWindow(_dis, w->_win);                        // this is a must <<<<<<<<<<<
+            }
+        
+        if(chatty) printf("FocusIn:NotifyNormal[%s]\n", w->name.d);
       } /// NotifyNormal
-
+      else if(chatty) printf("FocusIn: NOT NOTIFY NORMAL -NOT HANDLED\n");
+      
       continue;
 
     // -------------=============== FOCUS OUT =================-----------------
@@ -2054,8 +2111,6 @@ bool osinteraction::_processMSG()  {
     /// so use only window manager messages ("_NET_BLABLA")
     /// XIconify i think uses WM messages, so it works
     } else if(event.type == FocusOut) { // these are spammed
-      if(chatty) printf("focusOut\n");
-
       if(event.xfocus.mode== NotifyNormal) {      /// it can be a grab or something
         w= _getWin(&event.xfocus.window);
         if(w) w->hasFocus= false;
@@ -2071,36 +2126,48 @@ bool osinteraction::_processMSG()  {
           }
         }
 
-        if(chatty) printf("FocusOut:NotifyNormal, haveFocus=%d\n", flags.haveFocus);
-
         if(!flags.haveFocus)                      /// ignore if already not focused
           continue;
-
-        /// fullscreen
-        if(primWin->mode== 2|| primWin->mode== 3|| primWin->mode== 4)
-          for(short a= 0; a< MAX_WINDOWS; a++)     /// for each (created) window
-            if(win[a].isCreated) {
-              /// set the window 'below' every other windows
-              win[a]._setWMstate(0, "_NET_WM_STATE_ABOVE");
-              win[a]._setWMstate(1, "_NET_WM_STATE_BELOW");
-              // setFullScreen(&win[a], false); // THIS IS A PosiBILITY
-
-              /// [mode 2] resolution change & window iconification
-              if(win[a].mode== 2) {
-                if(chatty) printf("Changing to original resolution for window [%d]\n", a);
-                XIconifyWindow(_dis, win[a]._win, win[a].monitor->_screen);
-                display.restoreRes(win[a].monitor);
-                flags.minimized= true;
-              }
-            } /// if window is created
-        
-        /// clear every button / key buffer / fix history for every button
-        in.k.clearTypedBuffer();
-        in.resetPressedButtons();
         
         flags.haveFocus= false;
-      } /// if FocusOut:NotifyNormal
-
+        
+        /// in case of alt-tab all current pressed buttons must be reset
+        in.resetPressedButtons();
+        
+        /// call every HID's uninit (if there's one)
+        /*
+        in.m.unaquire();
+        in.k.unaquire();
+        for(short a= 0; a< 20; a++)
+          if(in.j[a].active)
+            in.j[a].unaquire();
+        */
+        
+        /// fullscreen only: minimize window / set it to below every other window 
+        for(short a= 0; a< MAX_WINDOWS; a++)
+          if(win[a].isCreated) {
+            if(win[a].mode== 2) {
+              XIconifyWindow(_dis, win[a]._win, win[a].monitor->_screen); /// the only way so far to put fullscreen windows to the background
+              flags.minimized= true;
+              
+            } else if(win[a].mode== 3 || win[a].mode== 4) {
+              w->_setWMstate(0, "_NET_WM_STATE_FULLSCREEN"); // this works, but temporary makes the window a normal window, with controls...
+              //XLowerWindow(_dis, win[a]._win);                   // !!! i think this is bugged, it doesn't allow for focus out !!!
+              win[a]._setWMstate(0, "_NET_WM_STATE_ABOVE");
+              win[a]._setWMstate(1, "_NET_WM_STATE_BELOW");   /// set the window 'below' every other windows
+            }
+          }
+        
+        /// fullscreen only: restore monitor resolutions (in case of mode 2)
+        for(short a= 0; a< MAX_WINDOWS; a++)
+          if(win[a].isCreated && win[a].mode== 2) {
+            display.restoreAllRes();
+            break;
+          }
+        if(chatty) printf("FocusOut:NotifyNormal[%s]\n", (w? (cchar *)w->name.d: "unknown"));
+      } else /// if FocusOut:NotifyNormal
+        if(chatty) printf("FocusOut: NOT NotifyNormal, NOT HANDLED\n");
+      
       continue;
 
     // -------------============ CLOSE BUTTON PRESS ===========-----------------
@@ -2113,7 +2180,7 @@ bool osinteraction::_processMSG()  {
 
     // -------------============== DESTROY NOTIFY =============-----------------
     } else if(event.type == DestroyNotify) {
-      error.simple("destroy notify not handled");
+      
       continue;
 
     } else if(event.type == CirculateNotify) {
@@ -2123,10 +2190,10 @@ bool osinteraction::_processMSG()  {
       
     // -----------============ WINDOW POSITION AND SIZE ============------------
     } else if(event.type== ConfigureNotify) {
-      
+      bool floodChatty= false;
       w= _getWin(&event.xconfigure.window);
-      if(!w) { if(chatty) printf("ConfigureNotify on unknown window\n"); continue; }
-      
+      if(!w) { if(floodChatty) printf("ConfigureNotify on unknown window\n"); continue; }
+     
       /// update the window only when dealing with a windowed ... window ...
       if(!w->_isSplashWindow && w->mode== 1) {
         if((event.xconfigure.width!= w->dx) || (event.xconfigure.height!= w->dy))
@@ -2137,7 +2204,7 @@ bool osinteraction::_processMSG()  {
         w->dx= event.xconfigure.width;
         w->dy= event.xconfigure.height;
       }
-      if(chatty) printf("ConfigureNotify[%s]: x[%d] y[%d] dx[%d] dy[%d] win->y0[%d]\n", w->name.d, event.xconfigure.x, event.xconfigure.y, event.xconfigure.width, event.xconfigure.height, w->y0);
+      if(floodChatty) printf("ConfigureNotify[%s]: x[%d] y[%d] dx[%d] dy[%d] win->y0[%d]\n", w->name.d, event.xconfigure.x, event.xconfigure.y, event.xconfigure.width, event.xconfigure.height, w->y0);
       
     } else {
       //XFlush(_dis); // why flush msgs? pass thru all, right?
@@ -2367,7 +2434,7 @@ void osinteraction::clocks2millisecs(uint64 *out) {
 
 void osinteraction::sleep(uint64 millisecs) {
   #ifdef OS_WIN
-  makeme
+  Sleep((DWORD)millisecs);
   #endif /// OS_WIN
   
   #ifdef OS_LINUX
@@ -2379,7 +2446,7 @@ void osinteraction::sleep(uint64 millisecs) {
   #endif
 
   #ifdef OS_MAC
-  makeme
+  cocoa.sleep((int)millisecs);
   #endif /// OS_MAC
 }
 

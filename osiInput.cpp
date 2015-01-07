@@ -31,7 +31,19 @@ struct js_event {
 void checkGamepadType(osiGamePad *p);  // it is found in the gamepad area, at the end
   
 /* TODO:
-
+ * 
+ * [all] grab=/= aquire; there's active too... 
+ *       grab for mouse= cursor can't get out of windows boundaries
+ *       grab for keyboard= exclusive control DANGEROUS - maybe avoid it
+ *       grab for sticks= this should be default, as only 1 program can read the stick
+ *       aquired for mouse= active / check what init's must be done (set the grabbing, etc)
+ *       aquired for keyboard= active / check what inits must be done (set the grabbing, etc)
+ *       aquired for sticks= active / check what inits must be done (set the grabbing, etc)
+ *    
+ *       maybe aquire ---> activate??
+ * 
+ *       but, there should be either aquired or active. NOT BOTH
+ * 
  * [all]more mouse funcs- showCursor, a grab function that doesn't allow for the cursor to exit the windows (this is not very easy, if the monitors are weirdly positioned, but it is usefull)
  *        but, the mouse position can be checked against some boxes, if not in any box (window/ desktop window) then move it back
  * [maybe] buttons to be on 32 bit integers? 1<< a is button a? good for copy-ing, 
@@ -51,7 +63,8 @@ void checkGamepadType(osiGamePad *p);  // it is found in the gamepad area, at th
  * 
  * [linux] Input::populate() joystick name might be null
  *
- * [maybe] buttons to be on 32 bit integers? 1<< a is button a? good for copy-ing, 
+ * [maybe] buttons to be on 32 bit integers? 1<< a is button a? good for copy-ing
+ *         what happens with the keyboard? int256? int64 * 4? this needs further thinking
  */
 
 
@@ -313,6 +326,9 @@ void osiInput::delData() {
 bool osiInput::init(int mMode, int kMode) {
   m.mode= (int8)mMode;
   k.mode= (int8)kMode;
+  k.activate();
+  m.activate();
+  
   #ifdef OS_WIN
   #ifdef USING_DIRECTINPUT
   if(!_dInput)
@@ -390,6 +406,7 @@ bool osiInput::init(int mMode, int kMode) {
 
 /// this func can be called any time to scan for joysticks/pads/wheels; >>> note, it has a big drag of 5-10 millisecs!!! <<<
 bool jConnected[8];
+bool _HIDdisconnected= false;
 void osiInput::populate(bool scanMouseKeyboard) {
   /// debug
   bool chatty= false;
@@ -649,6 +666,7 @@ skipWinOSsearch:
       /// update numbers
       in.nr.jT2--;    in.nr.gpT2--;    in.nr.gwT2--;
       in.nr.jFound--; in.nr.gpFound--; in.nr.gwFound--;
+      _HIDdisconnected= true;
     }
   }
 
@@ -700,6 +718,8 @@ skipWinOSsearch:
         /// update sticks numbers
         nr.jT3--;    nr.gpT3--;    nr.gwT3--;
         nr.jFound--; nr.gpFound--; nr.gwFound--;
+        _HIDdisconnected= true;
+        
         if(chatty) printf("XInput controller %d DISCONNECTED\n", a);
       }
     }
@@ -797,6 +817,13 @@ void osiInput::update() {
   bool timer= false;    /// debug
   if(timer) osi.getNanosecs(&start);
   
+  /// set flags
+  if(_HIDdisconnected) {
+    _HIDdisconnected= false;
+    osi.flags.HIDlostConnection= true;
+  } else
+    osi.flags.HIDlostConnection= false;
+  
   /// scan for joysticks every second (? maybe 2 secs or 3?)
   // DISABLED ATM. can be enabled under linux (must check timer times)
   #ifdef OS_LINUX
@@ -824,13 +851,13 @@ void osiInput::update() {
   /// update system handled sticks/pads/wheels
   if(nr.jOS)
     for(short a= 0; a< 8; a++)
-      if(j[a].active)
+      if(j[a]._bActive)
         j[a].update();
   
   /// update [type 2] sticks/pads/wheels
   if(nr.jT2)
     for(short a= 8; a< 16; a++)
-      if(j[a].active)
+      if(j[a]._bActive)
         j[a].update();
   
 
@@ -838,7 +865,7 @@ void osiInput::update() {
   /// update [type 3] sticks/pads/wheels
   if(nr.jT3)
     for(short a= 16; a< 20; a++)
-      if(j[a].active)
+      if(j[a]._bActive)
         j[a].update();
 
   if(timer) osi.getNanosecs(&end);
@@ -872,6 +899,9 @@ osiMouse::osiMouse() {
   mode= 1;
   x= y= dx= dy= oldx= oldy= wheel= 0;
   _twheel= 0;      /// used with wheel position, internal
+  _bActive= false;
+  _bGrabbed= false;
+  
   #ifdef OS_WIN
   #ifdef USING_DIRECTINPUT
   _diDevice= null;
@@ -890,7 +920,8 @@ void osiMouse::delData() {
   mode= 1;
   _twheel= 0;
   x= y= dx= dy= oldx= oldy= wheel= 0;
-
+  _bActive= _bGrabbed= false;
+  
   #ifdef OS_WIN
   #ifdef USING_DIRECTINPUT
   if(_diDevice) {
@@ -906,12 +937,14 @@ void osiMouse::delData() {
 
 bool osiMouse::init(int8 mode) {
   delData();
+
   this->mode= mode;
+  
   if(mode== 1) {          /// no init required atm
-    return true;
+    return activate(); 
   }
   if(mode== 2) {          /// no init required atm
-    return true;
+    return activate();
   }
 
   if(mode== 3) {
@@ -939,26 +972,126 @@ bool osiMouse::init(int8 mode) {
       return false;
     }
 
-    return true;		/// reached this point, returns a success
+    return activate();  /// reached this point, returns a success
     #endif /// USING_DIRECTINPUT
     #endif /// OS_WIN
   }
   return false;     /// this point is reaced-> fail
 }
 
+
+bool osiMouse::activate() {
+  if(!osi.primWin) { _bActive= false; return false; }
+  _bActive= true;
   
+  /// any init is done here
+  #ifdef OS_WIN
+  #ifdef USING_DIRECTINPUT
+  if(mode== 3)
+    if(_diDevice->Acquire()!= DI_OK) {
+      _bActive= false;
+      return false;
+    }
+  #endif /// USING_DIRECTINPUT
+  #endif /// OS_WIN
+
+  /// if mouse is set to be grabbed, grab it here
+  if(_bGrabbed)
+    return grab();
+  
+  return true;
+}
+
+
+bool osiMouse::unactivate() {
+  if(!osi.primWin) { _bActive= false; return false; }
+  _bActive= false;  
+  
+  /// any uninit is done here
+  #ifdef OS_WIN
+  #ifdef USING_DIRECTINPUT
+  if(mode== 3)
+    if(_diDevice->Unacquire()!= DI_OK)
+      return false;
+  #endif
+  #endif /// OS_WIN
+
+  
+  /// if grabbed, ungrab it
+  if(_bGrabbed)
+    return ungrab();
+  
+  return true;
+}
+
+/// grab exclusive control of the mouse (if possible)
+bool osiMouse::grab() {
+  _bGrabbed= true;
+  
+  /* THIS GRABS ONLY FOR 1 WINDOW. A SPECIAL GRAB MUST BE DONE TO ALLOW THE MOUSE TO ROAM ALL THE WINDOWS
+  #ifdef OS_LINUX
+  if(mode== 1) {
+    XGrabPointer(osi._dis, osi.primWin->_win,
+                 True,              // send events or not
+                 ButtonPressMask| ButtonReleaseMask| PointerMotionMask,
+                 GrabModeSync,      // pointer - GrabMode[Async/Sync]
+                 GrabModeSync,      // keyboard- GrabMode[Async/Sync]
+                 osi.primWin->_win, // confine cursor to a window
+                 None,              // mouse cursor (graphics)
+                 CurrentTime);
+    return true;
+  }
+  #endif /// OS_LINUX
+  */
+
+  return true;
+}
+
+
+/// release exclusive control of the mouse
+bool osiMouse::ungrab() {
+  _bGrabbed= false;
+  
+  /* THIS WORKS ONLY FOR 1 WINDOW
+  #ifdef OS_LINUX
+  if(mode== 1)
+    XUngrabPointer(osi._dis, CurrentTime);
+  #endif
+  */
+  return true;
+}
+
+
+void osiMouse::setPos(int _x, int _y) {
+  #ifdef OS_WIN
+  SetCursorPos(_x, osi.display.vdy- _y);
+
+  #endif /// OS_WIN
+  
+  #ifdef OS_LINUX
+  XWarpPointer(osi._dis, None, None, 0, 0, 0, 0, _x, osi.display.vdy- _y);
+  #endif /// OS_LINUX
+  
+  #ifdef OS_MAC
+  makeme
+  #endif /// OS_MAC
+}
+
+
+
+
 
 // ########################## MOUSE UPDATE ##############################
 // when not using default MODE 1, call this func to update mouse vars - or better, call Input::update()
 void osiMouse::update() {
+  if(!osi.flags.haveFocus) return;
+  if(!_bActive)            return;
+  
   static int tx= 0, ty= 0;      /// temporary vars, used in mouse positioning and the wheel
 
-  if(!osi.flags.haveFocus)
-    return;
 
   uint64 present= osi.present/ 1000000;
 
-  /// os events: nothing to update, atm (i cant think of anything anyways)
   if(mode== 1) {
     /// oldx&y and deltas must be done per in.update();
     /// REMEMBER: there can be multiple mouse move messages between in.update() calls
@@ -970,11 +1103,12 @@ void osiMouse::update() {
     dy= y- oldy;
     wheel= _twheel;      /// twheel is updated using system messages, and set to 0 here, after it's read
     _twheel= 0;
+  }
     
   /// manual update mode
-  } else if(mode== 2) {
+  
+  else if(mode== 2) {
     #ifdef OS_WIN
-    
     /// mouse position
     POINT p;
     GetCursorPos(&p);
@@ -1002,15 +1136,15 @@ void osiMouse::update() {
       if(a==3) t= GetAsyncKeyState(VK_XBUTTON1)? true: false;       // BUTTON 4
       if(a==4) t= GetAsyncKeyState(VK_XBUTTON2)? true: false;       // BUTTON 5
 
-      if(b[a].down&& !t) {          /// button release
-        b[a].lastTimeStart= b[a].timeStart;
-        b[a].lastTimeEnded= present;
-        b[a].lastDT= b[a].lastTimeEnded- b[a].lastTimeStart;
-        b[a].down= t;
+      if(but[a].down&& !t) {          /// button release
+        but[a].lastTimeStart= but[a].timeStart;
+        but[a].lastTimeEnded= present;
+        but[a].lastDT= but[a].lastTimeEnded- but[a].lastTimeStart;
+        but[a].down= t;
       }
-      if((!b[a].down)&& t) {        /// button press started
-        b[a].timeStart= present;
-        b[a].down= t;
+      if((!but[a].down)&& t) {        /// button press started
+        but[a].timeStart= present;
+        but[a].down= t;
       }
     }
 
@@ -1024,14 +1158,13 @@ void osiMouse::update() {
     #ifdef OS_MAC
     //    makeme .., very low priority tho
     #endif /// OS_MAC
-
+  }
     
-    
-  } else if(mode== 3) {
+  #ifdef OS_WIN
+  #ifdef USING_DIRECTINPUT           /// skip some checks. only mode 1 works atm in linux
+  else if(mode== 3) {
 
     /// direct input
-    #ifdef OS_WIN
-    #ifdef USING_DIRECTINPUT           /// skip some checks. only mode 1 works atm in linux
     _diDevice->GetDeviceState(sizeof(DIMOUSESTATE2), (LPVOID)&_diStats);
     /// mouse position
     oldx= x;
@@ -1054,84 +1187,32 @@ void osiMouse::update() {
     
     for(short a= 0; a< 8; a++) {
       t= _diStats.rgbButtons[a]? true: false;
-      if((b[a].down)&& !t) {                  /// a button press ended
-        b[a].lastTimeStart= b[a].timeStart;
-        b[a].lastTimeEnded= present;
-        b[a].lastDT= b[a].lastTimeEnded- b[a].lastTimeStart;
-        b[a].down= t;
+      if((but[a].down)&& !t) {                  /// a button press ended
+        but[a].lastTimeStart= but[a].timeStart;
+        but[a].lastTimeEnded= present;
+        but[a].lastDT= but[a].lastTimeEnded- but[a].lastTimeStart;
+        but[a].down= t;
       }
-      if((!b[a].down)&& t) {                  /// a button press starts
-        b[a].timeStart= present;
-        b[a].down= t;
+      if((!but[a].down)&& t) {                  /// a button press starts
+        but[a].timeStart= present;
+        but[a].down= t;
       }
     }
-    #endif /// USING_DIRECTINPUT
-    #endif /// OS_WIN
   } /// pass thru all mouse modes
+  #endif /// USING_DIRECTINPUT
+  #endif /// OS_WIN
 }
 
-
-/// grab exclusive control of the mouse (if possible)
-bool osiMouse::aquire() {
-  if(!osi.primWin) return false;
-  if(mode== 1) {
-    #ifdef OS_LINUX
-    XGrabPointer(osi._dis, osi.primWin->_win,
-                 True,              // send events or not
-                 ButtonPressMask| ButtonReleaseMask| PointerMotionMask,
-                 GrabModeSync,      // pointer - GrabMode[Async/Sync]
-                 GrabModeSync,      // keyboard- GrabMode[Async/Sync]
-                 osi.primWin->_win, // confine cursor to a window
-                 None,              // mouse cursor (graphics)
-                 CurrentTime);
-    #endif /// OS_LINUX
-    return true;
-  }
-  if(mode== 2)                    /// nothing to aquire
-    return true;
-  if(mode== 3) {
-    #ifdef OS_WIN
-    #ifdef USING_DIRECTINPUT
-    if(_diDevice->Acquire()== DI_OK)
-      return true;
-    #endif
-    #endif /// OS_WIN
-  }
-
-  return false;
-}
-
-/// release exclusive control of the mouse
-bool osiMouse::unaquire() {
-  if(mode== 1) {
-    #ifdef OS_LINUX
-    XUngrabPointer(osi._dis, CurrentTime);
-    #endif
-    return true;
-  }
-  if(mode== 2)
-    return true;
-  
-  if(mode== 3) {
-    #ifdef OS_WIN
-    #ifdef USING_DIRECTINPUT
-    if(_diDevice->Unacquire()== DI_OK)
-      return true;
-    #endif
-    #endif /// OS_WIN
-  }
-  return false;
-}
 
 
 /// clears button states, usefull when alt-tabbing, so things don't get messed up
 void osiMouse::resetButtons() {
   for(short a= 0; a< MAX_MOUSE_BUTTONS; a++) {
-    if(b[a].down) {
-      b[a].lastTimeStart= b[a].timeStart;
-      b[a].lastTimeEnded= osi.present/ 1000000;
-      b[a].lastDT= b[a].lastTimeEnded- b[a].lastTimeStart;
-      b[a].down= false;
+    if(but[a].down) {
+      but[a].lastTimeStart= but[a].timeStart;
+      but[a].lastTimeEnded= osi.present/ 1000000;
+      but[a].lastDT= but[a].lastTimeEnded- but[a].lastTimeStart;
+      but[a].down= false;
     }
   }
 }
@@ -1146,6 +1227,7 @@ osiKeyboard::osiKeyboard():
 charTyped(40, sizeof(chTyped)),
 manipTyped(40, sizeof(chTyped)) {
   mode= 1;
+  _bActive= _bGrabbed= false;
   delData();
 }
 
@@ -1165,6 +1247,8 @@ osiKeyboard::~osiKeyboard() {
 
 
 void osiKeyboard::delData() {
+  _bActive= _bGrabbed= false;
+  
   key= _buffer1;
   lastCheck= _buffer2;
   capsLock= scrollLock= numLock= false;       /// the 3 toggle locks
@@ -1186,14 +1270,12 @@ void osiKeyboard::delData() {
 // could be called, but using in.init() is better, as it inits every device
 bool osiKeyboard::init(int8 mode) {
   this->mode= mode;
+  
   if(mode== 1)
-    return true;
+    return activate();
   if(mode== 2)
-    return true;
+    return activate();
   if(mode== 3) {
-
-
-
     // MOVE ALL THIS? SCRAP INIT????? <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     #ifdef OS_WIN
     #ifdef USING_DIRECTINPUT
@@ -1214,7 +1296,7 @@ bool osiKeyboard::init(int8 mode) {
     if(_diDevice== NULL)
       return false;
 
-    return true;
+    return activate();
     #endif /// USING_DIRECTINPUT
     #endif /// OS_WIN
   }
@@ -1222,34 +1304,115 @@ bool osiKeyboard::init(int8 mode) {
 }
 
 
+bool osiKeyboard::activate() {
+  _bActive= true;
+  
+  /// any init is done here
+  #ifdef OS_WIN
+  #ifdef USING_DIRECTINPUT
+  if(mode== 3)
+    if(_diDevice->Acquire()!= DI_OK) {
+      _bActive= false;
+      return false;
+    }
+  #endif /// USING_DIRECTINPUT
+  #endif /// OS_WIN
+
+  /// if keyboard is set to be grabbed, grab it here
+  if(_bGrabbed)
+    return grab();
+  
+  return true;
+}
+
+
+bool osiKeyboard::unactivate() {
+  if(!osi.primWin) { _bActive= false; return false; }
+  _bActive= false;  
+  
+  /// any uninit is done here
+  #ifdef OS_WIN
+  #ifdef USING_DIRECTINPUT
+  if(mode== 3)
+    if(_diDevice->Unacquire()!= DI_OK)
+      return false;
+  #endif
+  #endif /// OS_WIN
+
+  
+  /// if grabbed, ungrab it
+  if(_bGrabbed)
+    return ungrab();
+  
+  return true;
+}
+
+
+
+
+// grab exclusive control of the keyboard (if possible)
+bool osiKeyboard::grab() {
+  if(!osi.primWin) { _bGrabbed= false; return false; }
+  
+  _bGrabbed= true;
+  
+  #ifdef OS_LINUX
+  if(mode== 1) {
+    XGrabKeyboard(osi._dis, osi.primWin->_win,
+                  False,          // owner events (i think stops sending sys events)
+                  GrabModeSync,   // pointer - GrabMode[Async/Sync]
+                  GrabModeSync,   // keyboard- GrabMode[Async/Sync]
+                  CurrentTime);
+    
+  }
+  #endif /// OS_LINUX
+  return true;
+}
+
+// ungrab exclusive control of the keyboard
+bool osiKeyboard::ungrab() {
+  _bGrabbed= false;
+  
+  #ifdef OS_LINUX
+  if(mode== 1) {
+    XUngrabKeyboard(osi._dis, CurrentTime);
+    return true;
+  }
+  #endif /// OS_LINUX
+
+  return true;
+}
+
+
+
+
+
+
 
 // ############################ KEYBOARD UPDATE func ####################################
 // if not using MODE 1, call this (autocalled in Input::update() )
 void osiKeyboard::update() {
+  if(!osi.flags.haveFocus) return;
+  if(!_bActive)            return;
   
-  if(!osi.flags.haveFocus)
-    return;
   if(mode== 1)    // nothing to update, >>>>>>...... hmm maybe the LOCK STATES....<<<<<<<<<<<
     return;
   
-  if(mode== 2) {
-    #ifdef OS_WIN
+  #ifdef OS_WIN
+  else if(mode== 2) {
     swapBuffers();			/// ye, swap them buffers
     GetKeyboardState(key);
     /// do not return;
-    #endif /// OS_WIN
   }
-
-  if(mode== 3) {
-    #ifdef OS_WIN
-    #ifdef USING_DIRECTINPUT
+  
+  #ifdef USING_DIRECTINPUT
+  else if(mode== 3) {
     swapBuffers();
     _diDevice->GetDeviceState(MAX_KEYBOARD_KEYS, key);
     /// do not return
-    #endif
-    #endif /// OS_WIN
   }
-  
+  #endif /// USING_DIRECTINPUT
+  #endif /// OS_WIN
   
   #ifdef OS_WIN // i can't think of a way atm, to use this in linux. the only mode is [mode 1]
   
@@ -1260,7 +1423,7 @@ void osiKeyboard::update() {
     if((key[a]& 0x80)&& !(lastCheck[a]& 0x80) ) {         // key press start
       keyTime[a]= presentMilli;
       /// log the key in history
-      KeyPressed k;
+      osiKeyLog k;
       k.code= a;
       k.checked= false;
       k.timeDown= presentMilli;
@@ -1285,7 +1448,7 @@ void osiKeyboard::update() {
         // this code can go away, as buttons & history are reset on app focus lost
         //  but first some debugs can be done i think, with these 1 millisec logs
       if(!found) {                                  /// failsafe - normally it is found (alt-tab happens...)
-        KeyPressed k;
+        osiKeyLog k;
         k.code= a;
         k.checked= false;
         k.timeDown= presentMilli- 1;
@@ -1320,58 +1483,6 @@ void osiKeyboard::updateLocks() {
 }
 
 
-// grab exclusive control of the keyboard (if possible)
-bool osiKeyboard::aquire() {
-  if(!osi.primWin) return false; /// a main window must be created first
-  
-  if(mode== 1) {
-    #ifdef OS_LINUX
-    XGrabKeyboard(osi.primWin->_dis, osi.primWin->_win,
-                  True,           // continue to send events or not
-                  GrabModeSync,   // pointer - GrabMode[Async/Sync]
-                  GrabModeSync,   // keyboard- GrabMode[Async/Sync]
-                  CurrentTime);
-    #endif /// OS_LINUX
-    return true;
-  }
-  if(mode== 2)                    /// nothing to aquire
-    return true;
-  if(mode== 3) {
-    #ifdef OS_WIN
-    #ifdef USING_DIRECTINPUT
-    if(_diDevice->Acquire()== DI_OK)
-      return true;
-    #endif
-    #endif /// OS_WIN
-  }
-  return false;
-}
-
-// ungrab exclusive control of the keyboard
-bool osiKeyboard::unaquire() {
-  
-  if(mode== 1) {
-    #ifdef OS_LINUX
-    if(!osi.primWin) return false;
-    XUngrabKeyboard(osi.primWin->_dis, CurrentTime);
-    #endif /// OS_LINUX
-    return true;
-  }
-  /// DInput
-  if(mode== 2) {
-    #ifdef OS_WIN
-    #ifdef USING_DIRECTINPUT
-    if(_diDevice->Unacquire()== DI_OK)
-      return true;
-    #endif
-    #endif /// OS_WIN
-  }
-  /// XInput
-  if(mode== 3) {
-    return true;
-  }
-  return false;
-}
 
 
 
@@ -1500,7 +1611,7 @@ void osiKeyboard::swapBuffers() {
 
 
 // [internal] logs a key to histoty of keys that were pressed
-void osiKeyboard::_log(const osiKeyboard::KeyPressed &k) {
+void osiKeyboard::_log(const osiKeyboard::osiKeyLog &k) {
   for(short a= MAX_KEYS_LOGGED- 1; a> 0; a--)
     lastKey[a]= lastKey[a- 1];
   lastKey[0]= k;
@@ -1532,7 +1643,9 @@ osiJoystick::osiJoystick() {
   mode= 0;                    /// mode set to 0 = DISABLED
   _gp= null;                  /// must start null
   _gw= null;                  /// must start null
-
+  _bActive= false;
+  _bGrabbed= true;            /// default for sticks is in grabbed state
+  
   #ifdef OS_WIN
   #ifdef USING_DIRECTINPUT
   _diDevice= null;
@@ -1564,8 +1677,8 @@ void osiJoystick::delData() {
   x= y= x2= y2= throttle= rudder= u= v= 0;
   pov= -1;
   
-  b= _buffer1;
-  lastCheck= _buffer2;
+  but= _buffer1;
+  butPrev= _buffer2;
 
   resetButtons();
 
@@ -1604,14 +1717,14 @@ void osiJoystick::delData() {
 void osiJoystick::update() {
   bool chatty= false;
 
-  if(!active) return;                             /// a stick/pad/wheel must be marked as active, for updating to take place
+  if(!_bActive) return;                           /// a stick/pad/wheel must be marked as active, for updating to take place
                                                   /// this must be used, as updating same device with mutiple drives, will create a bad mess
 
                                                   // if player 1 selects device0 with xinput
                                                   // and player 2 selects device0 with directinput??? what then? some tests must be done somehow
 
   uint64 presentMilli= osi.present/ 1000000;      /// present time in milliseconds
-  ButPressed blog;
+  osiButLog blog;
   bool found;
   
   #ifdef OS_MAC
@@ -1789,6 +1902,8 @@ ReadAgain:
         /// update sticks numbers
         in.nr.jFound--; in.nr.gpFound--; in.nr.gwFound--;
         in.nr.jOS--;    in.nr.gpOS--;    in.nr.gwOS--;
+        
+        osi.flags.HIDlostConnection= true;
       } /// if the file is not found (stick disconnected)
       return;
     } /// if nothing read
@@ -1812,8 +1927,8 @@ ReadAgain:
         *   xbox 'xbox button' is on 9 ...
         */
         
-        int16 but, extra;
-        but= ev[a].number;
+        int16 nbut, extra;
+        nbut= ev[a].number;
         /// gamepad buttons unification. extra buttons (including xbox main button are set after button 10)
         
         /// ps3 compatible pad
@@ -1821,9 +1936,9 @@ ReadAgain:
           extra= _gp->maxButtons- 10; /// normal ps3 has 10 buttons. the rest are extra, on modified ps3 pads
           
           if(extra && (ev[a].number>= 6) && (ev[a].number< 6+ extra))
-            but+= 4;                      /// is it an extra button? -> moved on position 10+
+            nbut+= 4;                      /// is it an extra button? -> moved on position 10+
           else if(extra && (ev[a].number>= 6+ extra))
-            but-= extra;                  /// all buttons above extra buttons, moved back on 6+
+            nbut-= extra;                  /// all buttons above extra buttons, moved back on 6+
           
         /// xbox compatible pad
         } else if(in.gp[a].type== 1) {
@@ -1832,56 +1947,56 @@ ReadAgain:
           
           
           if(ev[a].number== 8)
-            but= 10;                      /// is it the xbox button? -> move it on position 10, with the extra buttons
+            nbut= 10;                      /// is it the xbox button? -> move it on position 10, with the extra buttons
           else if(ev[a].number>=9 && ev[a].number<= 10)
-            but-= 1;                      /// move start & back to positions 8 & 9
+            nbut-= 1;                      /// move start & back to positions 8 & 9
         }
 
         /// swapbuffers won't work. just update lastCheck[]
-        lastCheck[ev[a].number]= b[ev[a].number];
-        _gp->lastCheck[but]= _gp->b[but];
-        _gw->lastCheck[ev[a].number]= b[ev[a].number];
+        butPrev[ev[a].number]= but[ev[a].number];
+        _gp->butPrev[nbut]= _gp->but[nbut];
+        _gw->butPrev[ev[a].number]= but[ev[a].number];
         
         /// update button state
-        b[ev[a].number]=  (uint8)ev[a].value;
-        _gp->b[but]= (uint8)ev[a].value;
-        _gw->b[ev[a].number]= (uint8)ev[a].value;
+        but[ev[a].number]=  (uint8)ev[a].value;
+        _gp->but[nbut]= (uint8)ev[a].value;
+        _gw->but[ev[a].number]= (uint8)ev[a].value;
         
         /// update history
         if(ev[a].value== 1) {                      // button PRESS
-          bTime[ev[a].number]= ev[a].time;
-          _gp->bTime[but]= ev[a].time;
-          _gw->bTime[ev[a].number]= ev[a].time;
+          butTime[ev[a].number]= ev[a].time;
+          _gp->butTime[nbut]= ev[a].time;
+          _gw->butTime[ev[a].number]= ev[a].time;
           /// put the button in history
-          blog.b= ev[a].number;
+          blog.but= ev[a].number;
           blog.checked= false;
-          blog.timeDown= bTime[but];
+          blog.timeDown= butTime[nbut];
           blog.timeUp= 0;
           blog.timeDT= 0;
           _log(blog);
           _gw->_log(blog);
-          blog.b= but;
+          blog.but= nbut;
           _gp->_log(blog);
-          if(chatty) printf("hid[%s] button PRESS nr[%d] arranged[%d]\n", name.d, ev[a].number, but);
+          if(chatty) printf("hid[%s] button PRESS nr[%d] arranged[%d]\n", name.d, ev[a].number, nbut);
         } else if(ev[a].value== 0) {               // button RELEASE
           /// search thru history for the button, to mark the time it got released
           found= false;
           for(short b= 0; b< MAX_KEYS_LOGGED; b++)
-            if(lastBut[b].b== ev[a].number) {
-              if(lastBut[b].timeUp) continue;    /// skip if this tested button is already released
+            if(butLog[b].but== ev[a].number) {
+              if(butLog[b].timeUp) continue;    /// skip if this tested button is already released
 
-              lastBut[b].timeUp= ev[a].time;
-              lastBut[b].timeDT= ev[a].time- lastBut[b].timeDown;
-              lastBut[b].checked= false;
+              butLog[b].timeUp= ev[a].time;
+              butLog[b].timeDT= ev[a].time- butLog[b].timeDown;
+              butLog[b].checked= false;
 
               /// gamepad button nr could have a different number, but it does not matter
-              _gp->lastBut[b].timeUp= ev[a].time;
-              _gp->lastBut[b].timeDT= lastBut[b].timeDT;
-              _gp->lastBut[b].checked= false;
+              _gp->butLog[b].timeUp= ev[a].time;
+              _gp->butLog[b].timeDT= butLog[b].timeDT;
+              _gp->butLog[b].checked= false;
 
-              _gw->lastBut[b].timeUp= ev[a].time;
-              _gw->lastBut[b].timeDT= lastBut[b].timeDT;
-              _gw->lastBut[b].checked= false;
+              _gw->butLog[b].timeUp= ev[a].time;
+              _gw->butLog[b].timeDT= butLog[b].timeDT;
+              _gw->butLog[b].checked= false;
 
               found= true;
               break;
@@ -1890,18 +2005,18 @@ ReadAgain:
           // THIS FAILSAFE CODE COULD GO AWAY vvvvvvvvvvvvvvvvv
           if(!found) {                      /// failsafe - normally it is found (but things can happen ... alt-tab?)
             // some debug stuff can be done here, tho
-            blog.b= ev[a].number;
+            blog.but= ev[a].number;
             blog.checked= false;
             blog.timeDown= ev[a].time- 1;   /// mark it as insta down-up
             blog.timeUp= ev[a].time;
             blog.timeDT= 1;
             _log(blog);                     /// put it in history buffer
             _gw->_log(blog);
-            blog.b= but;
+            blog.but= nbut;
             _gp->_log(blog);
           } /// failsafe
         
-          if(chatty) printf("hid[%s] button RELEASE nr[%d] arranged[%d]\n", name.d, ev[a].number, but);
+          if(chatty) printf("hid[%s] button RELEASE nr[%d] arranged[%d]\n", name.d, ev[a].number, nbut);
         } /// if button press/release
 
       // --------------============== AXIS EVENT ================---------------
@@ -2026,14 +2141,16 @@ ReadAgain:
     #endif /// OS_LINUX
 
     #ifdef OS_MAC
-    /// macs use callback functions. check HIDchange() at the end of this file
-    #endif /// OS_MAC
 
+    makeme -> read from joystick state
+            
+    #endif /// OS_MAC
+  }
 
   // -----------============ MODE 2 JOYSTICKS ============------------
-  } else if(mode== 2) {       // win(DirectInput) linux(n/a) mac(n/a)
-    #ifdef OS_WIN
-    #ifdef USING_DIRECTINPUT
+  #ifdef OS_WIN
+  #ifdef USING_DIRECTINPUT
+  else if(mode== 2) {       // win(DirectInput) linux(n/a) mac(n/a)
     if(!_bGrabbed) return;
     if(_diDevice->GetDeviceState(sizeof(DIJOYSTATE2), (LPVOID)&_diStats)== DIERR_INPUTLOST) {   /// device DISCONNECTED
       if(chatty) printf("DirectInput: hid[%s] DISCONNECTED\n", name.d);
@@ -2044,6 +2161,8 @@ ReadAgain:
       /// update numbers
       in.nr.jT2--;    in.nr.gpT2--;    in.nr.gwT2--;
       in.nr.jFound--; in.nr.gpFound--; in.nr.gwFound--;
+      osi.flags.HIDlostConnection= true;
+      
       return;
     }
 
@@ -2093,7 +2212,7 @@ ReadAgain:
     _gw->a5=    _diStats.lRz;          /// other axis 5
 
     // ---=== stick/pad/wheel BUTTONS ===---
-    uint8 but, extra;
+    uint8 _but, extra;
     _swapBuffers();                      /// lastCheck will hold the previous buttons states
     _gp->_swapBuffers();
     _gw->_swapBuffers();
@@ -2112,15 +2231,15 @@ ReadAgain:
         */
       
       /// gamepad buttons unification. extra buttons (including xbox main button are set after button 9)
-      but= (uint8)a;    
+      _but= (uint8)a;    
       // ps3 compatible pad
       if(_gp->type== 0) {
         extra= _gp->maxButtons- 10;     /// gamepads have 10 normal buttons. the rest are marked as extra, and moved on button 10+
           
         if(extra && (a>= 6) && (a< 6+ extra))
-          but+= 4;                      /// is it an extra button? -> moved on position 11+
+          _but+= 4;                      /// is it an extra button? -> moved on position 11+
         else if(extra && (a>= 6+ extra))
-          but-= extra;                  /// all buttons above extra buttons, moved back on 7+
+          _but-= extra;                  /// all buttons above extra buttons, moved back on 7+
 
       // xbox compatible pad
       } else if(_gp->type== 1) {
@@ -2128,55 +2247,55 @@ ReadAgain:
 
         /// the first 4 buttons are arranged as the ps3 pad
         if(a< 4)
-          if(a== 0)      but= 1;
-          else if(a== 1) but= 2;
-          else if(a== 2) but= 0;
+          if(a== 0)      _but= 1;
+          else if(a== 1) _but= 2;
+          else if(a== 2) _but= 0;
       } /// check type of gamepad
 
       /// update current button state
-      b[a]= _diStats.rgbButtons[a]? 1: 0;
-      _gp->b[but]= b[a];
-      _gw->b[a]= b[a];
+      but[a]= _diStats.rgbButtons[a]? 1: 0;
+      _gp->but[_but]= but[a];
+      _gw->but[a]= but[a];
 
       // --------------============== BUTTON PRESS ================-----------------
-      if(b[a]&& !lastCheck[a]) {
+      if(but[a]&& !butPrev[a]) {
         /// mark button press time
-        bTime[a]= presentMilli;
-        _gp->bTime[but]= bTime[a];
-        _gw->bTime[a]= bTime[a];
+        butTime[a]= presentMilli;
+        _gp->butTime[_but]= butTime[a];
+        _gw->butTime[a]= butTime[a];
         /// log the button in history
-        blog.b= (uint8)a;
+        blog.but= (uint8)a;
         blog.checked= false;
         blog.timeDown= presentMilli;
         blog.timeUp= 0;
         blog.timeDT= 0;
         _log(blog);
         _gw->_log(blog);
-        blog.b= but;
+        blog.but= _but;
         _gp->_log(blog);
-        if(chatty) printf("DirectInput: hid[%s] button PRESS nr[%d] arranged[%d]\n", name.d, a, but);
+        if(chatty) printf("DirectInput: hid[%s] button PRESS nr[%d] arranged[%d]\n", name.d, a, _but);
       
       // --------------============= BUTTON RELEASE ===============-----------------
-      } else if(lastCheck[a]&& !b[a]) {
+      } else if(butPrev[a]&& !but[a]) {
 
         /// search thru history for the button, to mark the time it got released
         found= false;
         for(short b= 0; b< MAX_KEYS_LOGGED; b++)
-          if(lastBut[b].b== a) {
-            if(lastBut[b].timeUp) continue;    /// skip if this tested button is already released
+          if(butLog[b].but== a) {
+            if(butLog[b].timeUp) continue;    /// skip if this tested button is already released
 
-            lastBut[b].timeUp= presentMilli;
-            lastBut[b].timeDT= presentMilli- lastBut[b].timeDown;
-            lastBut[b].checked= false;
+            butLog[b].timeUp= presentMilli;
+            butLog[b].timeDT= presentMilli- butLog[b].timeDown;
+            butLog[b].checked= false;
 
             /// gamepad button nr could have a different number, but it does not matter
-            _gp->lastBut[b].timeUp= presentMilli;
-            _gp->lastBut[b].timeDT= lastBut[b].timeDT;
-            _gp->lastBut[b].checked= false;
+            _gp->butLog[b].timeUp= presentMilli;
+            _gp->butLog[b].timeDT= butLog[b].timeDT;
+            _gp->butLog[b].checked= false;
   
-            _gw->lastBut[b].timeUp= presentMilli;
-            _gw->lastBut[b].timeDT= lastBut[b].timeDT;
-            _gw->lastBut[b].checked= false;
+            _gw->butLog[b].timeUp= presentMilli;
+            _gw->butLog[b].timeDT= butLog[b].timeDT;
+            _gw->butLog[b].checked= false;
 
             found= true;
             break;
@@ -2185,30 +2304,30 @@ ReadAgain:
         // THIS FAILSAFE CODE COULD GO AWAY vvvvvvvvvvvvvvvvv
         if(!found) {                      /// failsafe - normally it is found (but things can happen ... alt-tab?)
           // some debug stuff can be done here, tho
-          blog.b= (uint8)a;
+          blog.but= (uint8)a;
           blog.checked= false;
           blog.timeDown= presentMilli- 1; /// mark it as insta down-up
           blog.timeUp= presentMilli;
           blog.timeDT= 1;
           _log(blog);                      /// put it in history buffer
           _gw->_log(blog);
-          blog.b= but;
+          blog.but= _but;
           _gp->_log(blog);
         } /// failsafe
 
-        if(chatty) printf("DirectInput: hid[%s] button RELEASE nr[%d] arranged[%d]\n", name.d, a, but);
+        if(chatty) printf("DirectInput: hid[%s] button RELEASE nr[%d] arranged[%d]\n", name.d, a, _but);
 
       } /// button press or release
     } /// for each button
      
-
-    #endif /// USING_DIRECTINPUT
-    #endif /// OS_WIN
+  }
+  #endif /// USING_DIRECTINPUT
+  #endif /// OS_WIN
 
   // -----------============ MODE 3 JOYSTICKS ============------------
-  } else if(mode== 3) {       // win(XInput) linux(n/a) mac(n/a)
-    #ifdef OS_WIN
-    #ifdef USING_XINPUT
+  #ifdef OS_WIN
+  #ifdef USING_XINPUT
+  else if(mode== 3) {       // win(XInput) linux(n/a) mac(n/a)
     XINPUT_STATE xi;
 
     Str::memclr(&xi, sizeof(xi));                             /// zero memory
@@ -2280,25 +2399,25 @@ ReadAgain:
     _gw->_swapBuffers();
 
     /// XInput button order is all 'ver the place...
-    _gp->b[0]= _gw->b[0]= b[0]= (xi.Gamepad.wButtons& XINPUT_GAMEPAD_X)>> 14; // button unification change
-    _gp->b[1]= _gw->b[1]= b[1]= (xi.Gamepad.wButtons& XINPUT_GAMEPAD_A)>> 12; // button unification change
-    _gp->b[2]= _gw->b[2]= b[2]= (xi.Gamepad.wButtons& XINPUT_GAMEPAD_B)>> 13; // button unification change
-    _gp->b[3]= _gw->b[3]= b[3]= (xi.Gamepad.wButtons& XINPUT_GAMEPAD_Y)>> 15; // button unification change
+    _gp->but[0]= _gw->but[0]= but[0]= (xi.Gamepad.wButtons& XINPUT_GAMEPAD_X)>> 14; // button unification change
+    _gp->but[1]= _gw->but[1]= but[1]= (xi.Gamepad.wButtons& XINPUT_GAMEPAD_A)>> 12; // button unification change
+    _gp->but[2]= _gw->but[2]= but[2]= (xi.Gamepad.wButtons& XINPUT_GAMEPAD_B)>> 13; // button unification change
+    _gp->but[3]= _gw->but[3]= but[3]= (xi.Gamepad.wButtons& XINPUT_GAMEPAD_Y)>> 15; // button unification change
 
-    _gp->b[4]= _gw->b[4]= b[4]= (xi.Gamepad.wButtons& XINPUT_GAMEPAD_LEFT_SHOULDER)>> 8;
-    _gp->b[5]= _gw->b[5]= b[5]= (xi.Gamepad.wButtons& XINPUT_GAMEPAD_RIGHT_SHOULDER)>> 9;
-    _gp->b[6]= _gw->b[6]= b[6]= (xi.Gamepad.wButtons& XINPUT_GAMEPAD_BACK)>> 5;
-    _gp->b[7]= _gw->b[7]= b[7]= (xi.Gamepad.wButtons& XINPUT_GAMEPAD_START)>> 4;
-    _gp->b[8]= _gw->b[8]= b[8]= (xi.Gamepad.wButtons& XINPUT_GAMEPAD_LEFT_THUMB)>> 6;
-    _gp->b[9]= _gw->b[9]= b[9]= (xi.Gamepad.wButtons& XINPUT_GAMEPAD_RIGHT_THUMB)>> 7;
+    _gp->but[4]= _gw->but[4]= but[4]= (xi.Gamepad.wButtons& XINPUT_GAMEPAD_LEFT_SHOULDER)>> 8;
+    _gp->but[5]= _gw->but[5]= but[5]= (xi.Gamepad.wButtons& XINPUT_GAMEPAD_RIGHT_SHOULDER)>> 9;
+    _gp->but[6]= _gw->but[6]= but[6]= (xi.Gamepad.wButtons& XINPUT_GAMEPAD_BACK)>> 5;
+    _gp->but[7]= _gw->but[7]= but[7]= (xi.Gamepad.wButtons& XINPUT_GAMEPAD_START)>> 4;
+    _gp->but[8]= _gw->but[8]= but[8]= (xi.Gamepad.wButtons& XINPUT_GAMEPAD_LEFT_THUMB)>> 6;
+    _gp->but[9]= _gw->but[9]= but[9]= (xi.Gamepad.wButtons& XINPUT_GAMEPAD_RIGHT_THUMB)>> 7;
 
     /// check if it is a new press/ release & do button history
     for(short a= 0; a< 10; a++) {              /// for each possible xpad button (i got 1 extra, but heck if i know how to check it)
-      if(lastCheck[a]&& !b[a]) {                // button just got ---=== PRESSED ===---
+      if(butPrev[a]&& !but[a]) {                // button just got ---=== PRESSED ===---
         /// mark button press time
-        _gp->bTime[a]= _gw->bTime[a]= bTime[a]= presentMilli;
+        _gp->butTime[a]= _gw->butTime[a]= butTime[a]= presentMilli;
         /// log the button in history
-        blog.b= (uint8)a;
+        blog.but= (uint8)a;
         blog.checked= false;
         blog.timeDown= presentMilli;
         blog.timeUp= 0;
@@ -2307,24 +2426,24 @@ ReadAgain:
         _gw->_log(blog);
         _gp->_log(blog);
         if(chatty) printf("XInput: hid[%s] button PRESS nr[%d]\n", name.d, a);
-      } else if(b[a]&& !lastCheck[a]) {         // button just got ---=== RELEASED ===---
+      } else if(but[a]&& !butPrev[a]) {         // button just got ---=== RELEASED ===---
         /// search thru history for the button, to mark the time it got released
         found= false;
         for(short b= 0; b< MAX_KEYS_LOGGED; b++) 
-          if(lastBut[b].b== a) {
-            if(lastBut[b].timeUp) continue;    /// skip if button is already released
+          if(butLog[b].but== a) {
+            if(butLog[b].timeUp) continue;    /// skip if button is already released
 
-            lastBut[b].timeUp= presentMilli;
-            lastBut[b].timeDT= presentMilli- lastBut[b].timeDown;
-            lastBut[b].checked= false;
+            butLog[b].timeUp= presentMilli;
+            butLog[b].timeDT= presentMilli- butLog[b].timeDown;
+            butLog[b].checked= false;
 
-            _gp->lastBut[b].timeUp= presentMilli;
-            _gp->lastBut[b].timeDT= lastBut[b].timeDT;
-            _gp->lastBut[b].checked= false;
+            _gp->butLog[b].timeUp= presentMilli;
+            _gp->butLog[b].timeDT= butLog[b].timeDT;
+            _gp->butLog[b].checked= false;
   
-            _gw->lastBut[b].timeUp= presentMilli;
-            _gw->lastBut[b].timeDT= lastBut[b].timeDT;
-            _gw->lastBut[b].checked= false;
+            _gw->butLog[b].timeUp= presentMilli;
+            _gw->butLog[b].timeDT= butLog[b].timeDT;
+            _gw->butLog[b].checked= false;
 
             found= true;
             break;
@@ -2333,7 +2452,7 @@ ReadAgain:
         // THIS FAILSAFE CODE COULD GO AWAY vvvvvvvvvvvvvvvvv
         if(!found) {                      /// failsafe - normally it is found (but things can happen ... alt-tab?)
           // some debug stuff can be done here, tho
-          blog.b= (uint8)a;
+          blog.but= (uint8)a;
           blog.checked= false;
           blog.timeDown= presentMilli- 1; /// mark it as insta down-up
           blog.timeUp= presentMilli;
@@ -2347,10 +2466,9 @@ ReadAgain:
 
       } /// if press or depress
     } /// for each possible xpad button
-
-    #endif /// USING_XINPUT
-    #endif /// OS_WIN
   } /// pass thru all modes
+  #endif /// USING_XINPUT
+  #endif /// OS_WIN
 }
 
 
@@ -2358,85 +2476,96 @@ void osiJoystick::resetButtons() {
   /// clear all buffers
   for(short a= 0; a< MAX_JOYSTICK_BUTTONS; a++) {
     _buffer1[a]= _buffer2[a]= 0;
-    bPressure[a]= 0;
-    bTime[a]= 0;
+    butPressure[a]= 0;
+    butTime[a]= 0;
   }
 
   /// reset logged buttons
   for(short a= 0; a< MAX_KEYS_LOGGED; a++) {
-    lastBut[a].checked= true;                       /// mark all history as checked, so buttons get ignored
-    if(lastBut[a].timeDown&& !lastBut[a].timeUp) {  /// button waiting dor depress
-      lastBut[a].timeUp= osi.present/ 1000000;
-      lastBut[a].timeDT= lastBut[a].timeUp- lastBut[a].timeDown;
+    butLog[a].checked= true;                       /// mark all history as checked, so buttons get ignored
+    if(butLog[a].timeDown&& !butLog[a].timeUp) {  /// button waiting dor depress
+      butLog[a].timeUp= osi.present/ 1000000;
+      butLog[a].timeDT= butLog[a].timeUp- butLog[a].timeDown;
     }
   }
 }
 
+
+bool osiJoystick::activate() {
+  if(!mode) { _bActive= false; return false; }
+  _bActive= true;
+  if(_bGrabbed)
+    return grab();
+  return true;
+}
+
+
+bool osiJoystick::deactivate() {
+  if(!mode) return false;
+  _bActive= false;
+  if(_bGrabbed)
+    return ungrab();
+  return true;
+}
+
+
 // grab exclusive control of the joystick (if possible)
-void osiJoystick::aquire() {
-  if(mode== 1) {
-    _bGrabbed= true;
-    return;
-  }
+bool osiJoystick::grab() {
+  if(!mode) return false;
+  _bGrabbed= true;
+  
+  /// per mode grabbing funcs - if there are any
+  #ifdef OS_WIN
 
-  if(mode== 2) {
-    #ifdef OS_WIN
-    #ifdef USING_DIRECTINPUT
+  #ifdef USING_DIRECTINPUT
+  if(mode== 2)
     if(_diDevice) _diDevice->Acquire();
-    _bGrabbed= true;
-    #endif /// USING_DIRECTINPUT
-    #endif /// OS_WIN
-    return;
-  }
+  #endif /// USING_DIRECTINPUT
 
-  if(mode== 3) {
-    #ifdef OS_WIN
-    #ifdef USING_XINPUT
+  #ifdef USING_XINPUT
+  if(mode== 3)
     XInputEnable(TRUE);
-    _bGrabbed= true;
-    #endif /// USING_XINPUT
-    #endif /// OS_WIN
-    return;
-  }
+  #endif /// USING_XINPUT
+
+  #endif /// OS_WIN
+  return true;
 }
 
 // ungrab exclusive control of the joystick
-void osiJoystick::unaquire() {
-  if(mode== 1) {
-    return;
-  }
+bool osiJoystick::ungrab() {
+  _bGrabbed= false;
+  if(!mode) return false;
+  
+  
+  /// per mode ungrab funcs - if there are any
+  #ifdef OS_WIN
 
-  if(mode== 2) {
-    #ifdef OS_WIN
-    #ifdef USING_DIRECTINPUT
+  #ifdef USING_DIRECTINPUT
+  if(mode== 2)
     if(_diDevice) _diDevice->Unacquire();
-    #endif /// USING_DIRECTINPUT
-    #endif /// OS_WIN
-    return;
-  }
+  #endif /// USING_DIRECTINPUT
 
-  if(mode== 3) {
-    #ifdef OS_WIN
-    #ifdef USING_XINPUT
+  #ifdef USING_XINPUT
+  if(mode== 3)
     XInputEnable(FALSE);
-    #endif /// USING_XINPUT
-    #endif /// OS_WIN
-    return;
-  }
+  #endif /// USING_XINPUT
+
+  #endif /// OS_WIN
+  return true;
 }
 
 
 /// swap button buffers
 void osiJoystick::_swapBuffers() {
-  lastCheck= b;
-  b= (b== _buffer1)? _buffer2: _buffer1;
+  butPrev= but;
+  but= (but== _buffer1)? _buffer2: _buffer1;
 }
 
 
-void osiJoystick::_log(const ButPressed &k) {
+void osiJoystick::_log(const osiButLog &k) {
   for(short a= MAX_KEYS_LOGGED- 1; a> 0; a--)
-    lastBut[a]= lastBut[a- 1];
-  lastBut[0]= k;
+    butLog[a]= butLog[a- 1];
+  butLog[0]= k;
 }
 
 
@@ -2470,8 +2599,8 @@ void osiGamePad::delData() {
   u= v= 0;
   pov= -1;
 
-  b= _buffer1;
-  lastCheck= _buffer2;
+  but= _buffer1;
+  butPrev= _buffer2;
 
   resetButtons();
 }
@@ -2482,31 +2611,31 @@ void osiGamePad::resetButtons() {
   /// clear all buffers
   for(short a= 0; a< MAX_JOYSTICK_BUTTONS; a++) {
     _buffer1[a]= _buffer2[a]= 0;
-    bPressure[a]= 0;
-    bTime[a]= 0;
+    butPressure[a]= 0;
+    butTime[a]= 0;
   }
 
   /// reset logged buttons
   for(short a= 0; a< MAX_KEYS_LOGGED; a++) {
-    lastBut[a].checked= true;                       /// mark all history as checked, so buttons get ignored
-    if(lastBut[a].timeDown&& !lastBut[a].timeUp) {  /// button waiting dor depress
-      lastBut[a].timeUp= osi.present/ 1000000;
-      lastBut[a].timeDT= lastBut[a].timeUp- lastBut[a].timeDown;
+    butLog[a].checked= true;                       /// mark all history as checked, so buttons get ignored
+    if(butLog[a].timeDown&& !butLog[a].timeUp) {  /// button waiting dor depress
+      butLog[a].timeUp= osi.present/ 1000000;
+      butLog[a].timeDT= butLog[a].timeUp- butLog[a].timeDown;
     }
   }
 }
 
 
 void osiGamePad::_swapBuffers() {
-  lastCheck= b;
-  b= (b== _buffer1)? _buffer2: _buffer1;
+  butPrev= but;
+  but= (but== _buffer1)? _buffer2: _buffer1;
 }
 
 
-void osiGamePad::_log(const ButPressed &k) {
+void osiGamePad::_log(const osiButLog &k) {
   for(short a= MAX_KEYS_LOGGED- 1; a> 0; a--)
-    lastBut[a]= lastBut[a- 1];
-  lastBut[0]= k;
+    butLog[a]= butLog[a- 1];
+  butLog[0]= k;
 }
 
 
@@ -2558,8 +2687,8 @@ void osiGameWheel::delData() {
   a1= a2= a3= a4= a5= 0;      // THIS NEEDS MORE WORK
   // pov starts on -1, off state
   
-  b= _buffer1;
-  lastCheck= _buffer2;
+  but= _buffer1;
+  butPrev= _buffer2;
 
   resetButtons();
 }
@@ -2570,31 +2699,31 @@ void osiGameWheel::resetButtons() {
   /// clear all buffers
   for(short a= 0; a< MAX_JOYSTICK_BUTTONS; a++) {
     _buffer1[a]= _buffer2[a]= 0;
-    bPressure[a]= 0;
-    bTime[a]= 0;
+    butPressure[a]= 0;
+    butTime[a]= 0;
   }
 
   /// reset logged buttons
   for(short a= 0; a< MAX_KEYS_LOGGED; a++) {
-    lastBut[a].checked= true;                       /// mark all history as checked, so buttons get ignored
-    if(lastBut[a].timeDown&& !lastBut[a].timeUp) {  /// button waiting dor depress
-      lastBut[a].timeUp= osi.present/ 1000000;
-      lastBut[a].timeDT= lastBut[a].timeUp- lastBut[a].timeDown;
+    butLog[a].checked= true;                       /// mark all history as checked, so buttons get ignored
+    if(butLog[a].timeDown&& !butLog[a].timeUp) {  /// button waiting dor depress
+      butLog[a].timeUp= osi.present/ 1000000;
+      butLog[a].timeDT= butLog[a].timeUp- butLog[a].timeDown;
     }
   }
 }
 
 
 void osiGameWheel::_swapBuffers() {
-  lastCheck= b;
-  b= (b== _buffer1)? _buffer2: _buffer1;
+  butPrev= but;
+  but= (but== _buffer1)? _buffer2: _buffer1;
 }
 
 
-void osiGameWheel::_log(const ButPressed &k) {
+void osiGameWheel::_log(const osiButLog &k) {
   for(short a= MAX_KEYS_LOGGED- 1; a> 0; a--)
-    lastBut[a]= lastBut[a- 1];
-  lastBut[0]= k;
+    butLog[a]= butLog[a- 1];
+  butLog[0]= k;
 }
 
 
@@ -2612,7 +2741,7 @@ void osiGameWheel::_log(const ButPressed &k) {
 ///----------------///
 
 /// part of HIDDriver structure. each 'element' can be a button or axis in a stick/pad/wheel
-struct HIDElement {
+struct _HIDElement {
   // SUBJECT OF DELETION  
   int8 type;                    /// 1= axis, 2= button THIS MIGHT GO AWAY/ usagePage IS A BETTER 'TYPE'
   
@@ -2626,11 +2755,11 @@ struct HIDElement {
   bool hatMultiAxis;            /// if the hat has 2 axis (there are some sticks that have complex hats)
   bool hatAxis1;                /// [hat multi axis only] if it is the first axis (x)
   bool hatAxis2;                /// [hat multi axis only] if it is the second axis (y)
-  HIDElement(): type(0), id(0), logicalMin(0), logicalMax(0), hasNULLstate(false), isHat(false), hatMultiAxis(false), hatAxis1(false), hatAxis2(false) {}
+  _HIDElement(): type(0), id(0), logicalMin(0), logicalMax(0), hasNULLstate(false), isHat(false), hatMultiAxis(false), hatAxis1(false), hatAxis2(false) {}
 };
 
 /// macs lack a proper joystick api; the next struct is a helper to 'decode' the mess that is almost raw reading from a HID device
-struct HIDDriver {              /// [internal]
+struct _HIDDriver {              /// [internal]
   bool inUse;                   /// is this in use?
   IOHIDDeviceRef device;        /// coresponding 'device' that this stick/pad/wheel is tied to
   int16 nrButtons;              /// number of buttons that this stick/pad/wheel has
@@ -2638,9 +2767,9 @@ struct HIDDriver {              /// [internal]
   HIDElement *elem;             /// array of elements the device has
   
   /// standard constructor/destructor/delData(); everything will be set to 0 and memory will be auto-deallocated if allocated
-  HIDDriver(): inUse(false), device(null), nrButtons(0), nrAxis(0), elem(0) {}
+  _HIDDriver(): inUse(false), device(null), nrButtons(0), nrAxis(0), elem(0) {}
   void delData() { if(elem) delete[] elem; elem= null; nrButtons= nrAxis= 0; inUse= false; device= null; }
-  ~HIDDriver() { delData(); }
+  ~_HIDDriver() { delData(); }
 } driver[MAX_JOYSTICKS];        /// [internal]
 
 
@@ -2688,17 +2817,6 @@ static void HIDadded(void *context, IOReturn result, void *sender, IOHIDDeviceRe
   
   // start to 'populate' vars inside the helper struct
 
-  /// sticks/pads/wheels 'numbers'
-  in.nr.jFound++;  in.nr.jOS++;
-  in.nr.gpFound++; in.nr.gpOS++;
-  in.nr.gwFound++; in.nr.gwOS++;
-  
-  /// rest of vars
-  driver[a].inUse= true;  
-  driver[a].device= device;
-  in.j[a].mode= 1;              /// set it's mode to 1. in macs i think only mode 1 will be avaible... there is no freaking support for HIDs
-  in.gp[a].mode= 1;
-  in.gw[a].mode= 1;
   
   /// stick/pad/wheel name (product name) ... this should be easy, right?...
   CFStringRef name;
@@ -2784,6 +2902,22 @@ static void HIDadded(void *context, IOReturn result, void *sender, IOHIDDeviceRe
 	CFRelease(elems);     /// release elements array
 	if(chatty) printf("device[%s] nrButtons[%d] nrAxis[%d]\n", in.j[a].name.d, driver[a].nrButtons, driver[a].nrAxis);
   
+  // THESE VARS NEED TO BE THE LAST TO BE WRITTEN TO. AND THE ORDER IS VERY IMPORTANT TO AVOID BUGS (mode = 1 before nrFounds)
+  //  theory case: the callbug aaa callback func starts to write data to the joystick
+  //               the application that uses osi is checking all joysticks - finds a mode 1 that is just being writtin to, but not all data is there
+  //               ... bug asures (a write to data and a read from data happen in the same period of time)
+
+  /// rest of vars
+  driver[a].inUse= true;  
+  driver[a].device= device;
+  in.j[a].mode= 1;              /// set it's mode to 1. in macs i think only mode 1 will be avaible... there is no freaking support for HIDs
+  in.gp[a].mode= 1;
+  in.gw[a].mode= 1;
+
+  /// sticks/pads/wheels 'numbers'
+  in.nr.jFound++;  in.nr.jOS++;
+  in.nr.gpFound++; in.nr.gpOS++;
+  in.nr.gwFound++; in.nr.gwOS++;
 
 } /// HIDadded
 
@@ -2810,16 +2944,21 @@ static void HIDremoved(void *context, IOReturn result, void *sender, IOHIDDevice
     error.simple("HIDremoved: can't find the requested device");
     return;
   }
-  
+
+  // THE NEXT 4 CODE LINES ORDER IS IMPORTANT - IF A THREAD WRITES TO DATA, AND ANOTHER READS... (love them callbacks, right?)
+  // so decrease the numbers, then set them to mode 0 (disabled)
+
   /// sticks/pads/wheels 'numbers'
-  in.nr.jFound--;  in.nr.jOS--;
-  in.nr.gpFound--; in.nr.gpOS--;
   in.nr.gwFound--; in.nr.gwOS--;
+  in.nr.gpFound--; in.nr.gpOS--;
+  in.nr.jFound--;  in.nr.jOS--;
 
   in.j[a].mode= in.gp[a].mode= in.gw[a].mode= 0; /// mode 0 = DISABLED
+
   in.j[a].name.delData();
   in.gp[a].name.delData();
   in.gw[a].name.delData();
+  _HIDdisconnected= true;
   
   driver[a].delData();
   if(chatty) printf(" helper cleared\n");
@@ -2832,6 +2971,7 @@ static void HIDremoved(void *context, IOReturn result, void *sender, IOHIDDevice
 // CALLBACK FUNCTION: any value in a device (axis/button) has changed -------------
 ///================================================================================
 void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDValueRef val) {
+  bool chatty= false;
   // inContext:       context from IOHIDManagerRegisterInputValueCallback
   // IinResult:       completion result for the input value operation
   // inSender:        the IOHIDManagerRef
@@ -2841,6 +2981,8 @@ void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDValueRef
   
   // further testing: it seems there is d-pad button pressure measurements... same with most of buttons !!!!
   
+  so, no logs, this is a current state, nothing more. in.update() will process the current state, when the app wants to.
+
   IOHIDElementRef elem= IOHIDValueGetElement(val);        /// get the 'element' thet of the value
   IOHIDDeviceRef device= IOHIDElementGetDevice(elem);     /// get the HID device that a element belongs to
   IOHIDElementCookie cookie= IOHIDElementGetCookie(elem)- 1; /// cookies represent a unique identifier for a HID element (also first element they point to is 1, and the list starts with 0)

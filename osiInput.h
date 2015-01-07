@@ -15,8 +15,9 @@
 // in keyboard [MODE 3] update must be done manually in a loop (with update())
 
 // *more USAGE stuff*
-// -setting a gamepad/joy/etc as "inUse" or "active"
-//    will tell input.update() to update it. Else, update it manually
+// 1. should check joysticks/gamepads/gamewheels mode. if it's 0, there is no HID present - activating it does nothing
+// 2. every joystick/gamepad/gamewheel must be activated first to signal osiInput::update() to update it's values
+//    simply call j/gp/gw[n].activate()
 
 // GAMEPAD BUTTON PRESSUREs 20 - 23 are for dPad button pressures
 
@@ -32,7 +33,6 @@
 // --------------============= MOUSE CLASS ============--------------
 ///==================================================================
 class osiMouse {
-
 public:
   // USAGE / settings
   
@@ -47,7 +47,7 @@ public:
   int oldx, oldy;         /// old mouse position (can be usefull) sincel last in.update() call
   int dx, dy;             /// mouse delta movement values, since last in.update() call
   // *scraped- mouse coords are virtual screen coords, now* osiWindow *win;         /// window that the mouse cursor is in; x and y coordinates are tied to this window
-
+  
   // wheel
 
   // WHEELS CAN HAVE EXACT AXIS VALUES... <<< look into this some more
@@ -55,7 +55,7 @@ public:
   
   // buttons
 
-  struct Button {
+  struct osiMouseButton {
     uint64 lastDT;        /// last button press delta time in milisecs
     uint64 lastTimeStart; /// last button press start time
     uint64 lastTimeEnded; /// last button press end time
@@ -63,16 +63,23 @@ public:
     bool down;            /// button is currently pressed
     uint64 timeStart;     /// time @ button down start
 
-    Button(): lastDT(0), lastTimeStart(0), lastTimeEnded(0), down(false), timeStart(0) {};
-  } b[MAX_MOUSE_BUTTONS];
+    osiMouseButton(): lastDT(0), lastTimeStart(0), lastTimeEnded(0), down(false), timeStart(0) {};
+  } but[MAX_MOUSE_BUTTONS];
 
   // funcs
 
   bool init(int8 mode);   /// can init mouse with this function (usually is best to call in.init(..) instead of this)
   void update();          /// if not using mode 1, update mouse values with this
   
-  bool aquire();          /// exclusive control of the mouse (if possible)
-  bool unaquire();        /// lose exclusive control of the mouse
+  bool activate();        /// activates the mouse after an alt-tab or on app start
+  bool unactivate();      /// called if any init needs to be done when the application loses focus
+  
+  bool grab();            /// set the mouse can only move in the window boundaries
+  bool ungrab();          /// set the mouse to roam the plains free
+  
+  void setPos(int, int);  /// sets the mouse position
+  
+  
   void resetButtons();    /// resets all buttons in case of alt-tab or something similar
 
   // constructors / destructors
@@ -81,7 +88,8 @@ public:
   ~osiMouse();
   void delData();
 
-private:  
+private:
+  bool _bActive, _bGrabbed;
   int _twheel;
 
   friend class Input;
@@ -102,11 +110,9 @@ private:
 // --------------============= KEYBOARD CLASS ============--------------
 ///=====================================================================
 class osiKeyboard {
-  friend class osiInput;
 public:
   int8 mode;                     // [MODE1]: OS events (default)  [MODE2]: manual update()  [MODE3]: directinput  [MODE4]: windows raw data
   
-  void update();                /// MAIN LOOP FUNC: updates keys pressed array (key[] / lastCheck[])  (maybe toggle the locks? - N/A ATM)
 
   /// use Input::Kv structure if you need to find a certain key. EX: in.k.key[Kv.enter] is the enter key status (pressed or not pressed)
   uint8 *key;                   // all keys button status - it points to buffer1/buffer2. there is a clever swap between the two buffers, so there is no copying involved
@@ -115,19 +121,20 @@ public:
   bool capsLock, scrollLock, numLock;     /// the 3 toggle locks <<< there are other 'locks'... on foreign keyboards
   
   
-  struct KeyPressed {
+  struct osiKeyLog {
     int32 code;                 /// scan code of the keyboard key (Input::Kv structure has all the keyboard key codes for each os)
     bool checked;               /// checked & lastKey[] used for mortal kombat style of keyboard check
     uint64 timeDown, timeUp, timeDT;   /// when the key was pressed & released and for how int32 it was pressed (timeDT) (timeUp & timeDT can be 0, indicating the key is still down)
     
-    KeyPressed(const KeyPressed &o): code(o.code), checked(o.checked), timeDown(o.timeDown), timeUp(o.timeUp), timeDT(o.timeDT) {};
-    KeyPressed(): code(0), checked(false), timeDown(0), timeUp(0), timeDT(0) {}
+    osiKeyLog(const osiKeyLog &o): code(o.code), checked(o.checked), timeDown(o.timeDown), timeUp(o.timeUp), timeDT(o.timeDT) {};
+    osiKeyLog(): code(0), checked(false), timeDown(0), timeUp(0), timeDT(0) {}
   }lastKey[MAX_KEYS_LOGGED];     /// history of keys pressed - using this history, it is possible to make a Mortal Kombat combo check - like game (it has every needed variable & time for each key press&release)
 
-// character input/ character manipulation keys (enter/arrows/del/etc)
+  // character input/ character manipulation keys (enter/arrows/del/etc)
+  
   class chTyped:public segData {/// uses the segment chainlist class(segList.cpp/h), check constructor in Keyboard()
   public:
-    uint32 c;                    /// character typed (unicode); call getChar() to get the first character typed (it removes it from the list too)
+    uint32 c;                   /// character typed (unicode); call getChar() to get the first character typed (it removes it from the list too)
     uint64 time;                /// time when the character was typed
   };
 
@@ -140,16 +147,23 @@ public:
   uint32 getManip();             /// returns a str manip key press. (call it until it returns 0, or for each manipTyped.nrNodes)
   void clearTypedBuffer();      /// clears all character buffers, ususally called when switching to a new/ existing input box / control
   
-// useful functions
+  // funcs
+  
+  void update();                /// just call in.update(); MAIN LOOP FUNC: updates keys pressed array (key[] / lastCheck[])  (maybe toggle the locks? - N/A ATM)
+  
   void resetButtons();          /// call after losing program focus / need to reset all keys / fixes history of pressed keys too (lastkey[])
-  bool aquire();                /// call after gaining focus (alt-tab...)
-  bool unaquire();              /// call after losing focus (alt-tab...)
+  
+  bool activate();              /// if any init is needed on alt-tab or program start, this func does it (in.init() activates everything) / on some systems this does nothing
+  bool unactivate();            /// called after app lose focus / on some systems this does nothing
+  bool grab();                  /// DANGER!! grabs exclusive control of the keyboard, if program halts or keyboard is not handled corectly, the whole system can lose the keyboard. AVOID!
+  bool ungrab();                /// ungrab the keyboard - better to just avoid grabbing
+  
   void updateLocks();           /// updates all the locks (caps, num, scroll) - autocalled by system event handler, but can be called when manually updating keyboard
   // <<< ON SOME KEYBOARDS THIS MUST BE UPDATED TO HANDLE SPECIAL LOCK KEYS >>>
   
-// --- NOTHING TO BOTHER from this point on (usually) ---
+  // --- NOTHING TO BOTHER from this point on (usually) ---
   bool init(int8 mode= 1);        // see 'mode' var; can be used to initialize direct input, otherwize, use Input::init()
-  void _log(const KeyPressed &); /// [internal] just puts the last key in the last key-history (it logs imediatly when a key is down)
+  void _log(const osiKeyLog &); /// [internal] just puts the last key in the last key-history (it logs imediatly when a key is down)
   void _addChar(uint32 c, uint64 *time);  /// [internal] used in WM_CHAR message... nothing to bother
   void _addManip(uint32 c, uint64 *time); /// [internal] string manipulation keys - enter/del/arrow keys/etc
   void _doManip();                       /// [internal] OSchar.cpp. checks if current keys pressed form a char manip, if they do, calls addManip() 
@@ -160,6 +174,10 @@ public:
   void delData();               /// standard dealloc func / called by destroyer
   
 private:
+  bool _bActive, _bGrabbed;
+    
+  friend class osiInput;
+
   uint8 _buffer1[MAX_KEYBOARD_KEYS], _buffer2[MAX_KEYBOARD_KEYS];   /// used for the key / lastCheck. buffers are swapped with pointers, so no copying is involved
 
   #ifdef OS_WIN  
@@ -180,35 +198,35 @@ private:
 };
 
 
-
-struct ButPressed {
-  uint8 b;                          /// button number
+struct osiButLog {
+  uint8 but;                        /// button number
   bool checked;                     /// this is just a helper flag that can be messed with; always starts on false when a new key is added (osi doesn't use it for anything)
   uint64 timeDown, timeUp, timeDT;  /// timeDown: when button was pressed; timeUp:  when button was released (0= button is STILL pressed); timeDT: how much time was pressed (time delta)
   
-  ButPressed(const ButPressed &o): b(o.b), checked(o.checked), timeDown(o.timeDown), timeUp(o.timeUp), timeDT(o.timeDT) {};
-  ButPressed():b(0), checked(false), timeDown(0), timeUp(0), timeDT(0) {}
+  osiButLog(const osiButLog &o): but(o.but), checked(o.checked), timeDown(o.timeDown), timeUp(o.timeUp), timeDT(o.timeDT) {};
+  osiButLog():but(0), checked(false), timeDown(0), timeUp(0), timeDT(0) {}
 };
+
 
 class osiGamePad;
 class osiGameWheel;
+
 // --------------============= JOYSTICK CLASS ============--------------
 ///=====================================================================
 class osiJoystick {
-  friend class osiInput;
-  friend class osinteraction;
 public:
   
   // CONFIGURATION
   
-  int8 mode;                       // [MODE0]: disabled, can check against this
+  int8 mode;                       // [MODE0]: disabled, can check (and should) against this
                                    // [MODE1]: OS native
                                    // [MODE2]: win(directinput) / linux(n/a) / mac(n/a)
                                    // [MODE3]: win(xinput)      / linux(n/a) / mac(n/a)
   Str8 name;                      /// joystick name (product name)
   int16 maxButtons;               /// nr of buttons the gameWheel has
-  bool active;                    /// this variable must be set from the program; if it's not true, there won't be reads from the stick
-
+  
+  
+  
   // AXIS
   
   int32 x, y;                     /// main stick x and y axis
@@ -220,20 +238,23 @@ public:
   
   // BUTTONS state / history / everything
   
-  uint8 *b;                             /// buttons state
-  int32 bPressure[MAX_JOYSTICK_BUTTONS];/// heck if k knew this existed... guess no game (that i played) uses it; now it's implemented!
-  uint64 bTime[MAX_JOYSTICK_BUTTONS];   /// time @ key started to be pressed
-  uint8 *lastCheck;                     /// holds what the last time the keys were checked button press info - points to 1 of the buffers
-  ButPressed lastBut[MAX_KEYS_LOGGED];  /// history of pressed buttons
+  uint8 *but;                             /// buttons state
+  uint8 *butPrev;                         /// holds the previous button state
+  int32 butPressure[MAX_JOYSTICK_BUTTONS];/// heck if k knew this existed... guess no game (that i played) uses it; now it's implemented!
+  uint64 butTime[MAX_JOYSTICK_BUTTONS];   /// time @ key started to be pressed
+  osiButLog butLog[MAX_KEYS_LOGGED];     /// history of pressed/depressed buttons
 
   // FUNCTIONS
 
-  void activate() { active= true; aquire(); }       /// !! activates stick, signaling to update internal values & grabs exclusive control of stick
-  void deactivate() { active= false; unaquire(); }  /// deactivates & ungrabs exclusive control of stick
+  bool activate();                /// !! activates stick, signaling to update internal values & grabs exclusive control of stick
+  bool deactivate();              /// deactivates & ungrabs exclusive control of stick
+  bool isActive() { return _bActive; }
+  
+  bool grab();                    /// exclusive control of the device (if possible)
+  bool ungrab();                  /// lose exclusive control of the device
   
   void resetButtons();            /// clears all button buffers & resets logged buttons (used in case of alt-tab or something similar)
-  void aquire();                  /// exclusive control of the device (if possible)
-  void unaquire();                /// lose exclusive control of the device
+  
   void update();                  /// MAIN UPDATE FUNC (for every type of stick/pad/wheel) (calling Input::update() calls this too, if stick is active)
 
   osiJoystick();
@@ -242,12 +263,16 @@ public:
 
   // private data from here on  
 private:
+  friend class osiInput;
+  friend class osinteraction;
+  
+  bool _bActive, _bGrabbed;       /// internal flags
+
   osiGamePad *_gp;                /// linked gamepad - each stick has a coresponding gamepad that uses the same 'driver'
   osiGameWheel *_gw;              /// linked gamewheel - each stick has a coresponding gamewheel that uses the same 'driver'
-  uint8 _buffer1[MAX_JOYSTICK_BUTTONS], _buffer2[MAX_JOYSTICK_BUTTONS];   /// used for the key / lastCheck. buffers are swapped with pointers, so no copying is involved
+  uint8 _buffer1[MAX_JOYSTICK_BUTTONS], _buffer2[MAX_JOYSTICK_BUTTONS];   /// used for the but / butPrev. buffers are swapped with pointers, so no copying is involved
   inline void _swapBuffers();     /// [internal] swaps button buffers
-  void _log(const ButPressed &);  /// [internal] just puts the last button in the last button-history (it logs imediatly when a button is down)
-  bool _bGrabbed;                 /// [internal] the HID is currently grabbed (while app don't have focus it will be ungrabbed)
+  void _log(const osiButLog &);  /// [internal] just puts the last button in the last button-history (it logs imediatly when a button is down)
 
   /// OS specific stuff
   #ifdef OS_WIN
@@ -275,6 +300,14 @@ private:
   
   #ifdef OS_MAC
   friend void _HIDchange(void *, IOReturn, void *, IOHIDValueRef);
+
+  struct _CallbackTame { int x, y, blabla
+
+  2 of these structs (a system with swap buffers), so the copying is almost instant, so the callbacks write to a pointer to one of these structs
+  the buttons must be thinked tho. the log can't be handled by the callbacks
+  there's almost the need for a log of buttons pressed for the fracking callbacks
+  or, if no log, read the state, somehow... i think it's easy tho... a button state for the callbacks, and in.update() does all the work from there
+  
   #endif
 };
 
@@ -307,21 +340,21 @@ public:
 
   // BUTTONS state / history
 
-  uint8 *b;                             /// buttons state
-  int32 bPressure[MAX_JOYSTICK_BUTTONS];/// heck if k knew this existed... guess no game (that i played) uses it; now it's implemented!
-  uint64 bTime[MAX_JOYSTICK_BUTTONS];   /// time @ key started to be pressed
-  uint8 *lastCheck;                     /// holds what the last time the keys were checked button press info - points to 1 of the buffers
-  ButPressed lastBut[MAX_KEYS_LOGGED];  /// history of pressed buttons
+  uint8 *but;                               /// buttons state
+  uint8 *butPrev;                           /// holds previous buttons state
+  int32 butPressure[MAX_JOYSTICK_BUTTONS];  /// heck if k knew this existed... guess no game (that i played) uses it; now it's implemented!
+  uint64 butTime[MAX_JOYSTICK_BUTTONS];     /// time @ key started to be pressed
+  osiButLog butLog[MAX_KEYS_LOGGED];        /// history of pressed/depressed buttons
 
   // functions
 
-  void activate() { _j->activate(); }     /// !! activates pad, signaling to update it's data values& grabbing exclusive usage
-  void deactivate() { _j->deactivate(); } /// deactivates & ungrabs device
+  bool activate() { return _j->activate(); }     /// !! activates pad, signaling to update it's data values& grabbing exclusive usage
+  bool deactivate() { return _j->deactivate(); } /// deactivates & ungrabs device
 
   void resetButtons();                  /// clears all button buffers & resets logged buttons (used in case of alt-tab or something similar)
   void update() { _j->update(); }       /// can be called, to manually update the gamepad variables
-  void aquire() { _j->aquire(); }       /// exclusive control of the device (if possible)
-  void unaquire() { _j->unaquire(); }   /// lose exclusive control of the device
+  bool grab() { return _j->grab(); }    /// exclusive control of the device (if possible)
+  bool ungrab() { return _j->ungrab(); }/// lose exclusive control of the device
 
   osiGamePad();
   ~osiGamePad();
@@ -330,7 +363,7 @@ public:
 // internals from here on
 private:
   osiJoystick *_j;                      /// linked Joystick class
-  void _log(const ButPressed &);        /// [internal] just puts the last button in the last button-history (it logs imediatly when a button is down)
+  void _log(const osiButLog &);        /// [internal] just puts the last button in the last button-history (it logs imediatly when a button is down)
   uint8 _buffer1[MAX_JOYSTICK_BUTTONS], _buffer2[MAX_JOYSTICK_BUTTONS];   /// used for the key / lastCheck. buffers are swapped with pointers, so no copying is involved
   inline void _swapBuffers();
   
@@ -365,21 +398,21 @@ public:
 
   // BUTTONS state / history
 
-  uint8 *b;                             /// buttons state
-  int32 bPressure[MAX_JOYSTICK_BUTTONS]; /// heck if k knew this existed... guess no game (that i played) uses it; now it's implemented!
-  uint64 bTime[MAX_JOYSTICK_BUTTONS];   /// time @ key started to be pressed
-  uint8 *lastCheck;                     /// holds what the last time the keys were checked button press info - points to 1 of the buffers
-  ButPressed lastBut[MAX_KEYS_LOGGED];  /// history of pressed buttons
+  uint8 *but;                               /// buttons state
+  uint8 *butPrev;                           /// holds previous buttons state
+  int32 butPressure[MAX_JOYSTICK_BUTTONS];  /// heck if k knew this existed... guess no game (that i played) uses it; now it's implemented!
+  uint64 butTime[MAX_JOYSTICK_BUTTONS];     /// time @ key started to be pressed
+  osiButLog butLog[MAX_KEYS_LOGGED];        /// history of pressed buttons
 
   // functions
 
-  void activate() { _j->activate(); }     /// !! activates wheel, signaling to update it's data values & grabbing exclusive usage
-  void deactivate() { _j->deactivate(); } /// deactivates & ungrabs device
+  bool activate() { return _j->activate(); }     /// !! activates wheel, signaling to update it's data values & grabbing exclusive usage
+  bool deactivate() { return _j->deactivate(); } /// deactivates & ungrabs device
 
   void resetButtons();                  /// clears all button buffers & resets history (used in case of alt-tab or something similar)
   void update() { _j->update(); }       /// updates internal vals; calling Input::update() is better, but each stick can be updated manually
-  void aquire() { _j->aquire(); }       /// exclusive control of the device (if possible)
-  void unaquire() { _j->unaquire(); }   /// lose exclusive control of the device
+  bool grab() { return _j->grab(); }    /// exclusive control of the device (if possible)
+  bool ungrab() { return _j->ungrab(); }/// lose exclusive control of the device
   
 
   osiGameWheel();
@@ -390,7 +423,7 @@ private:
   osiJoystick *_j;                  /// linked Joystick class
   uint8 _buffer1[MAX_JOYSTICK_BUTTONS], _buffer2[MAX_JOYSTICK_BUTTONS];   /// used for the key / lastCheck. buffers are swapped with pointers, so no copying is involved
 
-  void _log(const ButPressed &);  /// [internal] puts the last button in the last button-history (it logs imediatly when a button is down)
+  void _log(const osiButLog &);  /// [internal] puts the last button in the last button-history (it logs imediatly when a button is down)
   inline void _swapBuffers();
   
   #ifdef OS_MAC

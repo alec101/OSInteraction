@@ -10,6 +10,7 @@
 #endif /// OS_MAC
 
 /* TODO:
+ * [all]: possible bug: res change with only frequency change
  * [linux] restore mouse cursor for change res... ?
  * xrand has some event handling, must be checked
  */
@@ -42,9 +43,13 @@ void updateVirtualDesktop();
 void getMonitorPos(osiMonitor *m); // SCRAPED I THINK (it still helped, tho, many months later, so do not be hasty in deleting stuff)
 osiResolution *getResolution(int dx, int dy, osiMonitor *gr);
 int16 getFreq(int16 freq, osiResolution *r);
+
 #ifdef OS_LINUX
 XRRModeInfo *getMode(XRRScreenResources* s, RRMode id);
-#endif
+bool _xrrAvaible= false;
+bool _xiAvaible= false;
+int _xrrMajor, _xrrMinor;
+#endif /// OS_LINUX
   
   
 extern osinteraction osi;
@@ -103,6 +108,7 @@ osiMonitor::osiMonitor() {
   primary= false;
   glr= null;
   inOriginal= true;     /// start in original resolution... right?
+  _inProgRes= false;
   x0= y0= _y0= dx= dy= 0;
   win= null;
 
@@ -205,6 +211,11 @@ osiDisplay::osiDisplay() {
   primary= null;
   nrGPUs= 0;
   GPU= null;
+  bResCanBeChanged= false;
+  bGPUinfoAvaible= false;
+  uint8 buf[]= "osiDisplay.populate() was not called";
+  bResCanBeChangedReason= buf;
+  bGPUinfoAvaibleReason= buf;
   
   vdx= vdy= vx0= vy0= 0;
 }
@@ -248,7 +259,9 @@ bool osiDisplay::changePrimary(int32 dx, int32 dy, int8 bpp, int16 freq) {      
 bool doChange(/*osiWindow *w, */osiMonitor *m, osiResolution *r, int8 bpp, int16 freq);
 
 bool osiDisplay::changeRes(/*osiWindow *w, */osiMonitor *m, int32 dx, int32 dy, int8 bpp, int16 freq) {
-  bool chatty= false;
+  bool chatty= true;
+  if(!bResCanBeChanged) return false;   /// there can be reasons that res change is not possible. check bResCanBeChangedReason text
+  
   // THERE HAS TO BE ALL THE CHECKS IN HERE, cuz changing 10 times the resolution
   // in 1 second (wich can freaqing happen, due to some crazy request), might
   // blow up your monitor
@@ -274,20 +287,31 @@ bool osiDisplay::changeRes(/*osiWindow *w, */osiMonitor *m, int32 dx, int32 dy, 
   if(chatty) printf("requested RESOLUTION CHANGE: %dx%d %dHz (%s)\n", r->dx, r->dy, freq, m->name.d);
   
   /// if a frequency is provided, get it's ID from databanks
-  int16 f= 0;                             /// this will help with frequencyes
-  if(freq) f= getFreq(freq, r);
+  int16 fID= 0, tfreq;                       /// this will help with frequencyes
   
-  if(f== -1) {                            /// getFreq returns -1 if none found
+  /// in case a frequency is supplied
+  if(freq)
+    fID= getFreq(freq, r);
+  /// if frequency is not supplied, use defaults
+  else {
+    fID= getFreq(60, r);        // try 60hz
+    if(fID== -1)
+      fID= getFreq(59, r);      // try 59hz
+    if(fID== -1)
+      fID= 0;                   // just get the first freq in list (there has to be 1)
+  }
+  
+  if(fID== -1) {               /// getFreq returns -1 if none found
     error.simple("osi:changeRes: Requested frequency not found");
     return false;
   }
   
   // check if the ORIGINAL RESOLUTION was requested <<<==================================================================
-  if(!freq)                               /// frequency might be ignored (0)
-    f= m->original.freq[0];
+  if(!freq)                               /// frequency might be ignored (0) - A BUG CAN HAPPEN HERE: A RES CHANGE WITH ONLY FREQ CHANGE HAPPENS
+    tfreq= m->original.freq[0];
   
-  if((m->original.dx== dx) && (m->original.dy== dy) && (m->original.freq[0]== f)) {
-    if(m->inOriginal) {                   // already in original res?
+  if((m->original.dx== dx) && (m->original.dy== dy) && (m->original.freq[0]== tfreq)) {
+    if(!m->inOriginal) {                   // already in original res?
       if(chatty) printf("changeRes: IGNORE: already in original resolution\n");
       return true;
     }
@@ -300,19 +324,22 @@ bool osiDisplay::changeRes(/*osiWindow *w, */osiMonitor *m, int32 dx, int32 dy, 
   
   // check if changing TO PROGRAM RESOLUTION (from original res, an alt-tab or something) <<<==========================
   if(!freq)                               /// frequency might be ignored (0)
-    f= m->progRes.freq[0];
+    tfreq= m->progRes.freq[0];
   
-  if((m->progRes.dx== dx) && (m->progRes.dy== dy) && (m->progRes.freq[0]== f)) {
+  if((m->progRes.dx== dx) && (m->progRes.dy== dy) && (m->progRes.freq[0]== tfreq)) {
+    
+    /// if the monitor is not in original, the monitor is already in progRes, and there won't be any res change
     if(m->inOriginal) {
       /// per OS resolution change
       bool b;
       #ifdef OS_WIN
       b= doChange(m, r, bpp, freq);
       #else /// OS_LINUX & OS_MAC
-      b= doChange(m, r, bpp, f);
+      b= doChange(m, r, bpp, fID);
       #endif /// OS_LINUX & OS_MAC 
 
       if(!b) { // could not change resolution
+        printf("\nERROR 1\n\n");
         restoreAllRes();
         return false;
       }
@@ -321,17 +348,18 @@ bool osiDisplay::changeRes(/*osiWindow *w, */osiMonitor *m, int32 dx, int32 dy, 
       m->dx= dx;
       m->dy= dy;
       m->inOriginal= false;
-
+      m->_inProgRes= true;
+      
       /// update monitor's window (if there is one)
       if(m->win) {
         m->win->bpp= bpp;
-        m->win->freq= r->freq[f];
+        m->win->freq= r->freq[fID];
         if(m->win->mode== 2 || m->win->mode== 3) {
           m->win->dx= dx;
           m->win->dy= dy;
         }
       }
-
+              
       /// all window positions can change after 1 monitor resolution change
       for(int16 a= 0; a< nrMonitors; a++)
         if(monitor[a].win) 
@@ -342,27 +370,20 @@ bool osiDisplay::changeRes(/*osiWindow *w, */osiMonitor *m, int32 dx, int32 dy, 
 
       return true;
     } /// if in original resolution
+    
     if(chatty) printf("changeRes: IGNORE: already in program resolution\n");
     return true; /// if already in program resolution, just return
   } /// if progRes is requested
   
-  
-  /// it's not origRes requested, nor progRes requested, it's a NEW resolution <<<==================================
-  /// if frequency is not supplied
-  if(!freq) {
-    f= getFreq(60, r);        // try 60hz
-    if(f== -1)
-      f= getFreq(59, r);      // try 59hz
-    if(f== -1)
-      f= 0;                   // just get the first freq in list (there has to be 1)
-  }
+
+  // it's not origRes requested, nor progRes requested, it's a NEW resolution <<<==================================
   
   // RESOLUTION CHANGE
   bool b;
   #ifdef OS_WIN
   b= doChange(m, r, bpp, freq);
   #else /// OS_LINUX & OS_MAC
-  b= doChange(m, r, bpp, f);
+  b= doChange(m, r, bpp, fID);
   #endif /// OS_LINUX & OS_MAC 
 
   if(!b) { // could not change resolution
@@ -371,7 +392,7 @@ bool osiDisplay::changeRes(/*osiWindow *w, */osiMonitor *m, int32 dx, int32 dy, 
   }
   
   #ifdef OS_LINUX
-  m->progRes._resID[0]= r->_resID[f];
+  m->progRes._resID[0]= r->_resID[fID];
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
@@ -381,15 +402,15 @@ bool osiDisplay::changeRes(/*osiWindow *w, */osiMonitor *m, int32 dx, int32 dy, 
   /// adjust current window& monitor variables
   m->dx= dx;
   m->dy= dy;
-  m->progRes.dx= dx;        /// this is the point progRes is initialized
+  m->progRes.dx= dx;        /// this is the point progRes is (re)initialized
   m->progRes.dy= dy;
-  m->progRes.freq[0]= f;
+  m->progRes.freq[0]= r->freq[fID];
   m->inOriginal= false;
 
   /// update monitor's window (if there is one)
   if(m->win) {
     m->win->bpp= bpp;
-    m->win->freq= r->freq[f];
+    m->win->freq= r->freq[fID];
     if(m->win->mode== 2 || m->win->mode== 3) {
       m->win->dx= dx;
       m->win->dy= dy;
@@ -424,10 +445,12 @@ void osiDisplay::restoreAllRes() {
 ///----------------------------------------------------------------------///
 
 void osiDisplay::restoreRes(osiMonitor *m) {
-  bool chatty= false;
+  bool chatty= true;
+  if(!bResCanBeChanged) return;
+  
   if(m->inOriginal)
     return;
-  if(chatty) printf("RESTORE MONITOR RESOLUTION [%s]\n", m->name.d);
+  if(chatty) printf("RESTORE MONITOR RESOLUTION [%s] dx[%d] dx[%d] freq[%d]\n", m->name.d, m->original.dx, m->original.dy, m->original.freq[0]);
   
   #ifdef OS_WIN
   ChangeDisplaySettingsEx(m->_id, NULL, NULL, NULL, NULL);
@@ -435,8 +458,10 @@ void osiDisplay::restoreRes(osiMonitor *m) {
   #endif
 
   #ifdef OS_LINUX
-  if(!doChange(m, &m->original, 0, 0))
+  if(!doChange(m, &m->original, 0, 0)) {
+    error.simple("ERROR: can't change back to original monitor resolution");
     osi.flags.exit= true;                   // EXIT PROGRAM IF CAN'T CHANGE BACK RESOLUTION... can't do much at this point
+  }
   // show cursor here <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
   #endif /// OS_LINUX
 
@@ -453,6 +478,8 @@ void osiDisplay::restoreRes(osiMonitor *m) {
     osi.display.monitor[a].inOriginal= true;
   }
 
+  
+  /* WHY CHANGE WIN SIZE? WIN SIZE DOESN'T ACTUALLY CHANGE !!!
   /// set attribs for all windows
   for(short a= 0; a< MAX_WINDOWS; a++)
     if(osi.win[a].isCreated) {
@@ -462,7 +489,7 @@ void osiDisplay::restoreRes(osiMonitor *m) {
         osi.win[a].dy= osi.win[a].monitor->original.dy;
       }
     }
-
+   */
   // do not return
 
   // PER MONITOR RESTORE... needs more work (in display.populate() ). probly keep the CGDisplayModeRef of the original resolution somewhere
@@ -490,6 +517,7 @@ void osiDisplay::restoreRes(osiMonitor *m) {
   for(short a= 0; a< osi.display.nrMonitors; a++)
     getMonitorPos(&osi.display.monitor[a]);
 
+  /* WINDOW'S SIZE DOESN'T CHANGE! AND IT CAN BE USED TO RESTORE FROM A FOCUS OUT
   /// update monitor's window (if there is one)
   if(m->win) {
     //m->win->bpp= bpp;
@@ -499,15 +527,20 @@ void osiDisplay::restoreRes(osiMonitor *m) {
       m->win->dy= m->dy;
     }
   }
-
+  */
+  
+   // WHY CHANGE? THEY MINIMIZE / SET TO BACKGROUND - they don't change!
   /// all window positions can change after 1 monitor resolution change
+  /*
   for(short a= 0; a< MAX_WINDOWS; a++)
     if(osi.win[a].isCreated)
       if(osi.win[a].mode== 2 || osi.win[a].mode== 3) {
         osi.win[a].x0= osi.win[a].monitor->x0;
         osi.win[a].y0= osi.win[a].monitor->y0;
+        //osi.win[a].move(osi.win[a].x0, osi.win[a].y0); // IT WON'T WORK, RIGHT?
       }
-
+  */
+  
 } // osiDisplay::restoreRes
 
 
@@ -517,7 +550,7 @@ void osiDisplay::restoreRes(osiMonitor *m) {
 ///-----------------------------------------------------------------------------///
 
 bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, int16 freq) {
-  bool chatty= false;
+  bool chatty= true;
   #ifdef OS_WIN
   DEVMODE dm;
   for(short a= 0; a< sizeof(DEVMODE); a++) ((int8 *)&dm)[a]= 0;
@@ -541,16 +574,28 @@ bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, int16 freq) {
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
-
-  // MUST DO some checks for only 1 monitor, and randr < 1.3    <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
+  /* Xrandr research:
+   * 
+   * 1. X11 server grab is a must, else bad things happen
+   * 2. EVERY crtc must be disabled, prior to resolution change (im shure there's a way to disable some, but it might be more of a headache)
+   * 3. don't forget to set the primary output back, after every crtc is re-enabled (forgot this and weird things happened)
+   * 
+   * 
+   * specification:
+   * http://cgit.freedesktop.org/xorg/proto/randrproto/tree/randrproto.txt
+   * source code:
+   * http://cgit.freedesktop.org/xorg/app/xrandr/tree/xrandr.c?id=9887ed4989e0abd48004598be0eb5cb06fa40bd1
+   * 
+  */
+  if(!_xrrAvaible) return false;
+  
   bool change= true;                        // actually do change resolution (DEBUG)
-  bool grab= false;                         // grab the server
+  bool grab= true;                          // grab the server <- there are apps that need to be on hold for this
   
   if(grab)
     XGrabServer(osi._dis);                  // GRAB SERVER
   
-  XRRScreenResources *scr= XRRGetScreenResources(m->win->_dis, m->_root);
+  XRRScreenResources *scr= XRRGetScreenResources(osi._dis, m->_root);
   XRRCrtcInfo *crtc;
   Status s;
   
@@ -569,7 +614,7 @@ bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, int16 freq) {
     outs[a]= new RROutput[nouts[a]];
     for(short b= 0; b< nouts[a]; b++) {
       outs[a][b]= crtc->outputs[b];
-      if(chatty) printf("storing info: crtc[%lu] out[a%d][b%d/%d]= %lu\n", osi.display.monitor[a]._crtcID, a, b, nouts[a], outs[a][b]);
+      if(chatty) printf("storing info: crtc[%lu] out[a%d][b%d/%d]= %lu\n", osi.display.monitor[a]._crtcID, a, b+ 1, nouts[a], outs[a][b]);
     }
     XRRFreeCrtcInfo(crtc);
   } /// for each monitor
@@ -586,11 +631,13 @@ bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, int16 freq) {
     XRRSetCrtcConfig(osi._dis, scr, osi.display.monitor[a]._crtcID,
                      CurrentTime, 0, 0, None, RR_Rotate_0, NULL, 0);
     
-    //sleep(1); //?????? maybe?
+    //osi.sleep(500); // SLEEP <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     
     XRRFreeCrtcInfo(crtc);
     XRRFreeScreenResources(scr);
   }
+  
+  //osi.sleep(100);
   
   
   // VIRTUAL DESKTOP RESIZE+ EACH MONITOR PosiTION & PANNING
@@ -615,7 +662,7 @@ bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, int16 freq) {
   // * IF THIS ALGORITHM IS NOT ENOUGH, WELL, JUST MANUALLY CHANGE
   //   THE DANG MONITORS, IN LINUX 'CONTROL PANEL' AND THAT'S THAT!
 
-  //sleep(5);
+  
   
   /// update all [monitors positions] on the [right] and [bottom] of current monitor that just changed resolution
   osiMonitor *m2;
@@ -641,11 +688,17 @@ bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, int16 freq) {
   /// change the virtual desktop size
   updateVirtualDesktop();               /// updates all virtual desktop vars (atm not mm)
   // this can be avoided, and changex & changey used to update virtual desktop!!!
-  if(chatty) printf("virtual desktop UPDATE: x[%d], y[%d] (delta x[%d], y[%d])\n", osi.display.vdx, osi.display.vdy, changex, changey);
+  if(chatty) printf("virtual desktop UPDATE: x[%d], y[%d] (monitor change delta x[%d], y[%d])\n", osi.display.vdx, osi.display.vdy, changex, changey);
   
   if(change)
   XRRSetScreenSize(osi._dis, DefaultRootWindow(osi._dis), osi.display.vdx, osi.display.vdy,
-              DisplayWidthMM(m->win->_dis, 0), DisplayHeightMM(m->win->_dis, 0)); // the size in mm is kinda hard to compute, but doable... it might be NOT NEEDED
+              DisplayWidthMM(m->win->_dis, m->_screen), DisplayHeightMM(m->win->_dis, m->_screen)); // the size in mm is kinda hard to compute, but doable... it might be NOT NEEDED
+  
+  m->_root= DefaultRootWindow(osi._dis);
+  
+  /// a 100 milisecs sleep between monitor re-activation? can't hurt
+  osi.sleep(100); // PAUSEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE
+  
   
   /// set panning for all monitors
   /* THIS MIGHT NOT BE NEEDED AT ALL, as all monitors are disabled & re-enabled with updated positions
@@ -663,24 +716,24 @@ bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, int16 freq) {
   osiResolution *r2;                              /// temporary, used in next loop
   int16 id;                                       /// temporary, used in next loop
   bool primaryActivated= false;
-
+  
   /// will pass thru all monitors twice. first time to activate primary monitor first, then the rest of monitors
-  for(short prim= 0; prim< 2; prim++) {                // pass thru all monitors twice
+  for(short pass= 0; pass< 2; pass++) {                // pass thru all monitors twice
     for(short a= 0; a< osi.display.nrMonitors; a++) {  // for each monitor
       
-      if(prim== 0 && primaryActivated) continue;  /// if in pass 0 and primary monitor was activated, continue till pass 2
+      if(pass== 0 && primaryActivated) continue;  /// if in pass 0 and primary monitor was activated, continue till pass 2
       
       /// in pass 0, find primary monitor (pos 0, 0)
-      if(prim== 0 && (!primaryActivated)) {
+      if(pass== 0 && (!primaryActivated)) {
         if(osi.display.monitor[a].primary) {
           if(chatty) printf("activating primary monitor first\n");
           primaryActivated= true;
         } else continue;                          /// skip until primary monitor is found
       }
       /// skip if in pass 1 and this is the primary monitor (already activated)
-      if((prim== 1) && osi.display.monitor[a].primary) continue;
+      if((pass== 1) && osi.display.monitor[a].primary) continue;
         
-      XRRScreenResources *scr= XRRGetScreenResources(osi._dis, m->_root);
+      scr= XRRGetScreenResources(osi._dis, m->_root);
       crtc= XRRGetCrtcInfo(osi._dis, scr, osi.display.monitor[a]._crtcID);
       
       if(chatty) printf("monitor%d[%s]:", a, osi.display.monitor[a].name.d);
@@ -715,24 +768,23 @@ bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, int16 freq) {
                           r2->_rotation,                  /// rotation
                           outs[a],                        /// outputs that will be 'pumped data to'
                           nouts[a]);                      /// number of outputs (monitors) that will change res
-    
-      //sleep(1); //?????? maybe?
+      
+              
+      //osi.sleep(50); // SLEEP <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
     
       XRRFreeCrtcInfo(crtc);
       XRRFreeScreenResources(scr);
     
       /// quit program, if there is an error; if this function fails, monitors should be restored manually by user
-      if(s!= Success) {   
+      if(s!= Success) {
         for(short a= 0; a< osi.display.nrMonitors; a++)
           delete[] outs[a];
         
         delete[] outs;
         delete[] nouts;
+        
         m->dx= tmpx;
         m->dy= tmpy;
-
-        if(grab)
-          XUngrabServer(osi._dis);               // UNGRAB SERVER
       
         if(chatty) printf("error: XRRSetCrtcConfig not sucessful\n");
         error.simple("doChange: Critical error while changing monitor resolution"); // , true); DISABLED QUIT, do something in other funcs
@@ -741,11 +793,12 @@ bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, int16 freq) {
     } /// for each monitor -> reactivate all
   } /// for each monitor -> 2 steps (step 1 for primary monitor, step 2 for rest of monitors)
   
-  /// free memory from here on, then exit
-  //XRRFreeScreenResources(scr);
-  if(grab)
-    XUngrabServer(osi._dis);                  // UNGRAB SERVER
   
+  XRRSetOutputPrimary(osi._dis, osi.display.primary->_root, osi.display.primary->_outID);
+
+  if(grab)
+    XUngrabServer(osi._dis);               // UNGRAB SERVER
+
   for(short a= 0; a< osi.display.nrMonitors; a++) {
     delete[] outs[a];
     getMonitorPos(&osi.display.monitor[a]); /// updates y0, from _y0
@@ -753,6 +806,11 @@ bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, int16 freq) {
         
   delete[] outs;
   delete[] nouts;
+  
+  
+  /// after everything is done, a 1 sec sleep? too much?
+  /// on slower systems this could cause problems if the sleep is really needed...
+  osi.sleep(1000);    /// a sleep IS required. there's the need to wait for X11 to update, else the window position is wrong
   
   #endif /// OS_LINUX
   
@@ -804,11 +862,15 @@ bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, int16 freq) {
 
 void _populateGrCards(osiDisplay *);
 
-void osiDisplay::populate(osinteraction *t) {
+void osiDisplay::populate() {
   bool chatty= true;
   delData();
+  
   #ifdef OS_WIN
-    
+  /// resolution changes are no problem under windows
+  bResCanBeChanged= true;
+  bResCanBeChangedReason= "";
+  
   int a, b, n, tx, ty;//, m;
   osiResolution *p;
   Str8 s;
@@ -1013,6 +1075,7 @@ void osiDisplay::populate(osinteraction *t) {
     delete[] tmp;
   } /// displays loop
 
+  /// grcards populate: end of proc->call _grCardPopulate()
   // IT'S OVERRRRR ... 
 
 
@@ -1020,255 +1083,305 @@ void osiDisplay::populate(osinteraction *t) {
 
 
   #ifdef OS_LINUX
-  //  XRRScreenSize *xrrs; // OLD CODE
-  
-  
   // RESEARCH:  
   // RR_DoubleScan is the oposite of RR_Interlace !!!!!!!!!!!!
-  
-  //XRRQueryVersion (dpy, &major, &minor);
-  //  if (major > 1 || (major == 1 && minor >= 3))
-  //^^^ checks for xrandr ver 1.3!!! (if it is installed on machine)
   
   short a, b, c, d, e;              /// all used in loops...
   osiResolution *p;
   
-  XRROutputInfo *out, *out2;
-  XRRCrtcInfo *crtc;
-  XRRScreenResources *scr;
+  /// check XRandR extension
+  _xrrAvaible= true;
+  int evBase= -1, err= -1;
   
-  scr= XRRGetScreenResourcesCurrent(t->_dis, DefaultRootWindow(t->_dis));
-  if(chatty) printf("Screen info: outputs= %d; modes= %d; crtcs= %d\n",scr->noutput, scr->nmode, scr->ncrtc);
+  if(!XRRQueryExtension(osi._dis, &evBase, &err))
+    _xrrAvaible= false;
   
-  /// find the number of connected monitors  
-  for(a= 0; a< scr->noutput; a++) {
-     out= XRRGetOutputInfo(t->_dis, scr, scr->outputs[a]);
-     if(chatty) printf("output %d: %s %s (crtc%lu)\n", a, out->name, (out->connection== RR_Connected)? "active": "no connection", out->crtc);
-     
-     if(out->connection== RR_Connected)
-       nrMonitors++;
-     XRRFreeOutputInfo(out);
+  if(_xrrAvaible) 
+    if(!XRRQueryVersion(osi._dis, &_xrrMajor, &_xrrMinor))
+      _xrrAvaible= false;                            /// can't check version- something wrong
+  
+  if(_xrrAvaible)
+    if(_xrrMajor< 1 || (_xrrMajor== 1 && _xrrMinor< 3))
+      _xrrAvaible= false;                            /// work with v1.3+
+  if(_xrrAvaible) {
+    bResCanBeChanged= true;
+    bResCanBeChangedReason= "";
   }
+  
+  
+  /// check Xinerama extension
+  _xiAvaible= true;
+  int xiMajor, xiMinor;
+  
+  if(!XineramaQueryExtension(osi._dis, &xiMajor, &xiMinor)) 
+    _xiAvaible= false;
+  
+  if(_xiAvaible)
+    if(!XineramaIsActive(osi._dis))
+      _xiAvaible= false;
+  
+  
+  // POPULATE VIA XRANDR ============---------------------
+  if(_xrrAvaible) {
+    
+    if(chatty) printf("XRandR: version[%d.%d] querry[%d] err[%d]\n", _xrrMajor, _xrrMinor, evBase, err);
+    
+    XRROutputInfo *out, *out2;
+    XRRCrtcInfo *crtc;
+    XRRScreenResources *scr;
 
-  /// create & start populating monitor structure
-  monitor= new osiMonitor[nrMonitors];
+    /// X11 screen info
+    scr= XRRGetScreenResourcesCurrent(osi._dis, DefaultRootWindow(osi._dis));
+    if(chatty) printf("Screen info: outputs= %d; modes= %d; crtcs= %d\n",scr->noutput, scr->nmode, scr->ncrtc);
 
-  for(a= 0, b= 0; a< scr->noutput; a++) { /// for each output (empty outputs will be ignored)
-    out= XRRGetOutputInfo(t->_dis, scr, scr->outputs[a]);
-    /// if there is nothing connected to this output, skip it
-    if(out->connection!= RR_Connected) {
-      XRRFreeOutputInfo(out);
-      continue;
-    } 
-    
-    /// crtc that handles this output (output that IS connected to a monitor)
-    crtc= XRRGetCrtcInfo(t->_dis, scr, out->crtc);
-    /// can ge usefull data from a crtc
-    if(chatty) {
-      printf("out%lu: is on crtc%lu\n", scr->outputs[a], out->crtc);
-      printf("crtc%lu: has %d outputs:", out->crtc, crtc->noutput);
-      for(short z= 0; z< crtc->noutput; z++)
-        printf(" %lu", crtc->outputs[z]);
-      printf("\n");
-    }
-    
-    
-      
-    monitor[b]._screen= DefaultScreen(t->_dis);;  // can it be possible anymore to be a different value???
-    monitor[b]._root= RootWindow(t->_dis, monitor[b]._screen);
-    monitor[b]._outID= scr->outputs[a];
-    monitor[b]._crtcID= out->crtc;
-    monitor[b].x0= crtc->x;
-    monitor[b]._y0= crtc->y;
-    monitor[b].name= out->name;
-    monitor[b].original.dx= crtc->width;
-    monitor[b].original.dy= crtc->height;
-    monitor[b].original._resID[0]= crtc->mode; /// this is the only use
-    monitor[b].original._rotation= crtc->rotation;
-    
-    
-    
-    if((crtc->x== 0) && (crtc->y== 0)) {      /// primary monitor is in position 0, 0
-      // there's XRRGetOutputPrimary() if 0,0 is a bad ideea
-      monitor[b].primary= true;
-      primary= &monitor[b];
-    }
-    monitor[b].dx= crtc->width;
-    monitor[b].dy= crtc->height;
-    
-    if(chatty) printf("monitor [%s] position %d,%d crtc[%lu] out[%lu]\n", monitor[b].name.d, monitor[b].x0, monitor[b].y0, monitor[b]._crtcID, monitor[b]._outID);
+    /// find the number of connected monitors  
+    for(a= 0; a< scr->noutput; a++) {
+       out= XRRGetOutputInfo(osi._dis, scr, scr->outputs[a]);
+       if(chatty) printf("output %d: %s %s (crtc%lu)\n", a, out->name, (out->connection== RR_Connected)? "active": "no connection", out->crtc);
 
-    /* crtc transform tests. SEEMS NOTHING USEFULL IS HERE (not going into zooms and scales)
-    XRRCrtcTransformAttributes *attr;
-    XRRGetCrtcTransform(osi.primWin->dis, out->crtc, &attr);
-    
-    for(int x= 0; x< 3; x++) {
-      for(int y= 0; y< 3; y++)
-        printf("%d ", attr->pendingTransform.matrix[x][y]);
-      printf("\n");
+       if(out->connection== RR_Connected)
+         nrMonitors++;
+       XRRFreeOutputInfo(out);
     }
 
-    printf("current filter: %s\n", attr->currentFilter);
-    printf("current nr of parameters: %d\n", attr->currentNparams);
-    for(int x= 0; x< attr->currentNparams; x++)
-      printf("param%d: %d\n", x, attr->currentParams[x]);
-    
-    getchar();
-    _exit(1);  
-     */
+    /// create & start populating monitor structure
+    monitor= new osiMonitor[nrMonitors];
 
-    // ***********************************************************
-    // MUST TEST IF RANDR AUTOMATICALLY LOWERS THE POSSIBLE RESOLUTIONS
-    // FOR MONITORS SET ON DUPLICATE. CHANSES ARE, IT DOESN'T
-    // ***********************************************************
-    
-
-    /// find the number of resolutions the monitor supports (this is not easy cuz of duplicate monitors)
-    
-    /// if there are multiple monitors on same crtc, they are set on DUPLICATE (mirror or watever the OS names them).
-    /// each resolution MUST be avaible on all monitors in this case
-    /// ex: if monitor1 can't support a resolution that monitor2 can, that resolution must go from both lists
-    bool found, found2;
-    RRMode *tmp= new RRMode[out->nmode];      // temporary array, will be populated with resolutions all monitors support
-    short tmpSize= 0;
-    
-    for(c= 0; c< out->nmode; c++) {            // for each res (resolution==mode)
-      found= true;                            /// start with true(res is found), just mark it as false on the way
-      
-      if(crtc->noutput> 1)
-        for(d= 0; d< crtc->noutput; d++) {    // for each out that is duplicating
-          if(monitor[b]._outID == crtc->outputs[d]) continue; /// don't test against itself
-
-          out2= XRRGetOutputInfo(t->_dis, scr, crtc->outputs[d]);
-        
-          found2= false;                      /// start with false(res not found in out2), mark as true if found
-          
-          for(e= 0; e< out2->nmode; e++)       // for each mode in out2
-            if(out->modes[c]== out2->modes[e])
-              found2= true;
-        
-          /// if found2 was not marked as true, then the mode is not in out2
-          if(!found2) {
-            found= false;                     // mark mode as NOT FOUND in all outputs
-            XRRFreeOutputInfo(out2);
-            break;                            /// can actually break, as further tests are futile
-          }
-          XRRFreeOutputInfo(out2);
-        }
-      
-      if(found)                               // if it's still true, it's a valid monitor mode
-        tmp[tmpSize++]= out->modes[c];        /// temporary matrix update
-    } /// for each res [c]
-    
-    /// find the real number of resolutions (based on size only)
-    RRMode *tmp2= new RRMode[tmpSize];        // temporary array, will be populated without duplicate sizes in tmp
-    short tmp2Size= 0;
-    XRRModeInfo *i, *j;
-    
-    for(c= 0; c< tmpSize; c++) {              // for each element in tmp (eliminate duplicate sizes)
-      if(c!= 0) {
-        /// if last res size was the same as this one, skip it
-        i= getMode(scr, tmp[c]);
-        j= getMode(scr, tmp2[tmp2Size- 1]);
-        if((i->height == j->height) && (i->width  == j->width))
-          continue;
-      }
-      tmp2[tmp2Size++]= tmp[c];
-    } /// for each element in tmp
-    if(chatty) printf("found %d unique res\n", tmp2Size);
-    
-    /// create & populate res structure 
-    monitor[b].nrRes= tmp2Size;
-    monitor[b].res= new osiResolution[tmp2Size];
-    
-    for(c= 0; c< monitor[b].nrRes; c++) {       // for each res the monitor supports
-      /// find the id in all the screen modes (hopefully this is the place all modes are dumped)
-      i= getMode(scr, tmp2[c]);
-      
-      /// finally populate the rest of the stuff
-      monitor[b].res[c].dx= i->width;
-      monitor[b].res[c].dy= i->height;
-      monitor[b].res[c]._rotation= RR_Rotate_0;
-    }
-
-    /// populate frequencies and modeIDs  (
-    // tmp holds modeIDs that are good for all duplicating monitors
-    // tmp2 holds what tmp holds, without duplicate sizes (each res size is unique)
-    
-    for(c= 0; c< monitor[b].nrRes; c++) {   // for each resolution
-      
-      /// find out how many frequencies this resolution has
-      e= 0;
-      i= getMode(scr, tmp2[c]);
-      for(d= 0; d< tmpSize; d++) {
-        j= getMode(scr, tmp[d]);
-        if((i->width== j->width) && (i->height== j->height))
-          e++;
-      }
-      /// got the number of freq/resIDs (in e)
-      monitor[b].res[c].nrFreq= e;
-      monitor[b].res[c].freq= new short[e];
-      monitor[b].res[c]._resID= new RRMode[e];
-      /// populate both frequencies & resolutionIDs
-      e= 0;
-      for(d= 0; d< tmpSize; d++) {
-        j= getMode(scr, tmp[d]);
-        if((i->width== j->width) && (i->height== j->height)) {
-          monitor[b].res[c].freq[e]= (j->dotClock? (j->dotClock/ (j->hTotal* j->vTotal)): 0);
-          monitor[b].res[c]._resID[e++]= j->id;
-        }
+    for(a= 0, b= 0; a< scr->noutput; a++) { /// for each output (empty outputs will be ignored)
+      out= XRRGetOutputInfo(osi._dis, scr, scr->outputs[a]);
+      /// if there is nothing connected to this output, skip it
+      if(out->connection!= RR_Connected) {
+        XRRFreeOutputInfo(out);
+        continue;
       } 
-    } /// for each resolution
-    
-    delete[] tmp;
-    delete[] tmp2;
-    
-    b++;
-    XRRFreeCrtcInfo(crtc);
-    XRRFreeOutputInfo(out);
-  } /// for each output
-  
-  
-  // find monitors that are glued on the right & bottom for each monitor (will help ennourmously on resolution change)
-  int mx, my;                                             /// middle point on x and y
-  osiMonitor *m1, *m2;                                    /// name shortcuts
-  
-  for(a= 0; a< nrMonitors; a++) {
-    m1= &monitor[a];                                      /// name shortcut for monitor[a]
-    
-    /// pass thru all monitors again, to find glued ones
-    for(b= 0; b< nrMonitors; b++) {
-      m2= &monitor[b];                                    /// m2 will be checked against m1
-      if(m1== m2) continue;                               /// same monitor, skip
-      
-      /// check if m2 is glued on the right of m1
-      my= m2->_y0+ (m2->original.dy/ 2);
 
-      if((my> m1->_y0) && (my< (m1->_y0+ m1->original.dy)))/// if it is approx on the same x axis
-        if(m2->x0== (m1->x0+ m1->original.dx))            /// if it is glued on the right
-          m1->_right= m2;
-      
-      /// check if m2 is glued on the bottom of m1
-      mx= m2->x0+ (m2->original.dx/ 2);
-
-      if((mx> m1->x0) && (mx< (m1->x0+ m1->original.dx))) /// if it is approx on the same y axis
-        if(m2->_y0== (m1->_y0+ m1->original.dy))          /// if it is glued on the bottom
-          m1->_bottom= m2;
-    } /// for each monitor again
-  } /// for each monitor
-  
-  
-  XRRFreeScreenResources(scr);
-  
-  if(chatty)
-    for(a= 0; a< nrMonitors; a++)
-      for(b= 0; b< monitor[a].nrRes; b++) {
-        printf("[%dx%d]", monitor[a].res[b].dx, monitor[a].res[b].dy);
-        for(c= 0; c< monitor[a].res[b].nrFreq; c++) 
-          printf(" %d[id%lu]", monitor[a].res[b].freq[c], monitor[a].res[b]._resID[c]);
+      /// crtc that handles this output (output that IS connected to a monitor)
+      crtc= XRRGetCrtcInfo(osi._dis, scr, out->crtc);
+      /// can ge usefull data from a crtc
+      if(chatty) {
+        printf("out%lu: is on crtc%lu\n", scr->outputs[a], out->crtc);
+        printf("crtc%lu: has %d outputs:", out->crtc, crtc->noutput);
+        for(short z= 0; z< crtc->noutput; z++)
+          printf(" %lu", crtc->outputs[z]);
         printf("\n");
       }
 
+
+      /// populate monitor, lots of stuff found at this point
+      monitor[b]._screen= DefaultScreen(osi._dis);   // can it be possible anymore to be a different value???
+      monitor[b]._root= RootWindow(osi._dis, monitor[b]._screen);
+      monitor[b]._outID= scr->outputs[a];
+      monitor[b]._crtcID= out->crtc;
+      monitor[b].x0= crtc->x;
+      monitor[b]._y0= crtc->y;
+      monitor[b].name= out->name;
+      monitor[b].original.dx= crtc->width;
+      monitor[b].original.dy= crtc->height;
+      monitor[b].original._resID[0]= crtc->mode; /// this is the only use
+      monitor[b].original._rotation= crtc->rotation;
+      /// original monitor frequency is filled in further down, when the frequencies are calculated
+
+
+      if((crtc->x== 0) && (crtc->y== 0)) {      /// primary monitor is in position 0, 0
+        // there's XRRGetOutputPrimary() if 0,0 is a bad ideea
+        monitor[b].primary= true;
+        primary= &monitor[b];
+      }
+      monitor[b].dx= crtc->width;
+      monitor[b].dy= crtc->height;
+
+      if(chatty) printf("monitor [%s] position %d,%d crtc[%lu] out[%lu]\n", monitor[b].name.d, monitor[b].x0, monitor[b].y0, monitor[b]._crtcID, monitor[b]._outID);
+
+      /* crtc transform tests. SEEMS NOTHING USEFULL IS HERE (not going into zooms and scales)
+      XRRCrtcTransformAttributes *attr;
+      XRRGetCrtcTransform(osi.primWin->dis, out->crtc, &attr);
+
+      for(int x= 0; x< 3; x++) {
+        for(int y= 0; y< 3; y++)
+          printf("%d ", attr->pendingTransform.matrix[x][y]);
+        printf("\n");
+      }
+
+      printf("current filter: %s\n", attr->currentFilter);
+      printf("current nr of parameters: %d\n", attr->currentNparams);
+      for(int x= 0; x< attr->currentNparams; x++)
+        printf("param%d: %d\n", x, attr->currentParams[x]);
+
+      getchar();
+      _exit(1);  
+       */
+
+      // ***********************************************************
+      // MUST TEST IF RANDR AUTOMATICALLY LOWERS THE POSSIBLE RESOLUTIONS
+      // FOR MONITORS SET ON DUPLICATE. CHANSES ARE, IT DOESN'T
+      // it doesn't. NOW WHAT?!
+      // posibilities:
+      // 1. find out what resID's monitors share (there are clear id's that both share, from tests
+      //    populate both only with shared ID's
+      //    a bool to mark a monitor is on duplicate (maybe for both, so further searches for the duplicated monitor is made)
+      //    change res for both in case bDuplicate is true
+      // 2. well... just live it like this... change a res for a monitor... 
+      
+      // ***********************************************************
+
+
+      /// find the number of resolutions the monitor supports (this is not easy cuz of duplicate monitors)
+
+      /// if there are multiple monitors on same crtc, they are set on DUPLICATE (mirror or watever the OS names them).
+      /// each resolution MUST be avaible on all monitors in this case
+      /// ex: if monitor1 can't support a resolution that monitor2 can, that resolution must go from both lists
+      bool found, found2;
+      RRMode *tmp= new RRMode[out->nmode];      // temporary array, will be populated with resolutions all monitors support
+      short tmpSize= 0;
+
+      for(c= 0; c< out->nmode; c++) {            // for each res (resolution==mode)
+        found= true;                            /// start with true(res is found), just mark it as false on the way
+
+        if(crtc->noutput> 1)
+          for(d= 0; d< crtc->noutput; d++) {    // for each out that is duplicating
+            if(monitor[b]._outID == crtc->outputs[d]) continue; /// don't test against itself
+
+            out2= XRRGetOutputInfo(osi._dis, scr, crtc->outputs[d]);
+
+            found2= false;                      /// start with false(res not found in out2), mark as true if found
+
+            for(e= 0; e< out2->nmode; e++)       // for each mode in out2
+              if(out->modes[c]== out2->modes[e])
+                found2= true;
+
+            /// if found2 was not marked as true, then the mode is not in out2
+            if(!found2) {
+              found= false;                     // mark mode as NOT FOUND in all outputs
+              XRRFreeOutputInfo(out2);
+              break;                            /// can actually break, as further tests are futile
+            }
+            XRRFreeOutputInfo(out2);
+          }
+
+        if(found)                               // if it's still true, it's a valid monitor mode
+          tmp[tmpSize++]= out->modes[c];        /// temporary matrix update
+      } /// for each res [c]
+
+      /// find the real number of resolutions (based on size only)
+      RRMode *tmp2= new RRMode[tmpSize];        // temporary array, will be populated without duplicate sizes in tmp
+      short tmp2Size= 0;
+      XRRModeInfo *i, *j;
+
+      for(c= 0; c< tmpSize; c++) {              // for each element in tmp (eliminate duplicate sizes)
+        if(c!= 0) {
+          /// if last res size was the same as this one, skip it
+          i= getMode(scr, tmp[c]);
+          j= getMode(scr, tmp2[tmp2Size- 1]);
+          if((i->height == j->height) && (i->width  == j->width))
+            continue;
+        }
+        tmp2[tmp2Size++]= tmp[c];
+      } /// for each element in tmp
+      if(chatty) printf("found %d unique res\n", tmp2Size);
+
+      /// create & populate res structure 
+      monitor[b].nrRes= tmp2Size;
+      monitor[b].res= new osiResolution[tmp2Size];
+
+      for(c= 0; c< monitor[b].nrRes; c++) {       // for each res the monitor supports
+        /// find the id in all the screen modes (hopefully this is the place all modes are dumped)
+        i= getMode(scr, tmp2[c]);
+
+        /// finally populate the rest of the stuff
+        monitor[b].res[c].dx= i->width;
+        monitor[b].res[c].dy= i->height;
+        monitor[b].res[c]._rotation= RR_Rotate_0;
+      }
+
+      /// populate frequencies and modeIDs  (
+      // tmp holds modeIDs that are good for all duplicating monitors
+      // tmp2 holds what tmp holds, without duplicate sizes (each res size is unique)
+
+      for(c= 0; c< monitor[b].nrRes; c++) {   // for each resolution
+
+        /// find out how many frequencies this resolution has
+        e= 0;
+        i= getMode(scr, tmp2[c]);
+        for(d= 0; d< tmpSize; d++) {
+          j= getMode(scr, tmp[d]);
+          if((i->width== j->width) && (i->height== j->height))
+            e++;
+        }
+        /// got the number of freq/resIDs (in e)
+        monitor[b].res[c].nrFreq= e;
+        monitor[b].res[c].freq= new short[e];
+        monitor[b].res[c]._resID= new RRMode[e];
+        /// populate both frequencies & resolutionIDs
+        e= 0;
+        for(d= 0; d< tmpSize; d++) {
+          j= getMode(scr, tmp[d]);
+          if((i->width== j->width) && (i->height== j->height)) {
+            monitor[b].res[c].freq[e]= (j->dotClock? (j->dotClock/ (j->hTotal* j->vTotal)): 0);
+            
+            // original monitor frequency
+            if(monitor[b].original._resID[0]== j->id)
+              monitor[b].original.freq[0]= monitor[b].res[c].freq[e];
+            
+            monitor[b].res[c]._resID[e++]= j->id;
+          }
+        } 
+      } /// for each resolution
+
+      delete[] tmp;
+      delete[] tmp2;
+
+      b++;
+      XRRFreeCrtcInfo(crtc);
+      XRRFreeOutputInfo(out);
+    } /// for each output
+
+
+    // find monitors that are glued on the right & bottom for each monitor (will help ennourmously on resolution change)
+    int mx, my;                                             /// middle point on x and y
+    osiMonitor *m1, *m2;                                    /// name shortcuts
+
+    for(a= 0; a< nrMonitors; a++) {
+      m1= &monitor[a];                                      /// name shortcut for monitor[a]
+
+      /// pass thru all monitors again, to find glued ones
+      for(b= 0; b< nrMonitors; b++) {
+        m2= &monitor[b];                                    /// m2 will be checked against m1
+        if(m1== m2) continue;                               /// same monitor, skip
+
+        /// check if m2 is glued on the right of m1
+        my= m2->_y0+ (m2->original.dy/ 2);
+
+        if((my> m1->_y0) && (my< (m1->_y0+ m1->original.dy)))/// if it is approx on the same x axis
+          if(m2->x0== (m1->x0+ m1->original.dx))            /// if it is glued on the right
+            m1->_right= m2;
+
+        /// check if m2 is glued on the bottom of m1
+        mx= m2->x0+ (m2->original.dx/ 2);
+
+        if((mx> m1->x0) && (mx< (m1->x0+ m1->original.dx))) /// if it is approx on the same y axis
+          if(m2->_y0== (m1->_y0+ m1->original.dy))          /// if it is glued on the bottom
+            m1->_bottom= m2;
+      } /// for each monitor again
+    } /// for each monitor
+    
+    
+
+
+    XRRFreeScreenResources(scr);
+
+    if(chatty)
+      for(a= 0; a< nrMonitors; a++)
+        for(b= 0; b< monitor[a].nrRes; b++) {
+          printf("[%dx%d]", monitor[a].res[b].dx, monitor[a].res[b].dy);
+          for(c= 0; c< monitor[a].res[b].nrFreq; c++) 
+            printf(" %d[id%lu]", monitor[a].res[b].freq[c], monitor[a].res[b]._resID[c]);
+          printf("\n");
+        }
+
+  } /// XRandR avaible
+  
+  
+  
   // XInerama is used only for a display ID wich is used in WM_FULLSCREENMONITORS... that's all...
   
   /// if xinerama is not present... at least do a sketchy list of IDs
@@ -1281,20 +1394,20 @@ void osiDisplay::populate(osinteraction *t) {
   /// try to get the XineramaID for the monitor (this is the only thing Xinerama is used for)
   int dummy1, dummy2, heads;
   
-  if(!XineramaQueryExtension(t->_dis, &dummy1, &dummy2)) {
+  if(!XineramaQueryExtension(osi._dis, &dummy1, &dummy2)) {
     error.console("No Xinerama extension");
     return;
   }
   
-  if(!XineramaIsActive(t->_dis)) {
+  if(!XineramaIsActive(osi._dis)) {
     error.console("Xinerama not active");
     return;
   }
 
-  XineramaScreenInfo *xi= XineramaQueryScreens(t->_dis, &heads);
+  XineramaScreenInfo *xi= XineramaQueryScreens(osi._dis, &heads);
   
   for (a= 0; a< heads; a++) {
-    if(chatty) printf("XINERAMA: monitor[%d/%d]: size[x y] position[%dx %dy]\n", a, heads, xi[a].x_org, xi[a].y_org);
+    if(chatty) printf("XINERAMA: monitor[%d/%d]: position[%dx %dy] size[%dx %dy]\n", a+ 1, heads, xi[a].x_org, xi[a].y_org, xi[a].width, xi[a].height);
     for(b= 0; b< nrMonitors; b++) {
       if(xi[a].x_org== monitor[b].x0 && xi[a].y_org== monitor[b]._y0) {
         monitor[b]._XineramaID= a;
@@ -1702,11 +1815,19 @@ void osiDisplay::populate(osinteraction *t) {
 
 void _populateGrCards(osiDisplay *display) {
   bool chatty= true;
-
+  
   #ifdef OS_WIN
+
+  #ifndef USINGDIRECT3D
+  display->bGPUinfoAvaible= false;
+  display->bGPUinfoAvaibleReason= "Program not using Direct3D";    /// D3D is only used to querry cards, nothing else (oGL is missing this feature, unfortunately)
+  #endif
+
   #ifdef USING_DIRECT3D
   if(chatty) printf("Direct3D GPU detection:\n");
-
+  display->bGPUinfoAvaible= true;
+  display->bGPUinfoAvaibleReason= "";
+  
   D3DADAPTER_IDENTIFIER9 *disList= null;    /// this will store GPU/adapter/display information (term is foggy for microsoft, it's just one of these)
   IDirect3D9 *d3d;                          /// pointer to the direct3d object
 
@@ -1834,7 +1955,62 @@ void _populateGrCards(osiDisplay *display) {
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
-  // makeme <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+  if(!_xrrAvaible) {
+    display->bGPUinfoAvaible= false;
+    display->bGPUinfoAvaibleReason= "XRandR extension needed for GPU info";
+    return;
+  }
+  if(_xrrMajor< 1 || (_xrrMajor== 1 && _xrrMinor< 4)) {
+    display->bGPUinfoAvaible= false;
+    display->bGPUinfoAvaibleReason.f("XRandr v1.4 needed. Current version is %d.%d", _xrrMajor, _xrrMinor);
+    return;
+  }
+         
+  
+  XRRScreenResources *scr=     XRRGetScreenResources  (osi._dis, XDefaultRootWindow(osi._dis));
+  XRRProviderResources *cards= XRRGetProviderResources(osi._dis, XDefaultRootWindow(osi._dis));
+
+  /// graphics cards list populate
+  display->nrGPUs= cards->nproviders;
+  display->GPU= new osiGPU[display->nrGPUs];
+
+  /// loop thru all cards
+  for(int a= 0; a< cards->nproviders; a++) {
+    XRRProviderInfo *cardInfo= XRRGetProviderInfo(osi._dis, scr, cards->providers[a]);
+
+    // TRY TO POPULATE MORE CARD INFO (MEMORY - FREQ ETC)
+
+    display->GPU[a].name= cardInfo->name;
+    
+
+    /// check what monitor belongs on what card
+    /// find the number of monitors that belong to this card
+    for(int b= 0; b< cardInfo->noutputs; b++)
+      for(int c= 0; c< display->nrMonitors; c++)
+        if(display->monitor[c]._outID== cardInfo->outputs[b])
+          display->GPU[a].nrMonitors++;
+
+    /// populate GPU <-> monitor info
+    if(display->GPU[a].nrMonitors) {
+      display->GPU[a].monitor= new osiMonitor*[display->GPU[a].nrMonitors];
+
+      int id= 0;
+      for(int b= 0; b< cardInfo->noutputs; b++)
+        for(int c= 0; c< display->nrMonitors; c++)
+          if(display->monitor[c]._outID== cardInfo->outputs[b]) {
+            display->GPU[a].monitor[id++]= &display->monitor[c];
+            display->monitor[c].GPU= &display->GPU[a];
+            display->GPU[a].primary= display->monitor[c].primary;
+          }
+    } /// there are monitors on this GPU
+    if(chatty) printf("Found GPU[%s]: monitors attached[%d]\n", display->GPU[a].name.d, display->GPU[a].nrMonitors);
+
+    XRRFreeProviderInfo(cardInfo);        
+  }
+
+  XRRFreeProviderResources(cards);
+  XRRFreeScreenResources(scr);
   #endif
 
   #ifdef OS_MAC
@@ -1903,7 +2079,7 @@ osiResolution *getResolution(int dx, int dy, osiMonitor *gr) {
 }
 
 
-short getFreq(short freq, osiResolution *r) {
+int16 getFreq(int16 freq, osiResolution *r) {
   for(short a= 0; a< r->nrFreq; a++)
     if(freq == r->freq[a])
       return a;

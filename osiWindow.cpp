@@ -160,6 +160,14 @@ void osiWindow::_setWMstate(uint32 val, cchar *prop1, cchar *prop2) {
   XSendEvent(_dis, _root, False, SubstructureRedirectMask| SubstructureNotifyMask, &xev);
 }
 
+
+void osiWindow::_setWMtype(cchar *wmType) {
+  Atom type=  XInternAtom(_dis, "_NET_WM_WINDOW_TYPE", False);
+  Atom value= XInternAtom(_dis, wmType, False);
+  Atom data=  XInternAtom(_dis, "ATOM", False);
+  XChangeProperty(_dis, _win, type, data, 32, PropModeReplace, reinterpret_cast<unsigned char*>(&value), 1);
+}
+
 #endif /// OS_LINUX
 
 
@@ -223,7 +231,8 @@ bool osiWindow::setIcon(cchar *file) {
     }
 
   HICON hIcon= CreateIcon(null, dx, dy, depth, 8, null, bitmap);
-  SendMessage(primWin->_hWnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
+  
+  SendMessage((osi.primWin? osi.primWin->_hWnd: _hWnd), WM_SETICON, ICON_BIG, (LPARAM)hIcon);
 
   // small icon???
   //hIconSm = LoadImage(NULL, "menu_two.ico", IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
@@ -291,7 +300,7 @@ void osiWindow::setName(cchar *s) {
   if(!s) return;
   name= s;
   #ifdef OS_WIN
-  makeme
+  SetWindowText(_hWnd, s);
   #endif /// OS_WIN
   
   #ifdef OS_LINUX
@@ -306,12 +315,12 @@ void osiWindow::setName(cchar *s) {
 
 void osiWindow::show() {
   #ifdef OS_WIN
-  makeme
+  ShowWindow(_hWnd, SW_SHOW);
   #endif /// OS_WIN
   
   #ifdef OS_LINUX
   XMapWindow(_dis, _win);
-  move(x0, y0);
+  if(mode== 1) move(x0, y0);
   #endif /// OS_LINUX
   
   #ifdef OS_MAC
@@ -322,7 +331,7 @@ void osiWindow::show() {
 
 void osiWindow::hide() {
   #ifdef OS_WIN
-  makeme
+  ShowWindow(_hWnd, SW_HIDE);
   #endif /// OS_WIN
   
   #ifdef OS_LINUX
@@ -336,8 +345,10 @@ void osiWindow::hide() {
 
 
 void osiWindow::move(int x, int y) {
+  x0= x; y0= y;
+  //if(mode!= 1) return;
   #ifdef OS_WIN
-  makeme
+  MoveWindow(_hWnd, x0, osi.display.vdy- (y0+ dy), dx, dy, false);
   #endif /// OS_WIN
   
   #ifdef OS_LINUX
@@ -351,8 +362,10 @@ void osiWindow::move(int x, int y) {
 
 
 void osiWindow::resize(int dx, int dy) {
+  this->dx= dx; this->dy= dy;
+  //if(mode!= 1) return;
   #ifdef OS_WIN
-  makeme
+  MoveWindow(_hWnd, x0, osi.display.vdy- (y0+ dy), dx, dy, false);
   #endif /// OS_WIN
   
   #ifdef OS_LINUX

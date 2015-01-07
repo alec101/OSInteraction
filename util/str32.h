@@ -22,9 +22,10 @@
 // NOTES:
 // character              - char - usually what every program knows about a character
 // combining diacritical  - comb - each character can be created using multiple combining diacriticals.
-//                                 string handles them; usually is good not to use them unless building a sofisticated editor / whatever sofisticated character handling program
-//                                 use clearComb() to remove all of them from a string
-//                                 use isComb() to know if a character is a combining diacritical
+//                                 string handles them; usually is good not to use them unless building
+//                                 a sofisticated editor / whatever sofisticated character handling program
+//                                 * use clearComb() to remove all of them from a string
+//                                 * use isComb() to know if a character is a combining diacritical
 
 // bad characters are marked with 0xFFFD when using secure read funcs
 
@@ -63,6 +64,18 @@ public:
   uint16 *convertWin();       /// UTF-32 to windows 16bit wide character format
   void lower();               /// converts whole string to lowercase (special cases that 1 character transforms into multiple characters ARE NOT HANDLED)
   void upper();               /// converts whole string to uppercase (special cases that 1 character transforms into multiple characters ARE NOT HANDLED)
+  
+
+  // WIP vvv
+  void wrap(uint32 *);
+
+
+  Str32 &f(cchar *text, ...);
+  Str32 &addInt(int64);
+  Str32 &addUInt(uint64);
+  Str32 &addFloat(float);
+  Str32 &addDouble(double);
+  // WIP ^^^
 
   // UTF8 functions. These are SECURE functions. Read & validate each character
 

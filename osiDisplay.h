@@ -19,7 +19,7 @@ class osiDisplay {
 public:
 
   // call this at PROGRAM START
-  void populate(osinteraction *t);       // call this once to populate everything
+  void populate();                      // call this once to populate everything (it can be called multiple times, to repopulate, tho)
   
   int16 nrMonitors;                     /// nr of active monitors connected to the system
   int32 vx0, vy0, vdx, vdy;             /// VIRTUAL DESKTOP size (all monitors are placed inside this virtual desktop/ fullscreen virtual desktop mode, uses these)
@@ -30,6 +30,10 @@ public:
   osiMonitor *monitor;                  /// all monitors database
   osiMonitor *primary;                  /// pointer to the primary monitor
 
+  bool bResCanBeChanged;                /// monitor resolution change is possible
+  Str8 bResCanBeChangedReason;          /// if monitor resolution change is not possible (reason)
+  bool bGPUinfoAvaible;                 /// GPU information avaible
+  Str8 bGPUinfoAvaibleReason;           /// if no GPU info is avaible, the reason for it
 
   //MULTI MONITOR HANDLERS
 
@@ -136,6 +140,7 @@ struct osiMonitor {
   uint _id;                 /// [internal] quartz monitor id
   #endif /// OS_MAC
 private:
+  bool _inProgRes;          /// [internal] flag used for res changes
   friend class osiDisplay;
   friend void getMonitorPos(osiMonitor *m);
   friend void updateVirtualDesktop();

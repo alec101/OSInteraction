@@ -277,9 +277,10 @@ public:
     bool exit;                         // system wants program to CLOSE
     bool keyPress;                     // a keyboard key is pressed - autoupdates @ checkMSG()
     bool buttonPress;                  // a mouse button is pressed - autoupdates @ checkMSG()
+    bool HIDlostConnection;            // one of the HIDs (joysticks/gamepads/gamewheels) lost connection - a recheck of all active should be made / repopulate
+    //bool sysHIDunplugged;              // system signaled that a HID was unplugged (there's no linux version, so a check to HIDlostConnection is better)
+    bool windowResized;                // one of the windows was resized (usually need a gl aspect ratio recompute) - only for window mode 1
     //bool systemInSuspend;              // CAN'T FIND FOR LINUX the system entered a suspend mode - THIS IS VERY IMPORTANT TO CHECK nowadays - there HAS to be some kind of pause
-    /// if you use the next flags MANUALLY SET THE FLAG FALSE AFTER USE
-    bool windowResized;                // [MANUALLY SET THE FLAG TO FALSE IF USE THIS] one of the windows was resized (usually need a gl aspect ratio recompute) - only for window mode 1
   } flags;
 
   
@@ -370,6 +371,9 @@ private:
   friend void _populateGrCards(osiDisplay *);
   friend class osiDisplay;
   friend class osiMouse;
+  friend class osiKeyboard;
+  friend class osiJoystick;
+  
   // nothing to do with this class:
 public:
   bool resizeGLScene(GLsizei dx, GLsizei dy);   // this is NOT OS DEPENDANT<------------ maybe needs to be placed in another class or something    
@@ -396,76 +400,7 @@ extern ErrorHandling error;
 
 
 
-// LINUX specific window proprety funcs
-/*
- * ====================================================================================================
- * void setWMstate(uint val, string8 prop1, string8 prop2= (cchar*)0);
- *   val: 0= remove/unset property, 1= add/set property, 2= toggle property
- *   prop1 & 2 can be:
- *    "_NET_WM_STATE_MODAL"= indicates that this is a modal dialog box. If the WM_TRANSIENT_FOR
- *                           hint is set to another toplevel window, the dialog is modal for
- *                           that window; if WM_TRANSIENT_FOR is not set or set to the root window
- *                           the dialog is modal for its window group.
- *    "_NET_WM_STATE_STICKY"= indicates that the Window Manager SHOULD keep the window's position
- *                            fixed on the screen, even when the virtual desktop scrolls.
- *    "_NET_WM_STATE_MAXIMIZED_VERT"= indicates that the window is vertically maximized. (vert can be prop1, horiz prop2)
- *    "_NET_WM_STATE_MAXIMIZED_HORZ"= indicates that the window is horizontally maximized. (vert can be prop1, horiz prop2)
- *    "_NET_WM_STATE_SHADED"= indicates that the window is shaded.
- *    "_NET_WM_STATE_SKIP_TASKBAR"= indicates that the window should not be included on a taskbar.
- *                                  This hint should be requested by the application,
- *                                  i.e. it indicates that the window by nature is never in
- *                                  the taskbar. Applications should not set this hint if
- *                                  _NET_WM_WINDOW_TYPE already conveys the exact nature of the window.
- *    "_NET_WM_STATE_SKIP_PAGER"= indicates that the window should not be included on a Pager.
- *                                This hint should be requested by the application, i.e. it indicates
- *                                that the window by nature is never in the Pager. Applications should
- *                                not set this hint if _NET_WM_WINDOW_TYPE already conveys the exact nature of the window.
- *    "_NET_WM_STATE_HIDDEN"= should be set by the Window Manager to indicate that a window would not be
- *                            visible on the screen if its desktop/viewport were active and its coordinates
- *                            were within the screen bounds. The canonical example is that minimized windows
- *                            should be in the _NET_WM_STATE_HIDDEN state. Pagers and similar applications
- *                            should use _NET_WM_STATE_HIDDEN instead of WM_STATE to decide whether
- *                            to display a window in miniature representations of the windows on a desktop.
- *    "_NET_WM_STATE_FULLSCREEN"= indicates that the window should fill the entire screen and have
- *                                no window decorations. Additionally the Window Manager is responsible
- *                                for restoring the original geometry after a switch from fullscreen
- *                                back to normal window. For example, a presentation program would use this hint.
- *    "_NET_WM_STATE_ABOVE"= indicates that the window should be on top of most windows.
- *    "_NET_WM_STATE_BELOW"= indicates that the window should be below most windows.
- * 
- * _NET_WM_STATE_ABOVE and _NET_WM_STATE_BELOW are mainly meant for user preferences and should not be used
- * by applications e.g. for drawing attention to their dialogs (the Urgency hint should be used in that case,
- * see the section called “Urgency”).'
- * 
- *    "_NET_WM_STATE_DEMANDS_ATTENTION"= indicates that some action in or with the window happened.
- *                                       For example, it may be set by the Window Manager if the window
- *                                       requested activation but the Window Manager refused it, or the
- *                                       application may set it if it finished some work. This state may
- *                                       be set by both the Client and the Window Manager. It should be
- *                                       unset by the Window Manager when it decides the window got the
- *                                       required attention (usually, that it got activated).
- *    "_NET_WM_STATE_FOCUSED"= indicates whether the window's decorations are drawn in an active state.
- *                             Clients MUST regard it as a read-only hint. It cannot be set at map time
- *                             or changed via a _NET_WM_STATE client message. The window given by
- *                             _NET_ACTIVE_WINDOW will usually have this hint, but at times other
- *                             windows may as well, if they have a strong association with the active
- *                             window and will be considered as a unit with it by the user. Clients that
- *                             modify the appearance of internal elements when a toplevel has keyboard
- *                             focus SHOULD check for the availability of this state in _NET_SUPPORTED
- *                             and, if it is available, use it in preference to tracking focus via
- *                             FocusIn events. By doing so they will match the window decorations and
- *                             accurately reflect the intentions of the Window Manager.
- * 
- * 
- * ====================================================================================================
- * 
- * void setWMprop(string8 wmID, string8 wmProp, uint val1, uint val2= 0); /// documentation is @ end of osinteraction.h
- * 
- *  this func uses XChangeProperty(...) with atom1 as wmID
- *                                           atom2 as wmProp
- *                                           val1, val2 for data[0], data[1]
- * 
- */
+
 
 
 
