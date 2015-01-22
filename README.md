@@ -28,18 +28,23 @@ Needed libraries to compile:
 
 -
 Detail library explanation:
+
     LINUX libs: [X11]      - libX base - don't leave home without it
                 [GL] [GLU] - OpenGL libraries
                 [Xrandr]   - used for monitor / GPU info / monitor resoulution changes
                 [Xinerama] - used for monitor position info only
 
-WIN libs: [opengl32] [glu32] - OpenGL libraries
+    WIN libs: [opengl32] [glu32] - OpenGL libraries
+
           if any dinput, xinput or direct3d are used, some directx sdk files (libs+includes) are provided, but directx sdk can be downloaded and used instead
           [d3d9]:             [#define USING_DIRECT3D] must be set in osinteraction.h - used ONLY for GPU detection (hopefully oGL will have an extension for this, in the future)
           [dinput8] [dxguid]: [#define USING_DIRECTINPUT] must be set in osinteration.h - used for direct input HIDs - joysticks gamepads etc
           [xinput]:           [#define USING_XINPUT] must be set in osinteraction.h - used for xinput HIDs - probly only gamepads
+          
           the next libs should be auto-included, but here is the list in case something is missing:
+          
             kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)
+
 
 MAC frameworks: [-framework Opengl]: opengl library, basically
                 [-framework cocoa]: macOSX api
