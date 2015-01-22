@@ -46,23 +46,23 @@ Detail library explanation:
             kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)
 
 
-MAC frameworks: [-framework Opengl]: opengl library, basically
-                [-framework cocoa]: macOSX api
-                [-framework IOKit]: some monitor functions use this lib
-                [-framework CoreFoundation]: used for simple error message boxes only
+    MAC frameworks: [-framework Opengl]: opengl library, basically
+                    [-framework cocoa]: macOSX api
+                    [-framework IOKit]: some monitor functions use this lib
+                    [-framework CoreFoundation]: used for simple error message boxes only
 
 
 -
 How to get the neccesary libs under Linux / Ubuntu:
 
-sudo apt-get install mesa-common-dev    GL/gl.h GL/glx.h
-sudo apt-get install libglu1-mesa-dev   GL/glu.h
-or the freeglu one
-sudo apt-get install libx11-dev         for X11/Xlib.h  - probably this is already installed
-sudo apt-get install libxrandr-dev      used for resolution changes
-sudo apt-get install libc6-dev-i386     the 32-bit C libraries (only 64bit libs are in linux64)
-sudo apt-get install xxxxxxxxxxxx       the 64-bit C libraries (only 32bit libs are in linux32)
-sudo apt-get install libxinerama-dev    Xinerama header files, used to identify monitors
+* sudo apt-get install mesa-common-dev    GL/gl.h GL/glx.h
+* sudo apt-get install libglu1-mesa-dev   GL/glu.h
+* or the freeglu one
+* sudo apt-get install libx11-dev         for X11/Xlib.h  - probably this is already installed
+* sudo apt-get install libxrandr-dev      used for resolution changes
+* sudo apt-get install libc6-dev-i386     the 32-bit C libraries (only 64bit libs are in linux64)
+* sudo apt-get install xxxxxxxxxxxx       the 64-bit C libraries (only 32bit libs are in linux32)
+* sudo apt-get install libxinerama-dev    Xinerama header files, used to identify monitors
 
 
 -
