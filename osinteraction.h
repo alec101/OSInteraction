@@ -1,4 +1,6 @@
 #pragma once
+// osinteraction wiki https://github.com/alec101/OSInteraction/wiki
+
 // !!!
 // any comment starting with '<<<' marks a setting that can / SHOULD be changed for your project
 // keep glext.h wglext.h, glxext.h updated from https://www.opengl.org/registry/ , to be able to access the latest OpenGL extensions
@@ -9,16 +11,28 @@
 // COMPILING / LINKING //
 ///===================///
 
-// C++ standard must be set to C++11
-// make shure osi header files are in [Additional include directories] (include search path)
-// osi comes with some basic directx libs, but the path to them must be set somehow (in visual Studio it's "additional library directories")
-// (Linux only) When using THREADS, '-pthreads' cmd option is a must for the linker/compiler (this is true for any program not only osi)
+// - C++ standard must be set to C++11
+// - make shure osi header files are in [Additional include directories] (include search path)
+// - osi comes with some basic directx libs (if you didn't install directx sdk), but the path
+//     to them must be set somehow (in visual Studio it's "additional library directories")
+// - (Linux only) When using THREADS, '-pthreads' cmd option is a must for the linker/compiler (this is true for any program not only osi)
 
 // ---===NEEDED LIBRARIES ===---
 
-// LINUX libraries: [X11] [GL] [GLU] [Xrandr] [Xinerama]   ([Xi] is scraped)
-// WIN libs: [opengl32] [glu32] 
-//           if any dinput, xinput or direct3d are used, some directx sdk files (libs+includes) are provided, but directx sdk can be downloaded and used
+// LINUX libraries: [X11] [GL] [GLU] [Xrandr] [Xinerama]
+// WIN libraries: [opengl32] [glu32] [d3d9] [dinput8] [dxguid] [xinput]
+// MAC frameworks: [-framework Opengl] [-framework cocoa] [-framework IOKit] [-framework CoreFoundation]
+
+
+// Detail library explanation:
+//
+// LINUX libs: [X11]      - libX base - don't leave home without it
+//             [GL] [GLU] - OpenGL libraries
+//             [Xrandr]   - used for monitor / GPU info / monitor resoulution changes
+//             [Xinerama] - used for monitor position info only
+//
+// WIN libs: [opengl32] [glu32] - OpenGL libraries
+//           if any dinput, xinput or direct3d are used, some directx sdk files (libs+includes) are provided, but directx sdk can be downloaded and used instead
 //           [d3d9]:             [#define USING_DIRECT3D] must be set in osinteraction.h - used ONLY for GPU detection (hopefully oGL will have an extension for this, in the future)
 //           [dinput8] [dxguid]: [#define USING_DIRECTINPUT] must be set in osinteration.h - used for direct input HIDs - joysticks gamepads etc
 //           [xinput]:           [#define USING_XINPUT] must be set in osinteraction.h - used for xinput HIDs - probly only gamepads
@@ -29,6 +43,10 @@
 // MAC frameworks: [-framework Opengl]: opengl library, basically
 //                 [-framework cocoa]: macOSX api
 //                 [-framework IOKit]: some monitor functions use this lib
+//                 [-framework CoreFoundation]: used for simple error message boxes only
+
+
+
 
 // WIN: there are #pragma comments, for windows libs... but they work only for the visual c++ compiler
 
@@ -53,20 +71,32 @@
 
 
 
-// linux uses case sensitive filenames, so 'Image.png' is different from 'image.png'
 
+// SIMPLE USAGE example: //
+///=====================///
+/*
+#include "osinteraction.h"                    // the only thing needed to be included
 
+main() {
+  osi.createGLWindow(&osi.win[0],             // creates an OpenGL window - first parameter is what window object to use (there are 64 pre-alocated)
+                     &osi.display.monitor[0], // specify on what monitor to create the window
+                     "Win 0",                 // window name
+                     500, 500,                // window size OR if fullscreen, what resolution to change the monitor to
+                     1);                      // window mode: 1-normal window; 2-fullscreen; 3-fullscreen window(ignores size); 4-fullscreen window on all monitors(also ignores size)
 
-// SIMPLE USAGE info: //
-///==================///
-// start with display.populate(&osi), to scan monitors/resolutions/sizes
-// then a window can be created
-// createGLWindow / primaryGlWindow/ etc
-// Window   MODE parameter:
-// [mode 1]: windowed, supplied using size, center screen
-// [mode 2]: fullscreen, changes resolution of selected monitor with selected sizes
-// [mode 3]: fullscreen window on selected monitor
-// [mode 4]: full Virtual Screen window, on ALL MONITORS, ignores monitor/size vars passed (can be null i guess)
+  in.init();                                  // initializes mouse / keyboard / rest of HIDs
+
+  while(1) {                                  // a basic program loop
+
+    osi.checkMSG();                           // checks system messages
+    in.update();                              // updates HIDs (mouse / keyboard / activated joysticks
+    if(in.k.key[in.Kv.esc] || osi.flags.exit) // if escape key is pressed or the system signaled the program to close, break from the loop
+      break;
+  }
+}                                             // that's it! this program should run on windows/linux/mac with the same results
+// check https://github.com/alec101/OSInteraction/wiki for detailed info on everything
+*/
+
 
 
 
@@ -79,14 +109,15 @@
 #define OS_MAC 1
 #endif
 
+#define OSI_PROGRAM_ICON "icon64.png"
 
 // WINDOWS SETTINGS / DIRECTORIES vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
 #ifdef OSI_RESOURCE_ONLY
 #define IDI_LARGE 100
 #define IDI_SMALL 101
-#define OSI_ICON_LARGE "icon_64.ico"        // <<< name of the program icon here [WINDOWS ONLY]
-#define OSI_ICON_SMALL "icon_64.ico"        // <<< name of the small program icon here [WINDOWS ONLY]
+#define OSI_ICON_LARGE "icon64.ico"        // <<< name of the program icon here [WINDOWS ONLY]
+#define OSI_ICON_SMALL "icon64.ico"        // <<< name of the small program icon here [WINDOWS ONLY]
 
 #else // if not windows resource include only
 
@@ -176,13 +207,16 @@
 #endif /// OS_LINUX
 
 #ifdef OS_MAC
-#include <OpenGL/gl.h>
+#include <OpenGL/gl.h>            // legacy
+#include <OpenGL/OpenGL.h>
 #include <OpenGL/glu.h>
 // there's a corearb header, too NEEDS CHECKING
 #endif /// OS_MAC
 
 //#define GL_GLEXT_PROTOTYPES 1
+#ifndef OS_MAC
 #include "openGL/glext.h"        // <<< OpenGL extensions header file (OS independant ones) - should be updated when a new version appears (and it can change monthly)
+#endif
 
 // os specific
 
@@ -198,22 +232,18 @@
 #include <X11/extensions/Xrandr.h>
 #include <X11/extensions/Xinerama.h>
 #include <pthread.h>
-//#include <X11/extensions/XInput.h>        // too old stuff, maybe go thru it again, but...
-//#include <X11/extensions/XInput2.h>       // too old stuff, maybe go thru it again, but...
 //#include <locale.h> printf won't work without locale, to print unicode chars...
 #endif /// OS_LINUX
 
 #ifdef OS_MAC
-#include <unistd.h>
-#include <mach/mach.h>                  // high resolution clock funcs
-#include <mach/mach_time.h>             // high resolution clock funcs
-#include <CoreGraphics/CoreGraphics.h>  // trying to pinpoint quartz
-//#include <IOKit/hid/IOHIDKeys.h>        // human interface devices (joysticks/gamepads/gamewheels)
-#include <IOKit/hid/IOHIDLib.h>         // human interface devices (joysticks/gamepads/gamewheels)
+//#include <unistd.h>
+//#include <mach/mach.h>                  // high resolution clock funcs
+//#include <mach/mach_time.h>             // high resolution clock funcs
+
 #endif /// OS_MAC
 
 // utility classes
-#include "util/typeShortcuts.h"
+//#include "util/typeShortcuts.h"
 #include "util/str32.h"
 #include "util/str8.h"
 #include "util/errorHandling.h"
@@ -221,8 +251,6 @@
 #include "util/segList.h"
 #include "util/filePNG.h"
 #include "util/fileTGA.h"
-
-//typedef Str8 string;         // <<< string set is here; can be utf-8 / utf-32 (as internal data)
 
 // osi headers
 
@@ -250,25 +278,70 @@ int main(int argc, char *argv[], char *envp[]) { \
 class osiRenderer;
 
 
-
+struct osiSettings {
+  struct {
+    int minVerMajor;                /// [default= 3]
+    int minVerMinor;                /// [default= 2]
+    bool oneRendererPerGPU;         /// [default] - autocreates a renderer - if a renderer is already created on window's GPU, it uses that renderer
+    bool oneRendererPerMonitor;     /// if no info on GPU's, this is the fallback - autocreates a renderer - one renderer per monitor and assigns it to the next created window
+    bool oneRendererPerWin;         /// set this to create one renderer per each next created windows
+    bool oneRenderer;               /// set this to create only one renderer / use existing renderer when creating windows
+    bool noAutocreateRenderer;      /// no renderer autocreated - you must manually create a renderer and for each window you must set osiWindow::glr pointer to point to a manually created renderer
+    osiRenderer *customRenderer;    /// [default NULL] - when creating the next window(s), use this renderer instead (oneRendererPerXXX/oneRenderer are ignored)
+    osiRenderer *shareGroup;        /// [default NULL] - after a renderer is created, you can set this pointer to point to it, and the next created renderers will share data (wglShareLists / etc)
+    bool legacyCompatibility;       /// [default true] - using legacy (OpenGL 1.0 - 2.x) functions. If set to false, the old ways to draw stuff will not work.
+    bool debugRenderer;             /// [default false] - slower opengl context, but lots of bug checks and reports. used when developing applications
+    void setOneRenderer()           { oneRenderer= true;  oneRendererPerGPU= false; oneRendererPerMonitor= false; noAutocreateRenderer= false; oneRendererPerWin= false; customRenderer= NULL; }
+    void setOneRendererPerGPU()     { oneRenderer= false; oneRendererPerGPU= true;  oneRendererPerMonitor= false; noAutocreateRenderer= false; oneRendererPerWin= false; customRenderer= NULL; }
+    void setOneRendererPerMonitor() { oneRenderer= false; oneRendererPerGPU= false; oneRendererPerMonitor= true;  noAutocreateRenderer= false; oneRendererPerWin= false; customRenderer= NULL; }
+    void setNoAutocreateRenderer()  { oneRenderer= false; oneRendererPerGPU= false; oneRendererPerMonitor= false; noAutocreateRenderer= true;  oneRendererPerWin= false; customRenderer= NULL; }
+    void setOneRendererPerWindow()  { oneRenderer= false; oneRendererPerGPU= false; oneRendererPerMonitor= false; noAutocreateRenderer= false; oneRendererPerWin= true;  customRenderer= NULL; }
+    void setCustomRenderer(osiRenderer *r) { customRenderer= r; }
+  } renderer;
+  struct {
+    // aux buffers are not done
+    bool renderOnWindow;  /// [default= true]  select a renderer that can draw to windows - all 3 types of renderOn can be activated 
+    bool renderOnBitmap;  /// [default= false] select a renderer that can draw to bitmaps - all 3 types of renderOn can be activated 
+    bool renderOnPBuffer; /// [default= false] select a renderer that can draw on pixel buffers - all 3 types of renderOn can be activated 
+    bool onlyAccelerated; /// [default= false] hardware accelerated only
+    bool dblBuffer;       /// [default= true] double buffer
+    //int pixelType;        /// [default= 1]  1= RGBA, 2= CMAP ONLY 2 OPTIONS, AND ONE IS CMAP? NOPE!
+    int colorSize;        /// [default= 24] color buffer size, on some systems alpha is not used, and RGBX is used, with a padding
+    int redSize;          /// [default= 8] red pixel channel size in bits
+    int greenSize;        /// [default= 8] green pixel channel size in bits
+    int blueSize;         /// [default= 8] blue pixel channel size in bits
+    int alphaSize;        /// [default= 8] alpha pixel channel size in bits
+    int depthSize;        /// [default= 16]
+    int stencilSize;      /// [default= 8]
+    bool sampleBuffers;   /// [default= false] MSAA, if using, this should be set to true
+    int samples;          /// [default= 4] MSAA, if using, this usually is between 2 - 8
+    bool transparent;           /// [default= false] true if transparency is supported.
+    int transparentRedSize;     /// [default= 8] if transparency is set to false, this is ignored
+    int transparentGreenSize;   /// [default= 8] if transparency is set to false, this is ignored
+    int transparentBlueSize;    /// [default= 8] if transparency is set to false, this is ignored
+    int transparentAlphaSize;   /// [default= 8] if transparency is set to false, this is ignored
+  } pixelFormat;
+};
 
 ///================================================================================///
 // -------------============ OSINTERACTION CLASS ================------------------ //
 ///================================================================================///
 
 class osinteraction {
-  Str8 _iconFile;
+  str8 _iconFile;
 public:
-  Str8 path;                          /// program path
-  Str8 cmdLine;                       /// command line
+
+  osiSettings settings;               /// [atm only renderer options] osinteraction settings. usually change this and the next action/function will use these settings
+  str8 path;                          /// program path
+  str8 cmdLine;                       /// command line
   int argc;                           /// command line nr of arguments, same as the main(int argc..)
   char **argv;                        /// command line arguments list, same as the main(.. , char *argv[])
 
   osiDisplay display;                 /// display class, handles monitors, resolutions
   osiWindow win[MAX_WINDOWS];         /// all windows
   osiWindow *primWin;                 /// primary window - splash windows will not be marked as primary windows
-  uint64 present;   /// present time, updated in checkMSG(), wich should be the first func in a main loop. present MUST BE UPDATED MANUALLY, each frame, if checkMSG() is not called
-  uint64 eventTime;                   /// each event/msg timestamp/ used internally, to timestamp different messages
+  uint64_t present;                   /// present time, updated in checkMSG(), wich should be the first func in a main loop. present MUST BE UPDATED MANUALLY, each frame, if checkMSG() is not called
+  uint64_t eventTime;                 /// each event/msg timestamp/ used internally, to timestamp different messages
 
   // main flags - check these frequently (mainly after a call to checkMSG() )
   struct osiFlags {
@@ -299,44 +372,48 @@ public:
   
   // createGLWindow is the main function to use
   // [mode1]: windowed, using size, center screen [mode2] fullscreen [mode3] fullscreen window [mode4] full Virtual Screen window, on all monitors
-  bool createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int dx, int dy, int8 bpp, int8 mode, short freq= 0, bool dblBuffer= true, cchar *iconFile= null);
+  bool createGLWindow(osiWindow *w, osiMonitor *m, const char *name, int dx, int dy, int8_t mode, short freq= 0, const char *iconFile= NULL);
   bool killGLWindow(osiWindow *w);    /// destroys a specific opengl window
   
   // next funcs call createGLWindow / killGLWindow; they might make life easier, but nothing more
   
   ///frequency must be the same for all windows...
-  bool primaryGLWindow(cchar *name, int dx, int dy, int8 bpp, int8 mode, int16 freq= 0); // mode: 1= windowed, 2= fullscreen, 3= fullscreeen window(must research this one), 4= fullscreen virtual desktop (every monitor)
+  bool primaryGLWindow(const char *name, int dx, int dy, int8_t mode, int16_t freq= 0); // mode: 1= windowed, 2= fullscreen, 3= fullscreeen window(must research this one), 4= fullscreen virtual desktop (every monitor)
   bool primaryGLWindow();             /// creates a basic window, fullscreen
   bool killPrimaryGLWindow();         /// calls restoreResolution, if in fullscreen
-  void setProgramIcon(cchar *fileName);/// sets program icon - CALL BEFORE ANY WINDOW CREATION, or pass icon file to each window
+  void setProgramIcon(const char *fileName);/// sets program icon - CALL BEFORE ANY WINDOW CREATION, or pass icon file to each window
   //void setWindowIcon(osiWindow *w, cchar *file);   /// sets a specific window icon 
-  bool createSplashWindow(osiWindow *w, osiMonitor *m, cchar *file);
+  bool createSplashWindow(osiWindow *w, osiMonitor *m, const char *file);
   
   
 
   // very useful functions that will work on all OSes
   
-  void getNanosecs(uint64 *out);      /// performance timer in nanoseconds
-  void getMicrosecs(uint64 *out);     /// performance timer in microseconds
-  void getMillisecs(uint64 *out);     /// performance timer in miliseconds
-  void sleep(uint64 millisecs);       /// sleeps for specified milliseconds
+  void getNanosecs(uint64_t *out);      /// performance timer in nanoseconds
+  void getMicrosecs(uint64_t *out);     /// performance timer in microseconds
+  void getMillisecs(uint64_t *out);     /// performance timer in miliseconds
+  void sleep(uint64_t millisecs);       /// sleeps for specified milliseconds
   void exit(int retVal= 0);           /// restores all monitor resolutions & exits. call this instead of _exit() or exit() func
   
-  void getClocks(uint64 *out);        /// WIP performance timer in raw clocks     N/A LINUX... trying to make it work
-  void clocks2nanosecs(uint64 *out);  /// WIP convert raw clocks to nanoseconds   N/A LINUX... trying to make it work
-  void clocks2microsecs(uint64 *out); /// WIP convert raw clocks to microseconds  N/A LINUX... trying to make it work
-  void clocks2millisecs(uint64 *out); /// WIP convert raw clocks to milliseconds  N/A LINUX... trying to make it work
+  void getClocks(uint64_t *out);        /// WIP performance timer in raw clocks     N/A LINUX... trying to make it work
+  void clocks2nanosecs(uint64_t *out);  /// WIP convert raw clocks to nanoseconds   N/A LINUX... trying to make it work
+  void clocks2microsecs(uint64_t *out); /// WIP convert raw clocks to microseconds  N/A LINUX... trying to make it work
+  void clocks2millisecs(uint64_t *out); /// WIP convert raw clocks to milliseconds  N/A LINUX... trying to make it work
   
   // opengl funcs
 
   void swapBuffers(osiWindow *w);     /// swap buffers of specific window
   void swapPrimaryBuffers();          /// calls swapBuffers, but for primary window (this makes life a little easier)
-  bool glMakeCurrent(osiWindow *w);   /// OS independant variant. Pass null, to unmake current
-  
+  bool glMakeCurrent(osiRenderer *, osiWindow *w);   /// OS independant variant. Pass null, to unmake current
+
+  void glGetVersion(int *outMajor= NULL, int *outMinor= NULL); /// returns opengl version. only one of the outputs can be present
+
   chainList glRenderers;
-  osiRenderer *glr;                   /// this will allways point to the current active glRenderer;
-  osiRenderer *assignRenderer(osiWindow *w); /// [internal]create or assign a renderer to selected window; returns pointer to the renderer or null if failed, somehow
-  void delRenderer(osiRenderer *);    /// deletes the specified renderer and makes shure that windows and monitors that used it, know about it
+  osiRenderer *glr;                             /// this will allways point to the current active glRenderer;
+  osiRenderer *assignRenderer(osiWindow *w);    /// create or assign a renderer to selected window, using settings.renderer; returns pointer to the renderer or null if failed, somehow
+  osiRenderer *createRendererMon(osiMonitor *m);/// create a custom renderer, that will surely work on selected monitor
+  osiRenderer *createRendererWin(osiWindow *w); // WIP create a custom renderer, that will be asigned to specified window WIP
+  void delRenderer(osiRenderer *);              /// deletes the specified renderer and makes shure that windows and monitors that used it, know about it
 
   // internals from here on; nothing to bother
 private:
@@ -354,12 +431,13 @@ private:
   //void setFullScreen(osiWindow *w, bool fullScreen);  /// sets _NET_WM_STATE_FULLSCREEN attribute for selected window
   //void sendWMProp(int wmID, int wmProp, bool activate); /// documentation is @ end of osinteraction.h
   bool _processMSG();                  // linux MESSAGE HANDLER variant -don't call it, use OS independent checkMSG()
+public:
   static Display *_dis;               /// display 'handle'. nowadays there is only 1 display, and 1 big (virtual) screen.
-
+private:
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
-  mach_timebase_info_data_t _machInfo; /// [internal] mac variant of a performance timer. this var holds cpu frequencies & stuff (similar to QuerryPerformance... in win)
+  
 public:
   osiWindow *_getWin(void *w);         /// [internal] returns the osiWindow that has the specified NSWindow *
 private:
@@ -367,7 +445,7 @@ private:
 
   // friending funcs (happy happy joy joy)
   
-  friend bool doChange(osiMonitor *, osiResolution *, int8, int16);
+  friend bool doChange(osiMonitor *, osiResolution *, int8_t, int16_t);
   friend void _populateGrCards(osiDisplay *);
   friend class osiDisplay;
   friend class osiMouse;
@@ -385,7 +463,7 @@ BOOL CALLBACK monitorData(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor,
 #endif /// OS_WIN
 
 #ifdef OS_MAC
-extern "C" void _processMSG(void);   /// declared in OScocoa.mm
+/*extern "C"*/ bool _processMSG(void);   /// declared in OScocoa.mm
 #endif
 
 

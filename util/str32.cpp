@@ -41,7 +41,7 @@
     0xF8 0x80 0x80 0x80 0x8A
     0xFC 0x80 0x80 0x80 0x80 0x8A
 
-   Any overlong UTF-8 sequence could be abused to bypass UTF-8 subStr32 tests
+   Any overlong UTF-8 sequence could be abused to bypass UTF-8 substr32 tests
      that look only for the shortest possible encoding.
    All overlong UTF-8 sequences start with one of the following byte patterns:
 
@@ -64,15 +64,15 @@
 using namespace Str;
 
 
-Str32::Str32():
+str32::str32():
 d(null), len(0), nrChars(0), nrCombs(0), d8(null), dWin(null), modif8(false), modifWin(false)
 {}
 
-Str32::~Str32() {
+str32::~str32() {
   delData();
 }
 
-void Str32::delData() {
+void str32::delData() {
   if(d)    { delete[] d;    d= null; }
   // d8 & dWin must be deallocated only on destructor & convert8 & convertWin
 
@@ -80,7 +80,7 @@ void Str32::delData() {
   modif8= modifWin= false;
 }
 
-void Str32::clean() {
+void str32::clean() {
   if(d8)   { delete[] d8;   d8= null;  }
   if(dWin) { delete[] dWin; dWin= null; }
 }
@@ -89,7 +89,7 @@ void Str32::clean() {
 
 // OPERATOR= //
 ///---------///
-Str32 &Str32::operator=(const Str32 &s) {
+str32 &str32::operator=(const str32 &s) {
   modifWin= modif8= true;
   len=     s.len;
   nrChars= s.nrChars;
@@ -106,7 +106,7 @@ Str32 &Str32::operator=(const Str32 &s) {
 }
 
 
-Str32 &Str32::operator=(cuint32 *s) {
+str32 &str32::operator=(cuint32 *s) {
   delData();
   modif8= modifWin= true;
 
@@ -129,7 +129,7 @@ Str32 &Str32::operator=(cuint32 *s) {
 }
 
 
-Str32 &Str32::operator=(cuint16 *s) {
+str32 &str32::operator=(cuint16 *s) {
   delData();
   modif8= modifWin= true;
 
@@ -153,7 +153,7 @@ Str32 &Str32::operator=(cuint16 *s) {
 }
 
 
-Str32 &Str32::operator=(cuint8 *s) {
+str32 &str32::operator=(cuint8 *s) {
   delData();
   modif8= modifWin= true;
 
@@ -223,7 +223,7 @@ Str32 &Str32::operator=(cuint8 *s) {
 }
 
 
-Str32 &Str32::operator=(uint32 c) {
+str32 &str32::operator=(uint32 c) {
   if(!c)
     if(d) {
       delData();
@@ -251,13 +251,13 @@ Str32 &Str32::operator=(uint32 c) {
 ///-----------///
 
 // this one is heavily used
-Str32 &Str32::operator+=(const Str32 &s) {
-  if(!s.len) return *this;                /// other Str32 empty -> return *this
+str32 &str32::operator+=(const str32 &s) {
+  if(!s.len) return *this;                /// other str32 empty -> return *this
   modif8= modifWin= true;
-  if(!len) return *this= s;               /// current Str32 empty -> just copy other Str32
+  if(!len) return *this= s;               /// current str32 empty -> just copy other str32
 
   int32 a, n;
-  uint32 *p= new uint32[nrChars+ nrCombs+ s.nrChars+ s.nrCombs+ 1]; /// new Str32 allocation
+  uint32 *p= new uint32[nrChars+ nrCombs+ s.nrChars+ s.nrCombs+ 1]; /// new str32 allocation
 
   /// copy string 1 to new string
   for(a= 0, n= nrChars+ nrCombs; a< n; a++)
@@ -278,34 +278,34 @@ Str32 &Str32::operator+=(const Str32 &s) {
 }
 
 
-Str32 &Str32::operator+=(cuint8 *s) {
+str32 &str32::operator+=(cuint8 *s) {
   if(!s) return *this;
   modif8= modifWin= true;
   if(!len) return *this= s;
 
-  return *this+= Str32(s);
+  return *this+= str32(s);
 }
 
 
-Str32 &Str32::operator+=(cuint16 *s) {
+str32 &str32::operator+=(cuint16 *s) {
   if(!s) return *this;
   modif8= modifWin= true;
   if(!len) return *this= s;
 
-  return *this+= Str32(s);
+  return *this+= str32(s);
 }
 
 
-Str32 &Str32::operator+=(cuint32 *s) {
+str32 &str32::operator+=(cuint32 *s) {
   if(!s) return *this;
   modif8= modifWin= true;
   if(!nrChars) return *this= s;
 
-  return *this+= Str32(s);
+  return *this+= str32(s);
 }
 
 
-Str32 &Str32::operator+=(uint32 c) {
+str32 &str32::operator+=(uint32 c) {
   if(!c) return *this;
   modif8= modifWin= true;
   if(!nrChars) return *this= c;
@@ -338,7 +338,7 @@ Str32 &Str32::operator+=(uint32 c) {
 
 
 // UTF-8 conversion from UTF-32 or basically an array of uint32s (internal format)
-void *Str32::convert8() {
+void *str32::convert8() {
   if(modif8) {
     modif8= false;
     if(!len) return null;
@@ -397,14 +397,14 @@ void *Str32::convert8() {
         *p++= (uint8)((d[a]>>  6)& 0x3f)| 0x80;   /// [BYTE 5] >>  6 & 3f= 00000000 00000000 00000000 00000000 00xxxxxx 00000000  then header | 80 (10000000)
         *p++= (uint8) (d[a]&       0x3f)| 0x80;   /// [BYTE 6]         3f= 00000000 00000000 00000000 00000000 00000000 00xxxxxx  then header | 80 (10000000)
       }
-    *p= 0;                                        // Str32 terminator
+    *p= 0;                                        // str32 terminator
   } /// if string8 was modified
 
   return d8;
 }
 
 /// UTF-32 to windows wide char (16bit)
-uint16 *Str32::convertWin() {
+uint16 *str32::convertWin() {
   if(modifWin) {
     modifWin= false;
     if(!len) return null;
@@ -419,14 +419,14 @@ uint16 *Str32::convertWin() {
 }
 
 // whole string conversion to lowercase
-void Str32::lower() {
+void str32::lower() {
   for(int32 a= 0, n= nrChars+ nrCombs; a< n; a++)
     d[a]= tolower(d[a]);      /// lowercase each character
 }
 
 
 // whole string conversion to uppercase
-void Str32::upper() {
+void str32::upper() {
   for(int32 a= 0, n= nrChars+ nrCombs; a< n; a++)
     d[a]= toupper(d[a]);      /// lowercase each character
 }
@@ -436,7 +436,7 @@ void Str32::upper() {
 ///------------------------///
 
 
-Str32 &Str32::operator-=(int n) {
+str32 &str32::operator-=(int n) {
   /// basic checks
   if(!n) return *this;
   modif8= modifWin= true;
@@ -457,17 +457,17 @@ Str32 &Str32::operator-=(int n) {
 }
 
 
-Str32 Str32::operator-(int n) const {
+str32 str32::operator-(int n) const {
   /// basic checks
-  if(!n) return Str32(*this);
-  if(nrChars- n<= 0) return Str32();
+  if(!n) return str32(*this);
+  if(nrChars- n<= 0) return str32();
 
   /// temporary cut the string
   uint32 *p= getChar(nrChars- n);
   uint32 x= *p;                   /// x will hold the value where the cut was made
   *p= 0;                          /// cut by placing a terminator
 
-  Str32 ret(d);                /// return string is created with cut string
+  str32 ret(d);                   /// return string is created with cut string
   *p= x;                          /// restore *this
 
   return ret;
@@ -479,7 +479,7 @@ Str32 Str32::operator-(int n) const {
 // OPERATOR == //
 ///-----------///
 
-bool Str32::operator==(const Str32 &s) const {
+bool str32::operator==(const str32 &s) const {
   if((s.nrChars!= nrChars) || (s.nrCombs!= nrCombs))
     return false;
 
@@ -491,7 +491,7 @@ bool Str32::operator==(const Str32 &s) const {
 }
 
 
-bool Str32::operator==(cuint32 *s) const {
+bool str32::operator==(cuint32 *s) const {
   if(!s) {
     if(!d)  return true;
     else    return false;
@@ -510,7 +510,7 @@ bool Str32::operator==(cuint32 *s) const {
 }
 
 
-bool Str32::operator==(cuint16 *s) const {
+bool str32::operator==(cuint16 *s) const {
   if(!s) {
     if(!d)  return true;
     else    return false;
@@ -529,7 +529,7 @@ bool Str32::operator==(cuint16 *s) const {
 }
 
 
-bool Str32::operator==(uint32 c) const {
+bool str32::operator==(uint32 c) const {
   if(nrChars!= 1) return false;
   return (d[0]== c? true: false);
 }
@@ -547,7 +547,7 @@ bool Str32::operator==(uint32 c) const {
 
 
 
-void Str32::clearComb() {
+void str32::clearComb() {
   if(!nrCombs) return;
   if(!nrChars) { delData(); return; } /// there can be only some combs in this string, so del everything
 
@@ -579,7 +579,7 @@ void Str32::clearComb() {
 // UTILITY FUNCTIONS, usually good for any string //
 ///----------------------------------------------///
 
-void Str32::updateLen() {
+void str32::updateLen() {
   if(!d) { len= 0; nrChars= 0; nrCombs= 0; return; }
   modif8= modifWin= true;
 
@@ -602,7 +602,7 @@ void Str32::updateLen() {
 // bad characters will be MARKED with 0xFFFD
 
 // reading from UNSAFE SOURCES / FILES / INPUT is NOT SAFE. use secureUTF8() to validate a utf8 string
-Str32 &Str32::secureUTF8(cvoid *s) {
+str32 &str32::secureUTF8(cvoid *s) {
   delData();
   modif8= modifWin= true;
 
@@ -776,7 +776,7 @@ Str32 &Str32::secureUTF8(cvoid *s) {
 // fopen knows of utf-8 but the win version wants to put a freakin BOM in the file, wich cause problems in linux, so file must be opened as binary
 
 /// read all file                   (validates each char)
-void Str32::readUTF8(FILE *f) {
+void str32::readUTF8(FILE *f) {
   /// read / ignore the BOM in an UTF file
   uint16 bom;
   long pos= ftell(f);
@@ -809,7 +809,7 @@ void Str32::readUTF8(FILE *f) {
 
 
 /// read n characters from file     (validates each char)
-void Str32::readUTF8n(FILE *f, size_t n) {
+void str32::readUTF8n(FILE *f, size_t n) {
   /// read / ignore the BOM in an UTF file
   uint16 bom;
   long pos= ftell(f);
@@ -843,7 +843,7 @@ void Str32::readUTF8n(FILE *f, size_t n) {
 }
 
 /// read till end of line (or file) (validates each char)
-void Str32::readLineUTF8(FILE *f) {
+void str32::readLineUTF8(FILE *f) {
   /// read / ignore the BOM in an UTF file
   uint16 bom;
   long pos= ftell(f);

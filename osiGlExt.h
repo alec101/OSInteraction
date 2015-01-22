@@ -1,36 +1,32 @@
 #pragma once
-// this define is WIP.. lots of changes in the cpp must be made to make this work, so it might not be worth it
-//#define OSI_USING_GLEXT_DEFINES 1 
+// At the back of the file, there's a very useful list with all the OpenGL extensions, a small description and their internet link for full documentation
 
-// TODO
-/*
- * [linux] line 5367- glxGetProcAddress - don't know how exacty it works, so tests must be made
+// Windows MSDN says that function pointers are not guaranteed to work for different contexts, therefore, each renderer
+//   is created with it's own list of extension pointers. Everything is done (in osi) so the function names is the same, but
+//   under the hood they point to the currently active renderer's extension functions (this suposed to be Microsoft's job imho)
 
-*/
 
 // Research:
 /*
  * windows has gl.h on v1.1
- * linux has gl.h on v1.3, has GL_ARB_imaging extension, too and some others
+ * linux has gl.h on v1.3, has GL_ARB_imaging extension, too, and some others
 */
 
-#ifdef OS_LINUX
-//extern __GLXextFuncPtr glXGetProcAddressARB (const GLubyte *procName);
-#endif
 
-// each oGL extension will have one of these structs (there is an array with all of them)
+// #define OSI_USING_GLEXT_DEFINES 1 // this is another way to set the ogl funcs, with defines, not tested, tho
+
+
+/// each oGL extension will have one of these structs (there is an array with all of them)
 struct GlExt {
-  cchar *desc;      /// extension string, case sensitive, exact match!
+  const char *desc;      /// extension string, case sensitive, exact match!
   bool avaible;     /// if this extension is avaible or not;
-  GlExt() { desc= null; avaible= false; }
-  GlExt(cchar *s, bool b): desc(s), avaible(b) {}
+  GlExt() { desc= NULL; avaible= false; }
+  GlExt(const char *s, bool b): desc(s), avaible(b) {}
 };
-
 
 extern GlExt _glARBlistEmpty[];   /// [internal] each renderer will create it's starting glARBlist from this
 extern GlExt _glEXTlistEmpty[];   /// [internal] each renderer will create it's starting glEXTlist from this
-extern GlExt _glOTHERlistEmpty[];   /// [internal] each renderer will create it's starting glOTHERlist from this
-
+extern GlExt _glOTHERlistEmpty[]; /// [internal] each renderer will create it's starting glOTHERlist from this
 //extern bool getGlProc(cchar *, void **); /// [kinda internal]OpenGL func pointer retriever; pass the name of the function, and the pointer to aquire the address
 
 
@@ -45,7 +41,7 @@ struct GlExtFuncs {
   
   // per OpenGL version functions list ==================------------------------------------
   ///==================================------------------------------------------------------
-
+#ifndef OS_MAC
   /// OpenGL 1.2 funcs =================------------------------------
   PFNGLDRAWRANGEELEMENTSPROC glDrawRangeElements;
   PFNGLTEXIMAGE3DPROC        glTexImage3D;
@@ -772,7 +768,7 @@ struct GlExtFuncs {
   ///==================///
   // linux GLX versions //
   ///==================///
-
+  /*
   /// GLX_VERSION_1_3
   PFNGLXGETFBCONFIGSPROC glXGetFBConfigs;
   PFNGLXCHOOSEFBCONFIGPROC glXChooseFBConfig;
@@ -791,7 +787,7 @@ struct GlExtFuncs {
   PFNGLXQUERYCONTEXTPROC glXQueryContext;
   PFNGLXSELECTEVENTPROC glXSelectEvent;
   PFNGLXGETSELECTEDEVENTPROC glXGetSelectedEvent;
-
+  */
   /// GLX_VERSION_1_4
   //PFNGLXGETPROCADDRESSPROC glXGetProcAddress;
   #endif /// OS_LINUX
@@ -3093,6 +3089,7 @@ struct GlExtFuncs {
   PFNGLPROGRAMUNIFORM2UI64VNVPROC glProgramUniform2ui64vNV;
   PFNGLPROGRAMUNIFORM3UI64VNVPROC glProgramUniform3ui64vNV;
   PFNGLPROGRAMUNIFORM4UI64VNVPROC glProgramUniform4ui64vNV;
+  #endif /// OS_WIN + OS_LINUX
 }; 
 
 typedef GlExtFuncs glExtFuncs;
@@ -3119,6 +3116,15 @@ extern GlExtFuncs glExt;        /// one set of function pointers for MAC and LIN
 
 
 
+
+
+
+
+
+
+
+#ifndef OS_MAC // OS_WIN + OS_LINUX only
+
 ///==========================///
 // MODE 1: using inline funcs //
 ///==========================///
@@ -3131,6 +3137,9 @@ extern GlExtFuncs glExt;        /// one set of function pointers for MAC and LIN
 ///====================///
 
 #include "osiRenderer.h"
+
+
+
 
 /// OpenGL 1.2 funcs =================------------------------------
 inline GLAPI void APIENTRY glDrawRangeElements (GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const void *indices) {
@@ -5329,7 +5338,7 @@ inline BOOL WINAPI wglWaitForSbcOML (HDC hdc, INT64 target_sbc, INT64 *ust, INT6
 ///==============///
 
 #ifdef OS_LINUX
-
+/*
 // GLX_VERSION_1_3
 inline GLXFBConfig *glXGetFBConfigs (Display *dpy, int screen, int *nelements) {
   return _glr->glExt.glXGetFBConfigs (dpy, screen, nelements);}
@@ -5369,6 +5378,7 @@ inline void glXGetSelectedEvent (Display *dpy, GLXDrawable draw, unsigned long *
 // GLX_VERSION_1_4
 //inline __GLXextFuncPtr glXGetProcAddress (const GLubyte *procName) {
   //return _glr->glExt.glXGetProcAddress (procName);}
+*/
 
 // GLX_ARB_create_context
 inline GLXContext glXCreateContextAttribsARB (Display *dpy, GLXFBConfig config, GLXContext share_context, Bool direct, const int *attrib_list) {
@@ -8617,7 +8627,7 @@ inline GLAPI void APIENTRY glReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fv
 
 
 
-
+#endif /// OS_LINUX + OS_WIN
 
 
 
@@ -9263,6 +9273,7 @@ inline GLAPI void APIENTRY glReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fv
 // linux GLX versions //
 ///==================///
 
+/*
 /// GLX_VERSION_1_3
 #define glXGetFBConfigs _glr->glExt.glXGetFBConfigs
 #define glXChooseFBConfig _glr->glExt.glXChooseFBConfig
@@ -9283,7 +9294,7 @@ inline GLAPI void APIENTRY glReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fv
 #define glXGetSelectedEvent _glr->glExt.glXGetSelectedEvent
 
 /// GLX_VERSION_1_4
-
+*/
 #endif /// OS_LINUX
 
 
@@ -9830,7 +9841,7 @@ inline GLAPI void APIENTRY glReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fv
 ///==============///
 
 #ifdef OS_LINUX
-
+/*
 // GLX_VERSION_1_3
 #define glXGetFBConfigs _glr->glExt.glXGetFBConfigs
 #define glXChooseFBConfig _glr->glExt.glXChooseFBConfig
@@ -9852,6 +9863,7 @@ inline GLAPI void APIENTRY glReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fv
 
 // GLX_VERSION_1_4
 //#define glXGetProcAddress _glr->glExt.glXGetProcAddress
+*/
 
 // GLX_ARB_create_context
 #define glXCreateContextAttribsARB _glr->glExt.glXCreateContextAttribsARB
@@ -12209,6 +12221,7 @@ documentation for these is pretty scarce, but should function if the grCard supp
   
 
 */
+
 
 
 

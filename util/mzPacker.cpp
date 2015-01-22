@@ -228,7 +228,7 @@ tdefl_status tdefl_compress(tdefl_compressor *d, const void *pIn_buf, size_t *pI
 tinfl_status tinfl_decompress(tinfl_decompressor *r, const uint8 *pIn_buf_next, size_t *pIn_buf_size, uint8 *pOut_buf_start, uint8 *pOut_buf_next, size_t *pOut_buf_size, const uint32 decomp_flags);
 
 /// util miniz funcs
-uint32 mz_adler32(uint32 adler, const uint8 *ptr, size_t buf_len);  // returns 1 when ptr==NULL
+uint32 mz_adler32(uint32 adler, const uint8 *ptr, int64 buf_len);  // returns 1 when ptr==NULL
 //uint32 mzPacker::mz_crc32(uint32 crc, const uint8 *ptr, size_t buf_len);      // returns 0 when ptr==NULL
 
 

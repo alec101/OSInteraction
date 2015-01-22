@@ -1,5 +1,5 @@
 #include "osinteraction.h"
-
+#include "util/typeShortcuts.h"
 /* MIGHT TRY TO MAKE THIS NOT NECESARY A PART OF OSI
 #include "glext.h"
 
@@ -25,46 +25,33 @@ GlExtFuncs glExt;
 
 
 
-/// [internal] function that will be called for each extension function
-/*
-template<class T> bool getGlProc(cchar *name, T& address) {
+bool getGlProc(cchar *name, void **addr) {
   bool chatty= true;
-  #ifdef OS_WIN
-  address= (T)wglGetProcAddress(name);
-  #endif /// OS_WIN
-
-  #ifdef OS_LINUX
-  address= (T)glXGetProcAddressARB((const GLubyte *)name);
-  #endif /// OS_LINUX
-
-  #ifdef OS_MAC
-  makeme
-  #endif /// OS_MAC
-  if(address) return true; else return false;
-}
-*/
-
-bool getGlProc(cchar *name, void **address) {
-  bool chatty= true;
-  if(!address) return false;
+  if(!addr) return false;
   
   #ifdef OS_WIN
-  *address= (void *)wglGetProcAddress(name);
+  *addr= (void *)wglGetProcAddress(name);
+
+  // wgl can fail for old funcs, and GetProcAddress must be used instead https://www.opengl.org/wiki/Load_OpenGL_Functions
+  if(*addr== 0 ||
+    (*addr== (void*)0x1) || (*addr== (void*)0x2) || (&addr== (void*)0x3) ||
+    (*addr== (void*)-1) )
+  {
+    HMODULE module= LoadLibraryA("opengl32.dll");
+    *addr= (void *)GetProcAddress(module, name);
+  }
   #endif /// OS_WIN
   
   #ifdef OS_LINUX
-  *address= (void *)glXGetProcAddressARB((const GLubyte *)name);
+  *addr= (void *)glXGetProcAddressARB((const GLubyte *)name);
   #endif /// OS_LINUX
   
   #ifdef OS_MAC
-  needed?
+  //needed?
   #endif /// OS_MAC
     
-  return (address? true: false);
+  return (*addr? true: false);
 }
-
-
-
 
 #define GETGLPROCMACRO(_x_x) getGlProc(#_x_x,  (void **)&r->glExt. _x_x  );
 
@@ -78,10 +65,12 @@ bool getGlProc(cchar *name, void **address) {
 void getVERfuncs(osiRenderer *r, int major, int minor) {
   //getGlProc("glTexImage3DEXT", r->glExt.glTexImage3D);
   
+  #ifndef OS_MAC
+  
   #ifdef OS_LINUX
-  // linux GLX versions //
+  // linux GLX versions //    SCRAPE INCOMING
   ///==================///
-
+  /*
   /// GLX_VERSION_1_3
   GETGLPROCMACRO(glXGetFBConfigs)   //getGlProc("glXGetFBConfigs", r->glExt.glXGetFBConfigs); // << what should look like
   GETGLPROCMACRO(glXChooseFBConfig)
@@ -100,6 +89,7 @@ void getVERfuncs(osiRenderer *r, int major, int minor) {
   GETGLPROCMACRO(glXQueryContext)
   GETGLPROCMACRO(glXSelectEvent)
   GETGLPROCMACRO(glXGetSelectedEvent)
+  */
 
   /// GLX_VERSION_1_4
   //GETGLPROCMACRO(glXGetProcAddress)
@@ -770,7 +760,7 @@ void getVERfuncs(osiRenderer *r, int major, int minor) {
   GETGLPROCMACRO(glBindImageTextures)
   GETGLPROCMACRO(glBindVertexBuffers)
 
-
+  #endif /// OS_MAC ignore
 }
 
 
@@ -779,6 +769,7 @@ void getVERfuncs(osiRenderer *r, int major, int minor) {
 // extensions not in ARB or EXT list //
 ///=================================///
 void getOTHERfuncs(osiRenderer *r) {
+  #ifndef OS_MAC
   #ifdef OS_WIN
   if(r->glOTHERlist[0].avaible) {    /// GL_ARB_imaging
     GETGLPROCMACRO(glColorTable)
@@ -876,7 +867,7 @@ void getOTHERfuncs(osiRenderer *r) {
     GETGLPROCMACRO(wglFreeMemoryNV)
   }
   #endif /// OS_WIN
-
+  #endif /// OS_MAC does nothing
 }
 
 
@@ -885,7 +876,7 @@ void getOTHERfuncs(osiRenderer *r) {
 // ARB extensions funcs aquiring //
 ///=============================///
 void getARBfuncs(osiRenderer *r) {
-
+  #ifndef OS_MAC
   if(r->glARBlist[0].avaible) {             /// #1 GL_ARB_multitexture  http://www.opengl.org/registry/specs/ARB/multitexture.txt
     GETGLPROCMACRO(glActiveTextureARB)
     GETGLPROCMACRO(glClientActiveTextureARB)
@@ -1250,7 +1241,7 @@ void getARBfuncs(osiRenderer *r) {
   }
   if(r->glARBlist[157].avaible)        /// #158 GL_ARB_sparse_texture http://www.opengl.org/registry/specs/ARB/sparse_texture.txt
     GETGLPROCMACRO(glTexPageCommitmentARB)       /// texture memory allocation management
-
+  #endif /// OS_MAC ignores everything
 }
 
 
@@ -1259,6 +1250,8 @@ void getARBfuncs(osiRenderer *r) {
 // EXT and vendor funcs aquiring //
 ///=============================///
 void getEXTfuncs(osiRenderer *r) {
+  #ifndef OS_MAC
+  
   if(r->glEXTlist[1].avaible) {    /// #2 GL_EXT_blend_color http://www.opengl.org/registry/specs/EXT/blend_color.txt
     GETGLPROCMACRO(glBlendColorEXT)
   }
@@ -3294,6 +3287,7 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glProgramUniform3ui64vNV)
     GETGLPROCMACRO(glProgramUniform4ui64vNV)
   }
+  #endif /// OS_MAC ignore
 }
 
 

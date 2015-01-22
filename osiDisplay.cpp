@@ -1,13 +1,29 @@
 #include "osinteraction.h"
+#include "util/typeShortcuts.h"
 
 #ifdef USING_DIRECT3D
 #include <d3d9.h>
 #endif
 
 #ifdef OS_MAC
+/// cocoa uses these, unfortunately...
+#undef uint
+#undef ushort
+#undef uint64
+#undef uint32
+#undef uint16
+#undef word
+#undef byte
+#include <unistd.h>
+
+#include <CoreFoundation/CFString.h>
+#include <CoreFoundation/CFStringEncodingExt.h>
+#include <CoreGraphics/CoreGraphics.h>  // trying to pinpoint quartz
 #include <CoreGraphics/CGDirectDisplay.h>
+
 //#include <CoreGraphics.framework/headers/CGDirectDisplay.h>
 #endif /// OS_MAC
+
 
 /* TODO:
  * [all]: possible bug: res change with only frequency change
@@ -68,7 +84,7 @@ osiResolution::osiResolution() {
   #endif /// OS_LINUX
   
   #ifdef OS_MAC
-  id= null;
+  _id= null;
   #endif ///OS_MAC
 }
 
@@ -92,9 +108,9 @@ void osiResolution::delData() {
   #endif /// OS_LINUX
   
   #ifdef OS_MAC
-  if(id) {
-    delete[] id;
-    id= null;
+  if(_id) {
+    delete[] _id;
+    _id= null;
   }
   #endif /// OS_MAC
 }
@@ -135,10 +151,11 @@ osiMonitor::osiMonitor() {
   #endif /// OS_LINUX
   
   #ifdef OS_MAC
-  original.id= new uint[1];
-  original.id[0]= 0;
-  progRes.id= new uint[1];
-  progRes.id[0]= 0;
+  original._id= new uint[1];
+  original._id[0]= 0;
+  progRes._id= new uint[1];
+  progRes._id[0]= 0;
+  _oglDisplayMask= 0;
   #endif /// OS_MAC
 }
 
@@ -175,6 +192,7 @@ void osiMonitor::delData() {
   #endif /// OS_LINUX
   
   #ifdef OS_MAC
+  _oglDisplayMask= 0;
   #endif ///OS_MAC
 }
 
@@ -244,8 +262,8 @@ void osiDisplay::delData() {
 
 
 
-bool osiDisplay::changePrimary(int32 dx, int32 dy, int8 bpp, int16 freq) {      // change primary display& primary monitor resolution
-  return changeRes(/*osi.primWin, */primary, dx, dy, bpp, freq);
+bool osiDisplay::changePrimary(int32 dx, int32 dy, int16 freq) {      // change primary display& primary monitor resolution
+  return changeRes(primary, dx, dy, freq);
 }
 
 
@@ -256,9 +274,9 @@ bool osiDisplay::changePrimary(int32 dx, int32 dy, int8 bpp, int16 freq) {      
 
 // doChange is doing the actual resolution change, whitout any checks. safety/ rest of handling is in osiDisplay::changeRes
 // doChange is private, no need to put it in osiDisplay, as calling it won't do anything
-bool doChange(/*osiWindow *w, */osiMonitor *m, osiResolution *r, int8 bpp, int16 freq);
+bool doChange(osiMonitor *m, osiResolution *r, int16 freq);
 
-bool osiDisplay::changeRes(/*osiWindow *w, */osiMonitor *m, int32 dx, int32 dy, int8 bpp, int16 freq) {
+bool osiDisplay::changeRes(osiMonitor *m, int32 dx, int32 dy, int16 freq) {
   bool chatty= true;
   if(!bResCanBeChanged) return false;   /// there can be reasons that res change is not possible. check bResCanBeChangedReason text
   
@@ -333,9 +351,9 @@ bool osiDisplay::changeRes(/*osiWindow *w, */osiMonitor *m, int32 dx, int32 dy, 
       /// per OS resolution change
       bool b;
       #ifdef OS_WIN
-      b= doChange(m, r, bpp, freq);
+      b= doChange(m, r, freq);
       #else /// OS_LINUX & OS_MAC
-      b= doChange(m, r, bpp, fID);
+      b= doChange(m, r, fID);
       #endif /// OS_LINUX & OS_MAC 
 
       if(!b) { // could not change resolution
@@ -352,7 +370,6 @@ bool osiDisplay::changeRes(/*osiWindow *w, */osiMonitor *m, int32 dx, int32 dy, 
       
       /// update monitor's window (if there is one)
       if(m->win) {
-        m->win->bpp= bpp;
         m->win->freq= r->freq[fID];
         if(m->win->mode== 2 || m->win->mode== 3) {
           m->win->dx= dx;
@@ -381,9 +398,9 @@ bool osiDisplay::changeRes(/*osiWindow *w, */osiMonitor *m, int32 dx, int32 dy, 
   // RESOLUTION CHANGE
   bool b;
   #ifdef OS_WIN
-  b= doChange(m, r, bpp, freq);
+  b= doChange(m, r, freq);
   #else /// OS_LINUX & OS_MAC
-  b= doChange(m, r, bpp, fID);
+  b= doChange(m, r, fID);
   #endif /// OS_LINUX & OS_MAC 
 
   if(!b) { // could not change resolution
@@ -396,7 +413,7 @@ bool osiDisplay::changeRes(/*osiWindow *w, */osiMonitor *m, int32 dx, int32 dy, 
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
-  m->progRes.id[0]= r->id[f];
+  m->progRes._id[0]= r->_id[fID];
   #endif /// OS_MAC
 
   /// adjust current window& monitor variables
@@ -409,7 +426,6 @@ bool osiDisplay::changeRes(/*osiWindow *w, */osiMonitor *m, int32 dx, int32 dy, 
 
   /// update monitor's window (if there is one)
   if(m->win) {
-    m->win->bpp= bpp;
     m->win->freq= r->freq[fID];
     if(m->win->mode== 2 || m->win->mode== 3) {
       m->win->dx= dx;
@@ -458,7 +474,7 @@ void osiDisplay::restoreRes(osiMonitor *m) {
   #endif
 
   #ifdef OS_LINUX
-  if(!doChange(m, &m->original, 0, 0)) {
+  if(!doChange(m, &m->original, 0)) {
     error.simple("ERROR: can't change back to original monitor resolution");
     osi.flags.exit= true;                   // EXIT PROGRAM IF CAN'T CHANGE BACK RESOLUTION... can't do much at this point
   }
@@ -468,7 +484,7 @@ void osiDisplay::restoreRes(osiMonitor *m) {
   #ifdef OS_MAC
   /// this restores resolutions for ALL monitors
   CGRestorePermanentDisplayConfiguration();
-  CGDisplayShowCursor(m->id);   /// show mouse cursor? this need a little bit of further thinking      
+  CGDisplayShowCursor(m->_id);   /// show mouse cursor? this need a little bit of further thinking      
   // in.m.showCursor(true);   <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
   /// set attribs for all monitors
@@ -549,7 +565,7 @@ void osiDisplay::restoreRes(osiMonitor *m) {
 // ----->>>>> doChange - actual per OS steps to change the resolution <<<<<----- //
 ///-----------------------------------------------------------------------------///
 
-bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, int16 freq) {
+bool doChange(osiMonitor *m, osiResolution *r, int16 freq) {
   bool chatty= true;
   #ifdef OS_WIN
   DEVMODE dm;
@@ -557,7 +573,7 @@ bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, int16 freq) {
   dm.dmSize= sizeof(dm);
   dm.dmPelsWidth= r->dx;            /// selected screen width
   dm.dmPelsHeight= r->dy;           /// selected screen height
-  dm.dmBitsPerPel= bpp;             /// selected bits per pixel
+  dm.dmBitsPerPel= 32;              /// selected bits per pixel
   if(freq)
     dm.dmDisplayFrequency= freq;
   dm.dmFields= DM_BITSPERPEL| DM_PELSWIDTH| DM_PELSHEIGHT;
@@ -816,11 +832,11 @@ bool doChange(osiMonitor *m, osiResolution *r, int8 bpp, int16 freq) {
   
   #ifdef OS_MAC
   /// get resolution with specified ID
-  CFArrayRef modes= CGDisplayCopyAllDisplayModes(m->id, NULL);
-  const void *resid= CFArrayGetValueAtIndex(modes, r->id[freq]);
+  CFArrayRef modes= CGDisplayCopyAllDisplayModes(m->_id, NULL);
+  const void *resid= CFArrayGetValueAtIndex(modes, r->_id[freq]);
   
   /// change resolution <<<<
-  if(CGDisplaySetDisplayMode(m->id, (CGDisplayModeRef)resid, null) != kCGErrorSuccess) {
+  if(CGDisplaySetDisplayMode(m->_id, (CGDisplayModeRef)resid, null) != kCGErrorSuccess) {
     CFRelease(modes);
     error.simple("OSdisplay::changeRes: can't change to requested resolution");
     return false;
@@ -873,7 +889,7 @@ void osiDisplay::populate() {
   
   int a, b, n, tx, ty;//, m;
   osiResolution *p;
-  Str8 s;
+  str8 s;
   
   bool found;
   DISPLAY_DEVICE dd= { 0 };
@@ -1507,15 +1523,11 @@ void osiDisplay::populate() {
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
-  
-  // coordinate unification is not needed, i hope (macs have origin point the oGL and osi way)
-  
-  // >>>>>>>>>  monitor.dx, dy ADDED <<< current dx (not progres, not original) <<<<<<<<<<
-    
+  /// tmp vars used
   int a, b, c, d, tx, ty;
   CGRect r;
   osiResolution *p;
-  string s;
+  str8 s;
   uint32_t n, n2;
   const void *resid;
   uint32_t flags;
@@ -1525,7 +1537,7 @@ void osiDisplay::populate() {
   /// find the number of displays on the system
   CGDirectDisplayID *dis= new CGDirectDisplayID[MAX_WINDOWS];
   
-  CGGetActiveDisplayList(MAX_WINDOWS, dis, &n);
+  CGGetOnlineDisplayList(MAX_WINDOWS, dis, &n);
   
   if(!n) {
     error.simple("osiDisplay::populate: can't find any displays");
@@ -1536,15 +1548,13 @@ void osiDisplay::populate() {
   
   monitor= new osiMonitor[nrMonitors];
   
-  if(chatty) printf("found %d monitors", nrMonitors);
-  
+  if(chatty) printf("found %d monitors\n", nrMonitors);
   
   // loop thru all displays < START <--------------------------------------------------------
-  
   for(d= 0; d< nrMonitors; d++) {                     /// for each monitor
     
     /// monitor id(mac) & name
-    monitor[d].id= dis[d];
+    monitor[d]._id= dis[d];
     
     if(!cocoa.displayName(dis[d], &monitor[d].name))
       monitor[d].name= "Unknown Monitor";
@@ -1554,7 +1564,10 @@ void osiDisplay::populate() {
       monitor[d].primary= true;
       primary= &monitor[d];
     }
-    
+
+    /// openGL mask
+    monitor[d]._oglDisplayMask= CGDisplayIDToOpenGLDisplayMask(monitor[d]._id);
+
     /// monitor position on virtual desktop
     r= CGDisplayBounds(dis[d]);
     monitor[d].x0= r.origin.x;
@@ -1572,13 +1585,11 @@ void osiDisplay::populate() {
     //monitor[d].original.freq[0]= (short)dm.dmDisplayFrequency;
       
     if(chatty) printf("monitor %d (%s):\n", d, monitor[d].name.d);
-    if(chatty) printf("  id[%d] position[%dx%d] original res[%dx%d]\n", monitor[d].id, monitor[d].x0, monitor[d].y0, monitor[d].original.dx, monitor[d].original.dy);
+    if(chatty) printf("  id[%d] position[%dx%d] original res[%dx%d]\n", monitor[d]._id, monitor[d].x0, monitor[d].y0, monitor[d].original.dx, monitor[d].original.dy);
     
     // * MAC 10.5 required *
     // double CGDisplayRotation(dis[d]); this is macOS 10.5 onwards... <<<<<<<<<<<<<<<<<<<<<<<<<
     // ROTATION???
-    
-    
     
     // * MAC 10.6 required *
     //double freq= CGDisplayModeGetRefreshRate((CGDisplayModeRef)resid);
@@ -1604,7 +1615,7 @@ void osiDisplay::populate() {
         uint idt=       CGDisplayModeGetIODisplayModeID((CGDisplayModeRef)resid);
         uint32_t flags= CGDisplayModeGetIOFlags(        (CGDisplayModeRef)resid);
         CFStringRef st= CGDisplayModeCopyPixelEncoding( (CGDisplayModeRef)resid);
-        CFStringGetCString(st, buf, 512, CFStringGetSystemEncoding());
+        CFStringGetCString(st, (char *)buf, 512, CFStringGetSystemEncoding());
       
         printf("   %02d [%dx%d] id[%d] freq[%f] flags[%x] pixel[%s]\n", a, tx, ty, idt, freq, flags, buf);
 
@@ -1648,7 +1659,7 @@ void osiDisplay::populate() {
       
       /// only 32bit resolutions ... SUBJECT OF INTESIVE THINKING... remove 16 bits?! <<<<<<<<<<<<<
       CFStringRef st= CGDisplayModeCopyPixelEncoding((CGDisplayModeRef)resid);
-      CFStringGetCString(st, buf, 512, CFStringGetSystemEncoding());
+      CFStringGetCString(st, (char *)buf, 512, CFStringGetSystemEncoding());
       
       if(s!= buf) {
         CFRelease(st);
@@ -1713,7 +1724,7 @@ void osiDisplay::populate() {
       
       /// only 32bit resolutions ... SUBJECT OF INTESIVE THINKING... remove 16 bits?! <<<<<<<<<<<<<
       CFStringRef st= CGDisplayModeCopyPixelEncoding((CGDisplayModeRef)resid);
-      CFStringGetCString(st, buf, 512, CFStringGetSystemEncoding());
+      CFStringGetCString(st, (char *)buf, 512, CFStringGetSystemEncoding());
       if(s!= buf) {
         CFRelease(st);
         continue;
@@ -1732,9 +1743,9 @@ void osiDisplay::populate() {
     /// alloc the list per resolution (got the max numbers)
     for(a= 0; a< n; a++) {
       p[a].freq= new short[p[a].nrFreq];
-      p[a].id= new uint[p[a].nrFreq];
+      p[a]._id= new uint[p[a].nrFreq];
       for(b= 0; b< p[a].nrFreq; b++)
-        p[a].id[b]= 0;          /// fill IDs with 0, this is used in the next part (hopefully they won't make a 0 id)
+        p[a]._id[b]= 0;          /// fill IDs with 0, this is used in the next part (hopefully they won't make a 0 id)
     }
 
     /// filling all frequencies with only a pass thru all windows big mess table
@@ -1748,7 +1759,7 @@ void osiDisplay::populate() {
       
       /// only 32bit resolutions ... SUBJECT OF INTESIVE THINKING... remove 16 bits?! <<<<<<<<<<<<<
       CFStringRef st= CGDisplayModeCopyPixelEncoding((CGDisplayModeRef)resid);
-      CFStringGetCString(st, buf, 512, CFStringGetSystemEncoding());
+      CFStringGetCString(st, (char *)buf, 512, CFStringGetSystemEncoding());
 
       if(s!= buf) {
         CFRelease(st);
@@ -1765,9 +1776,9 @@ void osiDisplay::populate() {
       for(b= 0; b< n; b++)
         if((tx== p[b].dx)&& (ty== p[b].dy))
           for(c= 0; c< p[b].nrFreq; c++)
-            if(!p[b].id[c]) {
+            if(!p[b]._id[c]) {
               p[b].freq[c]= (short)freq;
-              p[b].id[c]= idt;
+              p[b]._id[c]= idt;
               break;
             }
       CFRelease(st);
@@ -1781,19 +1792,19 @@ void osiDisplay::populate() {
         for(c= b+ 1; c< p[a].nrFreq; c++)           /// c= each frequency (not b) & (until last frequency)
           if(p[a].freq[b]< p[a].freq[c]) {          /// sorting. i think this is already done in mac
             /// swap
-            uint idt= p[a].id[b];
+            uint idt= p[a]._id[b];
             tx= p[a].freq[b];
             p[a].freq[b]= p[a].freq[c];
-            p[a].id[b]= p[a].id[c];
+            p[a]._id[b]= p[a]._id[c];
             p[a].freq[c]= (short)tx;
-            p[a].id[c]= idt;
+            p[a]._id[c]= idt;
           }
     
     if(chatty)
       for(a= 0; a< n; a++) {
         printf("%dx%d ", p[a].dx, p[a].dy);
         for(b= 0; b< p[a].nrFreq; b++)
-          printf("%d[ID%u] ", p[a].freq[b], p[a].id[b]);
+          printf("%d[ID%u] ", p[a].freq[b], p[a]._id[b]);
         printf("\n");
       }
     
@@ -2001,20 +2012,129 @@ void _populateGrCards(osiDisplay *display) {
           if(display->monitor[c]._outID== cardInfo->outputs[b]) {
             display->GPU[a].monitor[id++]= &display->monitor[c];
             display->monitor[c].GPU= &display->GPU[a];
-            display->GPU[a].primary= display->monitor[c].primary;
           }
     } /// there are monitors on this GPU
     if(chatty) printf("Found GPU[%s]: monitors attached[%d]\n", display->GPU[a].name.d, display->GPU[a].nrMonitors);
 
     XRRFreeProviderInfo(cardInfo);        
   }
-
+  
+  display->primary->GPU->primary= true; /// primary monitor -> primary GPU
+  
   XRRFreeProviderResources(cards);
   XRRFreeScreenResources(scr);
   #endif
 
   #ifdef OS_MAC
-  makeme
+  /*
+  #include <CoreFoundation/CoreFoundation.h>
+  #include <Cocoa/Cocoa.h>
+  #include <IOKit/IOKitLib.h>
+
+  int main(int argc, const char * argv[])
+  {
+
+  while (1) {
+
+      // Get dictionary of all the PCI Devicces
+      CFMutableDictionaryRef matchDict = IOServiceMatching(kIOAcceleratorClassName);
+
+      // Create an iterator
+      io_iterator_t iterator;
+
+      if (IOServiceGetMatchingServices(kIOMasterPortDefault, matchDict, &iterator) == kIOReturnSuccess) {
+          // Iterator for devices found
+          io_registry_entry_t regEntry;
+
+          while ((regEntry = IOIteratorNext(iterator))) {
+              // Put this services object into a dictionary object.
+              CFMutableDictionaryRef serviceDictionary;
+              if (IORegistryEntryCreateCFProperties(regEntry, &serviceDictionary, kCFAllocatorDefault, kNilOptions) != kIOReturnSuccess) {
+                  // Service dictionary creation failed.
+                  IOObjectRelease(regEntry);
+                  continue;
+              }
+
+              CFMutableDictionaryRef perf_properties = (CFMutableDictionaryRef) CFDictionaryGetValue( serviceDictionary, CFSTR("PerformanceStatistics") );
+              if (perf_properties) {
+
+                  static ssize_t gpuCoreUse=0;
+                  static ssize_t freeVramCount=0;
+                  static ssize_t usedVramCount=0;
+
+                  const void* gpuCoreUtilization = CFDictionaryGetValue(perf_properties, CFSTR("GPU Core Utilization"));
+                  const void* freeVram = CFDictionaryGetValue(perf_properties, CFSTR("vramFreeBytes"));
+                  const void* usedVram = CFDictionaryGetValue(perf_properties, CFSTR("vramUsedBytes"));
+                  if (gpuCoreUtilization && freeVram && usedVram) {
+                      CFNumberGetValue( (CFNumberRef) gpuCoreUtilization, kCFNumberSInt64Type, &gpuCoreUse);
+                      CFNumberGetValue( (CFNumberRef) freeVram, kCFNumberSInt64Type, &freeVramCount);
+                      CFNumberGetValue( (CFNumberRef) usedVram, kCFNumberSInt64Type, &usedVramCount);
+                      NSLog(@"GPU: %.3f%% VRAM: %.3f%%",gpuCoreUse/(double)10000000,usedVramCount/(double)(freeVramCount+usedVramCount)*100.0);
+                  }
+              }
+
+              CFRelease(serviceDictionary);
+              IOObjectRelease(regEntry);
+          }
+          IOObjectRelease(iterator);
+      }
+
+     sleep(1);
+  }
+  return 0;
+  }
+  */
+  
+  if(chatty) printf("searching for GPU(s)...");
+  
+  display->nrGPUs= 0;
+  if(!display->nrMonitors) return;
+  
+  str8 *s= new str8[display->nrMonitors];
+
+  /// populate each monitor's gpuInfo  
+  for(int a= 0; a< display->nrMonitors; a++)
+    cocoa.displayGPU(display->monitor[a]._id, &display->monitor[a]._GPUinfo);
+  
+  /// pass thru all monitor's GPUinfo, see how many are unique = NR GPU FOUND
+  for(int a= 0; a< display->nrMonitors; a++) {
+    bool found= false;
+    for(int b= 0; b< display->nrGPUs; b++)
+      if(s[b]== display->monitor[a]._GPUinfo)
+        found= true;
+    
+    if(!found)
+      s[display->nrGPUs++]= display->monitor[a]._GPUinfo;
+  }
+  if(chatty) printf("found %d GPU(s)\n", display->nrGPUs);
+  
+  /// populate display's GPU array
+  display->GPU= new osiGPU[display->nrGPUs];
+  for(int a= 0; a< display->nrGPUs; a++) {
+    display->GPU[a].name= s[a];
+    if(chatty) printf(" GPU[%d]: [%s]\n", a, display->GPU[a].name.d);
+    // more gpu info could be populated here
+  }
+  
+  /// nr monitors on each graphics card
+  for(int a= 0; a< display->nrGPUs; a++)
+    for(int b= 0; b< display->nrMonitors; b++)
+      if(display->monitor[b]._GPUinfo== display->GPU[a].name)
+        display->GPU[a].nrMonitors++;
+  
+  /// populate each GPU's list of monitors that are attached to it
+  for(int a= 0; a< display->nrGPUs; a++)
+    if(display->GPU[a].nrMonitors) {
+      display->GPU[a].monitor= new osiMonitor*[display->GPU[a].nrMonitors];
+      for(int b= 0, c= 0; b< display->nrMonitors; b++)
+        if(display->monitor[b]._GPUinfo== display->GPU[a].name) {
+          display->GPU[a].monitor[c++]= &display->monitor[b];
+          display->monitor[b].GPU= &display->GPU[a];
+        }
+    }
+  
+  display->primary->GPU->primary= true; /// set primary monitor's GPU as primary grCard
+  delete[] s;
   #endif
 }
 
@@ -2050,7 +2170,7 @@ void getMonitorPos(osiMonitor *m) {
   
   #ifdef OS_MAC
   CGRect r;
-  r= CGDisplayBounds(m->id);
+  r= CGDisplayBounds(m->_id);
   m->x0= r.origin.x;
   m->_y0= r.origin.y;
   m->y0= m->_y0;                          /// macs have the right origin *MUST TEST*

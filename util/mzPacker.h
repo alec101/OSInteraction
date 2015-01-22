@@ -18,29 +18,29 @@ enum mzTarget {
 class mzPacker {
   void *_partDecomp, *_partComp;
   void *_file, *_file2;
-  int64 _nrBytes;
-  uint8 *_inBuffer, *_outBuffer, *_inUsr, *_outUsr;
-  uint8 *_pIn, *_pOut;
-  int8 _inType, _outType;
+  int64_t _nrBytes;
+  uint8_t *_inBuffer, *_outBuffer, *_inUsr, *_outUsr;
+  uint8_t *_pIn, *_pOut;
+  int8_t _inType, _outType;
   bool _bMoreIn, _bMoreOut, _bAllIn;
-  int64 _bytesProcessed;
-  int64 _inSize, _outSize, _inUsrSize, _outUsrSize;
+  int64_t _bytesProcessed;
+  int64_t _inSize, _outSize, _inUsrSize, _outUsrSize;
 
 public:
 
-  int8 compressionLevel;
-  void setCompressionLevel(int8); /// 1- 10 (10 should not be used- it's "uber")
+  int8_t compressionLevel;
+  void setCompressionLevel(int8_t); /// 1- 10 (10 should not be used- it's "uber")
   void setDefaultCompressionLevel() { setCompressionLevel(6); }
 
   // use these to know how big an archive can get, to prealloc a buffer
-  int64 compressBound(int64 srcSize);   /// max size of the compressed data
-  int64 decompressBound(int64 srcSize); /// max size of the decompressed data
+  int64_t compressBound(int64_t srcSize);   /// max size of the compressed data
+  int64_t decompressBound(int64_t srcSize); /// max size of the decompressed data
 
   // ---=== compress & decompress ===---
   /// basic functions; source and output buffers MUST handle the whole comp/decomp process
   /// make shure output buffer is big enough to handle the whole decompressed source
-  bool compress(const void *src, int64 srcLen, void *out, int64 outLen);
-  bool decompress(const void *src, int64 srcLen, void *out, int64 outLen);
+  bool compress(const void *src, int64_t srcLen, void *out, int64_t outLen);
+  bool decompress(const void *src, int64_t srcLen, void *out, int64_t outLen);
 
 
   // startAdv(De)Comp: call this before each (de)compress process, to (re)set all values
@@ -64,32 +64,32 @@ public:
 
   // advanced compression funcs
 
-  bool startAdvComp(int64 nrBytes, mzTarget srcType, cvoid *src, int64 srcLen, mzTarget outType, cvoid *out, int64 outLen);
-  void *doAdvComp(int64 chunkSize= 0, int64 *retLen= null);
+  bool startAdvComp(int64_t nrBytes, mzTarget srcType, const void *src, int64_t srcLen, mzTarget outType, const void *out, int64_t outLen);
+  void *doAdvComp(int64_t chunkSize= 0, int64_t *retLen= NULL);
 
   // advanced decompression funcs
 
-  bool startAdvDecomp(int64 nrBytes, mzTarget srcType, cvoid *src, int64 srcLen, mzTarget outType, cvoid *out, int64 outLen);
-  void *doAdvDecomp(int64 chunkSize= 0, int64 *retLen= null);
+  bool startAdvDecomp(int64_t nrBytes, mzTarget srcType, const void *src, int64_t srcLen, mzTarget outType, const void *out, int64_t outLen);
+  void *doAdvDecomp(int64_t chunkSize= 0, int64_t *retLen= NULL);
 
   // these 2 funcs work when using USR_BUFFERS only - after a buffer is full/fully processed, it can be changed
 
-  void setSrc(void *p, int64 s) { _inUsr= (uint8 *)p; _inUsrSize= s; }
-  void setOut(void *p, int64 s) { _outUsr= (uint8 *)p; _outUsrSize= s; }
+  void setSrc(void *p, int64_t s) { _inUsr= (uint8_t *)p; _inUsrSize= s; }
+  void setOut(void *p, int64_t s) { _outUsr= (uint8_t *)p; _outUsrSize= s; }
   
 
 
 
   // compress / decompress RESULTS - check these vars after each compress / decompress operation
   struct _mzPackerResults {
-    int64 srcProcessed;       /// how many bytes were compressed/ decompressed in src buffer
-    int64 srcTotalProcessed;  /// how much data was compressed / decompressed in total, after multiple comp/decomp operations
-    int64 srcRemaining;       /// how many bytes remaining to compress / decompress in src buffer
+    int64_t srcProcessed;       /// how many bytes were compressed/ decompressed in src buffer
+    int64_t srcTotalProcessed;  /// how much data was compressed / decompressed in total, after multiple comp/decomp operations
+    int64_t srcRemaining;       /// how many bytes remaining to compress / decompress in src buffer
     bool srcFullyProcessed;   /// src buffer FULLY processed (compress / decompress)
 
-    int64 outFilled;          /// how much of the out buffer was filled after a compress/decompress operation
-    int64 outTotalFilled;     /// how much data was compressed / decompressed in total, after multiple comp/decomp operations
-    int64 outRemaining;       /// how many bytes remaining in out buffer
+    int64_t outFilled;          /// how much of the out buffer was filled after a compress/decompress operation
+    int64_t outTotalFilled;     /// how much data was compressed / decompressed in total, after multiple comp/decomp operations
+    int64_t outRemaining;       /// how many bytes remaining in out buffer
     bool outIsFull;           /// out buffer is FULL
 
     _mzPackerResults();
@@ -99,12 +99,12 @@ public:
 
   // util funcs
 
-  uint32 crc32(uint32 crc, cvoid *dat, int64 buf_len);
+  uint32_t crc32(uint32_t crc, const void *dat, int64_t buf_len);
 
   // error handling - if funcs do not return true, check err number / getErr in text
 
-  uint err;
-  cchar *getErr();
+  unsigned int err;
+  const char *getErr();
 
   // constructor / destructor
 

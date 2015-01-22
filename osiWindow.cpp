@@ -1,5 +1,5 @@
 #include "osinteraction.h"
-
+#include "util/typeShortcuts.h"
 
 
 // -----------============= WINDOW CLASS =============------------------
@@ -19,7 +19,7 @@ Display *osiWindow::_dis= null;
 osiWindow::osiWindow() {
   isCreated= false;
   x0= y0= dx= dy= 0;
-  freq= bpp= 0;
+  freq= 0;
   _isSplashWindow= false;
   
   monitor= null;
@@ -29,28 +29,33 @@ osiWindow::osiWindow() {
   _hDC= NULL;
   _hInstance= NULL;
   _hWnd= NULL;
+  _imgBM= NULL;
+  _imgDC= NULL;
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
   _root= 0;              /// root window (desktop/server main window/ watever)
   _win= 0;               /// window 'handle' or watever (per monitor)
   _vi= null;
+  _fbID= 0;
   _isMapped= false;
   _img= null;            /// window background / mainly used on splash windows
   _gc= null;             /// graphics context used when drawing a window background
   _imgData= null;        /// background image pixel data
+  _iconData= null;
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
   _win= null;
   _view= null;
+  _img= null;
   #endif /// OS_MAC
 }
 
 
 osiWindow::~osiWindow() {
   #ifdef OS_WIN
-  delData();            // it seems system already destroys windows, and this causes segmentation error
+  delData();
   #endif /// OS_WIN
   
   #ifdef OS_LINUX
@@ -59,16 +64,28 @@ osiWindow::~osiWindow() {
   if(_imgData)  delete[] _imgData;
   if(_img)      XFree(_img);
   if(_gc)       XFreeGC(_dis, _gc);
+  if(_vi)       XFree(_vi);
   #endif
   
   #ifdef OS_MAC
-  // nothing to do atm
+  if(_img) cocoa.delNSImage(_img);
+  _img= null;
   #endif /// OS_MAC
 }
 
 
 void osiWindow::delData() {
   #ifdef OS_WIN
+  if(_imgBM) {              /// splash window bmp image
+    DeleteObject(_imgBM);
+    _imgBM= null;
+  }
+
+  if(_imgDC) {              /// splash window dc
+    DeleteDC(_imgDC);
+    _imgDC= null;
+  }
+
   if(_hDC) {
     ReleaseDC(_hWnd, _hDC);
     _hDC= NULL;
@@ -88,35 +105,32 @@ void osiWindow::delData() {
 
   #ifdef OS_LINUX
   if(isCreated) {
-    osi.glMakeCurrent(null);
-    //osi.glDestroyRenderer(this); // THIS NEEDS TO BE PUT WITH glRenderer STRUCT WIP
-    //glXDestroyContext(display, glRenderer);
-    
-    /// window background image + grContext free
-    if(_imgData) {delete[] _imgData;   _imgData= null; }
-    if(_img)     { XFree(_img);        _img= null; }
-    if(_gc)      { XFreeGC(_dis, _gc); _gc= null; }
-    
-    if(mode == 2)
-      osi.display.restoreRes(monitor);
     XUnmapWindow(_dis, _win);
     XDestroyWindow(_dis, _win);
+
+    /// window background image + grContext free
+    if(_imgData) { delete[] _imgData;  _imgData= null; }
+    if(_img)     { XFree(_img);        _img= null; }
+    if(_gc)      { XFreeGC(_dis, _gc); _gc= null; }
+    if(_vi)      { XFree(_vi);         _vi= null; }
+    if(_iconData){ delete[] _iconData; _iconData= null; }
+    
+    _fbID= 0;
+    if(mode == 2)
+      osi.display.restoreRes(monitor);
     this->_isMapped= false;
   }
   // do not return
   #endif
 
   #ifdef OS_MAC
-  _win= null;
-  _view= null;
-
+  cocoa.delWindow(this);
+  
   // do not return
   #endif
 
-
   this->isCreated= false;
   this->mode= 0;
-  this->bpp= 0;
   this->dx= 0;
   this->dy= 0;
   this->freq= 0;
@@ -168,6 +182,12 @@ void osiWindow::_setWMtype(cchar *wmType) {
   XChangeProperty(_dis, _win, type, data, 32, PropModeReplace, reinterpret_cast<unsigned char*>(&value), 1);
 }
 
+
+extern bool _createFrontBuffer(osiWindow *w, osiRenderer *r);
+bool osiWindow::_createFBandVisual() {
+  return _createFrontBuffer(this, null);
+}
+
 #endif /// OS_LINUX
 
 
@@ -179,7 +199,7 @@ bool osiWindow::setIcon(cchar *file) {
   if(!file) return false;
   
   /// s will hold the file extension to be loaded, in lowercase
-  Str8 s("   ");
+  str8 s("   ");
   int32 len= Str::strlen8(file);
   
   for(char a= 0; a< 3; a++)
@@ -192,7 +212,7 @@ bool osiWindow::setIcon(cchar *file) {
 
   uint8 *bitmap= null;
   int32 dx, dy;
-  int8 depth;
+  int8 depth, bpp, bpc;
   
   /// file extension== PNG
   if(s== "png") {
@@ -202,6 +222,8 @@ bool osiWindow::setIcon(cchar *file) {
     if(png.type!= IMG_RGB && png.type!= IMG_RGBA) return false; /// RGBA & RGB only
 
     depth= png.bpp/ png.bpc;
+    bpp= png.bpp;
+    bpc= png.bpc;
     dx= png.dx;
     dy= png.dy;
     bitmap= (uint8 *)png.bitmap;
@@ -214,6 +236,8 @@ bool osiWindow::setIcon(cchar *file) {
     if(tga.type!= IMG_RGB && tga.type!= IMG_RGBA) return false; /// RGBA & RGB only
 
     depth= tga.bpp/ tga.bpc;
+    bpp= tga.bpp;
+    bpc= tga.bpc;
     dx= tga.dx;
     dy= tga.dy;
     bitmap= (uint8 *)tga.bitmap;
@@ -290,8 +314,10 @@ bool osiWindow::setIcon(cchar *file) {
   #endif
 
   #ifdef OS_MAC
-  makeme
+  cocoa.setIcon(bitmap, dx, dy, bpp, bpc);
   #endif
+
+
   return true;
 }
 
@@ -308,7 +334,7 @@ void osiWindow::setName(cchar *s) {
   #endif /// OS_LINUX
   
   #ifdef OS_MAC
-  makeme
+  cocoa.setWindowName(this, s);
   #endif /// OS_MAC
 }
 
@@ -324,7 +350,7 @@ void osiWindow::show() {
   #endif /// OS_LINUX
   
   #ifdef OS_MAC
-  makeme
+  cocoa.setWindowShown(this);
   #endif /// OS_MAC
 }
 
@@ -339,7 +365,7 @@ void osiWindow::hide() {
   #endif /// OS_LINUX
   
   #ifdef OS_MAC
-  makeme
+  cocoa.setWindowHidden(this);
   #endif /// OS_MAC
 }
 
@@ -348,15 +374,15 @@ void osiWindow::move(int x, int y) {
   x0= x; y0= y;
   //if(mode!= 1) return;
   #ifdef OS_WIN
-  MoveWindow(_hWnd, x0, osi.display.vdy- (y0+ dy), dx, dy, false);
+  MoveWindow(_hWnd, x0, osi.display.vdy- y0, dx, dy, false);
   #endif /// OS_WIN
   
   #ifdef OS_LINUX
-  XMoveWindow(_dis, _win, x0, osi.display.vdy- (y0+ dy));
+  XMoveWindow(_dis, _win, x0, osi.display.vdy- y0);
   #endif /// OS_LINUX
   
   #ifdef OS_MAC
-  makeme
+  cocoa.setWindowPos(this, x, y);
   #endif /// OS_MAC
 }
 
@@ -368,14 +394,16 @@ void osiWindow::resize(int dx, int dy) {
   MoveWindow(_hWnd, x0, osi.display.vdy- (y0+ dy), dx, dy, false);
   #endif /// OS_WIN
   
+  
   #ifdef OS_LINUX
   XResizeWindow(_dis, _win, dx, dy);
   #endif /// OS_LINUX
   
   #ifdef OS_MAC
-  makeme
+  cocoa.setWindowSize(this, dx, dy);
   #endif /// OS_MAC
 }
+
 
 
 

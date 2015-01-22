@@ -67,25 +67,25 @@ class TGA {
 public:
   
   void *bitmap;             /// raw data
-  int32 dx, dy;             /// image size
-  int8 bpp, bpc;            /// bits per pixel / bits per channel
+  int32_t dx, dy;             /// image size
+  int8_t bpp, bpc;            /// bits per pixel / bits per channel
   ImageType type;           /// type value is the number of channels too
 
-  uint8 *cmap;              /// color palette
-  int8 cmapBpp;             /// color palette bits per color (16 / 24 / 32)
+  uint8_t *cmap;              /// color palette
+  int8_t cmapBpp;             /// color palette bits per color (16 / 24 / 32)
 
   // saving / loading
 
-  bool load(cchar *);        // loads a TGA (RLE compressed or uncompressed)
-  bool save(cchar *);        // TGA uncompressed
+  bool load(const char *);        // loads a TGA (RLE compressed or uncompressed)
+  bool save(const char *);        // TGA uncompressed
   
-  bool loadPalette(cchar *);
-  bool savePalette(cchar *);
+  bool loadPalette(const char *);
+  bool savePalette(const char *);
 
   // error handling
 
-  uint err;                 /// see beggining of file
-  cchar *getError();        /// returns error as text
+  unsigned int err;                 /// see beggining of file
+  const char *getError();        /// returns error as text
 
   // constructor / destructor
 

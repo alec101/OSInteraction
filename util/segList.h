@@ -74,7 +74,7 @@ public:
   
   // idle time check func
 
-  uint timeMaxIdle;         /// miliseconds: idle time after wich an empty segment is dealocated - default is 5 mins
+  unsigned int timeMaxIdle; /// miliseconds: idle time after wich an empty segment is dealocated - default is 5 mins
   void checkIdle();          // [SLOW] call this func RARELY to check for idle memory segments that need to dealocate
   void delEmptySegments();   // [SLOW] forced delete of all segments that are not used
 
@@ -108,7 +108,7 @@ friend class segList;
   void **freeSpc;   /// list with all free spaces in segment ( unitSize* segSize total space)
   int freeSpcPeak;  /// peak of freeSpc. acts like some kind of stack: u pick a free space from the top/ u put the space taken back
 
-  uint timeIdle;    /// if 0, segment is in use. Else it holds the time @ start idling (used internally by segList::checkIdle())
+  unsigned int timeIdle;    /// if 0, segment is in use. Else it holds the time @ start idling (used internally by segList::checkIdle())
 
   _segment();
   ~_segment();

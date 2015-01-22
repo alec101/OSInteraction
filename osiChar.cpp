@@ -1,5 +1,5 @@
 #include "osinteraction.h"
-
+#include "util/typeShortcuts.h"
 /* 
  * keysym2unicode is the same as http://www.cl.cam.ac.uk/~mgk25/ucs/keysym2ucs.c
  * but the list was updated from http://www.cl.cam.ac.uk/~mgk25/ucs/keysyms.txt
@@ -79,8 +79,8 @@ extern osinteraction osi;
 #          with U0000.
 */
 struct CodePair {
-  uint16 keysym;
-  uint16 unicode;
+  uint16_t keysym;
+  uint16_t unicode;
 } ks2unicode[]= {
 { 0x01a1, 0x0104 }, // [.] Aogonek
 { 0x01a2, 0x02d8 }, // [.] breve
@@ -1199,7 +1199,7 @@ void osiInput::_keysym2unicode(KeySym *ks, uint32 *ret) {
 
 
 
-void osiInput::_getUnicode(KeySym *ks, uint32 *ret) {
+void osiInput::_getUnicode(KeySym *ks, uint32_t *ret) {
   
   // only unicode printable characters are returned
   // this func can return 0! STRING TERMINATOR CONFUSION warning!!!!

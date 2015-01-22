@@ -22,35 +22,40 @@ USAGE ==========================================================================
 #define USING_OPENGL
 
 class ErrorHandling {
-  #ifdef __linux__
-  void messageBox(cchar *text);   // linux specific messageBox window
-  #endif /// OS_LINUX
-    
 public:
-// USAGE FLAGS
+  
+  // USAGE FLAGS
+  
   bool useConsoleFlag;    // use the ConsoleClass (only)
   bool useWindowsFlag;    // use OS windows (MessageBox/ XBlaBla/ etc)
 
-// main call funcs
-  void simple(cchar *txt, bool exit= false, void (*exitFunc)(void)= null);  // exitFunc: func to call before exit program
+  // main call funcs
   
-// these funcs will force a type of window/ print to something
-  void window(cchar *txt, bool exit= false, void (*exitFunc)(void)= null);
-  void console(cchar *txt, bool exit= false, void (*exitFunc)(void)= null);
-  void terminal(cchar *txt, bool exit= false, void (*exitFunc)(void)= null);
+  void simple(const char *txt, bool exit= false, void (*exitFunc)(void)= NULL);  // exitFunc: func to call before exit program
+  
+  // these funcs will force a type of window/ print to something
+  
+  void window(const char *txt, bool exit= false, void (*exitFunc)(void)= NULL);
+  void console(const char *txt, bool exit= false, void (*exitFunc)(void)= NULL);
+  void terminal(const char *txt, bool exit= false, void (*exitFunc)(void)= NULL);
   
   #ifdef USING_DIRECTINPUT
-  void dinput(int32 nr);   // direct input error nr as text (msgbox etc)
+  void dinput(int32_t nr);   // direct input error nr as text (msgbox etc)
   #endif
   
   #ifdef USING_OPENGL
   inline void glFlushErrors() { glGetError(); }
-  int glError(cchar *text= null);     /// returns the error nr or 0, and prints with simple() func the error, IF there is one; text is used for additional text to print
+  int glError(const char *text= NULL);     /// returns the error nr or 0, and prints with simple() func the error, IF there is one; text is used for additional text to print
   #endif /// OPENGL
 
   ErrorHandling();
   ~ErrorHandling();
   void delData();
+  
+private:
+  #ifdef __linux__
+  void messageBox(const char *text);   // linux specific messageBox window
+  #endif /// OS_LINUX
 };
 
 extern ErrorHandling error; // only 1 global class

@@ -1,5 +1,5 @@
 #include "osinteraction.h"
-
+#include "util/typeShortcuts.h"
 
 #ifdef OS_LINUX
 //#include <linux/joystick.h>   // it's not x stuff... lots of crap added, keyboard/mouse, that is not needed. IT'S POSSIBLE TO AVOID THIS HEADER, only some function definitions are needed.
@@ -18,13 +18,17 @@ typedef uint8 __u8;
 #define EVIOCGNAME(len) _IOC(_IOC_READ, 'E', 0x06, len)   // get device name
 struct js_event {
   uint32 time;    // event timestamp in milliseconds
-  uint16 value;          // value
-  uint8 type;   // event type
-  uint8 number;	// axis/button number
+  int16 value;    // value
+  uint8 type;     // event type
+  uint8 number;   // axis/button number
 };
 #endif /// OS_LINUX
 
-
+#ifdef OS_MAC
+#undef uint
+#include <IOKit/hid/IOHIDLib.h>         // human interface devices (joysticks/gamepads/gamewheels)
+#include <CoreGraphics/CoreGraphics.h>  // trying to pinpoint quartz
+#endif
 
 
 // private funcs
@@ -268,6 +272,7 @@ osiInput::osiInput() {
 
   mode1Name= "System Default";        /// 'driver' name / description
 
+
   #ifdef OS_WIN
   mode2Name= "Direct Input";
   mode3Name= "XInput";
@@ -297,8 +302,8 @@ osiInput::~osiInput() {
   #endif /// OS_WIN
 
   #ifdef OS_MAC
-  IOHIDManagerClose(manager, kIOHIDOptionsTypeNone); /// close the HID manager
-  CFRelease(manager);                                /// delloc memory
+  IOHIDManagerClose((IOHIDManagerRef)_manager, kIOHIDOptionsTypeNone); /// close the HID manager
+  CFRelease((IOHIDManagerRef)_manager);                                /// delloc memory
   #endif /// OS_MAC
 }
 
@@ -347,7 +352,7 @@ bool osiInput::init(int mMode, int kMode) {
 
   #ifdef OS_MAC
   
-  in.manager= IOHIDManagerCreate(kCFAllocatorDefault, kIOHIDOptionsTypeNone);
+  in._manager= IOHIDManagerCreate(kCFAllocatorDefault, kIOHIDOptionsTypeNone);
 
   // https://developer.apple.com/library/mac/technotes/tn2187/_index.html
   // COPY PASTE from apple 'documentation'
@@ -372,23 +377,23 @@ bool osiInput::init(int mMode, int kMode) {
 
   
   /// set the created array of criterias to the manager
-  IOHIDManagerSetDeviceMatchingMultiple(manager, arr);
+  IOHIDManagerSetDeviceMatchingMultiple((IOHIDManagerRef)_manager, arr);
   
   CFRelease(arr);                               // release array
   
   
-  IOHIDManagerRegisterDeviceMatchingCallback(manager, HIDadded, NULL);  /// callback function for when a matching HID is added
-  IOHIDManagerRegisterDeviceRemovalCallback(manager, HIDremoved, NULL); /// callback function for when a matching HID is removed
+  IOHIDManagerRegisterDeviceMatchingCallback((IOHIDManagerRef)_manager, HIDadded, NULL);  /// callback function for when a matching HID is added
+  IOHIDManagerRegisterDeviceRemovalCallback((IOHIDManagerRef)_manager, HIDremoved, NULL); /// callback function for when a matching HID is removed
   
   // RUN LOOPS? MAYBE WON'T NEED THEM
-  IOHIDManagerScheduleWithRunLoop(manager, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
+  IOHIDManagerScheduleWithRunLoop((IOHIDManagerRef)_manager, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
   
   /// open the manager
-  IOHIDManagerOpen(manager, kIOHIDOptionsTypeNone); // option bits: kIOHIDOptionsTypeNone or kIOHIDOptionsTypeSeizeDevice
+  IOHIDManagerOpen((IOHIDManagerRef)_manager, kIOHIDOptionsTypeNone); // option bits: kIOHIDOptionsTypeNone or kIOHIDOptionsTypeSeizeDevice
   
   
   /// register a callback function when a value from any registered HIDs change
-  IOHIDManagerRegisterInputValueCallback(manager, HIDchange, NULL);  // this... works... if u have the enigma codebreaker (the one that didn't have the actual machine to crack the enigma code)
+  IOHIDManagerRegisterInputValueCallback((IOHIDManagerRef)_manager, HIDchange, NULL);  // this... works... if u have the enigma codebreaker (the one that didn't have the actual machine to crack the enigma code)
   //  IOHIDManagerRegisterInputReportCallback(manager, HIDchange, NULL);  // TRY REPORTS
   
   //continue from 
@@ -509,9 +514,9 @@ skipWinOSsearch:
   
   /// big speed increase can be made with static pointers "/dev/input/js  " (space for 2 decimals)
   /// and just put 2 numbers in there with nr/10, nr%10
-  static Str8 s1("/dev/input/js");
-  static Str8 s2("/dev/input/event");
-  Str8 s3;
+  static str8 s1("/dev/input/js");
+  static str8 s2("/dev/input/event");
+  str8 s3;
   
   /// searching for 32 js[X] files
   for(short a= 0; a< 32; a++) {
@@ -885,6 +890,13 @@ void osiInput::resetPressedButtons() {
   }
 }
 
+void osiInput::resetAxis() {
+  for(int a= 0; a< MAX_JOYSTICKS; a++) {
+    j[a].resetAxis();
+    gp[a].resetAxis();
+    gw[a].resetAxis();
+  }
+}
 
 
 
@@ -1073,7 +1085,9 @@ void osiMouse::setPos(int _x, int _y) {
   #endif /// OS_LINUX
   
   #ifdef OS_MAC
-  makeme
+  CGPoint p; p.x= (float)_x; p.y= (float) _y;
+  
+  CGWarpMouseCursorPosition(p);
   #endif /// OS_MAC
 }
 
@@ -1681,7 +1695,7 @@ void osiJoystick::delData() {
   butPrev= _buffer2;
 
   resetButtons();
-
+  
   #ifdef OS_WIN
   _id= -1;
   #ifdef USING_DIRECTINPUT
@@ -1715,7 +1729,7 @@ void osiJoystick::delData() {
 /// handles pads/wheels too. might be a good ideea to call this func if others are called, dunno (or just remove update() from gp/gw)
 
 void osiJoystick::update() {
-  bool chatty= false;
+  bool chatty= true;
 
   if(!_bActive) return;                           /// a stick/pad/wheel must be marked as active, for updating to take place
                                                   /// this must be used, as updating same device with mutiple drives, will create a bad mess
@@ -1727,15 +1741,7 @@ void osiJoystick::update() {
   osiButLog blog;
   bool found;
   
-  #ifdef OS_MAC
-  /// mac uses events for hid input change, and lastCheck must be updated once per call to Input::update()
-  /// there can be multiple updates per frame, or none, when using events. Therefore swapBuffers must be done here
-  for(short a= 0; a< maxButtons; a++) {
-    lastCheck[a]= b[a];
-    _gp->lastCheck[a]= _gp->b[a];
-    _gw->lastCheck[a]= _gw->b[a];
-  }
-  #endif /// OS_MAC
+
 
   // -----------============ MODE 1 JOYSTICKS ============------------
   if(mode== 1) {
@@ -1935,10 +1941,11 @@ ReadAgain:
         if(in.gp[a].type== 0) {
           extra= _gp->maxButtons- 10; /// normal ps3 has 10 buttons. the rest are extra, on modified ps3 pads
           
+          /// extra buttons are located on position 6, and the last 4 buttons that are not extra are the last (bad positioning imho)
           if(extra && (ev[a].number>= 6) && (ev[a].number< 6+ extra))
-            nbut+= 4;                      /// is it an extra button? -> moved on position 10+
+            nbut+= 4;                      /// extra buttons moved on position 10+ (over the last 4 buttons)
           else if(extra && (ev[a].number>= 6+ extra))
-            nbut-= extra;                  /// all buttons above extra buttons, moved back on 6+
+            nbut-= extra;                  /// last 4 buttons moved back on position 6+
           
         /// xbox compatible pad
         } else if(in.gp[a].type== 1) {
@@ -2035,8 +2042,8 @@ ReadAgain:
             _gw->a1= ev[a].value;
             break;
           case 1:                           // [Y axis?]   / [l stick Y] / [wheel???]
-            y= -ev[a].value;
-            _gp->ly= -ev[a].value;
+            y= ev[a].value;
+            _gp->ly= ev[a].value;
             _gw->a2= ev[a].value;
             break;
           case 2:                           // [Throttle?] / [r stick X] / [wheel???]
@@ -2061,13 +2068,13 @@ ReadAgain:
             if(_gp->type== 0)
               _gp->rt= 32767- ev[a].value; /// ps3   [right trigger]
             else
-              _gp->ry= -ev[a].value;       /// xbone [right stick Y]
+              _gp->ry= ev[a].value;        /// xbone [right stick Y]
             // gw <<<<<<<<<<<<<<<<<<<<<<<<<<
             break;
           case 5:                           // [Rudder?]   / [rStick Y]  / [wheel???]
             rudder= ev[a].value;
             if(_gp->type== 0)
-              _gp->ry= -ev[a].value;       /// ps3   [right stick Y]
+              _gp->ry= ev[a].value;        /// ps3   [right stick Y]
             else
               _gp->rt= 32767+ ev[a].value; /// xbone [right trigger]
             _gw->a4= ev[a].value;
@@ -2142,8 +2149,153 @@ ReadAgain:
 
     #ifdef OS_MAC
 
-    makeme -> read from joystick state
-            
+    /// thread safety (hope this is ok, im a noob)
+    AccessAgain:
+    if(_cbTame._accessCB_HIDchange)
+      while(_cbTame._accessCB_HIDchange);   /// wait untill calback funcs done whith changes
+    _cbTame._accessOsi_HIDchange= true;     /// raise flag that osi is reading from data
+    if(_cbTame._accessCB_HIDchange) {       /// there's the posibility that while reading the flag, CB also raises the flag in the same exact moment, therefore try again
+      _cbTame._accessOsi_HIDchange= false;
+      goto AccessAgain;
+    }
+
+    // ---=== AXIS ===---
+
+    x= _cbTame.x;
+    _gp->lx= x;
+    _gw->wheel= x;
+
+    y= _cbTame.y;
+    _gp->ly= y;
+    _gw->a1= y;
+
+    throttle= _cbTame.throttle;
+         if(_gp->type== 0) _gp->rx= throttle;           /// ps3 compatible
+    else if(_gp->type== 1) _gp->lt= throttle+ 32767;    /// xpad compatible
+    _gw->a2= throttle;
+
+    v= _cbTame.v;
+         if(_gp->type== 0) _gp->lt= 32767- v;           /// ps3 compatible
+    else if(_gp->type== 1) _gp->rx= v;                  /// xpad compatible
+    _gw->a4= v;
+
+    u= _cbTame.u;
+         if(_gp->type== 0) _gp->rt= 32767- u;           /// ps3 compatible
+    else if(_gp->type== 1) _gp->ry= u;                  /// xpad compatible
+    _gw->a5= u;
+
+    rudder= _cbTame.rudder;
+         if(_gp->type== 0) _gp->ry= rudder;            /// ps3 compatible
+    else if(_gp->type== 1) _gp->rt= rudder;             /// xpad compatible
+    _gw->a3= rudder;
+
+    pov= _cbTame.pov;
+    _gp->pov= pov;
+    //_gw->pov <<<
+
+    // ---=== BUTTONS ===---
+    
+    _swapBuffers();
+    _gp->_swapBuffers();
+    _gw->_swapBuffers();
+
+
+    int extra;        /// number of extra buttons on gamepad
+    osiButLog blog;   /// used for button logging
+
+         if(_gp->type== 0) extra= _gp->maxButtons- 10;  /// ps3 compatible - 10 normal buttons
+    else if(_gp->type== 1) extra= _gp->maxButtons- 11;  /// xbox compatible - 11 normal buttons
+    
+    /// pass thru all HID's buttons
+    for(int a= 0, b= 0; a< maxButtons; a++, b++) {
+      
+      but[a]= _cbTame.but[a];
+      butPressure[a]= _cbTame.butPressure[a];
+      _gw->but[a]= but[a];
+      _gw->butPressure[a]= butPressure[a];
+
+      /// ps3 compatible gamepad
+      if(_gp->type== 0) {
+        if(extra && a== 6)
+          b+= 4;                          /// move extra buttons over 4 positions (last 4 buttons are not extra)
+        else if(extra && (a== 6+ extra))
+          b= 6;                      /// move last 4 buttons to position 6
+        
+      /// xbox compatible gamepad
+      } else if(_gp->type== 1) {
+             if(a== 8)  b= 10;    /// move button 8 on 10 (xbox button at the end)
+        else if(a== 9)  b= 8;     /// move buttons 9 and 10 back one position
+        else if(a== 11) b= 11;    /// exra buttons should be normal from here on
+      }
+
+      _gp->but[b]= but[a];
+      _gp->butPressure[b]= butPressure[a];
+
+      // button PRESS
+      if((!butPrev[a]) && but[a]) {
+        butTime[a]= presentMilli;
+        _gp->butTime[b]= presentMilli;
+        _gw->butTime[a]= presentMilli;
+
+        blog.checked= false;
+        blog.timeDown= presentMilli;
+        blog.timeUp= blog.timeDT= 0;
+        blog.but= a;
+        _log(blog);
+        _gw->_log(blog);
+        blog.but= b;
+        _gp->_log(blog);
+        // if(chatty) printf("button PRESS - joystick/wheel[%d] gamepad[%d]\n", a, b);
+
+      // button RELEASE
+      } else if(butPrev[a] && (!but[a])) {
+        bool found= false;
+        for(int c= 0; c< MAX_KEYS_LOGGED; c++)
+          if(butLog[c].but== a) {
+            if(butLog[c].timeUp) continue;
+
+            butLog[c].timeUp= presentMilli;
+            butLog[c].timeDT= presentMilli- butLog[c].timeDown;
+            butLog[c].checked= false;
+
+            _gp->butLog[c].timeUp= presentMilli;
+            _gp->butLog[c].timeDT= butLog[c].timeDT;
+            _gp->butLog[c].checked= false;
+
+            _gw->butLog[c].timeUp= presentMilli;
+            _gw->butLog[c].timeDT= butLog[c].timeDT;
+            _gw->butLog[c].checked= false;
+            found= true;
+            break;
+          }
+
+        /// if somehow the button was not in the logs
+        if(!found) {                          /// failsafe - normally it is found (but things can happen ... alt-tab?)
+          blog.but= a;
+          blog.checked= false;
+          blog.timeDown= presentMilli- 1;             /// mark it as insta down-up
+          blog.timeUp= presentMilli;
+          blog.timeDT= 1;
+          _log(blog);                  /// put it in history buffer
+          _gw->_log(blog);
+          blog.but= b;
+          _gp->_log(blog);
+        } /// failsafe
+      }
+
+      // if(chatty) printf(" button RELEASE joystick/gamewheel[%d] gamepad[%d]\n", a, b);
+    }
+    
+    /// pov pressure
+    butPressure[20]= _cbTame.butPressure[20];
+    butPressure[21]= _cbTame.butPressure[21];
+    butPressure[22]= _cbTame.butPressure[22];
+    butPressure[23]= _cbTame.butPressure[23];
+    _gp->butPressure[20]= _gw->butPressure[20]= butPressure[20];
+    _gp->butPressure[21]= _gw->butPressure[21]= butPressure[21];
+    _gp->butPressure[22]= _gw->butPressure[22]= butPressure[22];
+    _gp->butPressure[23]= _gw->butPressure[23]= butPressure[23];
+    _cbTame._accessOsi_HIDchange= false;
     #endif /// OS_MAC
   }
 
@@ -2152,18 +2304,25 @@ ReadAgain:
   #ifdef USING_DIRECTINPUT
   else if(mode== 2) {       // win(DirectInput) linux(n/a) mac(n/a)
     if(!_bGrabbed) return;
-    if(_diDevice->GetDeviceState(sizeof(DIJOYSTATE2), (LPVOID)&_diStats)== DIERR_INPUTLOST) {   /// device DISCONNECTED
-      if(chatty) printf("DirectInput: hid[%s] DISCONNECTED\n", name.d);
-      /// clear all axis / buttons data / dinput driver
-      delData();
-      _gp->delData();
-      _gw->delData();
-      /// update numbers
-      in.nr.jT2--;    in.nr.gpT2--;    in.nr.gwT2--;
-      in.nr.jFound--; in.nr.gpFound--; in.nr.gwFound--;
-      osi.flags.HIDlostConnection= true;
+    if(!osi.flags.haveFocus) return;
+
+    if(_diDevice->GetDeviceState(sizeof(DIJOYSTATE2), (LPVOID)&_diStats)== DIERR_INPUTLOST) {     /// device DISCONNECTED
+      _diDevice->Acquire();
+
+      /// after 1 aquire attempt, still not works, signal it disconnected
+      if(_diDevice->GetDeviceState(sizeof(DIJOYSTATE2), (LPVOID)&_diStats)== DIERR_INPUTLOST) {   /// device DISCONNECTED
+        if(chatty) printf("DirectInput: hid[%s] DISCONNECTED<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<,\n", name.d);
+        /// clear all axis / buttons data / dinput driver
+        delData();
+        _gp->delData();
+        _gw->delData();
+        /// update numbers
+        in.nr.jT2--;    in.nr.gpT2--;    in.nr.gwT2--;
+        in.nr.jFound--; in.nr.gpFound--; in.nr.gwFound--;
+        osi.flags.HIDlostConnection= true;
       
-      return;
+        return;
+      }
     }
 
     /// adjust axis to osi standard (-32767 / +32767)
@@ -2178,12 +2337,12 @@ ReadAgain:
 
     // ---=== JOYSTICK axis ===---
     x=          _diStats.lX;           /// main stick X
-    y=          -_diStats.lY;          /// main stick Y
+    y=          _diStats.lY;           /// main stick Y
     throttle=   _diStats.lZ;           /// throttle
     rudder=     _diStats.lRz;          /// rudder
     pov=        _diStats.rgdwPOV[0];   /// pov
-    u=          _diStats.lRx;          /// extra axis 1
-    v=          -_diStats.lRy;         /// extra axis 2
+    u=          -_diStats.lRx;          /// extra axis 1
+    v=          -_diStats.lRy;          /// extra axis 2
 
     // ---=== GAMEPAD axis ===---
     _gp->lx=    _diStats.lX;           /// left stick X
@@ -2234,12 +2393,12 @@ ReadAgain:
       _but= (uint8)a;    
       // ps3 compatible pad
       if(_gp->type== 0) {
-        extra= _gp->maxButtons- 10;     /// gamepads have 10 normal buttons. the rest are marked as extra, and moved on button 10+
+        extra= _gp->maxButtons- 10;      /// gamepads have 10 normal buttons. the rest are marked as extra, and moved on button 10+
           
         if(extra && (a>= 6) && (a< 6+ extra))
-          _but+= 4;                      /// is it an extra button? -> moved on position 11+
+          _but+= 4;                      /// extra buttons moved on position 10+ (over the last 4 buttons)
         else if(extra && (a>= 6+ extra))
-          _but-= extra;                  /// all buttons above extra buttons, moved back on 7+
+          _but-= extra;                  /// last 4 buttons moved on position 6+
 
       // xbox compatible pad
       } else if(_gp->type== 1) {
@@ -2361,9 +2520,9 @@ ReadAgain:
     if(xi.Gamepad.sThumbLY< 0) xi.Gamepad.sThumbLY++;
     if(xi.Gamepad.sThumbRX< 0) xi.Gamepad.sThumbRX++;
     if(xi.Gamepad.sThumbRY< 0) xi.Gamepad.sThumbRY++;
-    uint16 _lt= (xi.Gamepad.bLeftTrigger*  32767)/ 255; /// temp vars used, as it gotta be converted to short
-    uint16 _rt= (xi.Gamepad.bRightTrigger* 32767)/ 255; /// temp vars used, as it gotta be converted to short
-
+    uint16 _lt= (xi.Gamepad.bLeftTrigger*  65534)/ 255; /// temp vars used, as it gotta be converted to short
+    uint16 _rt= (xi.Gamepad.bRightTrigger* 65534)/ 255; /// temp vars used, as it gotta be converted to short
+     
     // ---=== JOYSTICK axis ===---
     x=        xi.Gamepad.sThumbLX;        /// main stick X
     y=        xi.Gamepad.sThumbLY;        /// main stick Y
@@ -2371,7 +2530,7 @@ ReadAgain:
     rudder=   _lt;                        /// rudder
     pov=      tpov;                       /// pov
     u=        xi.Gamepad.sThumbRX;        /// extra axis 1
-    v=        xi.Gamepad.sThumbRY;        /// extra axis 2
+    v=        -xi.Gamepad.sThumbRY;        /// extra axis 2
     
     // ---=== GAMEPAD axis ===---
     /// windows uses 32768 units for negative axis, and 32767 units for positive axis... (0 is considered center in osi)
@@ -2478,6 +2637,9 @@ void osiJoystick::resetButtons() {
     _buffer1[a]= _buffer2[a]= 0;
     butPressure[a]= 0;
     butTime[a]= 0;
+    #ifdef OS_MAC
+    _cbTame.butPressure[a]= _cbTame.but[a]= 0;
+    #endif
   }
 
   /// reset logged buttons
@@ -2488,6 +2650,15 @@ void osiJoystick::resetButtons() {
       butLog[a].timeDT= butLog[a].timeUp- butLog[a].timeDown;
     }
   }
+}
+
+void osiJoystick::resetAxis() {
+  x= y= x2= y2= throttle= rudder= u= v= 0;
+  pov= -1;
+  #ifdef OS_MAC
+  _cbTame.x= _cbTame.y= _cbTame.x2= _cbTame.y2= _cbTame.throttle= _cbTame.rudder= _cbTame.u= _cbTame.v= 0;
+  _cbTame.pov= -1;
+  #endif
 }
 
 
@@ -2626,6 +2797,12 @@ void osiGamePad::resetButtons() {
 }
 
 
+void osiGamePad::resetAxis() {
+  lx= ly= rx= ry= lt= rt= u= v= 0;
+  pov= -1;
+}
+
+
 void osiGamePad::_swapBuffers() {
   butPrev= but;
   but= (but== _buffer1)? _buffer2: _buffer1;
@@ -2714,6 +2891,11 @@ void osiGameWheel::resetButtons() {
 }
 
 
+void osiGameWheel::resetAxis() {
+  wheel= a1= a2= a3= a4= a5= 0;      // THIS NEEDS MORE WORK
+}
+
+
 void osiGameWheel::_swapBuffers() {
   butPrev= but;
   but= (but== _buffer1)? _buffer2: _buffer1;
@@ -2764,7 +2946,7 @@ struct _HIDDriver {              /// [internal]
   IOHIDDeviceRef device;        /// coresponding 'device' that this stick/pad/wheel is tied to
   int16 nrButtons;              /// number of buttons that this stick/pad/wheel has
   int16 nrAxis;                 /// number of axis this stick/pad/wheel has
-  HIDElement *elem;             /// array of elements the device has
+  _HIDElement *elem;             /// array of elements the device has
   
   /// standard constructor/destructor/delData(); everything will be set to 0 and memory will be auto-deallocated if allocated
   _HIDDriver(): inUse(false), device(null), nrButtons(0), nrAxis(0), elem(0) {}
@@ -2805,6 +2987,8 @@ static void HIDadded(void *context, IOReturn result, void *sender, IOHIDDeviceRe
   // sender:    the IOHIDManagerRef for the new device
   // device: the new HID device
 
+  bool chatty= false;
+
   // IOHIDDeviceRegisterInputValueCallback(device, HIDchange, &driver[a]); this could further optimize some code, but very little, by passing &driver[a] after it is created...
   
   if(chatty) printf("%s\n", __FUNCTION__);
@@ -2814,7 +2998,12 @@ static void HIDadded(void *context, IOReturn result, void *sender, IOHIDDeviceRe
   for(a= 0; a< MAX_JOYSTICKS; a++)
     if(!driver[a].inUse)
       break;
-  
+
+  // thread safety WIP - A WHOLE STRUCT MUST BE PASSED TO OSI, IN A EVENT SYSTEM TYPE, FOR THIS TO BE THREAD SAFE
+  if(in.j[a]._cbTame._accessOsi_HIDplug)
+    while(in.j[a]._cbTame._accessOsi_HIDplug);
+  in.j[a]._cbTame._accessCB_HIDplug= true;  
+
   // start to 'populate' vars inside the helper struct
 
   
@@ -2854,7 +3043,7 @@ static void HIDadded(void *context, IOReturn result, void *sender, IOHIDDeviceRe
   /// get all elements the device has
 	elems= IOHIDDeviceCopyMatchingElements(device, NULL, kIOHIDOptionsTypeNone);
   
-  driver[a].elem= new HIDElement[CFArrayGetCount(elems)];
+  driver[a].elem= new _HIDElement[CFArrayGetCount(elems)];
   
   /// populate driver struct
   int16 c= 0, d= 0; /// c will hold counter for axis, d for buttons
@@ -2891,7 +3080,7 @@ static void HIDadded(void *context, IOReturn result, void *sender, IOHIDDeviceRe
       driver[a].elem[b].id= d++;
       driver[a].nrButtons++;
     }
-    if(chatty) printf("element[%d]: cookie[%d] id[%d] type[%d] min[%ld] max[%ld] hasNULL[%d] isHat[%d]\n", b, cookie, driver[a].elem[b].id, driver[a].elem[b].type, driver[a].elem[b].logicalMin, driver[a].elem[b].logicalMax, driver[a].elem[b].hasNULLstate, driver[a].elem[b].isHat);
+    if(chatty) printf("element[%d]: cookie[%d] id[%d] type[%d] min[%ld] max[%ld] hasNULL[%d] isHat[%d]\n", b, cookie, driver[a].elem[b].id, driver[a].elem[b].type, (long)driver[a].elem[b].logicalMin, (long)driver[a].elem[b].logicalMax, driver[a].elem[b].hasNULLstate, driver[a].elem[b].isHat);
 
 	} /// for each element
   
@@ -2918,7 +3107,7 @@ static void HIDadded(void *context, IOReturn result, void *sender, IOHIDDeviceRe
   in.nr.jFound++;  in.nr.jOS++;
   in.nr.gpFound++; in.nr.gpOS++;
   in.nr.gwFound++; in.nr.gwOS++;
-
+  in.j[a]._cbTame._accessCB_HIDplug= false;
 } /// HIDadded
 
 
@@ -2931,6 +3120,7 @@ static void HIDremoved(void *context, IOReturn result, void *sender, IOHIDDevice
   // inResult:    the result of the removing operation
   // inSender:    the IOHIDManagerRef for the device being removed
   // inHIDDevice: the removed HID device
+  bool chatty= false;
 
   if(chatty) printf("%s", __FUNCTION__);
 
@@ -2939,11 +3129,17 @@ static void HIDremoved(void *context, IOReturn result, void *sender, IOHIDDevice
   for(a= 0; a< MAX_JOYSTICKS; a++)
     if(driver[a].device== device)
       break;
-  
+
   if(a== MAX_JOYSTICKS) {     /// if not found... well... something is wrong...
     error.simple("HIDremoved: can't find the requested device");
     return;
   }
+
+  // thread safety WIP -THIS MUST BE DONE WITH AN EVENT SYSTEM - MULTIPLE HIDS CAN BE PASSED TO BE REMOVED TO OSI, so a chainlist must be done
+  if(in.j[a]._cbTame._accessOsi_HIDplug)
+    while(in.j[a]._cbTame._accessOsi_HIDplug);
+  in.j[a]._cbTame._accessCB_HIDplug= true;
+
 
   // THE NEXT 4 CODE LINES ORDER IS IMPORTANT - IF A THREAD WRITES TO DATA, AND ANOTHER READS... (love them callbacks, right?)
   // so decrease the numbers, then set them to mode 0 (disabled)
@@ -2962,6 +3158,7 @@ static void HIDremoved(void *context, IOReturn result, void *sender, IOHIDDevice
   
   driver[a].delData();
   if(chatty) printf(" helper cleared\n");
+  in.j[a]._cbTame._accessCB_HIDplug= false;
 } /// HIDremoved
 
 
@@ -2970,8 +3167,9 @@ static void HIDremoved(void *context, IOReturn result, void *sender, IOHIDDevice
 
 // CALLBACK FUNCTION: any value in a device (axis/button) has changed -------------
 ///================================================================================
+
+
 void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDValueRef val) {
-  bool chatty= false;
   // inContext:       context from IOHIDManagerRegisterInputValueCallback
   // IinResult:       completion result for the input value operation
   // inSender:        the IOHIDManagerRef
@@ -2980,8 +3178,8 @@ void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDValueRef
   // REMEMBER: this function must be optimized for speed, as it is called many times over;
   
   // further testing: it seems there is d-pad button pressure measurements... same with most of buttons !!!!
-  
-  so, no logs, this is a current state, nothing more. in.update() will process the current state, when the app wants to.
+  bool chatty= false;
+
 
   IOHIDElementRef elem= IOHIDValueGetElement(val);        /// get the 'element' thet of the value
   IOHIDDeviceRef device= IOHIDElementGetDevice(elem);     /// get the HID device that a element belongs to
@@ -2992,17 +3190,23 @@ void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDValueRef
   for(a= 0; a< in.nr.jOS; a++)
     if(driver[a].device== device)         /// found it
       break;
+
+  /// thread safety between osi-callbackFuncs
+  if(in.j[a]._cbTame._accessOsi_HIDchange)
+    while(in.j[a]._cbTame._accessOsi_HIDchange);
+  in.j[a]._cbTame._accessCB_HIDchange= true;
+
+
+  _HIDElement *e= &driver[a].elem[cookie]; /// name shortcut
   
-  HIDElement *e= &driver[a].elem[cookie]; /// name shortcut
-  
-  if(!e->type) return;                    /// only type1(axis) and type2(butons) are handled. rest, return quick
+  if(!e->type) { in.j[a]._cbTame._accessCB_HIDchange= false; return; }/// only type1(axis) and type2(butons) are handled. rest, return quick
     
   /// value translation to -32767 : +32767
   int32 amin= e->logicalMin< 0? -e->logicalMin: e->logicalMin; /// faster than calling abs()
   int32 amax= e->logicalMax< 0? -e->logicalMax: e->logicalMax; /// faster than calling abs()
 
   if((e->type== 1) && amin+ amax == 0)    /// quick way to eliminate trash (dunno what other 'axis' that mac reports are) / would be div by zero error too
-    return;
+    { in.j[a]._cbTame._accessCB_HIDchange= false; return; }
   
   int32 v= IOHIDValueGetIntegerValue(val); /// the actual value that changed
   //  double v2= IOHIDValueGetScaledValue(val, kIOHIDValueScaleTypeCalibrated); /// it could be used
@@ -3012,83 +3216,45 @@ void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDValueRef
   /// !!! these timestamps are using mach too, so they are reliable !!!
   uint64_t time= IOHIDValueGetTimeStamp(val)/ 1000000;    /// convert to millisecs too (from nanosecs)
   
-  if(chatty)  printf("%s", in.j[a].name.d);
+  if(chatty)  printf("HID callback[%s] ", in.j[a].name.d);
 
   if(e->usagePage== kHIDPage_GenericDesktop) {            // ---=== axis ===---
+    if(chatty) printf(" axis change\n");
     int32 t= (((v+ amin)* 65534)/ (amin+ amax))- 32767;   /// value scaled to min[-32767] max[+32767], 65535 total possible units (65534+ unit 0)
     if(t> -150&& t< 150) t= 0;                           /// this is due to bug in mac HID api. center position is not centered.
     
+    // THROTTLE / RUDDLE could have a null position
+    
     switch(e->usage) {
-      case kHIDUsage_GD_X:                       // [X axis?]   / [l stick X] / [wheel???]
-        in.j[a].x= t;
-        in.gp[a].lx= in.j[a].x;
-        in.gw[a].wheel= in.j[a].x;
+      case kHIDUsage_GD_X:  in.j[a]._cbTame.x= t;        in.j[a]._cbTame._accessCB_HIDchange= false; return; // [X axis]
+      case kHIDUsage_GD_Y:  in.j[a]._cbTame.y= t;        in.j[a]._cbTame._accessCB_HIDchange= false; return; // [Y axis]
+      case kHIDUsage_GD_Z:  in.j[a]._cbTame.throttle= t; in.j[a]._cbTame._accessCB_HIDchange= false; return; // [Throttle]
+      case kHIDUsage_GD_Rx: in.j[a]._cbTame.v= t;        in.j[a]._cbTame._accessCB_HIDchange= false; return; // [extra1 X]
+      case kHIDUsage_GD_Ry: in.j[a]._cbTame.u= t;        in.j[a]._cbTame._accessCB_HIDchange= false; return; // [extra1 Y]
+      case kHIDUsage_GD_Rz: in.j[a]._cbTame.rudder= t;   in.j[a]._cbTame._accessCB_HIDchange= false; return; // [Rudder]
 
-        if(chatty) printf(" lStick[%ld]x\n", in.gp[a].lx);
-        return;
-      case kHIDUsage_GD_Y:                       // [Y axis?]   / [l stick Y] / [wheel???]
-        in.j[a].y= -t;
-        in.gp[a].ly= -t;
-        in.gw[a].a1= t;
-        if(chatty) printf(" lStick[%ld]y\n", in.gp[a].ly);
-        return;
-      case kHIDUsage_GD_Z:                       // [Throttle?] / [r stick X] / [wheel???]
-        in.j[a].throttle= 32767- t;
-        if(in.gp[a].type== 0)      in.gp[a].rx= t;        /// ps3 compatible
-        else if(in.gp[a].type== 1) in.gp[a].lt= 32767- t; /// xpad compatible
-        in.gw[a].a2= in.j[a].throttle;
-        if(chatty) printf(" rStick[%ld]x\n", in.gp[a].rx);
-        return;
-      case kHIDUsage_GD_Rx:                      // [extra1 X?] / [l trigger] / [wheel???]
-        in.j[a].v= t;
-        if(in.gp[a].type== 0)      in.gp[a].lt= 32767- t; /// ps3 compatible
-        else if(in.gp[a].type== 1) in.gp[a].rx= t;        /// xpad compatible
-        in.gw[a].a4= t;
-        if(chatty) printf(" lTrigger[%ld]\n", in.gp[a].lt);
-        return;
-      case kHIDUsage_GD_Ry:                      // [extra1 Y?] / [r trigger] / [wheel???]
-        in.j[a].u= -t;
-        if(in.gp[a].type== 0)      in.gp[a].rt= 32767- t; /// ps3  compatible
-        else if(in.gp[a].type== 1) in.gp[a].ry= -t;       /// xpad compatible
-        in.gw[a].a5= t;
-        if(chatty) printf(" rTrigger[%ld]\n", in.gp[a].rt);
-        return;
-      case kHIDUsage_GD_Rz:                      // [Rudder?]   / [rStick Y]  / [wheel???]
-        in.j[a].rudder= 32767- t;
-        if(in.gp[a].type== 0) in.gp[a].ry= -t;            /// ps3 compatible
-        else if(in.gp[a].type== 1) in.gp[a].rt= 32767- t; /// xpad compatible
-        in.gw[a].a3= t;
-        if(chatty) printf(" rStick[%ld]y\n", in.gp[a].ry);
-        return;
-      case kHIDUsage_GD_Hatswitch:
+      case kHIDUsage_GD_Hatswitch:  // POV - here comes the pain
         if(!e->hatMultiAxis) {                   // gamePad dPads have only 1 axis
           if(v> e->logicalMax|| v< e->logicalMin) {
-            in.gp[a].pov= -1;
-            in.j[a].pov= -1;
+            in.j[a]._cbTame.pov= -1;
             // game wheels can have povs, i guess, dunno
           } else {
-            in.gp[a].pov= (360/ (e->logicalMax+ 1))* v; /// in degrees
-            in.j[a].pov= in.gp[a].pov;
-            // game wheels can have povs, i guess, dunno
+            in.j[a]._cbTame.pov= (360/ (e->logicalMax+ 1))* v; /// in degrees
           }
-          if(chatty) printf(" pov[%ld]\n", in.gp[a].pov);
         } else {                                 // multi-axis hat switch. CAN'T TEST THESE AS I DO NOT HAVE ONE
           //if(chatty) printf(" multi-axis hat switch not handled ATM... gotta buy one first!\n");
           // THIS CODE IS NOT TESTED, as i have no joystick with 2 axis hat switch
           if(e->hasNULLstate)
             if((v< e->logicalMin) && (v> e->logicalMax)) {
-              in.j[a].pov= -1;
-              in.gp[a].pov= -1;
-              if(chatty) printf(" pov[%ld]\n", in.gp[a].pov);
-              return;
-              // GAMEWHEEL NOT DONE <<<<<<<<<<<<<<<
+              in.j[a]._cbTame.pov= -1;
+              in.j[a]._cbTame._accessCB_HIDchange= false; return;
             }
             
           int32 x, y;                        /// they gotta be ints for exact 0 degrees or 90 degrees, else there are problems
           double pov;
           
           /// get axis from current pov position (wich is in degrees)
-          pov= in.j[a].pov;
+          pov= in.j[a]._cbTame.pov;
           x= y= 0;
           
           if(in.j[a].pov!= -1) {            /// ... only if it's not on -1 position (nothing selected)
@@ -3122,180 +3288,49 @@ void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDValueRef
           }
           
           /// pov found @ this point
-          in.j[a].pov= pov;
-          in.gp[a].pov= pov;
-          // gw is not set<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-          
-          if(chatty) printf(" pov[%ld]\n", in.gp[a].pov);
+          in.j[a]._cbTame.pov= pov;
         } /// if multi-axis hat switch / pov / dPad / watever other name they come up with
-        return;
+        in.j[a]._cbTame._accessCB_HIDchange= false; return;
       default:
-        if(chatty) printf(" unhandled generic desktop element usage[%lx]\n", e->usage);
+        if(chatty) printf(" unhandled generic desktop element usage[%x]\n", e->usage);
     } /// axis usage switch
 
   } else if(e->type== 2) {                                // ---=== button ===---
+    if(chatty) printf(" button state/pressure change\n");
     /// ^^^ have to use the 'type' variable, wich is the only place it actually works... 
 
-    /// SWAP BUTTON BUFFERS is done in Joystick::update(), for OS_MAC. It must be done once per frame, or per call to Input::update()
-    /// OS_MAC usses events, therefore it can update sticks multiple times per frame (in between calls to Input::update(),
-    ///   so swapbuffers must be handled differently
-    
-    /// gamepad button unification
-    int16 but, extra;
-    but= e->id;
-    // ps3 compatible pad
-    if(in.gp[a].type== 0) {
-      extra= in.gp[a].maxButtons- 10;   /// gamepads have 10 normal buttons. the rest are marked as extra, and moved on button 10+
-      
-      if(extra && (e->id>= 6) && (e->id< 6+ extra))
-        but+= 4;                        /// is it an extra button? -> moved on position 11+
-      else if(extra && (e->id>= 6+ extra))
-        but-= extra;                    /// all buttons above extra buttons, moved back on 7+
-      
-    // xbox compatible pad
-    } else if(in.gp[a].type== 1) {
-      // EXTRA BUTTONS NOT HANDLED ON XBOX controller <<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-      extra= in.gp[a].maxButtons- 11; /// normal xbone has 11 buttons. rest are extra, but i have no clue where they would go... don't have such pad
-          
-      if(ev[a].number== 8)
-        but= 10;                      /// is it the xbox button? -> move it on position 10, with the extra buttons
-      else if(ev[a].number>=9 && ev[a].number<= 10)
-        but-= 1;                      /// move start & back to positions 8 & 9
-    }
-    
-    in.j[a].b[e->id]= (uint8)v;
-    in.gp[a].b[but]= (uint8)v;
-    in.gw[a].b[e->id]= (uint8)v;
-    
-    ButPressed blog;
-    
-    if(v== 1) {                                           // PRESS
-      in.j[a].bTime[e->id]=  time;
-      in.gp[a].bTime[but]= time;
-      in.gw[a].bTime[e->id]= time;
-      blog.checked= false;
-      blog.timeDown= time;
-      blog.timeUp= 0;
-      blog.timeDT= 0;
-      blog.b= e->id;
-      in.j[a].log(blog);
-      in.gw[a].log(blog);
-      blog.b= but;
-      in.gp[a].log(blog);
+    in.j[a]._cbTame.but[e->id]= (uint8)v;
 
-      if(chatty) printf(" button PRESS [%d] arranged[%d]\n", e->id, but);
-      
-    } else if(v== 0) {                                    // RELEASE
-      /// search thru history for the button, to mark the time it got released
-      bool found= false;
-      for(short b= 0; b< MAX_KEYS_LOGGED; b++)
-        if(in.j[a].lastBut[b].b== e->id) {
-          if(in.j[a].lastBut[b].timeUp) continue;    /// skip if this tested button is already released
-          
-          in.j[a].lastBut[b].timeUp= time;
-          in.j[a].lastBut[b].timeDT= time- in.j[a].lastBut[b].timeDown;
-          in.j[a].lastBut[b].checked= false;
-          
-          /// gamepad button nr could have a different number, but it does not matter
-          in.gp[a].lastBut[b].timeUp= time;
-          in.gp[a].lastBut[b].timeDT= in.gp[a].lastBut[b].timeDT;
-          in.gp[a].lastBut[b].checked= false;
-          
-          in.gw[a].lastBut[b].timeUp= time;
-          in.gw[a].lastBut[b].timeDT= in.gw[a].lastBut[b].timeDT;
-          in.gw[a].lastBut[b].checked= false;
-          
-          found= true;
-          break;
-        }
-      
-      // THIS FAILSAFE CODE COULD GO AWAY vvvvvvvvvvvvvvvvv
-      if(!found) {                          /// failsafe - normally it is found (but things can happen ... alt-tab?)
-        // some debug stuff can be done here, tho
-        blog.b= e->id;
-        blog.checked= false;
-        blog.timeDown= time- 1;             /// mark it as insta down-up
-        blog.timeUp= time;
-        blog.timeDT= 1;
-        in.j[a].log(blog);                  /// put it in history buffer
-        in.gw[a].log(blog);
-        blog.b= but;
-        in.gp[a].log(blog);
-      } /// failsafe
-      
-      if(chatty) printf(" button RELEASE [%d] arranged[%d]\n", e->id, but);
-    } /// if press / release
-    
   } else if(e->usagePage== kHIDPage_VendorDefinedStart) { // ---=== button pressure / other vendor specifics ===---
     int32 t;
     if(e->usage>= 0x20 && e->usage<= 0x2B)/// button pressure range
       t= (((v+ amin)* 65534)/ (amin+ amax))- 32767;     /// value scaled to min[-32767] max[+32767], 65535 total possible units (65534+ unit 0)    
+
+    // ---=== button pressures ===---
     switch(e->usage) {
-
-
-        //        GAMEPAD BUTTON UNIFICATION CODE <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-      // ---=== button pressures ===---
-      case 0x20:                          /// gamepad button pov right
-        in.j[a].bPressure[20]= in.gp[a].bPressure[20]= in.gw[a].bPressure[20]= t+ 32767;
-        if(chatty) printf(" but 20 pressure[%ld]\n", in.gp[a].bPressure[20]);
-        return;
-      case 0x21:                          /// gamepad button pov left
-        in.j[a].bPressure[21]= in.gp[a].bPressure[21]= in.gw[a].bPressure[21]= t+ 32767;
-        if(chatty) printf(" but 21 pressure[%ld]\n", in.gp[a].bPressure[21]);
-        return;
-      case 0x22:                          /// gamepad button pov up
-        in.j[a].bPressure[22]= in.gp[a].bPressure[22]= in.gw[a].bPressure[22]= t+ 32767;
-        if(chatty) printf(" but 22 pressure[%ld]\n", in.gp[a].bPressure[22]);
-        return;
-      case 0x23:                          /// gamepad button pov down
-        in.j[a].bPressure[23]= in.gp[a].bPressure[23]= in.gw[a].bPressure[23]= t+ 32767;
-        if(chatty) printf(" but 23 pressure[%ld]\n", in.gp[a].bPressure[23]);
-        return;
-      case 0x24:                          /// gamepad button 3
-        in.j[a].bPressure[3]= in.gp[a].bPressure[3]= in.gw[a].bPressure[3]= t+ 32767;
-        if(chatty) printf(" but 3 pressure[%ld]\n", in.gp[a].bPressure[3]);
-        return;
-      case 0x25:                          /// gamepad button 2
-        in.j[a].bPressure[2]= in.gp[a].bPressure[2]= in.gw[a].bPressure[2]= t+ 32767;
-        if(chatty) printf(" but 2 pressure[%ld]\n", in.gp[a].bPressure[2]);
-        return;
-      case 0x26:                          /// gamepad button 1
-        in.j[a].bPressure[1]= in.gp[a].bPressure[1]= in.gw[a].bPressure[1]= t+ 32767;
-        if(chatty) printf(" but 1 pressure[%ld]\n", in.gp[a].bPressure[1]);
-        return;
-      case 0x27:                          /// gamepad button 0
-        in.j[a].bPressure[0]= in.gp[a].bPressure[0]= in.gw[a].bPressure[0]= t+ 32767;
-        if(chatty) printf(" but 0 pressure[%ld]\n", in.gp[a].bPressure[0]);
-        return;
-      case 0x28:                          /// gamepad button 4
-        in.j[a].bPressure[4]= in.gp[a].bPressure[4]= in.gw[a].bPressure[4]= t+ 32767;
-        if(chatty) printf(" but 4 pressure[%ld]\n", in.gp[a].bPressure[4]);
-        return;
-      case 0x29:                          /// gamepad button 5
-        in.j[a].bPressure[5]= in.gp[a].bPressure[5]= in.gw[a].bPressure[5]= t+ 32767;
-        if(chatty) printf(" but 5 pressure[%ld]\n", in.gp[a].bPressure[5]);        
-        return;
-      case 0x2A:                          /// gamepad button EXTRA 1
-        in.j[a].bPressure[6]= in.gp[a].bPressure[6+ 4]= in.gw[a].bPressure[6]= t+ 32767;
-        if(chatty) printf(" but 6 pressure[%ld]\n", in.gp[a].bPressure[6+ 4]);
-        return;
-      case 0x2B:                          /// gamepad button EXTRA 2
-        in.j[a].bPressure[7]= in.gp[a].bPressure[7+ 4]= in.gw[a].bPressure[7]= t+ 32767;
-        if(chatty) printf(" but 7 pressure[%ld]\n", in.gp[a].bPressure[7+ 4]);
-        return;
+      case 0x20: in.j[a]._cbTame.butPressure[20]= t+ 32767; in.j[a]._cbTame._accessCB_HIDchange= false; return; /// gamepad button pov right
+      case 0x21: in.j[a]._cbTame.butPressure[21]= t+ 32767; in.j[a]._cbTame._accessCB_HIDchange= false; return; /// gamepad button pov left
+      case 0x22: in.j[a]._cbTame.butPressure[22]= t+ 32767; in.j[a]._cbTame._accessCB_HIDchange= false; return; /// gamepad button pov up
+      case 0x23: in.j[a]._cbTame.butPressure[23]= t+ 32767; in.j[a]._cbTame._accessCB_HIDchange= false; return; /// gamepad button pov down
+      case 0x24: in.j[a]._cbTame.butPressure[3]= t+ 32767;  in.j[a]._cbTame._accessCB_HIDchange= false; return; /// gamepad button 3
+      case 0x25: in.j[a]._cbTame.butPressure[2]= t+ 32767;  in.j[a]._cbTame._accessCB_HIDchange= false; return; /// gamepad button 2
+      case 0x26: in.j[a]._cbTame.butPressure[1]= t+ 32767;  in.j[a]._cbTame._accessCB_HIDchange= false; return; /// gamepad button 1
+      case 0x27: in.j[a]._cbTame.butPressure[0]= t+ 32767;  in.j[a]._cbTame._accessCB_HIDchange= false; return; /// gamepad button 0
+      case 0x28: in.j[a]._cbTame.butPressure[4]= t+ 32767;  in.j[a]._cbTame._accessCB_HIDchange= false; return; /// gamepad button 4
+      case 0x29: in.j[a]._cbTame.butPressure[5]= t+ 32767;  in.j[a]._cbTame._accessCB_HIDchange= false; return; /// gamepad button 5
+      case 0x2A: in.j[a]._cbTame.butPressure[6]= t+ 32767;  in.j[a]._cbTame._accessCB_HIDchange= false; return; /// gamepad button EXTRA 1
+      case 0x2B: in.j[a]._cbTame.butPressure[7]= t+ 32767;  in.j[a]._cbTame._accessCB_HIDchange= false; return; /// gamepad button EXTRA 2
       default:
-        if(chatty) printf(" unhandled vendor specific element usage[%lx]\n", e->usage);
+        if(chatty) printf(" unhandled vendor specific element usage[%x]\n", e->usage);
+        ;
     }
     
   } else if(e->usagePage== kHIDPage_Button) {             // ---=== ofc, this page doesn't work for game HIDs ===---
     /// this page is NOT USED (for gamepads at least, so i guess it is not used for any game HID)
     if(chatty) printf(" unhandled usagePage == button\n");
 
-    
   } else
-    if(chatty) printf(" unhandled HID element: usagePage[%lx] usage[%lx]\n", e->usagePage, e->usage);
-  
+    if(chatty) printf(" unhandled HID element: usagePage[%x] usage[%x]\n", e->usagePage, e->usage);
   
 
   /* SOME DOCUMENTATION:
@@ -3336,7 +3371,7 @@ void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDValueRef
    // check more on this (another guy that digged thru this nightmare):
    // http://sacredsoftware.net/svn/misc/StemLibProjects/gamepad/trunk/source/gamepad/Gamepad_macosx.c
 */
-    
+  in.j[a]._cbTame._accessCB_HIDchange= false;
 } /// Handle_IOHIDInputValueCallback
 
 

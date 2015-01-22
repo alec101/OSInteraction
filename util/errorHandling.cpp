@@ -19,6 +19,11 @@
 #include <X11/Xlib.h>
 #endif /// OS_LINUX
 
+#ifdef __APPLE__
+#define OS_MAC
+#include <CoreFoundation/CoreFoundation.h>
+#endif /// OS_APPLE
+
 #define USING_OPENGL
 #ifdef USING_OPENGL
 #ifdef __APPLE__
@@ -47,7 +52,7 @@ extern Console console;
 
 ErrorHandling::ErrorHandling() {
   useConsoleFlag= false;
-  useWindowsFlag= false;
+  useWindowsFlag= true;
 }
 
 ErrorHandling::~ErrorHandling() {
@@ -95,7 +100,7 @@ void ErrorHandling::console(cchar *txt, bool exit, void (*exitFunc)(void)) {
 
 
 void ErrorHandling::window(cchar *txt, bool exit, void (*exitFunc)(void)) {
-#ifdef OS_WIN
+  #ifdef OS_WIN
   MessageBox(null, txt, "PROGRAM ERROR", MB_OK);
   if(exit) {
     if(exitFunc)
@@ -104,25 +109,35 @@ void ErrorHandling::window(cchar *txt, bool exit, void (*exitFunc)(void)) {
     //::PostQuitMessage(1); // ??????????
   }
   return;
-#endif /// OS_WIN
+  #endif /// OS_WIN
 
 
-#ifdef OS_LINUX
-messageBox(txt);
-if(exit) {
-  if(exitFunc)
-    (*exitFunc)();
-  ::exit(EXIT_FAILURE);
-}
+  #ifdef OS_LINUX
+  messageBox(txt);
+  if(exit) {
+    if(exitFunc)
+      (*exitFunc)();
+    ::exit(EXIT_FAILURE);
+  }
 
-return;
-#endif /// OS_LINUX
+  return;
+  #endif /// OS_LINUX
 
 
-#ifdef OS_MAC
-  MUST MAKE THIS
-  //return;
-#endif ///OS_MAC
+  #ifdef OS_MAC
+  //CFStringRef s;
+  CFStringRef s= CFStringCreateWithCString(null, txt, kCFStringEncodingUTF8);
+  CFUserNotificationDisplayNotice(0, kCFUserNotificationPlainAlertLevel, NULL, NULL, NULL, CFSTR("PROGRAM ERROR"), s, CFSTR("OK"));
+  CFRelease(s);
+  
+  if(exit) {
+    if(exitFunc)
+      (*exitFunc)();
+    _exit(EXIT_FAILURE);
+  }
+  return;
+  #endif ///OS_MAC
+
   printf("no OS defined\n");
   terminal(txt, exit, exitFunc);
 }
@@ -231,7 +246,7 @@ void ErrorHandling::messageBox(cchar *text) {
 
 #ifdef USING_DIRECTINPUT
 void ErrorHandling::dinput(int32 n) {
-  Str8 s;
+  str8 s;
   switch(n) {
     case S_FALSE:                   { s= "S_FALSE: DI_BUFFEROVERFLOW: The device buffer overflowed and some input was lost.\nDI_NOEFFECT: The operation had no effect.\nDI_NOTATTACHED: The device exists but is not currently attached to the user's computer.\nDI_PROPNOEFFECT: The change in device properties had no effect."; break; }
     case DI_DOWNLOADSKIPPED:        { s= "DI_DOWNLOADSKIPPED: The parameters of the effect were successfully updated,\nbut the effect could not be downloaded because the associated device\nwas not acquired in exclusive mode."; break; }
@@ -294,17 +309,17 @@ int ErrorHandling::glError(cchar *text) {
   if(!ret) return 0;        // fast return if no error
 
   if(ret== GL_INVALID_ENUM)
-    simple(text? Str8(text)+ " GL ERROR: GL_INVALID_ENUM": "OpenGL ERROR: GL_INVALID_ENUM");
+    simple(text? str8(text)+ " GL ERROR: GL_INVALID_ENUM": "OpenGL ERROR: GL_INVALID_ENUM");
   else if(ret== GL_INVALID_VALUE)
-    simple(text? Str8(text)+ " GL ERROR: GL_INVALID_VALUE": "OpenGL ERROR: GL_INVALID_VALUE");
+    simple(text? str8(text)+ " GL ERROR: GL_INVALID_VALUE": "OpenGL ERROR: GL_INVALID_VALUE");
   else if(ret== GL_INVALID_OPERATION)
-    simple(text? Str8(text)+ " GL ERROR: GL_INVALID_OPERATION": "OpenGL ERROR: GL_INVALID_OPERATION");
+    simple(text? str8(text)+ " GL ERROR: GL_INVALID_OPERATION": "OpenGL ERROR: GL_INVALID_OPERATION");
   else if(ret== GL_OUT_OF_MEMORY)
-    simple(text? Str8(text)+ " GL ERROR: GL_OUT_OF_MEMORY": "OpenGL ERROR: GL_OUT_OF_MEMORY");
+    simple(text? str8(text)+ " GL ERROR: GL_OUT_OF_MEMORY": "OpenGL ERROR: GL_OUT_OF_MEMORY");
   else if(ret== GL_STACK_UNDERFLOW)
-    simple(text? Str8(text)+ " GL ERROR: GL_STACK_UNDERFLOW": "OpenGL ERROR: GL_STACK_UNDERFLOW");
+    simple(text? str8(text)+ " GL ERROR: GL_STACK_UNDERFLOW": "OpenGL ERROR: GL_STACK_UNDERFLOW");
   else if(ret== GL_STACK_OVERFLOW)
-    simple(text? Str8(text)+ " GL ERROR: GL_STACK_OVERFLOW": "OpenGL ERROR: GL_STACK_OVERFLOW");
+    simple(text? str8(text)+ " GL ERROR: GL_STACK_OVERFLOW": "OpenGL ERROR: GL_STACK_OVERFLOW");
 
   return ret;  
 }

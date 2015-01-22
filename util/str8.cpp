@@ -77,20 +77,20 @@ struct _L2U {
 };// _cl2u[], _cu2l[];
 
 
-void Str8::delData() {
+void str8::delData() {
   if(d)    { delete[] d;    d= null; }
   // d32 & dWin must be deallocated only on destructor & convert32 & convertWin
 
   len= nrChars= nrCombs= 0;
 }
 
-void Str8::clean() {
+void str8::clean() {
   if(dWin) { delete[] dWin; dWin= null; } 
   if(d32)  { delete[] d32;  d32= null; }
 }
 
 
-Str8 operator+(cchar *s1, const Str8 &s2) { return Str8(s1)+= s2; }
+str8 operator+(cchar *s1, const str8 &s2) { return str8(s1)+= s2; }
 
 
 
@@ -98,7 +98,7 @@ Str8 operator+(cchar *s1, const Str8 &s2) { return Str8(s1)+= s2; }
 
 uint8 fBuf[2048];
 
-Str8 &Str8::f(cvoid *format, ...) {
+str8 &str8::f(cvoid *format, ...) {
 	int32 l= strlen8(format);
 	if(l> 2047) {
 		*this= "TOO BIG, FORMAT FAILED";
@@ -121,7 +121,7 @@ Str8 &Str8::f(cvoid *format, ...) {
 
 // OPERATOR= //
 ///---------///
-Str8 &Str8::operator=(const Str8 &s) {
+str8 &str8::operator=(const str8 &s) {
   if(!s.len) { delData(); return *this; }
 
   len= s.len;
@@ -138,7 +138,7 @@ Str8 &Str8::operator=(const Str8 &s) {
 }
 
 
-Str8 &Str8::operator=(cuint8 *s) {
+str8 &str8::operator=(cuint8 *s) {
   delData();
   if(!s) return *this;
   
@@ -166,7 +166,7 @@ Str8 &Str8::operator=(cuint8 *s) {
 
 
 
-Str8 &Str8::operator=(cuint32 *s) {
+str8 &str8::operator=(cuint32 *s) {
   delData();
   int32 n= strlen32(s)/ 4;              /// n will hold the number of unicode values in the string (chars+combs)
   if(!n) return *this;
@@ -227,14 +227,14 @@ Str8 &Str8::operator=(cuint32 *s) {
 }
 
 
-Str8 &Str8::operator=(uint32 c) {
+str8 &str8::operator=(uint32 c) {
   uint32 buf[2]= { c, 0 };
   return *this= buf;
 }
 
 
 // WINDOWS COMPATIBILITY
-Str8 &Str8::operator=(cuint16 *s) {
+str8 &str8::operator=(cuint16 *s) {
   delData();
 
   int32 n= strlenWin(s)/ 2;
@@ -279,12 +279,12 @@ Str8 &Str8::operator=(cuint16 *s) {
 // OPERATOR += //
 ///-----------///
 
-// this one is heavily used - concatenates current str and another Str8
-Str8 &Str8::operator+=(const Str8 &s) {
-  if(!s.len) return *this;              /// other Str8 empty -> return *this
-  if(!len) return *this= s;             /// current Str8 empty -> just copy other Str8
+// this one is heavily used - concatenates current str and another str8
+str8 &str8::operator+=(const str8 &s) {
+  if(!s.len) return *this;              /// other str8 empty -> return *this
+  if(!len) return *this= s;             /// current str8 empty -> just copy other str8
   
-  uint8 *p= new uint8[len+ s.len+ 1];   /// new Str8 allocation
+  uint8 *p= new uint8[len+ s.len+ 1];   /// new str8 allocation
   
   /// copy string 1 to new string
   int a= 0;
@@ -307,38 +307,38 @@ Str8 &Str8::operator+=(const Str8 &s) {
 }
 
 /// concatenate current str and another utf-8 string
-Str8 &Str8::operator+=(cuint8 *s) {
+str8 &str8::operator+=(cuint8 *s) {
   if(!s) return *this;
   if(!len) return *this= s;
 
-  Str8 p= s;
+  str8 p= s;
   return *this+= p;
 }
 
 /// concatenates current string and another utf-32 string
-Str8 &Str8::operator+=(cuint32 *s) {
+str8 &str8::operator+=(cuint32 *s) {
   if(!s) return *this;
   if(!len) return *this= s;
 
-  Str8 p= s;
+  str8 p= s;
   return *this+= p;
 }
 
 /// add a unicode character
-Str8 &Str8::operator+=(uint32 c) {
+str8 &str8::operator+=(uint32 c) {
   if(!c) return *this;
   if(!len) return *this= c;
 
-  Str8 p= c;
+  str8 p= c;
   return *this+= p;
 }
 
 /// windows compat
-Str8 &Str8::operator+=(cuint16 *s) {
+str8 &str8::operator+=(cuint16 *s) {
   if(!s) return *this;
   if(!len) return *this= s;
 
-  Str8 p= s;
+  str8 p= s;
   return *this+= p;
 }
 
@@ -351,7 +351,7 @@ Str8 &Str8::operator+=(cuint16 *s) {
 
 
 
-uint32 *Str8::convert32() {
+uint32 *str8::convert32() {
   if(!len) return null;
 
   /// alloc d32
@@ -411,7 +411,7 @@ uint32 *Str8::convert32() {
 
 
 // windows compatibility
-uint16 *Str8::convertWin() {
+uint16 *str8::convertWin() {
   if(!len) return null;
   
   /// alloc dWin
@@ -466,7 +466,7 @@ uint16 *Str8::convertWin() {
 }
 
 // whole string conversion to lowercase
-void Str8::lower() {
+void str8::lower() {
   if(!d) return;                  /// if string is null, there is nothing to convert
 
   uint32 *buf= convert32();       /// buf will hold current string unpacked, utf-32 format
@@ -479,7 +479,7 @@ void Str8::lower() {
 
 
 // whole string conversion to uppercase
-void Str8::upper() {
+void str8::upper() {
   if(!d) return;                  /// if string is null, there is nothing to convert
 
   uint32 *buf= convert32();       /// buf will hold current string unpacked, utf-32 format
@@ -494,11 +494,11 @@ void Str8::upper() {
 
 
 ///------------------------///
-// OPERATOR - / OPERATOR -= // clears n chars from Str8s
+// OPERATOR - / OPERATOR -= // clears n chars from str8s
 ///------------------------///
 
 /// clears n chars from the back of the string
-Str8 &Str8::operator-=(int n) {
+str8 &str8::operator-=(int n) {
   /// basic checks
   if(!n) return *this;
   if(nrChars- n<= 0) { delData(); return *this; }
@@ -507,18 +507,18 @@ Str8 &Str8::operator-=(int n) {
 }
 
 
-Str8 Str8::operator-(int n) const {
+str8 str8::operator-(int n) const {
   /// basic checks
-  if(!n) return Str8(*this);
-  if(nrChars- n<= 0) return Str8();
+  if(!n) return str8(*this);
+  if(nrChars- n<= 0) return str8();
 
 
   int remain= nrChars- n;         /// how many characters will remain in returned string
-  uint8 *p= (*this)[remain+ 1];   /// p will point right where the string needs to be cut
+  uint8 *p= getChar(remain);   /// p will point right where the string needs to be cut
   uint8 c= *p;                    /// hold current value of *p to restore it
   *p= 0;                          /// cut current string temporary
 
-  Str8 ret(*this);
+  str8 ret(d);
   *p= c;                          /// restore current string
   return ret;
 }
@@ -529,18 +529,18 @@ Str8 Str8::operator-(int n) const {
 // OPERATOR == //
 ///-----------///
 
-bool Str8::operator==(const Str8 &s) const {
+bool str8::operator==(const str8 &s) const {
   if(s.len!= len) return false;
 
   for(int32 a= 0; a< len; a++)
     if(d[a]!=s.d[a])
       return false;
 
-  return true; // this point reached -> there is no difference between Str8s
+  return true; // this point reached -> there is no difference between str8s
 }
 
 
-bool Str8::operator==(cuint8 *s) const {
+bool str8::operator==(cuint8 *s) const {
   if(!s) {
     if(!len)  return true;
     else      return false;
@@ -554,28 +554,28 @@ bool Str8::operator==(cuint8 *s) const {
 } /// checks if strings are identical (utf-8)
 
 
-bool Str8::operator==(cuint32 *s) const {
+bool str8::operator==(cuint32 *s) const {
   if(!s) {
     if(!d)  return true;
     else    return false;
   }
-  Str8 t(s);
+  str8 t(s);
   return (*this).operator==(t);
 }
 
 
-bool Str8::operator==(cuint32 c) const {
+bool str8::operator==(cuint32 c) const {
   if(nrChars!= 1) return false;
   return (utf8to32(d) == c);
 }
 
 
-bool Str8::operator==(cuint16 *s) const {
+bool str8::operator==(cuint16 *s) const {
   if(!s) {
     if(!d)  return true;
     else    return false;
   }
-  Str8 t(s);
+  str8 t(s);
   return (*this).operator==(t);
 }
 
@@ -585,7 +585,7 @@ bool Str8::operator==(cuint16 *s) const {
 // COMBining diacritical character functions //
 ///-----------------------------------------///
 
-void Str8::clearComb() {
+void str8::clearComb() {
   if(!len || !nrCombs) return;
   uint32 *u= convert32();
 
@@ -604,7 +604,7 @@ void Str8::clearComb() {
 // UTILITY FUNCTIONS, usually good for any string //
 ///----------------------------------------------///
 
-void Str8::updateLen() {
+void str8::updateLen() {
   if(!d) { len= nrChars= nrCombs= 0; return; }
   len= nrChars= nrCombs= 0;
 
@@ -629,8 +629,8 @@ void Str8::updateLen() {
 
 // bad characters will be MARKED with 0xFFFD
 
-// reading from UNSAFE SOURCES / FILES / INPUT is NOT SAFE. use secureUTF8() to validate a utf8 Str8
-Str8 &Str8::secureUTF8(cvoid *s) {
+// reading from UNSAFE SOURCES / FILES / INPUT is NOT SAFE. use secureUTF8() to validate a utf8 str8
+str8 &str8::secureUTF8(cvoid *s) {
   delData();
   
   /// length in unicode vals
@@ -808,7 +808,7 @@ Str8 &Str8::secureUTF8(cvoid *s) {
 // fopen knows of utf-8 but the win version wants to put a fukin BOM in the file, wich cause problems in linux, so file must be opened as pure binary
 
 // read all file                   (validates each char)
-void Str8::readUTF8(FILE *f) {
+void str8::readUTF8(FILE *f) {
   /// read / ignore the BOM in an UTF file
   uint16 bom;
   long pos= ftell(f);
@@ -841,7 +841,7 @@ void Str8::readUTF8(FILE *f) {
 
 
 // read n characters from file     (validates each char)
-void Str8::readUTF8n(FILE *f, size_t n) {
+void str8::readUTF8n(FILE *f, size_t n) {
   /// read / ignore the BOM in an UTF file
   uint16 bom;
   long pos= ftell(f);
@@ -875,7 +875,7 @@ void Str8::readUTF8n(FILE *f, size_t n) {
 }
 
 /// read till end of line (or file) (validates each char)
-void Str8::readLineUTF8(FILE *f) {
+void str8::readLineUTF8(FILE *f) {
   /// read / ignore the BOM in an UTF file
   uint16 bom;
   long pos= ftell(f);

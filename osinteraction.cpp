@@ -1,29 +1,31 @@
 #include "osinteraction.h"
-//#include <X11/extensions/Xrender.h> // -lXrender
-
-
+#include "util/typeShortcuts.h"
 /* TODO:
+ * - NOTES for every OS, in each h or cpp file
  *  *** PRIORITY 0 *** - INSTALL 2 IDENTICAL GRCARDS, TO SEE IF THE STRING RETURNED BY WINDOWS IS THE SAME. <<< IT IS THE SAME, QUIT YELLING, scrape that, use direct3d >>>
  *                       MUST TEST ON LINUX TOO, SO MAYBE AFTER LINUX IS INSTALLED
  * - [renderer] - there have to be some setting to request a renderer per window or per graphics card (default) or just 1, or manual
    - [renderer] - there have to be a request for a specific oGL version
    - [renderer] - there have to be a createRenderer func, customized, for to be asigned to specific windows
    - [renderer] - special oGL window (hidden)+ renderer, that are specialized only for graphics card mathematical computations (use the grcard as another CPU)
- * - [linux][mac] - optimus enablement (windows ver should just work)
- * - [mac] callback system for the HIDs is not gonna work. need to make an 'event' system, and in.update() must update the variables
- *         from that event system. If a variable is being updated while another part of the program reads from it?
- *         if(j.x== bla) { [update happens] j.x is a diff thing, you still do code with j.x @ start position. BUGS HAPPEN here , espetially when dealing with the logging system}
- * 
- * - [mac] better glMakeCurrent func, with the coreGl mac stuff << MAX PRIORITY
- * -xx [mac] threads !!!SCRAPE?! why: std::threads adopted in c++11, which is already needed xx
- * - [mac] set an icon for the window;
- * - [mac] processMSG is using functions for each event - it can EASILY be made into 1 big func like on the other OSes
+
+ * - [linux][mac] - optimus enablement ?
+   - [all] thread safe - lock() + unlock() for all major objects
+   - [all] render to bitmap... this is done using a software renderer... this should go if it's hard to implement
+   - [all] pbuffers are os dependant... that's the next osi target http://developer.download.nvidia.com/assets/gamedev/docs/PixelBuffers.pdf
+   - [all] custom pbuffer object, glBlaBla instead wglBlaBla for pbuffers - this will ease the use of pbuffers a ton
+ * - [all] glMakeCurrent on window/pbuffer so glMakeCurrent(osiRenderer, void *surface, int surfaceType= 0 ) (0= window / 1= bitmap / 2= pbuffer)
+   - [win] ximput has different axis / axis null point/ axis vector than direct input. a joystick on dinput is not like a joystick on xinput
+             still, i DON't HAVE A DANG JOYSTICK TO TEST ALL THIS STUFF
+ * - [mac] callback add+remove still not 100% thread safe - a whole struct with the hid that was added must be passed to osi, in an event type system (more than 1 can be waiting to be added in theory)
+ * - [all] input thread safety between program and osi? 2 flags that 1 can be raised by the program, and 1 by osi, both flags situated in each object
+ * -xx [all(mostly mac)] threads !!!SCRAPE?! why: std::threads adopted in c++11, which is already needed xx
  *   [linux] exe's don't have icons :( - http://linuxcritic.wordpress.com/2010/04/07/anatomy-of-a-desktop-file/ a clever .desktop must be autocreated
  * - [win] gamepad vibration under directinput (it is possible) & force feedback (MUST HAVE A VIBRATION GAMEPAD FIRST...)
- * - [mac] create a loading window, in the center of the screen? eventually to have image of the game
  * - more todo's in osiInput.cpp
- * - [mac] program command line (argv / getCommandLine) 
  * LOWER PRIORITY:
+ * - [all]: extensions that are core, that have both funcARB and just func, clear the funcARB
+ *          or figure something out about it. Macs don't have the funcARB, and generates errors
  * - [all]: mouse cursor change - there should be multiple mouse cursors that can be initialized and fast-set from, and a func that just changes the mouse based on data
  * - [linux]: multiple screens handling? this might be a thing of the past, tho (multiple screens)
  * - [linux]: input: using Str8 strings to read from certain files. should do a Str32, when a new Str::format is done
@@ -33,12 +35,9 @@
  *         if the windows have a monitor gap between them, the cursor must jump over the gap. VERY HARD <<<<<
  * - [linux][mac] LINUX NOT FOUND prevent screensaver/ monitor low power
  * - [linux][mac] LINUX NOT FOUND what happens on sleep? should be handled like 'app lose focus', or better, another flag, as the app must pause or something (some dont pause on app focus)
- * - [mac] windowfocus flag. it's there, but not updated at all
  * - [linux] test mouse grab
  * - [linux] test keyboard grab (first make shure it is possible to exit program)
  *
- * - [win][linux][mac] more messing with pixel formats, after a good testing 'chamber' in openGL is created
- * 
  * - [win][linux][mac] joystick, wheel (BUY THEM first)
  *
  * - [linux] monitors on duplicate are not handled atm. maybe a duplicate flag must be set, and both monitors with the same coords, must change res
@@ -46,12 +45,13 @@
  *
  * - window to change a monitor without problems (unplug?)
  *    but on multiple monitor mode, mark it as closed? something like this... notify the program somehow, so a rearrangement will be done
+ *    gr card data have to be moved, tho, this is a very low priority
  *
- * - [all]  Libcmt.lib try eliminating printf? alternative : console to write to file; problem: format!!!!
+ * - [all]  Libcmt.lib try eliminating printf? alternative : console to write to file; problem: format: str::format incoming, i guess!!!!
  *
  * - keyboard mode 2 in is getting more and more useless and a big drag... and is not avaible in linux + mac
  * - what happens when the time variables overflow? must do something about that (osi.getNano, etc)
- * - [mac] errorHandling window
+
 */
 
 
@@ -59,11 +59,10 @@
 
 // ONLY 1 DISPLAY MUST BE CREATED. it is 'the connection' to the 'server'(linux/computer, call it what u like)
 // ^^ must be tested, there's a possibility that for each gr card there's another display
-// there's the posibility that on different linux systems, they use multiple 'screen(s)' and on others xinerama (with 1 screen)
+// there's the posibility that on different linux systems, they use multiple 'screen(s)' and on others xinerama/xrandr (with 1 screen)
 
-// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-// >>> WHAT HAPPENS WHEN MULTIPLE GRAPHICS CARDS ARE PRESENT? SOME SAY THERE ARE MULTIPLE DISPLAY CONNECTIONS AVAIBLE <<<
-// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+// transparent window with ogl contents:
+// http://stackoverflow.com/questions/4052940/how-to-make-an-opengl-rendering-context-with-transparent-background
 
 /* -Two commonly met examples are Maximized and Shaded. A window manager may implement these as proper substates
  *  of NormalState and IconicState, or it may treat them as independent flags, allowing e.g. a maximized window
@@ -144,29 +143,73 @@ _NET_CLOSE_WINDOW
 extern "C" { _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001; }
 #endif
 
+/* SCRAPE
 #ifdef OS_WIN
 #define IDI_LARGE 100
 #define IDI_SMALL 101
-#define OSI_ICON_LARGE "icon_64.ico" /// <<< set an executable icon from here (windows)
-#define OSI_ICON_SMALL "icon_64.ico"
+#define OSI_ICON_LARGE "icon64.ico" /// <<< set an executable icon from here (windows)
+#define OSI_ICON_SMALL "icon64.ico"
 #endif /// OS_WIN
+*/
 
+#ifdef OS_LINUX
+#include <malloc.h>
+#endif
+
+#ifdef OS_MAC
+#include <unistd.h>
+#include <mach/mach.h>                  // high resolution clock funcs
+#include <mach/mach_time.h>             // high resolution clock funcs
+#endif
 
 
 // >>> OBJECTS CREATION <<< //
 ///========================///
 
+
+ErrorHandling error;
 osinteraction osi;
 osiInput in;
-ErrorHandling error;
 
 
-
+#ifdef OS_MAC
+mach_timebase_info_data_t _machInfo; /// [internal] mac variant of a performance timer. this var holds cpu frequencies & stuff (similar to QuerryPerformance... in win)
+#endif
 
 void _parseCmdLine(osinteraction *o);
 
+
 osinteraction::osinteraction() {
-  
+  /// default settings values
+  settings.renderer.minVerMajor= 3;
+  settings.renderer.minVerMinor= 2;
+  settings.renderer.setOneRendererPerGPU();
+  settings.renderer.legacyCompatibility= true;
+  settings.renderer.debugRenderer= false;
+  settings.renderer.shareGroup= null;
+  //settings.pixelFormat.drawSurface= 1;        /// 1= window 2= bitmap MADE 3 RENDERON...
+  settings.pixelFormat.renderOnWindow= true;
+  settings.pixelFormat.renderOnBitmap= false;
+  settings.pixelFormat.renderOnPBuffer= false;
+  //settings.pixelFormat.pixelType= 1;          /// [default= 1]  1= RGBA, 2= CMAP
+  settings.pixelFormat.onlyAccelerated= true;
+  settings.pixelFormat.dblBuffer= true;
+  settings.pixelFormat.colorSize= 24;
+  settings.pixelFormat.redSize= 8;
+  settings.pixelFormat.greenSize= 8;
+  settings.pixelFormat.blueSize= 8;
+  settings.pixelFormat.alphaSize= 8;
+  //settings.pixelFormat.pixelBits= 24;
+  settings.pixelFormat.depthSize= 16;
+  settings.pixelFormat.stencilSize= 8;
+  settings.pixelFormat.sampleBuffers= false;  /// MSAA
+  settings.pixelFormat.samples= 4;            /// MSAA samples [2 - 8]
+  settings.pixelFormat.transparent= false;
+  settings.pixelFormat.transparentRedSize= 8;
+  settings.pixelFormat.transparentGreenSize= 8;
+  settings.pixelFormat.transparentBlueSize= 8;
+  settings.pixelFormat.transparentAlphaSize= 8;
+
   flags.exit= false;
   flags.haveFocus= false;
   flags.minimized= false;
@@ -203,7 +246,8 @@ osinteraction::osinteraction() {
   
   if(!(_dis= XOpenDisplay(null)))          // DISPLAY CONNECTION TO XSERVER can be something like ":0.0" :displayNr.screenNr
     error.simple("Cannot connect to X server\n", true); /// true= exit
-  
+
+
   /// 'path' string - program path
   char *buf= new char[512];
   getcwd(buf, 511);
@@ -231,7 +275,7 @@ osinteraction::osinteraction() {
     fread(buf, l, 1, f);
     fclose(f);
     
-    Str8 utf8(buf);
+    str8 utf8(buf);
     /// if string length is less than 2 chars, there's a problem (not a utf8 string, probly ... hopefully)
     if(utf8.len<= 2) {
       
@@ -245,13 +289,16 @@ osinteraction::osinteraction() {
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
-  mach_timebase_info(&machInfo);            /// read cpu frequency & stuff; used for high performance timer (mac variant, named mach)
-  cocoa.setProgramPath();                   /// program path (osi.path stores the string afterwards)
+  mach_timebase_info(&_machInfo);     /// read cpu frequency & stuff; used for high performance timer (mac variant, named mach)
+  cocoa.setProgramPath();             /// program path (osi.path stores the string afterwards)
+  cmdLine= cocoa.getCmdLine();
   #endif /// OS_MAC
 
+  setProgramIcon(OSI_PROGRAM_ICON);
 
-  _parseCmdLine(this);      /// creates argc & argv
-  getNanosecs(&present);                    /// start with updated present time variable
+  _parseCmdLine(this);                /// creates argc & argv
+  getNanosecs(&present);              /// start with updated present time variable
+  display.populate();                 /// populate monitors / grcards info
 }
 
 
@@ -288,10 +335,10 @@ void osinteraction::delData() {
 
 
 void _parseCmdLine(osinteraction *o) {
-  Str32 s, s2;
+  str32 s, s2;
   if(!o->cmdLine.d) return;
   s= o->cmdLine.convert32();
-  Str8 utf8conv;
+  str8 utf8conv;
 
   /// find argc
   o->argc= 1;    /// allways at least 1
@@ -393,7 +440,7 @@ void _parseCmdLine(osinteraction *o) {
 // SIMPLE WINDOW CREATION FUNCS. they all call createGLWindow()
 
 // create just a single 'primary' window on 'primary' monitor
-bool osinteraction::primaryGLWindow(cchar *name, int32 dx, int32 dy, int8 bpp, int8 mode, int16 freq) {
+bool osinteraction::primaryGLWindow(cchar *name, int32 dx, int32 dy, int8 mode, int16 freq) {
   if(primWin) return false;               /// primary window already created
   int a;
   for(a= 0; a< MAX_WINDOWS; a++)
@@ -401,7 +448,7 @@ bool osinteraction::primaryGLWindow(cchar *name, int32 dx, int32 dy, int8 bpp, i
       break;
   if(a== MAX_WINDOWS) return false;       /// weird case, but it can happen
   
-  return createGLWindow(&win[a], display.primary, name, dx, dy, bpp, mode, freq);
+  return createGLWindow(&win[a], display.primary, name, dx, dy, mode, freq);
 }
 
 // create a fullscreen (mode 3) primary window
@@ -416,17 +463,16 @@ bool osinteraction::primaryGLWindow() {
   win[a].mode= 3;
   win[a].name= "Primary Program Window";
   win[a].freq= 0;
-  win[a].bpp= 32;
   
-  return createGLWindow(&win[a], display.primary, win[a].name, win[a].dx, win[a].dy, win[a].bpp, win[a].mode, win[a].freq);
+  return createGLWindow(&win[a], display.primary, win[a].name, win[a].dx, win[a].dy, win[a].mode, win[a].freq);
 }
 
 
 // MAIN CREATE WINDOW FUNC. has every customisation
-bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int32 dx, int32 dy, int8 bpp, int8 mode, int16 freq, bool dblBuffer, cchar *iconFile) {
+bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int32 dx, int32 dy, int8 mode, int16 freq, cchar *iconFile) {
   bool chatty= false;
 
-  Str8 func= "osinteraction::createGLWindow: ";
+  str8 func= "osinteraction::createGLWindow: ";
   w->name= name;
   w->monitor= m;
 
@@ -454,7 +500,7 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
     w->dx= (dx> 1)? dx: 1;
     w->dy= (dy> 1)? dy: 1;
   }
-  w->bpp= bpp;
+  
   w->mode= mode;
   w->freq= freq;
   if(!primWin) primWin= w;                          /// if no primary window is set, this will be the primary
@@ -464,7 +510,7 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
   #ifdef OS_WIN
   
           
-  GLuint PixelFormat;   // Holds The Results After Searching For A Match
+//  GLuint PixelFormat;   // Holds The Results After Searching For A Match
   WNDCLASS wc;          // Windows Class Structure
   DWORD dwExStyle;      // Window Extended Style
   DWORD dwStyle;        // Window Style
@@ -472,7 +518,7 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
 
   /// fullscreen resolution change
   if(mode== 2) {
-    if(!display.changeRes(m, w->dx, w->dy, w->bpp, w->freq)) {
+    if(!display.changeRes(m, w->dx, w->dy, w->freq)) {
       mode= 1;                            // if it fails, set mode to windowed <<--- ???
       w->mode= 1;
     }
@@ -552,6 +598,14 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
     error.simple(func+ "Window creation error.");
     return false;
   }
+
+  if (!(w->_hDC= GetDC(w->_hWnd))) {                /// get a device context
+    killGLWindow(w);
+    error.simple(func+ "Can't create a GL DC");
+    return false;
+  }
+
+  /*
   /// pixel format - MORE TESTING NEEDED HERE. screen blacks out on mode 3 - it shouldn't
   static PIXELFORMATDESCRIPTOR pfd;
   /*
@@ -581,65 +635,62 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
   pfd.dwLayerMask= 0;
   pfd.dwVisibleMask= 0;
   pfd.dwDamageMask= 0;
-  */
-  if (!(w->_hDC= GetDC(w->_hWnd))) {                /// get a device context
-    killGLWindow(w);
-    error.simple(func+ "Can't create a GL DC");
-    return false;
-  }
+  * / <<<<
+
+
+
   /// get the current pixel format index  
   int pixelf= GetPixelFormat(w->_hDC); 
   if(chatty) printf("pixelf= %d\n", pixelf);
+
   /// obtain a detailed description of that pixel format  
   DescribePixelFormat(w->_hDC, pixelf, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
-  // double buffer is needed, but causes screen flicker. must check with the other type of wgl_choosePixelFormat()
-  pfd.dwFlags= pfd.dwFlags| PFD_DRAW_TO_WINDOW| PFD_DRAW_TO_BITMAP| PFD_SUPPORT_OPENGL| PFD_STEREO_DONTCARE; //| PFD_SWAP_EXCHANGE;//| PFD_NEED_PALETTE;
-  if(dblBuffer)
-    pfd.dwFlags|= PFD_DOUBLEBUFFER;
-
   if(chatty) {
     printf("Current pixel format descriptor:\n");
-    printf("pfd.nVersion= %d\n", pfd.nVersion);
-    //pfd.dwFlags= PFD_DRAW_TO_WINDOW| PFD_DRAW_TO_BITMAP| PFD_SUPPORT_OPENGL| PFD_DOUBLEBUFFER| PFD_STEREO_DONTCARE; //| PFD_SWAP_EXCHANGE;//| PFD_NEED_PALETTE;
-    printf("pfd.iPixelType= %d\n", pfd.iPixelType);
-    printf("pfd.cColorBits= %d\n", pfd.cColorBits);
-    printf("pfd.cRedBits= %d\n", pfd.cRedBits);
-    printf("pfd.cRedShift= %d\n", pfd.cRedShift);
-    printf("pfd.cGreenBits= %d\n", pfd.cGreenBits);
-    printf("pfd.cGreenShift= %d\n", pfd.cGreenShift);
-    printf("pfd.cBlueBits= %d\n", pfd.cBlueBits);
-    printf("pfd.cBlueShift= %d\n", pfd.cBlueShift);
-    printf("pfd.cAlphaBits= %d\n", pfd.cAlphaBits);
-    printf("pfd.cAlphaShift= %d\n", pfd.cAlphaShift);
-    printf("pfd.cAccumBits= %d\n", pfd.cAccumBits);
-    printf("pfd.cAccumRedBits= %d\n", pfd.cAccumRedBits);
-    printf("pfd.cAccumGreenBits= %d\n", pfd.cAccumGreenBits);
-    printf("pfd.cAccumBlueBits= %d\n", pfd.cAccumBlueBits);
-    printf("pfd.cAccumAlphaBits= %d\n", pfd.cAccumAlphaBits);
-    printf("pfd.cDepthBits= %d\n", pfd.cDepthBits);
-    printf("pfd.cStencilBits= %d\n", pfd.cStencilBits);
-    printf("pfd.cAuxBuffers= %d\n", pfd.cAuxBuffers);
-    printf("pfd.iLayerType= %d\n", pfd.iLayerType);
-    printf("pfd.bReserved= %d\n", pfd.bReserved);
-    printf("pfd.dwLayerMask= %d\n", pfd.dwLayerMask);
-    printf("pfd.dwVisibleMask= %d\n", pfd.dwVisibleMask);
-    printf("pfd.dwDamageMask= %d\n", pfd.dwDamageMask);
+    printf("  pfd.nVersion= %d\n",        pfd.nVersion);
+    printf("  pfd.iPixelType= %d\n",      pfd.iPixelType);
+    printf("  pfd.cColorBits= %d\n",      pfd.cColorBits);
+    printf("  pfd.cRedBits= %d\n",        pfd.cRedBits);
+    printf("  pfd.cRedShift= %d\n",       pfd.cRedShift);
+    printf("  pfd.cGreenBits= %d\n",      pfd.cGreenBits);
+    printf("  pfd.cGreenShift= %d\n",     pfd.cGreenShift);
+    printf("  pfd.cBlueBits= %d\n",       pfd.cBlueBits);
+    printf("  pfd.cBlueShift= %d\n",      pfd.cBlueShift);
+    printf("  pfd.cAlphaBits= %d\n",      pfd.cAlphaBits);
+    printf("  pfd.cAlphaShift= %d\n",     pfd.cAlphaShift);
+    printf("  pfd.cAccumBits= %d\n",      pfd.cAccumBits);
+    printf("  pfd.cAccumRedBits= %d\n",   pfd.cAccumRedBits);
+    printf("  pfd.cAccumGreenBits= %d\n", pfd.cAccumGreenBits);
+    printf("  pfd.cAccumBlueBits= %d\n",  pfd.cAccumBlueBits);
+    printf("  pfd.cAccumAlphaBits= %d\n", pfd.cAccumAlphaBits);
+    printf("  pfd.cDepthBits= %d\n",      pfd.cDepthBits);
+    printf("  pfd.cStencilBits= %d\n",    pfd.cStencilBits);
+    printf("  pfd.cAuxBuffers= %d\n",     pfd.cAuxBuffers);
+    printf("  pfd.iLayerType= %d\n",      pfd.iLayerType);
+    printf("  pfd.bReserved= %d\n",       pfd.bReserved);
+    printf("  pfd.dwLayerMask= %d\n",     pfd.dwLayerMask);
+    printf("  pfd.dwVisibleMask= %d\n",   pfd.dwVisibleMask);
+    printf("  pfd.dwDamageMask= %d\n",    pfd.dwDamageMask);
   }
+
+
+  /// setup pixel format
+  pfd.dwFlags= pfd.dwFlags| PFD_DRAW_TO_WINDOW| PFD_DRAW_TO_BITMAP| PFD_SUPPORT_OPENGL| PFD_STEREO_DONTCARE; //| PFD_SWAP_EXCHANGE;//| PFD_NEED_PALETTE;
+
+  if(osi.settings.frontBuffer.dblBuffer) pfd.dwFlags|= PFD_DOUBLEBUFFER;
+  pfd.cRedBits=     osi.settings.frontBuffer.redSize;
+  pfd.cGreenBits=   osi.settings.frontBuffer.greenSize;
+  pfd.cBlueBits=    osi.settings.frontBuffer.blueSize;
+  pfd.cAlphaBits=   osi.settings.frontBuffer.alphaSize;
+  pfd.cDepthBits=   osi.settings.frontBuffer.depth;
+  pfd.cStencilBits= osi.settings.frontBuffer.stencilSize;
 
 
   // MORE TESTS NEEDED. it seems, when everything is 0, some 'default' current mode is in use; can't know for shure until using a more complex opengl scene
 
 
-   // NEED TO USE THIS INSTEAD, i think
-  /*
-  BOOL wglChoosePixelFormatARB(   HDC hdc,
-                                const int *piAttribIList,
-                                const FLOAT *pfAttribFList,
-                                UINT nMaxFormats,
-                                int *piFormats,
-                                UINT *nNumFormats);
-  */
-
+  // NEED TO USE THIS INSTEAD, i think
+  //BOOL wglChoosePixelFormatARB(HDC hdc, const int *piAttribIList, const FLOAT *pfAttribFList, UINT nMaxFormats, int *piFormats, UINT *nNumFormats);
 
   if (!(PixelFormat= ChoosePixelFormat(w->_hDC, &pfd))) {  /// lots of checks, don't think any needed
     killGLWindow(w);
@@ -652,6 +703,14 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
     error.simple(func+ "Can't set PixelFormat");
     return false;
   }
+  */
+
+  // THIS WAS AFTER SHOW WINDOW
+  if(!assignRenderer(w)) {
+    osi.killGLWindow(w);
+    error.simple(func+ "Cannot create oGL renderer (context)");
+    return false;
+  }
 
   w->setIcon(iconFile? iconFile: _iconFile);
   
@@ -660,20 +719,8 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
 
   SetFocus(w->_hWnd);             /// Sets Keyboard Focus To The Window
 
-  //Sleep(500); //<><<<<<<<<<<<<<<<<<<<<>><><><
 
-  if(!assignRenderer(w)) {
-    osi.killGLWindow(w);
-    error.simple("FATAL ERROR: Cannot create oGL renderer (context)");
-    return false;
-  }
-  
-  // from help: wglMakeCurrent()
-  //	All subsequent OpenGL calls made by the thread are drawn on the device identified by hdc.
-  //	You can also use wglMakeCurrent to change the calling thread's current rendering context so it's no longer current.
-
-
-  if(!glMakeCurrent(w)) {
+  if(!glMakeCurrent(w->glr, w)) {
     killGLWindow(w);
     error.simple(func+ "Can't activate GL RC");
     return false;
@@ -695,21 +742,23 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
 
   Colormap cmap;
   XSetWindowAttributes swa;
-  
-  GLint att[]= { GLX_RGBA,
-                 GLX_RED_SIZE, 8,
-                 GLX_GREEN_SIZE, 8,
-                 GLX_BLUE_SIZE, 8,
-                 GLX_ALPHA_SIZE, 8,
-                 GLX_DEPTH_SIZE, 24,
-                 (dblBuffer? GLX_DOUBLEBUFFER: 0),
-                 None };
-  
+
+  /// need glx version 1.3 for front buffers managing
+  int glxMajor= 0, glxMinor= 0;
+  glXQueryVersion(osi._dis, &glxMajor, &glxMinor );
+  if((glxMajor< 1) || ((glxMajor== 1) && (glxMinor< 3))) {
+    error.simple(func+ "GLX version too low");
+    return false;
+  }
+
+  if(!w->_createFBandVisual())
+    return false;
+
   w->_root= m->_root;                                        // 'desktop window'
   w->_dis= _dis;                                           // XServer connection
   
   if(mode == 2)
-    if(!display.changeRes(m, dx, dy, bpp, freq)) {
+    if(!display.changeRes(m, dx, dy, freq)) {
       error.simple("osi:createGLwindow: cant change to selected resolution");
       w->dx= m->dx;
       w->dy= m->dy;
@@ -718,18 +767,6 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
   
   w->mode= mode;
 
-  w->_vi= glXChooseVisual(w->_dis, m->_screen, att);
-
-  /* !!!!!!!!!!!!!!!!!!
-  vi= DefaultVisual(display, 0);
-  depth= DefaultDepth(display, 0);
-  */
-
-
-  if(w->_vi == NULL)
-    error.simple(func+ "no appropriate visual found\n", true);
-  else // DELETE <--------------------------------
-    if(chatty) printf("\n\tvisual %p selected\n", (void *)w->_vi->visualid); // %p creates hexadecimal output like in glxinfo
 
   cmap= XCreateColormap(w->_dis, w->_root, w->_vi->visual, AllocNone);
   swa.colormap= cmap;
@@ -825,7 +862,7 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
   }
 
   
-  glMakeCurrent(w);                         // osi variant. works on every OS
+  glMakeCurrent(w->glr, w);                         // osi variant. works on every OS
 
   ///  handle the close button WM
   if(w== primWin) {
@@ -900,7 +937,7 @@ bool osinteraction::createSplashWindow(osiWindow *w, osiMonitor *m, cchar *file)
 
   // image loading
   /// s will hold the file extension to be loaded, in lowercase
-  Str8 s("   ");
+  str8 s("   ");
   int32 len= Str::strlen8(file);
   
   for(char a= 0; a< 3; a++)
@@ -952,8 +989,12 @@ bool osinteraction::createSplashWindow(osiWindow *w, osiMonitor *m, cchar *file)
   
   #ifdef OS_WIN
   WNDCLASSEX wc;                    /// extended window class, used for window creation
-  HDC memDC= null;                  /// hdc for the DIB bitmap
-  HBITMAP memBM= null;              /// handle for the DIB bitmap
+
+  if(w->_imgBM) DeleteObject(w->_imgBM);
+  if(w->_imgDC) DeleteDC(w->_imgDC);
+  w->_imgBM= null;
+  w->_imgDC= null;
+    
 
   w->_hInstance = GetModuleHandle(NULL);                  /// grab an instance for window
 
@@ -986,7 +1027,7 @@ bool osinteraction::createSplashWindow(osiWindow *w, osiMonitor *m, cchar *file)
   SetLayeredWindowAttributes(w->_hWnd, 0, 0, LWA_COLORKEY); // LWA_COLORKEY / LWA_ALPHA (this just changes global window alpha)
 
   /// create a bitmap - needs a hdc + HBITMAP handle
-  memDC= CreateCompatibleDC(w->_hDC);
+  w->_imgDC= CreateCompatibleDC(w->_hDC);
 
   uint8 garbage= (dx% 4? 4- (dx% 4): 0);  /// bitmap (windows bmp's) scanlines must be divisible by 4, if they ain't, garbage is added at the end
   BITMAPINFO b;
@@ -1001,8 +1042,8 @@ bool osinteraction::createSplashWindow(osiWindow *w, osiMonitor *m, cchar *file)
 
   uint8 *p= null;                         /// this will point to the bitmap's internal data
 
-  memBM= CreateDIBSection(memDC, &b, DIB_RGB_COLORS, (void **)&p, null, 0); /// CreateDIBitmap failed for me, unfortunately, probly there's a way
-  if(!SelectObject(memDC, memBM))     { error.window("osi::createSplashWindow: SelectObject() failed"); goto Fail; }
+  w->_imgBM= CreateDIBSection(w->_imgDC, &b, DIB_RGB_COLORS, (void **)&p, null, 0); /// CreateDIBitmap failed for me, unfortunately, probly there's a way
+  if(!SelectObject(w->_imgDC, w->_imgBM))     { error.window("osi::createSplashWindow: SelectObject() failed"); goto Fail; }
 
   /// RGBA top to bottom-> BGRA bottom to top
   for(int32 a= 0; a< dy; a++)
@@ -1022,9 +1063,9 @@ bool osinteraction::createSplashWindow(osiWindow *w, osiMonitor *m, cchar *file)
     blend.BlendFlags= 0;
     blend.SourceConstantAlpha= 255;
     blend.AlphaFormat= AC_SRC_ALPHA;
-    if(!GdiAlphaBlend(w->_hDC, 0, 0, w->dx, w->dy, memDC, 0, 0, dx, dy, blend)) { error.window("osi::createSplashWindow: GdiAlphaBlend failed"); goto Fail; }
+    if(!GdiAlphaBlend(w->_hDC, 0, 0, w->dx, w->dy, w->_imgDC, 0, 0, dx, dy, blend)) { error.window("osi::createSplashWindow: GdiAlphaBlend failed"); goto Fail; }
   } else {
-    if(!BitBlt(w->_hDC, 0, 0, dx, dy, memDC, 0, 0, SRCCOPY)) { error.simple("osi::createSplashWindow: BitBlt failed"); goto Fail; }
+    if(!BitBlt(w->_hDC, 0, 0, dx, dy, w->_imgDC, 0, 0, SRCCOPY)) { error.simple("osi::createSplashWindow: BitBlt failed"); goto Fail; }
   }
   
   ShowWindow(w->_hWnd, SW_SHOW);
@@ -1033,8 +1074,8 @@ bool osinteraction::createSplashWindow(osiWindow *w, osiMonitor *m, cchar *file)
   return true;
 
 Fail:
-  if(memBM) DeleteObject(memBM);
-  if(memDC) DeleteDC(memDC);
+  if(w->_imgBM) DeleteObject(w->_imgBM);
+  if(w->_imgDC) DeleteDC(w->_imgDC);
   w->delData();
   return false;
   #endif /// OS_WIN
@@ -1066,8 +1107,7 @@ Fail:
   swa.border_pixmap = None;
   swa.border_pixel= 0;
   
-  static XVisualInfo vi;
-  w->_vi= &vi;
+  w->_vi= (XVisualInfo *)malloc(sizeof(XVisualInfo));
   
   XMatchVisualInfo(_dis, DefaultScreen(_dis), XDefaultDepth(_dis, 0), TrueColor, w->_vi);
   
@@ -1191,7 +1231,7 @@ Fail:
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
-  makeme
+  return cocoa.createSplashWindow(w, bitmap, dx, dy, bpp, bpc);
   #endif /// OS_MAC
 
   return true;
@@ -1293,7 +1333,7 @@ osiWindow *osinteraction::_getWin(Window *w) {
 #endif
 
 #ifdef OS_MAC
-osiWindow *osinteraction::getWin(void *w) {
+osiWindow *osinteraction::_getWin(void *w) {
   for(short a= 0; a< MAX_WINDOWS; a++)
     if(win[a]._win== w)
       return &win[a];
@@ -1574,18 +1614,13 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
   switch(m) {
     case WM_ACTIVATEAPP:
       if(wParam== 1) {                     // ---=== application GAINS focus ===---
-        /// if any HIDs are using exclusive mode, aquire it
-        in.m.activate();
-        in.k.activate();
-        for(short a= 0; a< 20; a++)       /// pass thru all sticks
-          if(in.j[a].isActive())
-            in.j[a].grab();
+
 
         /// change resolution in case of fullscreen
         for(short a= 0; a< MAX_WINDOWS; a++) 
           if(osi.win[a].isCreated)
             if(osi.win[a].mode== 2)
-              osi.display.changeRes(osi.win[a].monitor, osi.win[a].dx, osi.win[a].dy, osi.win[a].bpp, osi.win[a].freq);
+              osi.display.changeRes(osi.win[a].monitor, osi.win[a].dx, osi.win[a].dy, osi.win[a].freq);
 
         /// show windows in case they are minimized
         for(short a= 0; a< MAX_WINDOWS; a++) 
@@ -1596,8 +1631,16 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
               MoveWindow(osi.win[a]._hWnd, osi.win[a].monitor->x0, osi.win[a].monitor->_y0, osi.win[a].dx, osi.win[a].dy, false);
               if(chatty) printf("window %d x0[%d] y0[%d] dx[%d] dy[%d]\n", a, osi.win[a].monitor->x0, osi.win[a].monitor->y0, osi.win[a].dx, osi.win[a].dy);
             }
+        if(osi.primWin)
         SetForegroundWindow(osi.primWin->_hWnd);
         osi.flags.haveFocus= true;        /// set flag, the last
+        
+        /// if any HIDs are using exclusive mode, aquire it
+        in.m.activate();
+        in.k.activate();
+        for(short a= 0; a< 20; a++)       /// pass thru all sticks
+          if(in.j[a].isActive())
+            in.j[a].grab();
 
       } else {                             // ---=== application LOSES focus ===---
         osi.flags.haveFocus= false;       /// set flag, first
@@ -1611,6 +1654,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 
         /// in case of alt-tab all current pressed buttons must be reset
         in.resetPressedButtons();
+        in.resetAxis();
 
         /// minimize windows in case of fullscreen
         for(short a= 0; a< MAX_WINDOWS; a++) 
@@ -2086,7 +2130,7 @@ bool osinteraction::_processMSG()  {
         /// fullscreen only: change all monitors resolutions to program resolutions
         for(short a= 0; a< MAX_WINDOWS; a++)
           if(win[a].isCreated && win[a].mode== 2)
-            display.changeRes(win[a].monitor, win[a].dx, win[a].dy, win[a].bpp, win[a].freq);
+            display.changeRes(win[a].monitor, win[a].dx, win[a].dy, win[a].freq);
         
         /// fullscreen only: set all windows in front of everything
         for(short a= 0; a< MAX_WINDOWS; a++)
@@ -2133,7 +2177,8 @@ bool osinteraction::_processMSG()  {
         
         /// in case of alt-tab all current pressed buttons must be reset
         in.resetPressedButtons();
-        
+        in.resetAxis();
+
         /// call every HID's uninit (if there's one)
         /*
         in.m.unaquire();
@@ -2295,7 +2340,7 @@ void osinteraction::getNanosecs(uint64 *out) {
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
-  *out= (mach_absolute_time()* machInfo.numer/ machInfo.denom);
+  *out= (mach_absolute_time()* _machInfo.numer/ _machInfo.denom);
   #endif /// OS_MAC
 }
 
@@ -2324,7 +2369,7 @@ void osinteraction::getMicrosecs(uint64 *out) {
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
-  *out= (mach_absolute_time()* machInfo.numer/ machInfo.denom)/ 1000;
+  *out= (mach_absolute_time()* _machInfo.numer/ _machInfo.denom)/ 1000;
   #endif /// OS_MAC
 }
 
@@ -2343,7 +2388,7 @@ void osinteraction::getMillisecs(uint64 *out) {
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
-  *out= (mach_absolute_time()* machInfo.numer/ machInfo.denom)/ 1000000;
+  *out= (mach_absolute_time()* _machInfo.numer/ _machInfo.denom)/ 1000000;
   #endif /// OS_MAC
 }
 
@@ -2387,7 +2432,7 @@ void osinteraction::clocks2nanosecs(uint64 *out) {
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
-  *out= ((*out)* machInfo.numer/ machInfo.denom);
+  *out= ((*out)* _machInfo.numer/ _machInfo.denom);
   #endif /// OS_MAC
 }
 
@@ -2407,7 +2452,7 @@ void osinteraction::clocks2microsecs(uint64 *out) {
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
-  *out= ((*out)* machInfo.numer/ machInfo.denom)/ 1000;
+  *out= ((*out)* _machInfo.numer/ _machInfo.denom)/ 1000;
   #endif /// OS_MAC
 }
 
@@ -2427,7 +2472,7 @@ void osinteraction::clocks2millisecs(uint64 *out) {
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
-  *out= ((*out)* machInfo.numer/ machInfo.denom)/ 1000000;
+  *out= ((*out)* _machInfo.numer/ _machInfo.denom)/ 1000000;
   #endif /// OS_MAC
 }
 
@@ -2513,20 +2558,20 @@ void osinteraction::swapBuffers(osiWindow *w) {
 
 
 
-bool osinteraction::glMakeCurrent(osiWindow *w) {
-  if(w) {
-    if(glr) glr->isActive= false;     /// set not active flag for current renderer
-    glr= w->glr; _glr= w->glr;
-    if(glr) glr->isActive= true;      /// set active flag of new renderer
-  } else {
-    if(glr) glr->isActive= false;     /// set not active flag for current renderer
-    glr= null; _glr= null;
-  }
+bool osinteraction::glMakeCurrent(osiRenderer *r, osiWindow *w) {
+  if(glr) glr->isActive= false;     /// set not active flag for current renderer
+  if(_glr) _glr->isActive= false;   /// set not active flag for current renderer
+
+  if(r && w) {
+    glr= _glr= r;
+    glr->isActive= _glr->isActive= true;      /// set active flag of new renderer
+  } else 
+    glr= _glr= null;  
+
 
   #ifdef OS_WIN
   if(w) {
-    if(w->glr)
-      return wglMakeCurrent(w->_hDC, w->glr->glContext)? true: false;
+    return wglMakeCurrent(w->_hDC, r->glContext)? true: false;
   } else
     return wglMakeCurrent(null, null)? true: false;
   #endif /// OS_WIN
@@ -2534,26 +2579,46 @@ bool osinteraction::glMakeCurrent(osiWindow *w) {
   #ifdef OS_LINUX
   
   if(w) {
-    if(w->glr)
-      return glXMakeCurrent(_dis, w->_win, w->glr->glContext);
-    else
-      return glXMakeCurrent(_dis, None, null);
+    return glXMakeCurrent(_dis, w->_win, r->glContext);
   } else
     return glXMakeCurrent(_dis, None, NULL);
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
-  if(w)
-    cocoa.makeCurrent(w); // as it is, this is too simple <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< check CGL
-    
-    // this must be changed-> the glc (core)'s function has the possibility to makecurrent(null) and returns an error message if something went wrong
-    
-  return false; // <<<< better atm
-  return true;
+  return cocoa.makeCurrent(r, w);
   #endif /// OS_MAC
   
   return false;
 } // osinteraction::glMakeCurrent
+
+
+
+void osinteraction::glGetVersion(int *outMajor, int *outMinor) {
+  if(!outMajor && !outMinor) return;
+
+  const GLubyte *vstr= glGetString(GL_VERSION);
+  if(!vstr) return;
+  
+  cuint8 *p= (cuint8 *)vstr;
+
+  if(outMajor) *outMajor= 0;
+  if(outMinor) *outMinor= 0;
+
+  for(; *p; p++) {
+    if(*p == '.') { p++; break; }
+    if(outMajor)
+      *outMajor= (*outMajor* 10)+ *p- '0';
+  }
+  
+  if(*p== 0) return; /// failsafe
+  //p++;
+
+  for(; *p; p++) {
+    if(*p == '.' || *p == ' ' || *p == 0) break;
+    if(outMinor)
+      *outMinor= (*outMinor* 10)+ *p- '0';
+  }
+}
 
 
 
