@@ -3,7 +3,7 @@ The wiki has detailed information on everything (https://github.com/alec101/OSIn
 
 SOME features:
 --------------
-* When you write a program using OSI, the same code will run under Windows, Linux and Mac OSX, without changing any line of code. 
+* When you write a program using OSI, the same code will run under Windows, Linux and MacOS, without changing any line of code. 
 * One of the main features of OSI is to create any number of OpenGL windows, on any number of monitors. If the system has multiple graphics cards, all of them can be used in rendering. Each of these windows can be a full screen window, normal window or a window that spans on **all system monitors** (this last type of window uses only 1 graphics card to render with OpenGL - to use all graphics cards, 1 full screen window per monitor must be created). Today's games and applications do not use more than 1 graphics card usually and for sure will not work on all 3 big operating systems. Imagine a strategy game: on one monitor you have the map, on the other, building queues, factories, maybe a radar etc... don't know why so very few games use this kind of feature.
 * Mouse/Keyboard/Joystick/ Gamepad (every kind) / GameWheel (all main HID's) support, for all OS-es, with almost all driver types (XInput, DirectInput, linux joystick.h method, etc)
 * The Keyboard class was designed to be able to build Mortal-Kombat style games, if you wish - it has a history of the keys that were pressed and their time when they were pressed and depressed. It has support for text input and editing in unicode and many more things, about everything you need from a keyboard.
@@ -12,6 +12,31 @@ SOME features:
 * OpenGL functions that have different usage mode/names under each OS, are nicely combined under 1 function. (ex: call glMakeCurrent(....), which knows to call wglMakeCurrent under WIN, glxMakeCurrent under LINUX, blaBlaBla under MAC)
 * tired of setting the locale to utf8/blabla, that just doesn't work on all systems? or just doesn't work, period? use supplied str8 class that uses only UTF-8 strings, or the UTF-32 class str32. Str namespace have functions that apply to UTF-8 / UTF-32 strings
 * Tons of other nice stuff.
+
+-
+USAGE example:
+--------------
+
+    #include "osinteraction.h"                    // the only thing needed to be included
+
+    main() {
+      osi.createGLWindow(&osi.win[0],             // creates an OpenGL window - first parameter is what window object to use (there are 64 pre-alocated)
+                         &osi.display.monitor[0], // specify on what monitor to create the window
+                         "Win 0",                 // window name
+                         500, 500,                // window size OR if fullscreen, what resolution to change the monitor to
+                         1);                      // window mode: 1-normal window; 2-fullscreen; 3-fullscreen window(ignores     size); 4-fullscreen window on all monitors(also ignores size)
+
+      in.init();                                  // initializes mouse / keyboard / rest of HIDs
+
+      while(1) {                                  // a basic program loop
+
+        osi.checkMSG();                           // checks system messages
+        in.update();                              // updates HIDs (mouse / keyboard / activated joysticks
+        if(in.k.key[in.Kv.esc] || osi.flags.exit) // if escape key is pressed or the system signaled the program to close, break     from the loop
+          break;
+      }
+    }
+
 
 -
 Needs tons of bug squishing - all this was done only by me (alec.paunescu@gmail.com), so i expect tons of bugs that i missed
