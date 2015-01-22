@@ -22,16 +22,16 @@ Check out OSinteraction.h for further compiling instructions & other info
 -
 Needed libraries to compile:
 
-LINUX libraries: [X11] [GL] [GLU] [Xrandr] [Xinerama]
-WIN   libraries: [opengl32] [glu32] [d3d9] [dinput8] [dxguid] [xinput]
-MAC  frameworks: [-framework Opengl] [-framework cocoa] [-framework IOKit] [-framework CoreFoundation]
+* LINUX libraries: [X11] [GL] [GLU] [Xrandr] [Xinerama]
+* WIN   libraries: [opengl32] [glu32] [d3d9] [dinput8] [dxguid] [xinput]
+* MAC  frameworks: [-framework Opengl] [-framework cocoa] [-framework IOKit] [-framework CoreFoundation]
 
 -
 Detail library explanation:
-LINUX libs: [X11]      - libX base - don't leave home without it
-            [GL] [GLU] - OpenGL libraries
-            [Xrandr]   - used for monitor / GPU info / monitor resoulution changes
-            [Xinerama] - used for monitor position info only
+    LINUX libs: [X11]      - libX base - don't leave home without it
+                [GL] [GLU] - OpenGL libraries
+                [Xrandr]   - used for monitor / GPU info / monitor resoulution changes
+                [Xinerama] - used for monitor position info only
 
 WIN libs: [opengl32] [glu32] - OpenGL libraries
           if any dinput, xinput or direct3d are used, some directx sdk files (libs+includes) are provided, but directx sdk can be downloaded and used instead
