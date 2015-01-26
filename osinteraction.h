@@ -199,13 +199,16 @@ main() {
 #endif /// OS_WIN
 
 #ifdef OS_LINUX
-#define GL_GLEXT_LEGACY 1
+//#define GL_GLEXT_LEGACY 1
+//#define GLX_GLXEXT_LEGACY 1
+
 //#define GLX_GLXEXT_PROTOTYPES 1
 #include <GL/gl.h>
 #include <GL/glu.h>
 #include <GL/glx.h>
-
-#include "oGL/glxext.h"           // <<< provided glxext.h - should be updated when new a version appears (and it can change monthly)
+#include <GL/glxext.h>
+#include <GL/glext.h>
+//#include "oGL/glxext.h"           // <<< provided glxext.h - should be updated when new a version appears (and it can change monthly)
 #endif /// OS_LINUX
 
 #ifdef OS_MAC

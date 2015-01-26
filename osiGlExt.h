@@ -2102,6 +2102,7 @@ struct GlExtFuncs {
   PFNGLGETVERTEXATTRIBARRAYOBJECTFVATIPROC glGetVertexAttribArrayObjectfvATI;
   PFNGLGETVERTEXATTRIBARRAYOBJECTIVATIPROC glGetVertexAttribArrayObjectivATI;
   /// GL_OES_byte_coordinates      // #291 http://www.opengl.org/registry/specs/OES/OES_byte_coordinates.txt
+  /* DISABLED UNTIL THEY FIGURE OUT HOW MANY PARAMETERS THEIR FUNCS HAVE
   PFNGLMULTITEXCOORD1BOESPROC glMultiTexCoord1bOES;
   PFNGLMULTITEXCOORD1BVOESPROC glMultiTexCoord1bvOES;
   PFNGLMULTITEXCOORD2BOESPROC glMultiTexCoord2bOES;
@@ -2124,6 +2125,7 @@ struct GlExtFuncs {
   PFNGLVERTEX3BVOESPROC glVertex3bvOES;
   PFNGLVERTEX4BOESPROC glVertex4bOES;
   PFNGLVERTEX4BVOESPROC glVertex4bvOES;
+  */
   /// GL_OES_fixed_point           // #292 http://www.opengl.org/registry/specs/OES/OES_fixed_point.txt
   PFNGLALPHAFUNCXOESPROC glAlphaFuncxOES;
   PFNGLCLEARCOLORXOESPROC glClearColorxOES;
@@ -3044,6 +3046,7 @@ struct GlExtFuncs {
   /// GL_AMD_occlusion_query_event // #422 http://www.opengl.org/registry/specs/AMD/occlusion_query_event.txt
   PFNGLQUERYOBJECTPARAMETERUIAMDPROC glQueryObjectParameteruiAMD;
   /// GL_INTEL_performance_query   // #443 http://www.opengl.org/registry/specs/INTEL/performance_query.txt
+  /*
   PFNGLBEGINPERFQUERYINTELPROC glBeginPerfQueryINTEL;
   PFNGLCREATEPERFQUERYINTELPROC glCreatePerfQueryINTEL;
   PFNGLDELETEPERFQUERYINTELPROC glDeletePerfQueryINTEL;
@@ -3054,6 +3057,7 @@ struct GlExtFuncs {
   PFNGLGETPERFQUERYDATAINTELPROC glGetPerfQueryDataINTEL;
   PFNGLGETPERFQUERYIDBYNAMEINTELPROC glGetPerfQueryIdByNameINTEL;
   PFNGLGETPERFQUERYINFOINTELPROC glGetPerfQueryInfoINTEL;
+  */
   /// GL_AMD_gpu_shader_int64      // #451 http://www.opengl.org/registry/specs/AMD/gpu_shader_int64.txt
   PFNGLUNIFORM1I64NVPROC glUniform1i64NV;
   PFNGLUNIFORM2I64NVPROC glUniform2i64NV;
@@ -5611,6 +5615,8 @@ inline Status glXGetTransparentIndexSUN (Display *dpy, Window overlay, Window un
 
 
 // #291 GL_OES_byte_coordinates
+// YOU SIMPLY CANNOT CREATE AN EXTENSION THAT HAVE MULTIPLE TYPES OF PARAMETERS BETWEEN VERSIONS. WHOEVER DID THIS, MUST CHANGE HIS JOB
+/*
 inline GLAPI void APIENTRY glMultiTexCoord1bOES (GLenum texture, GLbyte s) {
   _glr->glExt.glMultiTexCoord1bOES (texture, s);}
 inline GLAPI void APIENTRY glMultiTexCoord1bvOES (GLenum texture, const GLbyte *coords) {
@@ -5643,18 +5649,19 @@ inline GLAPI void APIENTRY glTexCoord4bOES (GLbyte s, GLbyte t, GLbyte r, GLbyte
   _glr->glExt.glTexCoord4bOES (s, t, r,  q);}
 inline GLAPI void APIENTRY glTexCoord4bvOES (const GLbyte *coords) {
   _glr->glExt.glTexCoord4bvOES (coords);}
-inline GLAPI void APIENTRY glVertex2bOES (GLbyte x) {
-  _glr->glExt.glVertex2bOES (x);}
+inline GLAPI void APIENTRY glVertex2bOES (GLbyte x, GLbyte y) {
+  _glr->glExt.glVertex2bOES (x, y);}
 inline GLAPI void APIENTRY glVertex2bvOES (const GLbyte *coords) {
   _glr->glExt.glVertex2bvOES (coords);}
-inline GLAPI void APIENTRY glVertex3bOES (GLbyte x, GLbyte y) {
-  _glr->glExt.glVertex3bOES (x, y);}
+inline GLAPI void APIENTRY glVertex3bOES (GLbyte x, GLbyte y, GLbyte z) {
+  _glr->glExt.glVertex3bOES (x, y, z);}
 inline GLAPI void APIENTRY glVertex3bvOES (const GLbyte *coords) {
   _glr->glExt.glVertex3bvOES (coords);}
-inline GLAPI void APIENTRY glVertex4bOES (GLbyte x, GLbyte y, GLbyte z) {
-  _glr->glExt.glVertex4bOES (x, y, z);}
+inline GLAPI void APIENTRY glVertex4bOES (GLbyte x, GLbyte y, GLbyte z, GLbyte w) {
+  _glr->glExt.glVertex4bOES (x, y, z, w);}
 inline GLAPI void APIENTRY glVertex4bvOES (const GLbyte *coords) {
   _glr->glExt.glVertex4bvOES (coords);}
+*/
 // #292 GL_OES_fixed_point
 inline GLAPI void APIENTRY glAlphaFuncxOES (GLenum func, GLfixed ref) {
   _glr->glExt.glAlphaFuncxOES (func, ref);}
@@ -7414,7 +7421,8 @@ inline GLAPI void APIENTRY glColorPointervINTEL (GLint size, GLenum type, const 
   _glr->glExt.glColorPointervINTEL (size, type, pointer);}
 inline GLAPI void APIENTRY glTexCoordPointervINTEL (GLint size, GLenum type, const void **pointer) {
   _glr->glExt.glTexCoordPointervINTEL (size, type, pointer);}
-// #443 GL_INTEL_performance_query
+// #443 
+/* DISABLED
 inline GLAPI void APIENTRY glBeginPerfQueryINTEL (GLuint queryHandle) {
   _glr->glExt.glBeginPerfQueryINTEL (queryHandle);}
 inline GLAPI void APIENTRY glCreatePerfQueryINTEL (GLuint queryId, GLuint *queryHandle) {
@@ -7435,6 +7443,7 @@ inline GLAPI void APIENTRY glGetPerfQueryIdByNameINTEL (GLchar *queryName, GLuin
   _glr->glExt.glGetPerfQueryIdByNameINTEL (queryName, queryId);}
 inline GLAPI void APIENTRY glGetPerfQueryInfoINTEL (GLuint queryId, GLuint queryNameLength, GLchar *queryName, GLuint *dataSize, GLuint *noCounters, GLuint *noInstances, GLuint *capsMask) {
   _glr->glExt.glGetPerfQueryInfoINTEL (queryId, queryNameLength, queryName, dataSize, noCounters, noInstances, capsMask);}
+*/
 // #196 GL_MESA_resize_buffers
 inline GLAPI void APIENTRY glResizeBuffersMESA (void) {
   _glr->glExt.glResizeBuffersMESA ();}
@@ -8027,8 +8036,9 @@ inline GLAPI GLvdpauSurfaceNV APIENTRY glVDPAURegisterVideoSurfaceNV (const void
   return _glr->glExt.glVDPAURegisterVideoSurfaceNV (vdpSurface, target, numTextureNames, textureNames);}
 inline GLAPI GLvdpauSurfaceNV APIENTRY glVDPAURegisterOutputSurfaceNV (const void *vdpSurface, GLenum target, GLsizei numTextureNames, const GLuint *textureNames) {
   return _glr->glExt.glVDPAURegisterOutputSurfaceNV (vdpSurface, target, numTextureNames, textureNames);}
-inline GLAPI GLboolean APIENTRY glVDPAUIsSurfaceNV (GLvdpauSurfaceNV surface) {
-  return _glr->glExt.glVDPAUIsSurfaceNV (surface);}
+inline GLAPI void APIENTRY glVDPAUIsSurfaceNV (GLvdpauSurfaceNV surface) {
+///inline GLAPI GLboolean APIENTRY glVDPAUIsSurfaceNV (GLvdpauSurfaceNV surface) {
+  _glr->glExt.glVDPAUIsSurfaceNV (surface);}
 inline GLAPI void APIENTRY glVDPAUUnregisterSurfaceNV (GLvdpauSurfaceNV surface) {
   _glr->glExt.glVDPAUUnregisterSurfaceNV (surface);}
 inline GLAPI void APIENTRY glVDPAUGetSurfaceivNV (GLvdpauSurfaceNV surface, GLenum pname, GLsizei bufSize, GLsizei *length, GLint *values) {
@@ -9986,7 +9996,8 @@ inline GLAPI void APIENTRY glReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fv
 ///=======================///
 
 
-// #291 GL_OES_byte_coordinates
+// #291 GL_OES_byte_coordinates - DISABLED UNTIL THEY FIGURE OUT HOW MANY PARAMETERS THEY WANT IN THEIR FUNCS
+/*
 #define glMultiTexCoord1bOES _glr->glExt.glMultiTexCoord1bOES
 #define glMultiTexCoord1bvOES _glr->glExt.glMultiTexCoord1bvOES
 #define glMultiTexCoord2bOES _glr->glExt.glMultiTexCoord2bOES
@@ -10009,6 +10020,7 @@ inline GLAPI void APIENTRY glReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fv
 #define glVertex3bvOES _glr->glExt.glVertex3bvOES
 #define glVertex4bOES _glr->glExt.glVertex4bOES
 #define glVertex4bvOES _glr->glExt.glVertex4bvOES
+*/
 // #292 GL_OES_fixed_point
 #define glAlphaFuncxOES _glr->glExt.glAlphaFuncxOES
 #define glClearColorxOES _glr->glExt.glClearColorxOES
@@ -10938,6 +10950,7 @@ inline GLAPI void APIENTRY glReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fv
 #define glColorPointervINTEL _glr->glExt.glColorPointervINTEL
 #define glTexCoordPointervINTEL _glr->glExt.glTexCoordPointervINTEL
 // #443 GL_INTEL_performance_query
+/* DISABLED
 #define glBeginPerfQueryINTEL _glr->glExt.glBeginPerfQueryINTEL
 #define glCreatePerfQueryINTEL _glr->glExt.glCreatePerfQueryINTEL
 #define glDeletePerfQueryINTEL _glr->glExt.glDeletePerfQueryINTEL
@@ -10948,6 +10961,7 @@ inline GLAPI void APIENTRY glReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fv
 #define glGetPerfQueryDataINTEL _glr->glExt.glGetPerfQueryDataINTEL
 #define glGetPerfQueryIdByNameINTEL _glr->glExt.glGetPerfQueryIdByNameINTEL
 #define glGetPerfQueryInfoINTEL _glr->glExt.glGetPerfQueryInfoINTEL
+ */
 // #196 GL_MESA_resize_buffers
 #define glResizeBuffersMESA _glr->glExt.glResizeBuffersMESA
 // #197 GL_MESA_window_pos
@@ -12051,7 +12065,7 @@ documentation for these is pretty scarce, but should function if the grCard supp
 #288 GL_ATI_map_object_buffer    [] http://www.opengl.org/registry/specs/ATI/map_object_buffer.txt
 #289 GL_ATI_separate_stencil     [] http://www.opengl.org/registry/specs/ATI/separate_stencil.txt
 #290 GL_ATI_vertex_attrib_array_object [] http://www.opengl.org/registry/specs/ATI/vertex_attrib_array_object.txt
-#291 GL_OES_byte_coordinates     [] http://www.opengl.org/registry/specs/OES/OES_byte_coordinates.txt
+#291 GL_OES_byte_coordinates     [] THIS IS DISABLED UNTIL THEY FIGURE OUT HOW MANY PARAMETERS THEIR FUNCS HAVE http://www.opengl.org/registry/specs/OES/OES_byte_coordinates.txt
 #292 GL_OES_fixed_point          [] http://www.opengl.org/registry/specs/OES/OES_fixed_point.txt
 #293 GL_OES_single_precision     [] http://www.opengl.org/registry/specs/OES/OES_single_precision.txt
 #294 GL_OES_compressed_paletted_texture [] http://www.opengl.org/registry/specs/OES/OES_compressed_paletted_texture.txt
@@ -12203,7 +12217,7 @@ documentation for these is pretty scarce, but should function if the grCard supp
 #440 GL_EXT_debug_marker         [] http://www.opengl.org/registry/specs/EXT/EXT_debug_marker.txt
 #441 GL_INTEL_fragment_shader_ordering [] http://www.opengl.org/registry/specs/INTEL/fragment_shader_ordering.txt
 #442 GL_AMD_occlusion_query_event [] http://www.opengl.org/registry/specs/AMD/occlusion_query_event.txt
-#443 GL_INTEL_performance_query  [] http://www.opengl.org/registry/specs/INTEL/performance_query.txt
+#443 GL_INTEL_performance_query  [] DISABLED http://www.opengl.org/registry/specs/INTEL/performance_query.txt
 #444 GL_AMD_shader_stencil_value_export [] http://www.opengl.org/registry/specs/AMD/shader_stencil_value_export.txt
 #445 GLX_NV_delay_before_swap    [] http://www.opengl.org/registry/specs/NV/glx_delay_before_swap.txt
 #446 GLX_MESA_query_renderer     [] http://www.opengl.org/registry/specs/MESA/glx_query_renderer.txt

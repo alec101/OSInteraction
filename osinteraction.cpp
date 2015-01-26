@@ -21,6 +21,8 @@
  *   [linux] exe's don't have icons :( - http://linuxcritic.wordpress.com/2010/04/07/anatomy-of-a-desktop-file/ a clever .desktop must be autocreated
  * - [win] gamepad vibration under directinput (it is possible) & force feedback (MUST HAVE A VIBRATION GAMEPAD FIRST...)
  * - more todo's in osiInput.cpp
+ * - glLoadGen keep an eye on, maybe something similar can be made (reddit hint) https://bitbucket.org/alfonse/glloadgen/src/b6c2ec9ceb08949313d11f5c1bdc5213c3b2815a/glspecs/glxspec.lua?at=default
+ * - [all] check for sound device change message
  * LOWER PRIORITY:
  * - [all]: extensions that are core, that have both glFuncARB and just glFunc, clear the glFuncARB ?
  *          or figure something out about it. Macs don't have the funcARB, and _generates errors_

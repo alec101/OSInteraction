@@ -2212,6 +2212,7 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glGetVertexAttribArrayObjectivATI)
   }
   if(r->glEXTlist[290].avaible) {    /// #291 GL_OES_byte_coordinates http://www.opengl.org/registry/specs/OES/OES_byte_coordinates.txt
+    /* DISABLED UNTIL THEY FIGURE OUT HOW MANY PARAMETERS THEIR FUNCS HAVE
     GETGLPROCMACRO(glMultiTexCoord1bOES)
     GETGLPROCMACRO(glMultiTexCoord1bvOES)
     GETGLPROCMACRO(glMultiTexCoord2bOES)
@@ -2234,6 +2235,7 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glVertex3bvOES)
     GETGLPROCMACRO(glVertex4bOES)
     GETGLPROCMACRO(glVertex4bvOES)
+    */
   }
   if(r->glEXTlist[291].avaible) {    /// #292 GL_OES_fixed_point http://www.opengl.org/registry/specs/OES/OES_fixed_point.txt
     GETGLPROCMACRO(glAlphaFuncxOES)
@@ -3240,6 +3242,7 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glQueryObjectParameteruiAMD)
   }
   if(r->glEXTlist[442].avaible) {    /// #443 GL_INTEL_performance_query http://www.opengl.org/registry/specs/INTEL/performance_query.txt
+    /* DISABLED
     GETGLPROCMACRO(glBeginPerfQueryINTEL)
     GETGLPROCMACRO(glCreatePerfQueryINTEL)
     GETGLPROCMACRO(glDeletePerfQueryINTEL)
@@ -3250,6 +3253,7 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glGetPerfQueryDataINTEL)
     GETGLPROCMACRO(glGetPerfQueryIdByNameINTEL)
     GETGLPROCMACRO(glGetPerfQueryInfoINTEL)
+    */
   }
   if(r->glEXTlist[450].avaible) {    /// #451 GL_AMD_gpu_shader_int64 http://www.opengl.org/registry/specs/AMD/gpu_shader_int64.txt
     GETGLPROCMACRO(glUniform1i64NV)
