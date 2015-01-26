@@ -205,7 +205,7 @@ main() {
 #include <GL/glu.h>
 #include <GL/glx.h>
 
-#include "openGL/glxext.h"       // <<< provided glxext.h - should be updated when new a version appears (and it can change monthly)
+#include "oGL/glxext.h"           // <<< provided glxext.h - should be updated when new a version appears (and it can change monthly)
 #endif /// OS_LINUX
 
 #ifdef OS_MAC
