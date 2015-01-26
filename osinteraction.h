@@ -195,7 +195,7 @@ main() {
 #pragma comment(lib, "glu32")     /// if this pragma does not work, the library must be manually included
 
 //#define WGL_WGLEXT_PROTOTYPES 1
-#include "openGL/wglext.h"        // <<< provided wglext.h - should be updated when a new version appears (and it can change monthly)
+#include "oGL/wglext.h"            // <<< provided wglext.h - should be updated when a new version appears (and it can change monthly)
 #endif /// OS_WIN
 
 #ifdef OS_LINUX
@@ -217,7 +217,7 @@ main() {
 
 //#define GL_GLEXT_PROTOTYPES 1
 #ifndef OS_MAC
-#include "openGL/glext.h"        // <<< OpenGL extensions header file (OS independant ones) - should be updated when a new version appears (and it can change monthly)
+#include "oGL/glext.h"            // <<< OpenGL extensions header file (OS independant ones) - should be updated when a new version appears (and it can change monthly)
 #endif
 
 // os specific
