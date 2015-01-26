@@ -341,13 +341,13 @@ public:
   
   // CONFIGURATION
   
-  int8_t mode;                       // [MODE0]: disabled, can check against this
-                                   // [MODE1]: OS native
-                                   // [MODE2]: win(directinput) / linux(n/a) / mac(n/a)
-                                   // [MODE3]: win(xinput)      / linux(n/a) / mac(n/a)
-  str8 name;                      /// gamepad name (product name)
-  int16_t type;                     /// 0= ps3 compatible; 1= xbox compatible - COULD BE CHANGED by user in-game, and it will work to update the right axis!!!
-  int16_t maxButtons;               /// nr of buttons the gamePad has
+  int8_t mode;             // [MODE0]: disabled, can check against this
+                           // [MODE1]: OS native
+                           // [MODE2]: win(directinput) / linux(n/a) / mac(n/a)
+                           // [MODE3]: win(xinput)      / linux(n/a) / mac(n/a)
+  str8 name;              /// gamepad name (product name)
+  int16_t type;           /// 0= ps3 compatible; 1= xbox compatible - COULD BE CHANGED by user in-game, and it will work to update the right axis!!!
+  int16_t maxButtons;     /// nr of buttons the gamePad has
   
   // AXIS
   

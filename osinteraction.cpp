@@ -1,14 +1,12 @@
 #include "osinteraction.h"
 #include "util/typeShortcuts.h"
+
+
+
+
 /* TODO:
  * - NOTES for every OS, in each h or cpp file
- *  *** PRIORITY 0 *** - INSTALL 2 IDENTICAL GRCARDS, TO SEE IF THE STRING RETURNED BY WINDOWS IS THE SAME. <<< IT IS THE SAME, QUIT YELLING, scrape that, use direct3d >>>
- *                       MUST TEST ON LINUX TOO, SO MAYBE AFTER LINUX IS INSTALLED
- * - [renderer] - there have to be some setting to request a renderer per window or per graphics card (default) or just 1, or manual
-   - [renderer] - there have to be a request for a specific oGL version
-   - [renderer] - there have to be a createRenderer func, customized, for to be asigned to specific windows
    - [renderer] - special oGL window (hidden)+ renderer, that are specialized only for graphics card mathematical computations (use the grcard as another CPU)
-
  * - [linux][mac] - optimus enablement ?
    - [all] thread safe - lock() + unlock() for all major objects
    - [all] render to bitmap... this is done using a software renderer... this should go if it's hard to implement
@@ -24,8 +22,8 @@
  * - [win] gamepad vibration under directinput (it is possible) & force feedback (MUST HAVE A VIBRATION GAMEPAD FIRST...)
  * - more todo's in osiInput.cpp
  * LOWER PRIORITY:
- * - [all]: extensions that are core, that have both funcARB and just func, clear the funcARB
- *          or figure something out about it. Macs don't have the funcARB, and generates errors
+ * - [all]: extensions that are core, that have both glFuncARB and just glFunc, clear the glFuncARB ?
+ *          or figure something out about it. Macs don't have the funcARB, and _generates errors_
  * - [all]: mouse cursor change - there should be multiple mouse cursors that can be initialized and fast-set from, and a func that just changes the mouse based on data
  * - [linux]: multiple screens handling? this might be a thing of the past, tho (multiple screens)
  * - [linux]: input: using Str8 strings to read from certain files. should do a Str32, when a new Str::format is done
@@ -180,18 +178,16 @@ void _parseCmdLine(osinteraction *o);
 
 
 osinteraction::osinteraction() {
-  /// default settings values
+  // default settings values
   settings.renderer.minVerMajor= 3;
   settings.renderer.minVerMinor= 2;
   settings.renderer.setOneRendererPerGPU();
   settings.renderer.legacyCompatibility= true;
   settings.renderer.debugRenderer= false;
   settings.renderer.shareGroup= null;
-  //settings.pixelFormat.drawSurface= 1;        /// 1= window 2= bitmap MADE 3 RENDERON...
   settings.pixelFormat.renderOnWindow= true;
   settings.pixelFormat.renderOnBitmap= false;
   settings.pixelFormat.renderOnPBuffer= false;
-  //settings.pixelFormat.pixelType= 1;          /// [default= 1]  1= RGBA, 2= CMAP
   settings.pixelFormat.onlyAccelerated= true;
   settings.pixelFormat.dblBuffer= true;
   settings.pixelFormat.colorSize= 24;
@@ -199,7 +195,6 @@ osinteraction::osinteraction() {
   settings.pixelFormat.greenSize= 8;
   settings.pixelFormat.blueSize= 8;
   settings.pixelFormat.alphaSize= 8;
-  //settings.pixelFormat.pixelBits= 24;
   settings.pixelFormat.depthSize= 16;
   settings.pixelFormat.stencilSize= 8;
   settings.pixelFormat.sampleBuffers= false;  /// MSAA

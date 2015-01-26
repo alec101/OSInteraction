@@ -1,5 +1,6 @@
+#ifndef _CRT_SECURE_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
-
+#endif
 
 // TTTESTING vvvv
 //#include "osinteraction.h"
@@ -225,7 +226,7 @@ bool PNG::load(cchar *fname) {
       
       /// alloc the bitmap
       if(!bitmap) {
-        bitmap= new int8[bitmapSize];
+        bitmap= new int8[(uint)bitmapSize];
         d.p= (uint8 *)bitmap;
         d.bitmap= (uint8 *)bitmap;
         if(bpp< 8) {
@@ -233,8 +234,8 @@ bool PNG::load(cchar *fname) {
             d.p[a]= 0;
           /// interlaced+filter+less than 8bpp= 2 new buffers with current and previous scanlines are required, for the damn FILTER @$W$#@$@#
           if(interlace) {
-            d.l1= new uint8[bitmapSize/ dy];
-            d.l2= new uint8[bitmapSize/ dy];
+            d.l1= new uint8[(uint)(bitmapSize/ dy)];
+            d.l2= new uint8[(uint)(bitmapSize/ dy)];
             d.linePrev= d.l2;
             d.lineCur=  d.l1;
             d.linePos=  d.lineCur;
@@ -724,9 +725,9 @@ bool PNG::save(cchar *fname) {
 
   int64 len= pack.compressBound(bitmapSize+ dy);
 
-  cdata= new uint8[len];
+  cdata= new uint8[(uint)len];
 
-  uint8 *tmp= new uint8[bitmapSize+ dy];
+  uint8 *tmp= new uint8[(uint)(bitmapSize+ dy)];
   for(int a= 0; a< (int)dy; a++) {
     tmp[a* lineSize]= 0;    /// filter type
     for(int b= 1; b< lineSize; b++)
@@ -744,7 +745,7 @@ bool PNG::save(cchar *fname) {
 
   SFWRITE(&clength, 4, 1, f)
   SFWRITE("IDAT",   4, 1, f)
-  SFWRITE(cdata,    pack.results.outFilled, 1, f)
+  SFWRITE(cdata,    (size_t)pack.results.outFilled, 1, f)
   SFWRITE(&cCRC,    4, 1, f)
 
   delete[] tmp;

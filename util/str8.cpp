@@ -852,7 +852,7 @@ void str8::readUTF8n(FILE *f, size_t n) {
     fseek(f, pos, SEEK_SET);          /// maybe it read 1 byte? just go back anyways
 
   /// determine remaining filesize in bytes (maybe it is not reading from the start)
-	long fs;
+	size_t fs;
 	fseek(f, 0L, SEEK_END);
 	fs= ftell(f);
 	fseek(f, pos, SEEK_SET);

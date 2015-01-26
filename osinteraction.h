@@ -109,15 +109,15 @@ main() {
 #define OS_MAC 1
 #endif
 
-#define OSI_PROGRAM_ICON "icon64.png"
+#define OSI_PROGRAM_ICON "icon.png"
 
 // WINDOWS SETTINGS / DIRECTORIES vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
 #ifdef OSI_RESOURCE_ONLY
 #define IDI_LARGE 100
 #define IDI_SMALL 101
-#define OSI_ICON_LARGE "icon64.ico"        // <<< name of the program icon here [WINDOWS ONLY]
-#define OSI_ICON_SMALL "icon64.ico"        // <<< name of the small program icon here [WINDOWS ONLY]
+#define OSI_ICON_LARGE "icon.ico"        // <<< name of the program icon here [WINDOWS ONLY]
+#define OSI_ICON_SMALL "icon.ico"        // <<< name of the small program icon here [WINDOWS ONLY]
 
 #else // if not windows resource include only
 
@@ -144,8 +144,10 @@ main() {
 #define D3D9LIB64   "d3d9_64.lib"           // <<< direct3D9 64bit library file & directory location, if it is used
 
 // WINDOWS SETTINGS / DIRECTORIES ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
+#ifndef _CRT_SECURE_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
+#endif
+
 #define _WIN32_WINNT 0x05010000
 #define WINVER 0x0501
 #include <SDKDDKVer.h>
@@ -454,7 +456,7 @@ private:
   
   // nothing to do with this class:
 public:
-  bool resizeGLScene(GLsizei dx, GLsizei dy);   // this is NOT OS DEPENDANT<------------ maybe needs to be placed in another class or something    
+  bool resizeGLScene(GLsizei dx, GLsizei dy);   // debug stuff
 };
 
 #ifdef OS_WIN

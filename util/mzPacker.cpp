@@ -346,8 +346,8 @@ uint32 mzPacker::crc32(uint32 crc, cvoid *dat, int64 buf_len) {
 // ------------------- Low-level Decompression (completely independent from all compression API's)
 ///===============================================================================================
 
-#define _MEMCPY(d, s, l) for(size_t _a= 0; _a< (l); _a++) ((uint8*)d)[_a]= ((uint8 *)s)[_a]  //memcpy(d, s, l)
-#define _MEMSET(p, c, l) for(size_t _a= 0; _a< (l); _a++) ((uint8*)p)[_a]= (c);              //memset(p, c, l)
+#define _MEMCPY(d, s, l) for(int64 _a= 0; _a< (l); _a++) ((uint8*)d)[_a]= ((uint8 *)s)[_a]  //memcpy(d, s, l)
+#define _MEMSET(p, c, l) for(int64 _a= 0; _a< (l); _a++) ((uint8*)p)[_a]= (c);              //memset(p, c, l)
 
 
 
@@ -477,7 +477,7 @@ tinfl_status tinfl_decompress(tinfl_decompressor *r, const uint8 *pIn_buf_next, 
           }
         }
         n = MZ_MIN(MZ_MIN((size_t)(pOut_buf_end - pOut_buf_cur), (size_t)(pIn_buf_end - pIn_buf_cur)), counter);
-        _MEMCPY(pOut_buf_cur, pIn_buf_cur, n); pIn_buf_cur += n; pOut_buf_cur += n; counter -= (uint)n;
+        _MEMCPY(pOut_buf_cur, pIn_buf_cur, (int64)n); pIn_buf_cur += n; pOut_buf_cur += n; counter -= (uint)n;
       }
     } else if (r->m_type == 3) {
       TINFL_CR_RETURN_FOREVER(10, TINFL_STATUS_FAILED);
@@ -1539,7 +1539,7 @@ static tdefl_status tdefl_flush_output_buffer(tdefl_compressor *d) {
 
   if (d->m_pOut_buf_size) {
     size_t n = MZ_MIN(*d->m_pOut_buf_size - d->m_out_buf_ofs, d->m_output_flush_remaining);
-    _MEMCPY((uint8 *)d->m_pOut_buf + d->m_out_buf_ofs, d->m_output_buf + d->m_output_flush_ofs, n);
+    _MEMCPY((uint8 *)d->m_pOut_buf + d->m_out_buf_ofs, d->m_output_buf + d->m_output_flush_ofs, (int64)n);
     d->m_output_flush_ofs += (uint)n;
     d->m_output_flush_remaining -= (uint)n;
     d->m_out_buf_ofs += n;
@@ -1991,7 +1991,7 @@ void *mzPacker::doAdvDecomp(int64 chunkSize, int64 *retLen) {
 
       /// read from input file
       if(_inType== STDIO_FILE|| _inType== STDIO_FULL_FILE)
-        if(fread(_inBuffer, _inSize, 1, (FILE *)_file)!= 1) { err= 0x40; break; }
+        if(fread(_inBuffer, (size_t)_inSize, 1, (FILE *)_file)!= 1) { err= 0x40; break; }
 
     // a continue of a decompress process
     } else {
@@ -2026,7 +2026,7 @@ void *mzPacker::doAdvDecomp(int64 chunkSize, int64 *retLen) {
 
         /// read more from input file
         if(_inType== STDIO_FILE || _inType== STDIO_FULL_FILE)
-          if(!fread(_inBuffer, _inSize, 1, (FILE *)_file)) { err= 0x40; break; }
+          if(!fread(_inBuffer, (size_t)_inSize, 1, (FILE *)_file)) { err= 0x40; break; }
       }
 
     } /// start or continue of a comp process
@@ -2236,7 +2236,7 @@ void *mzPacker::doAdvComp(int64 chunkSize, int64 *retLen) {
 
       /// read from input file
       if(_inType== STDIO_FILE || _inType== STDIO_FULL_FILE)
-        if(fread(_inBuffer, _inSize, 1, (FILE *)_file)!= 1) { err= 0x40; break; }
+        if(fread(_inBuffer, (size_t)_inSize, 1, (FILE *)_file)!= 1) { err= 0x40; break; }
 
     // a continue of a decompress process
     } else {
@@ -2271,7 +2271,7 @@ void *mzPacker::doAdvComp(int64 chunkSize, int64 *retLen) {
 
         /// read more from input file
         if(_inType== STDIO_FILE || _inType== STDIO_FULL_FILE)
-          if(!fread(_inBuffer, _inSize, 1, (FILE *)_file)) { err= 0x40; break; }
+          if(!fread(_inBuffer, (size_t)_inSize, 1, (FILE *)_file)) { err= 0x40; break; }
       }
 
     } /// start or continue of a comp process
