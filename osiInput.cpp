@@ -3183,8 +3183,16 @@ void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDValueRef
 
   IOHIDElementRef elem= IOHIDValueGetElement(val);        /// get the 'element' thet of the value
   IOHIDDeviceRef device= IOHIDElementGetDevice(elem);     /// get the HID device that a element belongs to
-  IOHIDElementCookie cookie= IOHIDElementGetCookie(elem)- 1; /// cookies represent a unique identifier for a HID element (also first element they point to is 1, and the list starts with 0)
-
+  uint32 cookie;  
+  
+  #ifdef __LP64__ // they did the cookie as int32 for 64bit MacOS, and void * for 32... INCREDIBLE!!!
+  cookie= (uint32)IOHIDElementGetCookie(elem)- 1; /// cookies represent a unique identifier for a HID element (also first element they point to is 1, and the list starts with 0)
+  #else
+  IOHIDElementCookie _cook= IOHIDElementGetCookie(elem); /// cookies represent a unique identifier for a HID element (also first element they point to is 1, and the list starts with 0)
+  cookie= *((uint8 *)_cook);
+  cookie--;
+  #endif
+  
   /// find the stick/pad/wheel this change belongs to
   int16 a;
   for(a= 0; a< in.nr.jOS; a++)

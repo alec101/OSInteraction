@@ -660,11 +660,6 @@ bool _processMSG(void) {
   bool ret= false;
 
 
-  // PRIORITY!!!!!!!!!!!!!!!!!!
-  
-  // these autorelease pools are not right, i think
-  //  there's lots of allocs goin on, i don't like it
-
   NSAutoreleasePool *pool=[[NSAutoreleasePool alloc] init];
 
   /// set flags down
@@ -685,8 +680,7 @@ bool _processMSG(void) {
     if(event== nil)
       break;
 
-    // TO BE OR NOT TO BE... it might eliminate function calls that generate lag ...
-
+    
 
     ///==========================================================================///
     // ----------------------------- MOUSE EVENTS ------------------------------- //
