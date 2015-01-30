@@ -14,6 +14,12 @@ SOME features:
 * Tons of other nice stuff.
 
 -
+If you want to use OSI as an library, you can download OSI lib from here:
+
+https://www.dropbox.com/sh/ml4pahesz7ebb8s/AACUvEPVGw3pI1Z-3EInoVSwa?dl=0
+
+
+-
 USAGE example:
 --------------
 
