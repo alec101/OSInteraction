@@ -1,5 +1,5 @@
-#include "osinteraction.h"
-#include "util/typeShortcuts.h"
+#include "../include/osinteraction.h"
+#include "../include/util/typeShortcuts.h"
 
 #ifdef USING_DIRECT3D
 #include <d3d9.h>

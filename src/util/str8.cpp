@@ -6,9 +6,9 @@
 
 #include <stdio.h>
 #include <stdarg.h>
-#include "typeShortcuts.h"
-#include "strCommon.h"
-#include "str8.h"
+#include "../../include/util/typeShortcuts.h"
+#include "../../include/util/strCommon.h"
+#include "../../include/util/str8.h"
 
 // lower+upper can be done for chars that expand into multiple chars and vice-versa, easily
 //       (2 funcs to check for these few cases, when counting how big the str is)

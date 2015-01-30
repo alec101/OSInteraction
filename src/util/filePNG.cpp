@@ -11,10 +11,10 @@
 #include <stdlib.h>
 
 
-#include "typeShortcuts.h"
-#include "str8.h"
-#include "mzPacker.h"
-#include "filePNG.h"
+#include "../../include/util/typeShortcuts.h"
+#include "../../include/util/str8.h"
+#include "../../include/util/mzPacker.h"
+#include "../../include/util/filePNG.h"
 
 
 

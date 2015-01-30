@@ -1,5 +1,5 @@
-#include "osinteraction.h"
-#include "util/typeShortcuts.h"
+#include "../include/osinteraction.h"
+#include "../include/util/typeShortcuts.h"
 /* 
  * keysym2unicode is the same as http://www.cl.cam.ac.uk/~mgk25/ucs/keysym2ucs.c
  * but the list was updated from http://www.cl.cam.ac.uk/~mgk25/ucs/keysyms.txt

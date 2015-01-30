@@ -33,7 +33,7 @@
 //
 // WIN libs: [opengl32] [glu32] - OpenGL libraries
 //           if any dinput, xinput or direct3d are used, some directx sdk files (libs+includes) are provided, but directx sdk can be downloaded and used instead
-//           [d3d9]:             [#define USING_DIRECT3D] must be set in osinteraction.h - used ONLY for GPU detection (hopefully oGL will have an extension for this, in the future)
+//           [d3d9]:             [#define USING_DIRECT3D] must be set in osinteraction.h - used ONLY for GPU detection (hopefully openGL will have an extension for this, in the future)
 //           [dinput8] [dxguid]: [#define USING_DIRECTINPUT] must be set in osinteration.h - used for direct input HIDs - joysticks gamepads etc
 //           [xinput]:           [#define USING_XINPUT] must be set in osinteraction.h - used for xinput HIDs - probly only gamepads
 //
@@ -195,7 +195,7 @@ main() {
 #pragma comment(lib, "glu32")     /// if this pragma does not work, the library must be manually included
 
 //#define WGL_WGLEXT_PROTOTYPES 1
-#include "oGL/wglext.h"            // <<< provided wglext.h - should be updated when a new version appears (and it can change monthly)
+#include "openGL/wglext.h"            // <<< provided wglext.h - should be updated when a new version appears (and it can change monthly)
 #endif /// OS_WIN
 
 #ifdef OS_LINUX
@@ -208,7 +208,7 @@ main() {
 #include <GL/glx.h>
 #include <GL/glxext.h>
 #include <GL/glext.h>
-//#include "oGL/glxext.h"           // <<< provided glxext.h - should be updated when new a version appears (and it can change monthly)
+//#include "openGL/glxext.h"           // <<< provided glxext.h - should be updated when new a version appears (and it can change monthly)
 #endif /// OS_LINUX
 
 #ifdef OS_MAC
@@ -220,7 +220,7 @@ main() {
 
 //#define GL_GLEXT_PROTOTYPES 1
 #ifndef OS_MAC
-#include "oGL/glext.h"            // <<< OpenGL extensions header file (OS independant ones) - should be updated when a new version appears (and it can change monthly)
+#include "openGL/glext.h"            // <<< OpenGL extensions header file (OS independant ones) - should be updated when a new version appears (and it can change monthly)
 #endif
 
 // os specific

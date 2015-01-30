@@ -1,5 +1,5 @@
-#include "osinteraction.h"
-#include "util/typeShortcuts.h"
+#include "../include/osinteraction.h"
+#include "../include/util/typeShortcuts.h"
 /* MIGHT TRY TO MAKE THIS NOT NECESARY A PART OF OSI
 #include "glext.h"
 

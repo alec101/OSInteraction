@@ -5,9 +5,9 @@
 #endif
 
 #include <stdio.h>
-#include "typeShortcuts.h"
-#include "strCommon.h"
-#include "str32.h"
+#include "../../include/util/typeShortcuts.h"
+#include "../../include/util/strCommon.h"
+#include "../../include/util/str32.h"
 
 
 /* UTF 8 research

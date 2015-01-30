@@ -1,5 +1,5 @@
-#include "typeShortcuts.h"
-#include "strCommon.h"
+#include "../../include/util/typeShortcuts.h"
+#include "../../include/util/strCommon.h"
 
 using namespace Str;
 

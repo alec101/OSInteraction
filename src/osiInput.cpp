@@ -1,5 +1,5 @@
-#include "osinteraction.h"
-#include "util/typeShortcuts.h"
+#include "../include/osinteraction.h"
+#include "../include/util/typeShortcuts.h"
 
 #ifdef OS_LINUX
 //#include <linux/joystick.h>   // it's not x stuff... lots of crap added, keyboard/mouse, that is not needed. IT'S POSSIBLE TO AVOID THIS HEADER, only some function definitions are needed.

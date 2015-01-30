@@ -14,9 +14,9 @@
 #include <mach/mach_time.h>             // high resolution clock funcs
 #endif /// OS_MAC
 
-#include "typeShortcuts.h"
-#include "chainList.h"
-#include "segList.h"
+#include "../../include/util/typeShortcuts.h"
+#include "../../include/util/chainList.h"
+#include "../../include/util/segList.h"
 
 
 // !!!!!!!!!!!

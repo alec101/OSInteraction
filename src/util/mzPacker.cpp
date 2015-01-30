@@ -8,8 +8,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include "typeShortcuts.h"
-#include "mzPacker.h"
+#include "../../include/util/typeShortcuts.h"
+#include "../../include/util/mzPacker.h"
 
 
 

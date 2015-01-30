@@ -8,8 +8,8 @@
 //#include "OSinteraction.h"
 #include <stdio.h>
 
-#include "typeShortcuts.h"
-#include "fileTGA.h"
+#include "../../include/util/typeShortcuts.h"
+#include "../../include/util/fileTGA.h"
 
 /* TODO:
 */

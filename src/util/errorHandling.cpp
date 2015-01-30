@@ -39,9 +39,9 @@
 #include <stdlib.h>
 #include <stdarg.h>
 
-#include "typeShortcuts.h"
-#include "str8.h"
-#include "errorHandling.h"
+#include "../../include/util/typeShortcuts.h"
+#include "../../include/util/str8.h"
+#include "../../include/util/errorHandling.h"
 
 
 #ifdef USING_CONSOLE          // project defined
