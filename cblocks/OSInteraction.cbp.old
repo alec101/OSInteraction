@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="OSInteraction" />
+		<Option makefile="cbMakefile" />
+		<Option pch_mode="2" />
+		<Option compiler="clang" />
+		<Build>
+			<Target title="linuxD64">
+				<Option output="output/OSInteraction64_dbg" prefix_auto="1" extension_auto="1" />
+				<Option object_output="build/linuxD64/" />
+				<Option type="1" />
+				<Option compiler="clang" />
+				<Compiler>
+					<Add option="-g" />
+					<Add option="-DOS_LINUX" />
+				</Compiler>
+			</Target>
+			<Target title="linuxR64">
+				<Option output="output/OSInteraction64" prefix_auto="1" extension_auto="1" />
+				<Option object_output="build/linuxR64/" />
+				<Option type="1" />
+				<Option compiler="clang" />
+				<Compiler>
+					<Add option="-O2" />
+					<Add option="-DOS_LINUX" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+			<Add option="-DOS_LINUX" />
+			<Add directory="." />
+			<Add directory="../!utilClasses" />
+			<Add directory="/source" />
+		</Compiler>
+		<Linker>
+			<Add library="GL" />
+			<Add library="GLU" />
+			<Add library="Xrandr" />
+		</Linker>
+		<Unit filename="../!utilClasses/chainList.cpp" />
+		<Unit filename="../!utilClasses/chainList.h" />
+		<Unit filename="../!utilClasses/errorHandling.cpp" />
+		<Unit filename="../!utilClasses/errorHandling.h" />
+		<Unit filename="../!utilClasses/segList.cpp" />
+		<Unit filename="../!utilClasses/segList.h" />
+		<Unit filename="../!utilClasses/stringClass32.cpp" />
+		<Unit filename="../!utilClasses/stringClass32.h" />
+		<Unit filename="../!utilClasses/stringClass8.cpp" />
+		<Unit filename="../!utilClasses/stringClass8.h" />
+		<Unit filename="../!utilClasses/typeShortcuts.h" />
+		<Unit filename="source/OSchar.cpp" />
+		<Unit filename="source/OSchar.h" />
+		<Unit filename="source/OSdisplay.cpp" />
+		<Unit filename="source/OSdisplay.h" />
+		<Unit filename="source/OSinput.cpp" />
+		<Unit filename="source/OSinput.h" />
+		<Unit filename="source/OSinteraction.cpp" />
+		<Unit filename="source/OSinteraction.h" />
+		<Unit filename="source/keysyms.out.txt" />
+		<Unit filename="source/keysyms.txt" />
+		<Unit filename="source/precompiled.cpp" />
+		<Unit filename="source/precompiled.h" />
+		<Unit filename="source/targetver.h" />
+		<Extensions>
+			<code_completion />
+			<envvars />
+			<lib_finder disable_auto="1" />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>

@@ -1,0 +1,955 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="95">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <logicalFolder name="HeaderFiles"
+                   displayName="Header Files"
+                   projectFiles="true">
+      <logicalFolder name="f2" displayName="OpenGL" projectFiles="true">
+        <itemPath>../include/oGL/glext.h</itemPath>
+        <itemPath>../include/oGL/glxext.h</itemPath>
+        <itemPath>../include/oGL/wglext.h</itemPath>
+      </logicalFolder>
+      <logicalFolder name="f1" displayName="util" projectFiles="true">
+        <itemPath>../include/util/chainList.h</itemPath>
+        <itemPath>../include/util/errorHandling.h</itemPath>
+        <itemPath>../include/util/filePNG.h</itemPath>
+        <itemPath>../include/util/fileTGA.h</itemPath>
+        <itemPath>../include/util/mzPacker.h</itemPath>
+        <itemPath>../include/util/segList.h</itemPath>
+        <itemPath>../include/util/str32.h</itemPath>
+        <itemPath>../include/util/str8.h</itemPath>
+        <itemPath>../include/util/strCommon.h</itemPath>
+        <itemPath>../include/util/typeShortcuts.h</itemPath>
+      </logicalFolder>
+      <itemPath>../include/osiChar.h</itemPath>
+      <itemPath>../include/osiCocoa.h</itemPath>
+      <itemPath>../include/osiDisplay.h</itemPath>
+      <itemPath>../include/osiGlExt.h</itemPath>
+      <itemPath>../include/osiInput.h</itemPath>
+      <itemPath>../include/osiRenderer.h</itemPath>
+      <itemPath>../include/osiWindow.h</itemPath>
+      <itemPath>../include/osinteraction.h</itemPath>
+    </logicalFolder>
+    <logicalFolder name="ResourceFiles"
+                   displayName="Resource Files"
+                   projectFiles="true">
+    </logicalFolder>
+    <logicalFolder name="SourceFiles"
+                   displayName="Source Files"
+                   projectFiles="true">
+      <logicalFolder name="f1" displayName="util" projectFiles="true">
+        <itemPath>../src/util/chainList.cpp</itemPath>
+        <itemPath>../src/util/errorHandling.cpp</itemPath>
+        <itemPath>../src/util/filePNG.cpp</itemPath>
+        <itemPath>../src/util/fileTGA.cpp</itemPath>
+        <itemPath>../src/util/mzPacker.cpp</itemPath>
+        <itemPath>../src/util/segList.cpp</itemPath>
+        <itemPath>../src/util/str32.cpp</itemPath>
+        <itemPath>../src/util/str8.cpp</itemPath>
+        <itemPath>../src/util/strCommon.cpp</itemPath>
+      </logicalFolder>
+      <itemPath>../src/osiChar.cpp</itemPath>
+      <itemPath>../src/osiCocoa.mm</itemPath>
+      <itemPath>../src/osiDisplay.cpp</itemPath>
+      <itemPath>../src/osiGlExt.cpp</itemPath>
+      <itemPath>../src/osiInput.cpp</itemPath>
+      <itemPath>../src/osiRenderer.cpp</itemPath>
+      <itemPath>../src/osiWindow.cpp</itemPath>
+      <itemPath>../src/osinteraction.cpp</itemPath>
+    </logicalFolder>
+    <logicalFolder name="TestFiles"
+                   displayName="Test Files"
+                   projectFiles="false"
+                   kind="TEST_LOGICAL_FOLDER">
+    </logicalFolder>
+    <logicalFolder name="ExternalFiles"
+                   displayName="Important Files"
+                   projectFiles="false"
+                   kind="IMPORTANT_FILES_FOLDER">
+      <itemPath>Makefile</itemPath>
+    </logicalFolder>
+  </logicalFolder>
+  <projectmakefile>Makefile</projectmakefile>
+  <confs>
+    <conf name="linux64D" type="3">
+      <toolsSet>
+        <compilerSet>clang|CLang</compilerSet>
+        <dependencyChecking>true</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <compileType>
+        <cTool>
+          <architecture>2</architecture>
+          <standard>10</standard>
+          <incDir>
+            <pElem>../include</pElem>
+          </incDir>
+        </cTool>
+        <ccTool>
+          <architecture>2</architecture>
+          <standard>8</standard>
+          <incDir>
+            <pElem>../include</pElem>
+          </incDir>
+        </ccTool>
+        <fortranCompilerTool>
+          <architecture>2</architecture>
+        </fortranCompilerTool>
+        <asmTool>
+          <architecture>2</architecture>
+        </asmTool>
+        <archiverTool>
+          <output>../lib/osi64linux_dbg.so</output>
+        </archiverTool>
+      </compileType>
+      <item path="../include/oGL/glext.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/oGL/glxext.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/oGL/wglext.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiChar.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiCocoa.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiDisplay.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiGlExt.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiInput.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiRenderer.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiWindow.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osinteraction.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/chainList.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/errorHandling.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/filePNG.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/fileTGA.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/mzPacker.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/segList.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/str32.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/str8.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/strCommon.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/typeShortcuts.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../src/osiChar.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiCocoa.mm" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiDisplay.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiGlExt.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiInput.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiRenderer.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiWindow.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osinteraction.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/chainList.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/errorHandling.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/filePNG.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/fileTGA.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/mzPacker.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/segList.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/str32.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/str8.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/strCommon.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+    </conf>
+    <conf name="linux64R" type="3">
+      <toolsSet>
+        <compilerSet>clang|CLang</compilerSet>
+        <dependencyChecking>true</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <compileType>
+        <cTool>
+          <developmentMode>5</developmentMode>
+          <architecture>2</architecture>
+          <standard>10</standard>
+          <incDir>
+            <pElem>../include</pElem>
+          </incDir>
+        </cTool>
+        <ccTool>
+          <developmentMode>5</developmentMode>
+          <architecture>2</architecture>
+          <standard>8</standard>
+          <incDir>
+            <pElem>../include</pElem>
+          </incDir>
+        </ccTool>
+        <fortranCompilerTool>
+          <developmentMode>5</developmentMode>
+          <architecture>2</architecture>
+        </fortranCompilerTool>
+        <asmTool>
+          <developmentMode>5</developmentMode>
+          <architecture>2</architecture>
+        </asmTool>
+        <archiverTool>
+          <output>../lib/osi64linux.so</output>
+        </archiverTool>
+      </compileType>
+      <item path="../include/oGL/glext.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/oGL/glxext.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/oGL/wglext.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiChar.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiCocoa.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiDisplay.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiGlExt.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiInput.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiRenderer.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiWindow.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osinteraction.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/chainList.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/errorHandling.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/filePNG.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/fileTGA.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/mzPacker.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/segList.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/str32.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/str8.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/strCommon.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/typeShortcuts.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../src/osiChar.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiCocoa.mm" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiDisplay.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiGlExt.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiInput.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiRenderer.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiWindow.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osinteraction.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/chainList.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/errorHandling.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/filePNG.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/fileTGA.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/mzPacker.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/segList.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/str32.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/str8.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/strCommon.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+    </conf>
+    <conf name="linux32D" type="3">
+      <toolsSet>
+        <compilerSet>clang|CLang</compilerSet>
+        <dependencyChecking>true</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <compileType>
+        <cTool>
+          <architecture>1</architecture>
+          <standard>10</standard>
+          <incDir>
+            <pElem>../include</pElem>
+          </incDir>
+        </cTool>
+        <ccTool>
+          <architecture>1</architecture>
+          <standard>8</standard>
+          <incDir>
+            <pElem>../include</pElem>
+          </incDir>
+        </ccTool>
+        <fortranCompilerTool>
+          <architecture>1</architecture>
+        </fortranCompilerTool>
+        <asmTool>
+          <architecture>1</architecture>
+        </asmTool>
+        <archiverTool>
+          <output>../lib/osi32linux_dbg.so</output>
+        </archiverTool>
+      </compileType>
+      <item path="../include/oGL/glext.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/oGL/glxext.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/oGL/wglext.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiChar.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiCocoa.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiDisplay.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiGlExt.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiInput.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiRenderer.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiWindow.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osinteraction.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/chainList.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/errorHandling.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/filePNG.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/fileTGA.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/mzPacker.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/segList.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/str32.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/str8.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/strCommon.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/typeShortcuts.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../src/osiChar.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiCocoa.mm" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiDisplay.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiGlExt.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiInput.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiRenderer.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiWindow.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osinteraction.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/chainList.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/errorHandling.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/filePNG.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/fileTGA.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/mzPacker.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/segList.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/str32.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/str8.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/strCommon.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+    </conf>
+    <conf name="linux32R" type="3">
+      <toolsSet>
+        <compilerSet>clang|CLang</compilerSet>
+        <dependencyChecking>true</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <compileType>
+        <cTool>
+          <developmentMode>5</developmentMode>
+          <architecture>1</architecture>
+          <standard>10</standard>
+          <incDir>
+            <pElem>../include</pElem>
+          </incDir>
+        </cTool>
+        <ccTool>
+          <developmentMode>5</developmentMode>
+          <architecture>1</architecture>
+          <standard>8</standard>
+          <incDir>
+            <pElem>../include</pElem>
+          </incDir>
+        </ccTool>
+        <fortranCompilerTool>
+          <developmentMode>5</developmentMode>
+          <architecture>1</architecture>
+        </fortranCompilerTool>
+        <asmTool>
+          <developmentMode>5</developmentMode>
+          <architecture>1</architecture>
+        </asmTool>
+        <archiverTool>
+          <output>../lib/osi32linux.so</output>
+        </archiverTool>
+      </compileType>
+      <item path="../include/oGL/glext.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/oGL/glxext.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/oGL/wglext.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiChar.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiCocoa.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiDisplay.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiGlExt.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiInput.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiRenderer.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiWindow.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osinteraction.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/chainList.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/errorHandling.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/filePNG.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/fileTGA.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/mzPacker.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/segList.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/str32.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/str8.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/strCommon.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/typeShortcuts.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../src/osiChar.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiCocoa.mm" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiDisplay.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiGlExt.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiInput.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiRenderer.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiWindow.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osinteraction.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/chainList.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/errorHandling.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/filePNG.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/fileTGA.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/mzPacker.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/segList.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/str32.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/str8.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/strCommon.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+    </conf>
+    <conf name="mac64D" type="3">
+      <toolsSet>
+        <compilerSet>CLang|CLang</compilerSet>
+        <dependencyChecking>true</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <compileType>
+        <cTool>
+          <architecture>2</architecture>
+          <standard>10</standard>
+          <incDir>
+            <pElem>../include</pElem>
+          </incDir>
+        </cTool>
+        <ccTool>
+          <architecture>2</architecture>
+          <standard>8</standard>
+          <incDir>
+            <pElem>../include</pElem>
+          </incDir>
+        </ccTool>
+        <fortranCompilerTool>
+          <architecture>2</architecture>
+        </fortranCompilerTool>
+        <asmTool>
+          <architecture>2</architecture>
+        </asmTool>
+        <archiverTool>
+          <output>../lib/osi64mac_dbg.so</output>
+        </archiverTool>
+      </compileType>
+      <item path="../include/oGL/glext.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/oGL/glxext.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/oGL/wglext.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiChar.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiCocoa.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiDisplay.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiGlExt.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiInput.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiRenderer.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiWindow.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osinteraction.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/chainList.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/errorHandling.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/filePNG.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/fileTGA.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/mzPacker.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/segList.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/str32.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/str8.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/strCommon.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/typeShortcuts.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../src/osiChar.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiCocoa.mm" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiDisplay.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiGlExt.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiInput.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiRenderer.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiWindow.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osinteraction.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/chainList.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/errorHandling.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/filePNG.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/fileTGA.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/mzPacker.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/segList.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/str32.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/str8.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/strCommon.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+    </conf>
+    <conf name="mac64R" type="3">
+      <toolsSet>
+        <compilerSet>CLang|CLang</compilerSet>
+        <dependencyChecking>true</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <compileType>
+        <cTool>
+          <developmentMode>5</developmentMode>
+          <architecture>2</architecture>
+          <standard>10</standard>
+          <incDir>
+            <pElem>../include</pElem>
+          </incDir>
+        </cTool>
+        <ccTool>
+          <developmentMode>5</developmentMode>
+          <architecture>2</architecture>
+          <standard>8</standard>
+          <incDir>
+            <pElem>../include</pElem>
+          </incDir>
+        </ccTool>
+        <fortranCompilerTool>
+          <developmentMode>5</developmentMode>
+          <architecture>2</architecture>
+        </fortranCompilerTool>
+        <asmTool>
+          <developmentMode>5</developmentMode>
+          <architecture>2</architecture>
+        </asmTool>
+        <archiverTool>
+          <output>../lib/osi64mac.so</output>
+        </archiverTool>
+      </compileType>
+      <item path="../include/oGL/glext.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/oGL/glxext.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/oGL/wglext.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiChar.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiCocoa.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiDisplay.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiGlExt.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiInput.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiRenderer.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiWindow.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osinteraction.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/chainList.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/errorHandling.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/filePNG.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/fileTGA.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/mzPacker.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/segList.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/str32.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/str8.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/strCommon.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/typeShortcuts.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../src/osiChar.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiCocoa.mm" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiDisplay.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiGlExt.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiInput.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiRenderer.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiWindow.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osinteraction.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/chainList.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/errorHandling.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/filePNG.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/fileTGA.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/mzPacker.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/segList.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/str32.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/str8.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/strCommon.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+    </conf>
+    <conf name="mac32D" type="3">
+      <toolsSet>
+        <compilerSet>CLang|CLang</compilerSet>
+        <dependencyChecking>true</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <compileType>
+        <cTool>
+          <architecture>1</architecture>
+          <standard>10</standard>
+          <incDir>
+            <pElem>../include</pElem>
+          </incDir>
+        </cTool>
+        <ccTool>
+          <architecture>1</architecture>
+          <standard>8</standard>
+          <incDir>
+            <pElem>../include</pElem>
+          </incDir>
+        </ccTool>
+        <fortranCompilerTool>
+          <architecture>1</architecture>
+        </fortranCompilerTool>
+        <asmTool>
+          <architecture>1</architecture>
+        </asmTool>
+        <archiverTool>
+          <output>../lib/osi32mac_dbg.so</output>
+        </archiverTool>
+      </compileType>
+      <item path="../include/oGL/glext.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/oGL/glxext.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/oGL/wglext.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiChar.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiCocoa.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiDisplay.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiGlExt.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiInput.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiRenderer.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiWindow.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osinteraction.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/chainList.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/errorHandling.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/filePNG.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/fileTGA.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/mzPacker.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/segList.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/str32.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/str8.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/strCommon.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/typeShortcuts.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../src/osiChar.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiCocoa.mm" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiDisplay.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiGlExt.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiInput.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiRenderer.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiWindow.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osinteraction.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/chainList.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/errorHandling.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/filePNG.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/fileTGA.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/mzPacker.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/segList.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/str32.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/str8.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/strCommon.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+    </conf>
+    <conf name="mac32R" type="3">
+      <toolsSet>
+        <compilerSet>CLang|CLang</compilerSet>
+        <dependencyChecking>true</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <compileType>
+        <cTool>
+          <developmentMode>5</developmentMode>
+          <architecture>1</architecture>
+          <standard>10</standard>
+          <incDir>
+            <pElem>../include</pElem>
+          </incDir>
+        </cTool>
+        <ccTool>
+          <developmentMode>5</developmentMode>
+          <architecture>1</architecture>
+          <standard>8</standard>
+          <incDir>
+            <pElem>../include</pElem>
+          </incDir>
+        </ccTool>
+        <fortranCompilerTool>
+          <developmentMode>5</developmentMode>
+          <architecture>1</architecture>
+        </fortranCompilerTool>
+        <asmTool>
+          <developmentMode>5</developmentMode>
+          <architecture>1</architecture>
+        </asmTool>
+        <archiverTool>
+          <output>../lib/osi32mac.so</output>
+        </archiverTool>
+      </compileType>
+      <item path="../include/oGL/glext.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/oGL/glxext.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/oGL/wglext.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiChar.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiCocoa.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiDisplay.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiGlExt.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiInput.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiRenderer.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osiWindow.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/osinteraction.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/chainList.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/errorHandling.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/filePNG.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/fileTGA.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/mzPacker.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/segList.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/str32.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/str8.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/strCommon.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../include/util/typeShortcuts.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="../src/osiChar.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiCocoa.mm" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiDisplay.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiGlExt.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiInput.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiRenderer.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osiWindow.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/osinteraction.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/chainList.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/errorHandling.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/filePNG.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/fileTGA.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/mzPacker.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/segList.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/str32.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/str8.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="../src/util/strCommon.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+    </conf>
+  </confs>
+</configurationDescriptor>

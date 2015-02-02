@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="OSInteraction" />
+		<Option pch_mode="2" />
+		<Option compiler="clang" />
+		<Option virtualFolders="sources/;headers/;!utilClasses/;" />
+		<Build>
+			<Target title="linux64D">
+				<Option output="../output/OSInteraction_dbg" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="../output/" />
+				<Option object_output="../build/linux64D/" />
+				<Option type="1" />
+				<Option compiler="clang" />
+				<Compiler>
+					<Add option="-g" />
+					<Add option="-DOS_LINUX" />
+					<Add directory=".." />
+					<Add directory="../source" />
+					<Add directory="../../!utilClasses" />
+				</Compiler>
+				<Linker>
+					<Add library="GL" />
+					<Add library="GLU" />
+					<Add library="Xrandr" />
+					<Add library="Xi" />
+				</Linker>
+			</Target>
+			<Target title="linux64R">
+				<Option output="../output/OSInteraction" prefix_auto="1" extension_auto="1" />
+				<Option working_dir="../output/" />
+				<Option object_output="../build/linux64R/" />
+				<Option type="1" />
+				<Option compiler="clang" />
+				<Compiler>
+					<Add option="-O2" />
+					<Add option="-DOS_LINUX" />
+					<Add directory=".." />
+					<Add directory="../source" />
+					<Add directory="../../!utilClasses" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+					<Add library="GL" />
+					<Add library="GLU" />
+					<Add library="Xrandr" />
+					<Add library="Xi" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+		</Compiler>
+		<Unit filename="../../!utilClasses/chainList.cpp">
+			<Option virtualFolder="!utilClasses/" />
+		</Unit>
+		<Unit filename="../../!utilClasses/chainList.h">
+			<Option virtualFolder="!utilClasses/" />
+		</Unit>
+		<Unit filename="../../!utilClasses/errorHandling.cpp">
+			<Option virtualFolder="!utilClasses/" />
+		</Unit>
+		<Unit filename="../../!utilClasses/errorHandling.h">
+			<Option virtualFolder="!utilClasses/" />
+		</Unit>
+		<Unit filename="../../!utilClasses/segList.cpp">
+			<Option virtualFolder="!utilClasses/" />
+		</Unit>
+		<Unit filename="../../!utilClasses/segList.h">
+			<Option virtualFolder="!utilClasses/" />
+		</Unit>
+		<Unit filename="../../!utilClasses/stringClass32.cpp">
+			<Option virtualFolder="!utilClasses/" />
+		</Unit>
+		<Unit filename="../../!utilClasses/stringClass32.h">
+			<Option virtualFolder="!utilClasses/" />
+		</Unit>
+		<Unit filename="../../!utilClasses/stringClass8.cpp">
+			<Option virtualFolder="!utilClasses/" />
+		</Unit>
+		<Unit filename="../../!utilClasses/stringClass8.h">
+			<Option virtualFolder="!utilClasses/" />
+		</Unit>
+		<Unit filename="../../!utilClasses/typeShortcuts.h">
+			<Option virtualFolder="!utilClasses/" />
+		</Unit>
+		<Unit filename="../source/OSchar.cpp">
+			<Option virtualFolder="sources/" />
+		</Unit>
+		<Unit filename="../source/OSchar.h">
+			<Option virtualFolder="headers/" />
+		</Unit>
+		<Unit filename="../source/OScocoa.h">
+			<Option virtualFolder="headers/" />
+		</Unit>
+		<Unit filename="../source/OScocoa.mm">
+			<Option virtualFolder="sources/" />
+		</Unit>
+		<Unit filename="../source/OSdisplay.cpp">
+			<Option virtualFolder="sources/" />
+		</Unit>
+		<Unit filename="../source/OSdisplay.h">
+			<Option virtualFolder="headers/" />
+		</Unit>
+		<Unit filename="../source/OSinput.cpp">
+			<Option virtualFolder="sources/" />
+		</Unit>
+		<Unit filename="../source/OSinput.h">
+			<Option virtualFolder="headers/" />
+		</Unit>
+		<Unit filename="../source/OSinteraction.cpp">
+			<Option virtualFolder="sources/" />
+		</Unit>
+		<Unit filename="../source/OSinteraction.h">
+			<Option virtualFolder="headers/" />
+		</Unit>
+		<Unit filename="../source/pch.cpp">
+			<Option virtualFolder="sources/" />
+		</Unit>
+		<Unit filename="../source/pch.h">
+			<Option virtualFolder="headers/" />
+		</Unit>
+		<Unit filename="../source/pch.h.gch">
+			<Option virtualFolder="sources/" />
+		</Unit>
+		<Unit filename="../source/targetver.h">
+			<Option virtualFolder="headers/" />
+		</Unit>
+		<Extensions>
+			<code_completion>
+				<search_path add=".." />
+				<search_path add="../source" />
+				<search_path add="../../!utilClasses" />
+			</code_completion>
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>

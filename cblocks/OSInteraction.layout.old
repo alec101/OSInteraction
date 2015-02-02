@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_layout_file>
+	<ActiveTarget name="linuxD64" />
+	<File name="../!utilClasses/stringClass8.cpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="3891" topLine="90" />
+		</Cursor>
+	</File>
+	<File name="../!utilClasses/stringClass32.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="8913" topLine="61" />
+		</Cursor>
+	</File>
+	<File name="../!utilClasses/stringClass8.h" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="8568" topLine="63" />
+		</Cursor>
+	</File>
+	<File name="../!utilClasses/errorHandling.cpp" open="0" top="0" tabpos="3" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="3340" topLine="132" />
+		</Cursor>
+	</File>
+	<File name="../!utilClasses/stringClass32.cpp" open="0" top="0" tabpos="0" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="3244" topLine="75" />
+		</Cursor>
+	</File>
+	<File name="source/OSdisplay.cpp" open="1" top="0" tabpos="1" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="18326" topLine="371" />
+		</Cursor>
+		<Folding>
+			<Collapse line="389" />
+		</Folding>
+	</File>
+	<File name="source/OSinteraction.cpp" open="1" top="0" tabpos="2" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="2923" topLine="0" />
+		</Cursor>
+	</File>
+	<File name="source/precompiled.h" open="0" top="0" tabpos="4" split="0" active="1" splitpos="0" zoom_1="0" zoom_2="0">
+		<Cursor>
+			<Cursor1 position="1709" topLine="33" />
+		</Cursor>
+	</File>
+</CodeBlocks_layout_file>
