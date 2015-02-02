@@ -2,7 +2,7 @@
 
 // IMPORTANT:
 // - ~5% of times, mainly if using small buffers, the (de)compiler will not write data in ouput, but will process input
-//   this means, that a check should be done to see if mzPacker::results.outFilled, HAS a value (it can be 0)
+//   this means, that a check should be done to see if mzPacker::results.outFilled, HAS a value (it can be 0) and some src was processed
 
 
 #define MZ_BUFFER_SIZE 524288 // 0.5MB // 1048576 // 1MB buffer for decomp/ comp

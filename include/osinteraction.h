@@ -130,18 +130,18 @@ main() {
 // <<< download directx sdk: http://www.microsoft.com/en-us/download/confirmation.aspx?id=6812 >>>
 
 // the following are directory locations; libraries MUST BE MANUALLY included, if not using visual studio (#pragma lib only works in vstudio)
-#define XINPUTINCLUDE "directx/XInput.h"    // <<< xinput header file & directory location, if used - manually set this if using other
-#define DINPUTINCLUDE "directx/dinput.h"    // <<< dinput header file & directory location, if used - manually set this if using other
-#define D3DINCLUDE    "directx/d3d9.h"      // <<< direct3D9 header file & direcotry location, if used - manually set this if using other
+#define XINPUTINCLUDE "../extlib/directx/include/XInput.h"    // <<< xinput header file & directory location, if used - manually set this if using other
+#define DINPUTINCLUDE "../extlib/directx/include/dinput.h"    // <<< dinput header file & directory location, if used - manually set this if using other
+#define D3DINCLUDE    "../extlib/directx/include/d3d9.h"      // <<< direct3D9 header file & direcotry location, if used - manually set this if using other
 
-#define XINPUTLIB32 "XInput_32.lib"         // <<< xinput 32bit library file & directory location, if used
-#define XINPUTLIB64 "XInput_64.lib"         // <<< xinput 64bit library file & directory location, if used
-#define DINPUTLIB32 "dinput8_32.lib"        // <<< dinput 32bit library file & directory location, if used
-#define DINPUTLIB64 "dinput8_64.lib"        // <<< dinput 64bit library file & directory location, if used
-#define DXGUIDLIB32 "dxguid_32.lib"         // <<< direct input guid 32bit library file & directory location, if dinput is used
-#define DXGUIDLIB64 "dxguid_64.lib"         // <<< direct input guid 64bit library file & directory location, if dinput is used
-#define D3D9LIB32   "d3d9_32.lib"           // <<< direct3D9 32bit library file & directory location, if it is used
-#define D3D9LIB64   "d3d9_64.lib"           // <<< direct3D9 64bit library file & directory location, if it is used
+#define XINPUTLIB32 "../extlib/directx/lib/XInput_32.lib"         // <<< xinput 32bit library file & directory location, if used
+#define XINPUTLIB64 "../extlib/directx/lib/XInput_64.lib"         // <<< xinput 64bit library file & directory location, if used
+#define DINPUTLIB32 "../extlib/directx/lib/dinput8_32.lib"        // <<< dinput 32bit library file & directory location, if used
+#define DINPUTLIB64 "../extlib/directx/lib/dinput8_64.lib"        // <<< dinput 64bit library file & directory location, if used
+#define DXGUIDLIB32 "../extlib/directx/lib/dxguid_32.lib"         // <<< direct input guid 32bit library file & directory location, if dinput is used
+#define DXGUIDLIB64 "../extlib/directx/lib/dxguid_64.lib"         // <<< direct input guid 64bit library file & directory location, if dinput is used
+#define D3D9LIB32   "../extlib/directx/lib/d3d9_32.lib"           // <<< direct3D9 32bit library file & directory location, if it is used
+#define D3D9LIB64   "../extlib/directx/lib/d3d9_64.lib"           // <<< direct3D9 64bit library file & directory location, if it is used
 
 // WINDOWS SETTINGS / DIRECTORIES ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #ifndef _CRT_SECURE_NO_WARNINGS
@@ -195,7 +195,7 @@ main() {
 #pragma comment(lib, "glu32")     /// if this pragma does not work, the library must be manually included
 
 //#define WGL_WGLEXT_PROTOTYPES 1
-#include "oGL/wglext.h"            // <<< provided wglext.h - should be updated when a new version appears (and it can change monthly)
+#include "../extlib/oGL/include/wglext.h"            // <<< provided wglext.h - should be updated when a new version appears (and it can change monthly)
 #endif /// OS_WIN
 
 #ifdef OS_LINUX
@@ -208,7 +208,7 @@ main() {
 #include <GL/glx.h>
 #include <GL/glxext.h>
 #include <GL/glext.h>
-//#include "oGL/glxext.h"           // <<< provided glxext.h - should be updated when new a version appears (and it can change monthly)
+//#include "../extlib/oGL/include/glxext.h"           // <<< provided glxext.h - should be updated when new a version appears (and it can change monthly)
 #endif /// OS_LINUX
 
 #ifdef OS_MAC
@@ -220,7 +220,7 @@ main() {
 
 //#define GL_GLEXT_PROTOTYPES 1
 #ifndef OS_MAC
-#include "oGL/glext.h"            // <<< OpenGL extensions header file (OS independant ones) - should be updated when a new version appears (and it can change monthly)
+#include "../extlib/oGL/include/glext.h"            // <<< OpenGL extensions header file (OS independant ones) - should be updated when a new version appears (and it can change monthly)
 #endif
 
 // os specific

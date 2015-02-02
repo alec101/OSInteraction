@@ -1,11 +1,10 @@
 
-
 #ifdef _WIN32
 #define OS_WIN
-#define USING_DIRECTINPUT
+#define USING_DIRECTINPUT     // << DISABLE / ENABLE
 #include <windows.h>
 
-//#define USING_DIRECTINPUT     // << DISABLE / ENABLE
+
 
 
 #ifdef USING_DIRECTINPUT
