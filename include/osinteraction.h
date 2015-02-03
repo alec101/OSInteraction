@@ -12,7 +12,7 @@
 ///===================///
 
 // - C++ standard must be set to C++11
-// - make shure osi header files are in [Additional include directories] (include search path)
+// - make sure osi header files are in [Additional include directories] (include search path)
 // - osi comes with some basic directx libs (if you didn't install directx sdk), but the path
 //     to them must be set somehow (in visual Studio it's "additional library directories")
 // - (Linux only) When using THREADS, '-pthreads' cmd option is a must for the linker/compiler (this is true for any program not only osi)
@@ -133,7 +133,6 @@ main() {
 #define XINPUTINCLUDE "../extlib/directx/include/XInput.h"    // <<< xinput header file & directory location, if used - manually set this if using other
 #define DINPUTINCLUDE "../extlib/directx/include/dinput.h"    // <<< dinput header file & directory location, if used - manually set this if using other
 #define D3DINCLUDE    "../extlib/directx/include/d3d9.h"      // <<< direct3D9 header file & direcotry location, if used - manually set this if using other
-
 #define XINPUTLIB32 "../extlib/directx/lib/XInput_32.lib"         // <<< xinput 32bit library file & directory location, if used
 #define XINPUTLIB64 "../extlib/directx/lib/XInput_64.lib"         // <<< xinput 64bit library file & directory location, if used
 #define DINPUTLIB32 "../extlib/directx/lib/dinput8_32.lib"        // <<< dinput 32bit library file & directory location, if used
