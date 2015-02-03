@@ -74,15 +74,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\source\glext.h">
-      <Filter>Header Files\oGL</Filter>
-    </ClInclude>
-    <ClInclude Include="..\source\glxext.h">
-      <Filter>Header Files\oGL</Filter>
-    </ClInclude>
-    <ClInclude Include="..\source\wglext.h">
-      <Filter>Header Files\oGL</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\util\chainList.h">
       <Filter>Header Files\util</Filter>
     </ClInclude>
@@ -136,6 +127,15 @@
     </ClInclude>
     <ClInclude Include="..\include\osiWindow.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\extlib\oGL\include\glext.h">
+      <Filter>Header Files\oGL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\extlib\oGL\include\glxext.h">
+      <Filter>Header Files\oGL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\extlib\oGL\include\wglext.h">
+      <Filter>Header Files\oGL</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

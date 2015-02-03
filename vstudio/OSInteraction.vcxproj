@@ -37,6 +37,9 @@
     <ClCompile Include="..\src\util\strCommon.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\extlib\oGL\include\glext.h" />
+    <ClInclude Include="..\extlib\oGL\include\glxext.h" />
+    <ClInclude Include="..\extlib\oGL\include\wglext.h" />
     <ClInclude Include="..\include\osiChar.h" />
     <ClInclude Include="..\include\osiCocoa.h" />
     <ClInclude Include="..\include\osiDisplay.h" />
@@ -55,9 +58,6 @@
     <ClInclude Include="..\include\util\str8.h" />
     <ClInclude Include="..\include\util\strCommon.h" />
     <ClInclude Include="..\include\util\typeShortcuts.h" />
-    <ClInclude Include="..\source\glext.h" />
-    <ClInclude Include="..\source\glxext.h" />
-    <ClInclude Include="..\source\wglext.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\README.md" />

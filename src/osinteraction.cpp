@@ -9,13 +9,11 @@
    - [renderer] - special oGL window (hidden)+ renderer, that are specialized only for graphics card mathematical computations (use the grcard as another CPU)
  * - [linux][mac] - optimus enablement ?
    - [all] thread safe - lock() + unlock() for all major objects
-   - [all] render to bitmap... this is done using a software renderer... this should go if it's hard to implement
-   - [all] pbuffers are os dependant... that's the next osi target http://developer.download.nvidia.com/assets/gamedev/docs/PixelBuffers.pdf
-   - [all] custom pbuffer object, glBlaBla instead wglBlaBla for pbuffers - this will ease the use of pbuffers a ton
- * - [all] glMakeCurrent on window/pbuffer so glMakeCurrent(osiRenderer, void *surface, int surfaceType= 0 ) (0= window / 1= bitmap / 2= pbuffer)
-   - [win] ximput has different axis / axis null point/ axis vector than direct input. a joystick on dinput is not like a joystick on xinput
-             still, i DON't HAVE A DANG JOYSTICK TO TEST ALL THIS STUFF
- * - [mac] callback add+remove still not 100% thread safe - a whole struct with the hid that was added must be passed to osi, in an event type system (more than 1 can be waiting to be added in theory)
+   - [all] LEGACY - OLD OGL STUFF render to bitmap... this is done using a software renderer... this should go if it's hard to implement
+   - [all] LEGACY? MUST FURTHER RESEARCH pbuffers are os dependant... that's the next osi target http://developer.download.nvidia.com/assets/gamedev/docs/PixelBuffers.pdf
+   - [all] LEGACY? IF SO, THIS CAN JUST GO OR VERY LOW PRIORITY custom pbuffer object, glBlaBla instead wglBlaBla for pbuffers - this will ease the use of pbuffers a ton
+ * - [all] LEGACY? glMakeCurrent on window/pbuffer so glMakeCurrent(osiRenderer, void *surface, int surfaceType= 0 ) (0= window / 1= bitmap / 2= pbuffer)
+ * - [mac] lock/unlock system for nrJoysticks callback add+remove still not 100% thread safe - a whole struct with the hid that was added must be passed to osi, in an event type system (more than 1 can be waiting to be added in theory)
  * - [all] input thread safety between program and osi? 2 flags that 1 can be raised by the program, and 1 by osi, both flags situated in each object
  * -xx [all(mostly mac)] threads !!!SCRAPE?! why: std::threads adopted in c++11, which is already needed xx
  *   [linux] exe's don't have icons :( - http://linuxcritic.wordpress.com/2010/04/07/anatomy-of-a-desktop-file/ a clever .desktop must be autocreated
