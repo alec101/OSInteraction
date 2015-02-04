@@ -43,6 +43,7 @@
     <ClInclude Include="..\include\osiChar.h" />
     <ClInclude Include="..\include\osiCocoa.h" />
     <ClInclude Include="..\include\osiDisplay.h" />
+    <ClInclude Include="..\include\osiGlDisable.h" />
     <ClInclude Include="..\include\osiGlExt.h" />
     <ClInclude Include="..\include\osiInput.h" />
     <ClInclude Include="..\include\osinteraction.h" />
@@ -113,25 +114,25 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='winDebug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>..\lib</OutDir>
+    <OutDir>..\lib\</OutDir>
     <IntDir>..\build\$(Platform)\$(Configuration)\</IntDir>
     <TargetName>osi64win_dbg</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='winDebug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <OutDir>..\lib</OutDir>
+    <OutDir>..\lib\</OutDir>
     <IntDir>..\build\$(Platform)\$(Configuration)\</IntDir>
     <TargetName>osi32win_dbg</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='winRelease|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>..\lib</OutDir>
+    <OutDir>..\lib\</OutDir>
     <IntDir>..\build\$(Platform)\$(Configuration)\</IntDir>
     <TargetName>osi64win</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='winRelease|Win32'">
     <LinkIncremental>false</LinkIncremental>
-    <OutDir>..\lib</OutDir>
+    <OutDir>..\lib\</OutDir>
     <IntDir>..\build\$(Platform)\$(Configuration)\</IntDir>
     <TargetName>osi32win</TargetName>
   </PropertyGroup>

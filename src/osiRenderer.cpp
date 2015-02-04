@@ -843,7 +843,7 @@ osiRenderer::osiRenderer()
   glEXTlist= new GlExt[a+ 1];
   for(a= 0; _glEXTlistEmpty[a].desc!= null; a++)
     glEXTlist[a]= _glEXTlistEmpty[a];
-
+  
   /// initial OTHER list
   for(a= 0; _glOTHERlistEmpty[a].desc!= null; a++);   /// find out how big the list is
   glOTHERlist= new GlExt[a+ 1];

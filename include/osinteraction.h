@@ -186,6 +186,8 @@ main() {
 
 // OpenGL headers
 
+#include "osiGlDisable.h"   // either modify this file to enable/disable extensions or include a custom one, before including osinteraction.h
+
 #ifdef OS_WIN
 //#include <GL/gl.h>
 #include <GL/GL.h>

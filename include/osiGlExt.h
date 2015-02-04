@@ -42,15 +42,15 @@ struct GlExtFuncs {
   // per OpenGL version functions list ==================------------------------------------
   ///==================================------------------------------------------------------
 #ifndef OS_MAC
-  
-  #ifdef GL_VERSION_1_2 /// OpenGL 1.2 funcs =================------------------------------
+
+  #if(GL_VERSION_1_2== 1) /// OpenGL 1.2 funcs =================------------------------------
   PFNGLDRAWRANGEELEMENTSPROC glDrawRangeElements;
   PFNGLTEXIMAGE3DPROC        glTexImage3D;
   PFNGLTEXSUBIMAGE3DPROC     glTexSubImage3D;
   PFNGLCOPYTEXSUBIMAGE3DPROC glCopyTexSubImage3D;
   #endif /// GL_VERSION_1_2
 
-  #ifdef GL_VERSION_1_3 /// OpenGL 1.3 funcs =================------------------------------
+  #if(GL_VERSION_1_3== 1) /// OpenGL 1.3 funcs =================------------------------------
   PFNGLACTIVETEXTUREPROC        glActiveTexture;
   PFNGLSAMPLECOVERAGEPROC       glSampleCoverage;
   PFNGLCOMPRESSEDTEXIMAGE3DPROC glCompressedTexImage3D;
@@ -101,7 +101,7 @@ struct GlExtFuncs {
   #endif /// OS_WIN
   #endif /// GL_VERSION_1_3
 
-  #ifdef GL_VERSION_1_4 /// OpenGL 1.4 funcs =================------------------------------
+  #if(GL_VERSION_1_4== 1) /// OpenGL 1.4 funcs =================------------------------------
   PFNGLBLENDFUNCSEPARATEPROC  glBlendFuncSeparate;
   PFNGLMULTIDRAWARRAYSPROC    glMultiDrawArrays;
   PFNGLMULTIDRAWELEMENTSPROC  glMultiDrawElements;
@@ -151,7 +151,7 @@ struct GlExtFuncs {
   PFNGLBLENDEQUATIONPROC      glBlendEquation;
   #endif /// GL_VERSION_1_4
 
-  #ifdef GL_VERSION_1_5 /// OpenGL 1.5 funcs =================------------------------------
+  #if(GL_VERSION_1_5== 1) /// OpenGL 1.5 funcs =================------------------------------
   PFNGLGENQUERIESPROC        glGenQueries;
   PFNGLDELETEQUERIESPROC     glDeleteQueries;
   PFNGLISQUERYPROC           glIsQuery;
@@ -173,7 +173,7 @@ struct GlExtFuncs {
   PFNGLGETBUFFERPOINTERVPROC glGetBufferPointerv;
   #endif /// GL_VERSION_1_5
 
-  #ifdef GL_VERSION_2_0 /// OpenGL 2.0 funcs =================------------------------------
+  #if(GL_VERSION_2_0== 1) /// OpenGL 2.0 funcs =================------------------------------
   PFNGLBLENDEQUATIONSEPARATEPROC glBlendEquationSeparate;
   PFNGLDRAWBUFFERSPROC          glDrawBuffers;
   PFNGLSTENCILOPSEPARATEPROC    glStencilOpSeparate;
@@ -269,7 +269,7 @@ struct GlExtFuncs {
   PFNGLVERTEXATTRIBPOINTERPROC  glVertexAttribPointer;
   #endif /// GL_VERSION_2_0
 
-  #ifdef GL_VERSION_2_1 /// OpenGL 2.1 funcs =================------------------------------
+  #if(GL_VERSION_2_1== 1) /// OpenGL 2.1 funcs =================------------------------------
   PFNGLUNIFORMMATRIX2X3FVPROC glUniformMatrix2x3fv;
   PFNGLUNIFORMMATRIX3X2FVPROC glUniformMatrix3x2fv;
   PFNGLUNIFORMMATRIX2X4FVPROC glUniformMatrix2x4fv;
@@ -278,7 +278,7 @@ struct GlExtFuncs {
   PFNGLUNIFORMMATRIX4X3FVPROC glUniformMatrix4x3fv;
   #endif /// GL_VERSION_2_1
 
-  #ifdef GL_VERSION_3_0 /// OpenGL 3.0 funcs =================------------------------------
+  #if(GL_VERSION_3_0== 1) /// OpenGL 3.0 funcs =================------------------------------
   PFNGLCOLORMASKIPROC              glColorMaski;
   PFNGLGETBOOLEANI_VPROC           glGetBooleani_v;
   PFNGLGETINTEGERI_VPROC           glGetIntegeri_v;
@@ -365,7 +365,7 @@ struct GlExtFuncs {
   PFNGLISVERTEXARRAYPROC           glIsVertexArray;
   #endif /// GL_VERSION_3_0
 
-  #ifdef GL_VERSION_3_1 /// OpenGL 3.1 funcs =================------------------------------
+  #if(GL_VERSION_3_1== 1) /// OpenGL 3.1 funcs =================------------------------------
   PFNGLDRAWARRAYSINSTANCEDPROC     glDrawArraysInstanced;
   PFNGLDRAWELEMENTSINSTANCEDPROC   glDrawElementsInstanced;
   PFNGLTEXBUFFERPROC               glTexBuffer;
@@ -380,7 +380,7 @@ struct GlExtFuncs {
   PFNGLUNIFORMBLOCKBINDINGPROC     glUniformBlockBinding;
   #endif /// GL_VERSION_3_1
 
-  #ifdef GL_VERSION_3_2 /// OpenGL 3.2 funcs =================------------------------------
+  #if(GL_VERSION_3_2== 1) /// OpenGL 3.2 funcs =================------------------------------
   PFNGLDRAWELEMENTSBASEVERTEXPROC      glDrawElementsBaseVertex;
   PFNGLDRAWRANGEELEMENTSBASEVERTEXPROC glDrawRangeElementsBaseVertex;
   PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXPROC glDrawElementsInstancedBaseVertex;
@@ -402,7 +402,7 @@ struct GlExtFuncs {
   PFNGLSAMPLEMASKIPROC                 glSampleMaski;
   #endif /// GL_VERSION_3_2
 
-  #ifdef GL_VERSION_3_3 /// OpenGL 3.3 funcs =================------------------------------
+  #if(GL_VERSION_3_3== 1) /// OpenGL 3.3 funcs =================------------------------------
   PFNGLBINDFRAGDATALOCATIONINDEXEDPROC glBindFragDataLocationIndexed;
   PFNGLGETFRAGDATAINDEXPROC         glGetFragDataIndex;
   PFNGLGENSAMPLERSPROC              glGenSamplers;
@@ -463,7 +463,7 @@ struct GlExtFuncs {
   PFNGLSECONDARYCOLORP3UIVPROC      glSecondaryColorP3uiv;
   #endif /// GL_VERSION_3_3
 
-  #ifdef GL_VERSION_4_0 /// OpenGL 4.0 funcs =================------------------------------
+  #if(GL_VERSION_4_0== 1) /// OpenGL 4.0 funcs =================------------------------------
   PFNGLMINSAMPLESHADINGPROC glMinSampleShading;
   PFNGLBLENDEQUATIONIPROC glBlendEquationi;
   PFNGLBLENDEQUATIONSEPARATEIPROC glBlendEquationSeparatei;
@@ -512,7 +512,7 @@ struct GlExtFuncs {
   PFNGLGETQUERYINDEXEDIVPROC glGetQueryIndexediv;
   #endif /// GL_VERSION_4_0
 
-  #ifdef GL_VERSION_4_1 /// OpenGL 4.1 funcs =================------------------------------
+  #if(GL_VERSION_4_1== 1) /// OpenGL 4.1 funcs =================------------------------------
   PFNGLRELEASESHADERCOMPILERPROC glReleaseShaderCompiler;
   PFNGLSHADERBINARYPROC glShaderBinary;
   PFNGLGETSHADERPRECISIONFORMATPROC glGetShaderPrecisionFormat;
@@ -603,7 +603,7 @@ struct GlExtFuncs {
   PFNGLGETDOUBLEI_VPROC glGetDoublei_v;
   #endif /// GL_VERSION_4_1
 
-  #ifdef GL_VERSION_4_2 /// OpenGL 4.2 funcs =================------------------------------
+  #if(GL_VERSION_4_2== 1) /// OpenGL 4.2 funcs =================------------------------------
   PFNGLDRAWARRAYSINSTANCEDBASEINSTANCEPROC glDrawArraysInstancedBaseInstance;
   PFNGLDRAWELEMENTSINSTANCEDBASEINSTANCEPROC glDrawElementsInstancedBaseInstance;
   PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXBASEINSTANCEPROC glDrawElementsInstancedBaseVertexBaseInstance;
@@ -618,7 +618,7 @@ struct GlExtFuncs {
   PFNGLDRAWTRANSFORMFEEDBACKSTREAMINSTANCEDPROC glDrawTransformFeedbackStreamInstanced;
   #endif /// GL_VERSION_4_2
 
-  #ifdef GL_VERSION_4_3 /// OpenGL 4.3 funcs =================------------------------------
+  #if(GL_VERSION_4_3== 1) /// OpenGL 4.3 funcs =================------------------------------
   PFNGLCLEARBUFFERDATAPROC glClearBufferData;
   PFNGLCLEARBUFFERSUBDATAPROC glClearBufferSubData;
   PFNGLDISPATCHCOMPUTEPROC glDispatchCompute;
@@ -664,7 +664,7 @@ struct GlExtFuncs {
   PFNGLGETOBJECTPTRLABELPROC glGetObjectPtrLabel;
   #endif /// GL_VERSION_4_3
 
-  #ifdef GL_VERSION_4_4 /// OpenGL 4.4 funcs =================------------------------------
+  #if(GL_VERSION_4_4== 1) /// OpenGL 4.4 funcs =================------------------------------
   PFNGLBUFFERSTORAGEPROC glBufferStorage;
   PFNGLCLEARTEXIMAGEPROC glClearTexImage;
   PFNGLCLEARTEXSUBIMAGEPROC glClearTexSubImage;
@@ -681,7 +681,7 @@ struct GlExtFuncs {
   ///===============================================///
 
   #ifdef OS_WIN
-  #ifdef GL_ARB_imaging /// no PFNPROCs in linux... ffs they just work without them
+  #if(GL_ARB_imaging== 1) /// no PFNPROCs in linux... ffs they just work without them
   PFNGLCOLORTABLEPROC glColorTable;
   PFNGLCOLORTABLEPARAMETERFVPROC glColorTableParameterfv;
   PFNGLCOLORTABLEPARAMETERIVPROC glColorTableParameteriv;
@@ -717,7 +717,7 @@ struct GlExtFuncs {
   #endif /// GL_ARB_imaging
   #endif /// OS_WIN
 
-  #ifdef GL_ARB_bindless_texture
+  #if(GL_ARB_bindless_texture== 1)
   PFNGLGETTEXTUREHANDLEARBPROC glGetTextureHandleARB;
   PFNGLGETTEXTURESAMPLERHANDLEARBPROC glGetTextureSamplerHandleARB;
   PFNGLMAKETEXTUREHANDLERESIDENTARBPROC glMakeTextureHandleResidentARB;
@@ -736,11 +736,11 @@ struct GlExtFuncs {
   PFNGLGETVERTEXATTRIBLUI64VARBPROC glGetVertexAttribLui64vARB;
   #endif
 
-  #ifdef GL_INGR_blend_func_separate
+  #if(GL_INGR_blend_func_separate== 1)
   PFNGLBLENDFUNCSEPARATEINGRPROC glBlendFuncSeparateINGR;
   #endif
 
-  #ifdef GL_SGIX_fragment_lighting
+  #if(GL_SGIX_fragment_lighting== 1)
   PFNGLFRAGMENTCOLORMATERIALSGIXPROC glFragmentColorMaterialSGIX;
   PFNGLFRAGMENTLIGHTFSGIXPROC glFragmentLightfSGIX;
   PFNGLFRAGMENTLIGHTFVSGIXPROC glFragmentLightfvSGIX;
@@ -761,24 +761,24 @@ struct GlExtFuncs {
   PFNGLLIGHTENVISGIXPROC glLightEnviSGIX;
   #endif
 
-  #ifdef GL_SGIX_polynomial_ffd
+  #if(GL_SGIX_polynomial_ffd== 1)
   PFNGLDEFORMATIONMAP3DSGIXPROC glDeformationMap3dSGIX;
   PFNGLDEFORMATIONMAP3FSGIXPROC glDeformationMap3fSGIX;
   PFNGLDEFORMSGIXPROC glDeformSGIX;
   PFNGLLOADIDENTITYDEFORMATIONMAPSGIXPROC glLoadIdentityDeformationMapSGIX;
   #endif
 
-  #ifdef GL_SGIS_point_parameters
+  #if(GL_SGIS_point_parameters== 1)
   PFNGLPOINTPARAMETERFSGISPROC glPointParameterfSGIS;
   PFNGLPOINTPARAMETERFVSGISPROC glPointParameterfvSGIS;
   #endif
 
-  #ifdef GL_SGIX_igloo_interface
+  #if(GL_SGIX_igloo_interface== 1)
   PFNGLIGLOOINTERFACESGIXPROC glIglooInterfaceSGIX;
   #endif
 
   #ifdef OS_WIN
-  #ifdef WGL_NV_vertex_array_range
+  #if(WGL_NV_vertex_array_range== 1)
   PFNWGLALLOCATEMEMORYNVPROC wglAllocateMemoryNV;
   PFNWGLFREEMEMORYNVPROC wglFreeMemoryNV;
   #endif
@@ -822,7 +822,7 @@ struct GlExtFuncs {
   // per ARB extension functions list ==================------------------------------------
   ///=================================------------------------------------------------------
 
-  #ifdef GL_ARB_multitexture /// #1 http://www.opengl.org/registry/specs/ARB/multitexture.txt
+  #if(GL_ARB_multitexture== 1) /// #1 http://www.opengl.org/registry/specs/ARB/multitexture.txt
   PFNGLACTIVETEXTUREARBPROC       glActiveTextureARB;
   PFNGLCLIENTACTIVETEXTUREARBPROC glClientActiveTextureARB;
   PFNGLMULTITEXCOORD1DARBPROC     glMultiTexCoord1dARB;
@@ -859,44 +859,44 @@ struct GlExtFuncs {
   PFNGLMULTITEXCOORD4SVARBPROC    glMultiTexCoord4svARB;
   #endif
 
-  #ifdef GLX_ARB_get_proc_address /// #2 http://www.opengl.org/registry/specs/ARB/get_proc_address.txt
+  #if(GLX_ARB_get_proc_address== 1) /// #2 http://www.opengl.org/registry/specs/ARB/get_proc_address.txt
   //PFNGLXGETPROCADDRESSARBPROC glXGetProcAddressARB;
   #endif
 
-  #ifdef GL_ARB_transpose_matrix /// #3 http://www.opengl.org/registry/specs/ARB/transpose_matrix.txt
+  #if(GL_ARB_transpose_matrix== 1) /// #3 http://www.opengl.org/registry/specs/ARB/transpose_matrix.txt
   PFNGLLOADTRANSPOSEMATRIXFARBPROC glLoadTransposeMatrixfARB;
   PFNGLLOADTRANSPOSEMATRIXDARBPROC glLoadTransposeMatrixdARB;
   PFNGLMULTTRANSPOSEMATRIXFARBPROC glMultTransposeMatrixfARB;
   PFNGLMULTTRANSPOSEMATRIXDARBPROC glMultTransposeMatrixdARB;
   #endif
 
-  #ifdef WGL_ARB_buffer_region /// #4 http://www.opengl.org/registry/specs/ARB/wgl_buffer_region.txt
+  #if(WGL_ARB_buffer_region== 1) /// #4 http://www.opengl.org/registry/specs/ARB/wgl_buffer_region.txt
   PFNWGLCREATEBUFFERREGIONARBPROC   wglCreateBufferRegionARB;
   PFNWGLDELETEBUFFERREGIONARBPROC   wglDeleteBufferRegionARB;
   PFNWGLSAVEBUFFERREGIONARBPROC     wglSaveBufferRegionARB;
   PFNWGLRESTOREBUFFERREGIONARBPROC  wglRestoreBufferRegionARB;
   #endif
 
-  #ifdef GL_ARB_multisample /// #5 GLX_ARB_multisample WGL_ARB_multisample http://www.opengl.org/registry/specs/ARB/multisample.txt
+  #if(GL_ARB_multisample== 1) /// #5 GLX_ARB_multisample WGL_ARB_multisample http://www.opengl.org/registry/specs/ARB/multisample.txt
   PFNGLSAMPLECOVERAGEARBPROC glSampleCoverageARB;
   #endif
 
-  #ifdef WGL_ARB_extensions_string /// #8 http://www.opengl.org/registry/specs/ARB/wgl_extensions_string.txt
+  #if(WGL_ARB_extensions_string== 1) /// #8 http://www.opengl.org/registry/specs/ARB/wgl_extensions_string.txt
   PFNWGLGETEXTENSIONSSTRINGARBPROC wglGetExtensionsStringARB;
   #endif
 
-  #ifdef WGL_ARB_pixel_format /// #9  http://www.opengl.org/registry/specs/ARB/wgl_pixel_format.txt
+  #if(WGL_ARB_pixel_format== 1) /// #9  http://www.opengl.org/registry/specs/ARB/wgl_pixel_format.txt
   //PFNWGLGETPIXELFORMATATTRIBIVARBPROC wglGetPixelFormatAttribivARB;
   //PFNWGLGETPIXELFORMATATTRIBFVARBPROC wglGetPixelFormatAttribfvARB;
   //PFNWGLCHOOSEPIXELFORMATARBPROC      wglChoosePixelFormatARB;
   #endif
 
-  #ifdef WGL_ARB_make_current_read /// #10 http://www.opengl.org/registry/specs/ARB/wgl_make_current_read.txt
+  #if(WGL_ARB_make_current_read== 1) /// #10 http://www.opengl.org/registry/specs/ARB/wgl_make_current_read.txt
   PFNWGLMAKECONTEXTCURRENTARBPROC wglMakeContextCurrentARB;
   PFNWGLGETCURRENTREADDCARBPROC   wglGetCurrentReadDCARB;
   #endif
 
-  #ifdef WGL_ARB_pbuffer/// #11  http://www.opengl.org/registry/specs/ARB/wgl_pbuffer.txt
+  #if(WGL_ARB_pbuffer== 1) /// #11  http://www.opengl.org/registry/specs/ARB/wgl_pbuffer.txt
   PFNWGLCREATEPBUFFERARBPROC    wglCreatePbufferARB;
   PFNWGLGETPBUFFERDCARBPROC     wglGetPbufferDCARB;
   PFNWGLRELEASEPBUFFERDCARBPROC wglReleasePbufferDCARB;
@@ -904,7 +904,7 @@ struct GlExtFuncs {
   PFNWGLQUERYPBUFFERARBPROC     wglQueryPbufferARB;
   #endif
 
-  #ifdef GL_ARB_texture_compression /// #12  http://www.opengl.org/registry/specs/ARB/texture_compression.txt
+  #if(GL_ARB_texture_compression== 1) /// #12  http://www.opengl.org/registry/specs/ARB/texture_compression.txt
   PFNGLCOMPRESSEDTEXIMAGE3DARBPROC    glCompressedTexImage3DARB;
   PFNGLCOMPRESSEDTEXIMAGE2DARBPROC    glCompressedTexImage2DARB;
   PFNGLCOMPRESSEDTEXIMAGE1DARBPROC    glCompressedTexImage1DARB;
@@ -914,12 +914,12 @@ struct GlExtFuncs {
   PFNGLGETCOMPRESSEDTEXIMAGEARBPROC   glGetCompressedTexImageARB;
   #endif
 
-  #ifdef GL_ARB_point_parameters/// #14  http://www.opengl.org/registry/specs/ARB/point_parameters.txt
+  #if(GL_ARB_point_parameters== 1) /// #14  http://www.opengl.org/registry/specs/ARB/point_parameters.txt
   PFNGLPOINTPARAMETERFARBPROC   glPointParameterfARB;
   PFNGLPOINTPARAMETERFVARBPROC  glPointParameterfvARB;
   #endif
 
-  #ifdef GL_ARB_vertex_blend /// #15  http://www.opengl.org/registry/specs/ARB/vertex_blend.txt
+  #if(GL_ARB_vertex_blend== 1) /// #15  http://www.opengl.org/registry/specs/ARB/vertex_blend.txt
   PFNGLWEIGHTBVARBPROC      glWeightbvARB;
   PFNGLWEIGHTSVARBPROC      glWeightsvARB;
   PFNGLWEIGHTIVARBPROC      glWeightivARB;
@@ -932,7 +932,7 @@ struct GlExtFuncs {
   PFNGLVERTEXBLENDARBPROC   glVertexBlendARB;
   #endif
 
-  #ifdef GL_ARB_matrix_palette /// #16  http://www.opengl.org/registry/specs/ARB/matrix_palette.txt
+  #if(GL_ARB_matrix_palette== 1) /// #16  http://www.opengl.org/registry/specs/ARB/matrix_palette.txt
   PFNGLCURRENTPALETTEMATRIXARBPROC  glCurrentPaletteMatrixARB;
   PFNGLMATRIXINDEXUBVARBPROC        glMatrixIndexubvARB;
   PFNGLMATRIXINDEXUSVARBPROC        glMatrixIndexusvARB;
@@ -940,13 +940,13 @@ struct GlExtFuncs {
   PFNGLMATRIXINDEXPOINTERARBPROC    glMatrixIndexPointerARB;
   #endif
   
-  #ifdef WGL_ARB_render_texture/// #20  http://www.opengl.org/registry/specs/ARB/wgl_render_texture.txt
+  #if(WGL_ARB_render_texture== 1) /// #20  http://www.opengl.org/registry/specs/ARB/wgl_render_texture.txt
   PFNWGLBINDTEXIMAGEARBPROC     wglBindTexImageARB;
   PFNWGLRELEASETEXIMAGEARBPROC  wglReleaseTexImageARB;
   PFNWGLSETPBUFFERATTRIBARBPROC wglSetPbufferAttribARB;
   #endif
 
-  #ifdef GL_ARB_window_pos /// #25  http://www.opengl.org/registry/specs/ARB/window_pos.txt
+  #if(GL_ARB_window_pos== 1) /// #25  http://www.opengl.org/registry/specs/ARB/window_pos.txt
   PFNGLWINDOWPOS2DARBPROC  glWindowPos2dARB;
   PFNGLWINDOWPOS2DVARBPROC glWindowPos2dvARB;
   PFNGLWINDOWPOS2FARBPROC  glWindowPos2fARB;
@@ -965,7 +965,7 @@ struct GlExtFuncs {
   PFNGLWINDOWPOS3SVARBPROC glWindowPos3svARB;
   #endif
 
-  #ifdef GL_ARB_vertex_program /// #26  http://www.opengl.org/registry/specs/ARB/vertex_program.txt
+  #if(GL_ARB_vertex_program== 1) /// #26  http://www.opengl.org/registry/specs/ARB/vertex_program.txt
   PFNGLVERTEXATTRIB1DARBPROC      glVertexAttrib1dARB;
   PFNGLVERTEXATTRIB1DVARBPROC     glVertexAttrib1dvARB;
   PFNGLVERTEXATTRIB1FARBPROC      glVertexAttrib1fARB;
@@ -1032,7 +1032,7 @@ struct GlExtFuncs {
   PFNGLISPROGRAMARBPROC                   glIsProgramARB;
   #endif
 
-  #ifdef GL_ARB_vertex_buffer_object /// #28  GLX_ARB_vertex_buffer_object http://www.opengl.org/registry/specs/ARB/vertex_buffer_object.txt
+  #if(GL_ARB_vertex_buffer_object== 1) /// #28  GLX_ARB_vertex_buffer_object http://www.opengl.org/registry/specs/ARB/vertex_buffer_object.txt
   PFNGLBINDBUFFERARBPROC            glBindBufferARB;
   PFNGLDELETEBUFFERSARBPROC         glDeleteBuffersARB;
   PFNGLGENBUFFERSARBPROC            glGenBuffersARB;
@@ -1046,7 +1046,7 @@ struct GlExtFuncs {
   PFNGLGETBUFFERPOINTERVARBPROC     glGetBufferPointervARB;
   #endif
 
-  #ifdef GL_ARB_occlusion_query /// #29  http://www.opengl.org/registry/specs/ARB/occlusion_query.txt
+  #if(GL_ARB_occlusion_query== 1) /// #29  http://www.opengl.org/registry/specs/ARB/occlusion_query.txt
   PFNGLGENQUERIESARBPROC        glGenQueriesARB;
   PFNGLDELETEQUERIESARBPROC     glDeleteQueriesARB;
   PFNGLISQUERYARBPROC           glIsQueryARB;
@@ -1057,7 +1057,7 @@ struct GlExtFuncs {
   PFNGLGETQUERYOBJECTUIVARBPROC glGetQueryObjectuivARB;
   #endif
 
-  #ifdef GL_ARB_shader_objects /// #30  http://www.opengl.org/registry/specs/ARB/shader_objects.txt
+  #if(GL_ARB_shader_objects== 1) /// #30  http://www.opengl.org/registry/specs/ARB/shader_objects.txt
   PFNGLDELETEOBJECTARBPROC        glDeleteObjectARB;
   PFNGLGETHANDLEARBPROC           glGetHandleARB;
   PFNGLDETACHOBJECTARBPROC        glDetachObjectARB;
@@ -1099,18 +1099,18 @@ struct GlExtFuncs {
   PFNGLGETSHADERSOURCEARBPROC     glGetShaderSourceARB;
   #endif
 
-  #ifdef GL_ARB_vertex_shader /// #31  http://www.opengl.org/registry/specs/ARB/vertex_shader.txt
+  #if(GL_ARB_vertex_shader== 1) /// #31  http://www.opengl.org/registry/specs/ARB/vertex_shader.txt
   // doc includes GL_ARB_vertex_program funcs...
   PFNGLBINDATTRIBLOCATIONARBPROC  glBindAttribLocationARB;
   PFNGLGETACTIVEATTRIBARBPROC     glGetActiveAttribARB;
   PFNGLGETATTRIBLOCATIONARBPROC   glGetAttribLocationARB;
   #endif
   
-  #ifdef GL_ARB_draw_buffers /// #37  http://www.opengl.org/registry/specs/ARB/draw_buffers.txt
+  #if(GL_ARB_draw_buffers== 1) /// #37  http://www.opengl.org/registry/specs/ARB/draw_buffers.txt
   PFNGLDRAWBUFFERSARBPROC glDrawBuffersARB;
   #endif
 
-  #ifdef GL_ARB_color_buffer_float /// #39  WGL_ARB_pixel_format_float GLX_ARB_fbconfig_float http://www.opengl.org/registry/specs/ARB/color_buffer_float.txt
+  #if(GL_ARB_color_buffer_float== 1) /// #39  WGL_ARB_pixel_format_float GLX_ARB_fbconfig_float http://www.opengl.org/registry/specs/ARB/color_buffer_float.txt
   PFNGLCLAMPCOLORARBPROC glClampColorARB;
   #ifdef OS_WIN
   PFNWGLGETPIXELFORMATATTRIBIVARBPROC wglGetPixelFormatAttribivARB;
@@ -1119,47 +1119,47 @@ struct GlExtFuncs {
   #endif /// OS_WIN
   #endif
 
-  #ifdef GL_ARB_draw_instanced /// #44  http://www.opengl.org/registry/specs/ARB/draw_instanced.txt
+  #if(GL_ARB_draw_instanced== 1) /// #44  http://www.opengl.org/registry/specs/ARB/draw_instanced.txt
   PFNGLDRAWARRAYSINSTANCEDARBPROC   glDrawArraysInstancedARB;
   PFNGLDRAWELEMENTSINSTANCEDARBPROC glDrawElementsInstancedARB;
   #endif
 
-  #ifdef GL_ARB_geometry_shader4 /// #47  http://www.opengl.org/registry/specs/ARB/geometry_shader4.txt
+  #if(GL_ARB_geometry_shader4== 1) /// #47  http://www.opengl.org/registry/specs/ARB/geometry_shader4.txt
   PFNGLPROGRAMPARAMETERIARBPROC       glProgramParameteriARB;
   PFNGLFRAMEBUFFERTEXTUREARBPROC      glFramebufferTextureARB;
   PFNGLFRAMEBUFFERTEXTURELAYERARBPROC glFramebufferTextureLayerARB;
   PFNGLFRAMEBUFFERTEXTUREFACEARBPROC  glFramebufferTextureFaceARB;
   #endif
 
-  #ifdef GL_ARB_instanced_arrays /// #49  http://www.opengl.org/registry/specs/ARB/instanced_arrays.txt
+  #if(GL_ARB_instanced_arrays== 1) /// #49  http://www.opengl.org/registry/specs/ARB/instanced_arrays.txt
   /// multiple draws of the same object, but a translate or something is still a mistery for me
   PFNGLVERTEXATTRIBDIVISORARBPROC            glVertexAttribDivisorARB;
   #endif
 
-  #ifdef GL_ARB_texture_buffer_object /// #51  http://www.opengl.org/registry/specs/ARB/texture_buffer_object.txt
+  #if(GL_ARB_texture_buffer_object== 1) /// #51  http://www.opengl.org/registry/specs/ARB/texture_buffer_object.txt
   PFNGLTEXBUFFERARBPROC glTexBufferARB;
   #endif
 
-  #ifdef WGL_ARB_create_context /// #55 #74 !!! WGL_ARB_create_context_profile http://www.opengl.org/registry/specs/ARB/wgl_create_context.txt
+  #if(WGL_ARB_create_context== 1) /// #55 #74 !!! WGL_ARB_create_context_profile http://www.opengl.org/registry/specs/ARB/wgl_create_context.txt
   PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB;
   #endif
 
-  #ifdef GLX_ARB_create_context /// #56 #75 !!! GLX_ARB_create_context_profile http://www.opengl.org/registry/specs/ARB/glx_create_context.txt
+  #if(GLX_ARB_create_context== 1) /// #56 #75 !!! GLX_ARB_create_context_profile http://www.opengl.org/registry/specs/ARB/glx_create_context.txt
   PFNGLXCREATECONTEXTATTRIBSARBPROC glXCreateContextAttribsARB;
   #endif
 
-  #ifdef GL_ARB_draw_buffers_blend /// #69  http://www.opengl.org/registry/specs/ARB/draw_buffers_blend.txt
+  #if(GL_ARB_draw_buffers_blend== 1) /// #69  http://www.opengl.org/registry/specs/ARB/draw_buffers_blend.txt
   PFNGLBLENDEQUATIONIARBPROC          glBlendEquationiARB;
   PFNGLBLENDEQUATIONSEPARATEIARBPROC  glBlendEquationSeparateiARB;
   PFNGLBLENDFUNCIARBPROC              glBlendFunciARB;
   PFNGLBLENDFUNCSEPARATEIARBPROC      glBlendFuncSeparateiARB;
   #endif
 
-  #ifdef GL_ARB_sample_shading /// #70  http://www.opengl.org/registry/specs/ARB/sample_shading.txt
+  #if(GL_ARB_sample_shading== 1) /// #70  http://www.opengl.org/registry/specs/ARB/sample_shading.txt
   PFNGLMINSAMPLESHADINGARBPROC glMinSampleShadingARB;
   #endif
 
-  #ifdef GL_ARB_shading_language_include /// #76  http://www.opengl.org/registry/specs/ARB/shading_language_include.txt
+  #if(GL_ARB_shading_language_include== 1) /// #76  http://www.opengl.org/registry/specs/ARB/shading_language_include.txt
   PFNGLNAMEDSTRINGARBPROC           glNamedStringARB;
   PFNGLDELETENAMEDSTRINGARBPROC     glDeleteNamedStringARB;
   PFNGLCOMPILESHADERINCLUDEARBPROC  glCompileShaderIncludeARB;
@@ -1168,18 +1168,18 @@ struct GlExtFuncs {
   PFNGLGETNAMEDSTRINGIVARBPROC      glGetNamedStringivARB;
   #endif
 
-  #ifdef GL_ARB_cl_event /// #103  http://www.opengl.org/registry/specs/ARB/cl_event.txt
+  #if(GL_ARB_cl_event== 1) /// #103  http://www.opengl.org/registry/specs/ARB/cl_event.txt
   PFNGLCREATESYNCFROMCLEVENTARBPROC glCreateSyncFromCLeventARB;
   #endif
 
-  #ifdef GL_ARB_debug_output /// #104  http://www.opengl.org/registry/specs/ARB/debug_output.txt
+  #if(GL_ARB_debug_output== 1) /// #104  http://www.opengl.org/registry/specs/ARB/debug_output.txt
   PFNGLDEBUGMESSAGECONTROLARBPROC   glDebugMessageControlARB;
   PFNGLDEBUGMESSAGEINSERTARBPROC    glDebugMessageInsertARB;
   PFNGLDEBUGMESSAGECALLBACKARBPROC  glDebugMessageCallbackARB;
   PFNGLGETDEBUGMESSAGELOGARBPROC    glGetDebugMessageLogARB;
   #endif
 
-  #ifdef GL_ARB_robustness /// #105  http://www.opengl.org/registry/specs/ARB/robustness.txt
+  #if(GL_ARB_robustness== 1) /// #105  http://www.opengl.org/registry/specs/ARB/robustness.txt
   PFNGLGETGRAPHICSRESETSTATUSARBPROC  glGetGraphicsResetStatusARB;
   PFNGLGETNMAPDVARBPROC               glGetnMapdvARB;
   PFNGLGETNMAPFVARBPROC               glGetnMapfvARB;
@@ -1202,16 +1202,16 @@ struct GlExtFuncs {
   PFNGLGETNUNIFORMDVARBPROC           glGetnUniformdvARB;
   #endif
 
-  #ifdef GL_ARB_compute_variable_group_size /// #153  http://www.opengl.org/registry/specs/ARB/compute_variable_group_size.txt
+  #if(GL_ARB_compute_variable_group_size== 1) /// #153  http://www.opengl.org/registry/specs/ARB/compute_variable_group_size.txt
   PFNGLDISPATCHCOMPUTEGROUPSIZEARBPROC glDispatchComputeGroupSizeARB;    /// shader stuff
   #endif
 
-  #ifdef GL_ARB_indirect_parameters /// #154  http://www.opengl.org/registry/specs/ARB/indirect_parameters.txt
+  #if(GL_ARB_indirect_parameters== 1) /// #154  http://www.opengl.org/registry/specs/ARB/indirect_parameters.txt
   PFNGLMULTIDRAWARRAYSINDIRECTCOUNTARBPROC    glMultiDrawArraysIndirectCountARB;
   PFNGLMULTIDRAWELEMENTSINDIRECTCOUNTARBPROC  glMultiDrawElementsIndirectCountARB;
   #endif
 
-  #ifdef GL_ARB_sparse_texture /// #158  http://www.opengl.org/registry/specs/ARB/sparse_texture.txt
+  #if(GL_ARB_sparse_texture== 1) /// #158  http://www.opengl.org/registry/specs/ARB/sparse_texture.txt
   PFNGLTEXPAGECOMMITMENTARBPROC glTexPageCommitmentARB;         /// texture memory allocation management
   #endif
 
@@ -1347,30 +1347,30 @@ struct GlExtFuncs {
   ///========================================------------------------------------------------------
 
 // EXT & vendor list ===================-------------------------------------------
-  #ifdef GL_EXT_blend_color         // #2 http://www.opengl.org/registry/specs/EXT/blend_color.txt
+  #if(GL_EXT_blend_color== 1)         // #2 http://www.opengl.org/registry/specs/EXT/blend_color.txt
   PFNGLBLENDCOLOREXTPROC glBlendColorEXT;
   #endif
 
-  #ifdef GL_EXT_polygon_offset      // #3 http://www.opengl.org/registry/specs/EXT/polygon_offset.txt
+  #if(GL_EXT_polygon_offset== 1)      // #3 http://www.opengl.org/registry/specs/EXT/polygon_offset.txt
   PFNGLPOLYGONOFFSETEXTPROC glPolygonOffsetEXT;
   #endif
 
-  #ifdef GL_EXT_texture3D           // #6 http://www.opengl.org/registry/specs/EXT/texture3D.txt
+  #if(GL_EXT_texture3D== 1)           // #6 http://www.opengl.org/registry/specs/EXT/texture3D.txt
   PFNGLTEXIMAGE3DEXTPROC glTexImage3DEXT;
   PFNGLTEXSUBIMAGE3DEXTPROC glTexSubImage3DEXT;
   #endif
 
-  #ifdef GL_SGIS_texture_filter4    // #7 http://www.opengl.org/registry/specs/SGIS/texture_filter4.txt
+  #if(GL_SGIS_texture_filter4== 1)    // #7 http://www.opengl.org/registry/specs/SGIS/texture_filter4.txt
   PFNGLGETTEXFILTERFUNCSGISPROC glGetTexFilterFuncSGIS;
   PFNGLTEXFILTERFUNCSGISPROC glTexFilterFuncSGIS;
   #endif
 
-  #ifdef GL_EXT_subtexture          // #9 http://www.opengl.org/registry/specs/EXT/subtexture.txt
+  #if(GL_EXT_subtexture== 1)          // #9 http://www.opengl.org/registry/specs/EXT/subtexture.txt
   PFNGLTEXSUBIMAGE1DEXTPROC glTexSubImage1DEXT;
   PFNGLTEXSUBIMAGE2DEXTPROC glTexSubImage2DEXT;
   #endif
 
-  #ifdef GL_EXT_copy_texture        // #10 http://www.opengl.org/registry/specs/EXT/copy_texture.txt
+  #if(GL_EXT_copy_texture== 1)        // #10 http://www.opengl.org/registry/specs/EXT/copy_texture.txt
   PFNGLCOPYTEXIMAGE1DEXTPROC glCopyTexImage1DEXT;
   PFNGLCOPYTEXIMAGE2DEXTPROC glCopyTexImage2DEXT;
   PFNGLCOPYTEXSUBIMAGE1DEXTPROC glCopyTexSubImage1DEXT;
@@ -1378,7 +1378,7 @@ struct GlExtFuncs {
   PFNGLCOPYTEXSUBIMAGE3DEXTPROC glCopyTexSubImage3DEXT;
   #endif
 
-  #ifdef GL_EXT_histogram           // #11 http://www.opengl.org/registry/specs/EXT/histogram.txt
+  #if(GL_EXT_histogram== 1)           // #11 http://www.opengl.org/registry/specs/EXT/histogram.txt
   PFNGLGETHISTOGRAMEXTPROC glGetHistogramEXT;
   PFNGLGETHISTOGRAMPARAMETERFVEXTPROC glGetHistogramParameterfvEXT;
   PFNGLGETHISTOGRAMPARAMETERIVEXTPROC glGetHistogramParameterivEXT;
@@ -1391,7 +1391,7 @@ struct GlExtFuncs {
   PFNGLRESETMINMAXEXTPROC glResetMinmaxEXT;
   #endif
 
-  #ifdef GL_EXT_convolution         // #12 http://www.opengl.org/registry/specs/EXT/convolution.txt
+  #if(GL_EXT_convolution== 1)         // #12 http://www.opengl.org/registry/specs/EXT/convolution.txt
   PFNGLCONVOLUTIONFILTER1DEXTPROC glConvolutionFilter1DEXT;
   PFNGLCONVOLUTIONFILTER2DEXTPROC glConvolutionFilter2DEXT;
   PFNGLCONVOLUTIONPARAMETERFEXTPROC glConvolutionParameterfEXT;
@@ -1407,7 +1407,7 @@ struct GlExtFuncs {
   PFNGLSEPARABLEFILTER2DEXTPROC glSeparableFilter2DEXT;
   #endif
 
-  #ifdef GL_SGI_color_table         // #14 http://www.opengl.org/registry/specs/SGI/color_table.txt
+  #if(GL_SGI_color_table== 1)         // #14 http://www.opengl.org/registry/specs/SGI/color_table.txt
   PFNGLCOLORTABLESGIPROC glColorTableSGI;
   PFNGLCOLORTABLEPARAMETERFVSGIPROC glColorTableParameterfvSGI;
   PFNGLCOLORTABLEPARAMETERIVSGIPROC glColorTableParameterivSGI;
@@ -1417,7 +1417,7 @@ struct GlExtFuncs {
   PFNGLGETCOLORTABLEPARAMETERIVSGIPROC glGetColorTableParameterivSGI;
   #endif
 
-  #ifdef GL_SGIS_pixel_texture      // GL_SGIX_pixel_texture #15 & #15a http://www.opengl.org/registry/specs/SGIS/pixel_texture.txt http://www.opengl.org/registry/specs/SGIX/sgix_pixel_texture.txt
+  #if(GL_SGIS_pixel_texture== 1)      // GL_SGIX_pixel_texture #15 & #15a http://www.opengl.org/registry/specs/SGIS/pixel_texture.txt http://www.opengl.org/registry/specs/SGIX/sgix_pixel_texture.txt
   PFNGLPIXELTEXGENPARAMETERISGISPROC glPixelTexGenParameteriSGIS;
   PFNGLPIXELTEXGENPARAMETERIVSGISPROC glPixelTexGenParameterivSGIS;
   PFNGLPIXELTEXGENPARAMETERFSGISPROC glPixelTexGenParameterfSGIS;
@@ -1427,12 +1427,12 @@ struct GlExtFuncs {
   PFNGLPIXELTEXGENSGIXPROC glPixelTexGenSGIX; /// GL_SGIX_pixel_texture
   #endif
 
-  #ifdef GL_SGIS_texture4D          // #16 http://www.opengl.org/registry/specs/SGIS/texture4D.txt
+  #if(GL_SGIS_texture4D== 1)          // #16 http://www.opengl.org/registry/specs/SGIS/texture4D.txt
   PFNGLTEXIMAGE4DSGISPROC glTexImage4DSGIS;
   PFNGLTEXSUBIMAGE4DSGISPROC glTexSubImage4DSGIS;
   #endif
 
-  #ifdef GL_EXT_texture_object      // #20 http://www.opengl.org/registry/specs/EXT/texture_object.txt
+  #if(GL_EXT_texture_object== 1)      // #20 http://www.opengl.org/registry/specs/EXT/texture_object.txt
   PFNGLARETEXTURESRESIDENTEXTPROC glAreTexturesResidentEXT;
   PFNGLBINDTEXTUREEXTPROC glBindTextureEXT;
   PFNGLDELETETEXTURESEXTPROC glDeleteTexturesEXT;
@@ -1441,22 +1441,22 @@ struct GlExtFuncs {
   PFNGLPRIORITIZETEXTURESEXTPROC glPrioritizeTexturesEXT;
   #endif
 
-  #ifdef GL_SGIS_detail_texture     // #21 http://www.opengl.org/registry/specs/SGIS/detail_texture.txt
+  #if(GL_SGIS_detail_texture== 1)     // #21 http://www.opengl.org/registry/specs/SGIS/detail_texture.txt
   PFNGLDETAILTEXFUNCSGISPROC glDetailTexFuncSGIS;
   PFNGLGETDETAILTEXFUNCSGISPROC glGetDetailTexFuncSGIS;
   #endif
 
-  #ifdef GL_SGIS_sharpen_texture    // #22 http://www.opengl.org/registry/specs/SGIS/sharpen_texture.txt
+  #if(GL_SGIS_sharpen_texture== 1)    // #22 http://www.opengl.org/registry/specs/SGIS/sharpen_texture.txt
   PFNGLSHARPENTEXFUNCSGISPROC glSharpenTexFuncSGIS;
   PFNGLGETSHARPENTEXFUNCSGISPROC glGetSharpenTexFuncSGIS;
   #endif
 
-  #ifdef GL_SGIS_multisample        // #25 GLX_SGIS_multisample http://www.opengl.org/registry/specs/SGIS/multisample.txt
+  #if(GL_SGIS_multisample== 1)        // #25 GLX_SGIS_multisample http://www.opengl.org/registry/specs/SGIS/multisample.txt
   PFNGLSAMPLEMASKSGISPROC glSampleMaskSGIS;
   PFNGLSAMPLEPATTERNSGISPROC glSamplePatternSGIS;
   #endif
 
-  #ifdef GL_EXT_vertex_array        // #30 http://www.opengl.org/registry/specs/EXT/vertex_array.txt
+  #if(GL_EXT_vertex_array== 1)        // #30 http://www.opengl.org/registry/specs/EXT/vertex_array.txt
   PFNGLARRAYELEMENTEXTPROC glArrayElementEXT;
   PFNGLCOLORPOINTEREXTPROC glColorPointerEXT;
   PFNGLDRAWARRAYSEXTPROC glDrawArraysEXT;
@@ -1468,32 +1468,32 @@ struct GlExtFuncs {
   PFNGLVERTEXPOINTEREXTPROC glVertexPointerEXT;
   #endif
 
-  #ifdef GL_EXT_blend_minmax        // #37 http://www.opengl.org/registry/specs/EXT/blend_minmax.txt
+  #if(GL_EXT_blend_minmax== 1)        // #37 http://www.opengl.org/registry/specs/EXT/blend_minmax.txt
   PFNGLBLENDEQUATIONEXTPROC glBlendEquationEXT;
   #endif
 
-  #ifdef GLX_SGI_swap_control       // #40 http://www.opengl.org/registry/specs/SGI/swap_control.txt
+  #if(GLX_SGI_swap_control== 1)       // #40 http://www.opengl.org/registry/specs/SGI/swap_control.txt
   PFNGLXSWAPINTERVALSGIPROC glXSwapIntervalSGI;
   #endif
 
-  #ifdef GLX_SGI_video_sync         // #41 http://www.opengl.org/registry/specs/SGI/video_sync.txt
+  #if(GLX_SGI_video_sync== 1)         // #41 http://www.opengl.org/registry/specs/SGI/video_sync.txt
   PFNGLXGETVIDEOSYNCSGIPROC glXGetVideoSyncSGI;
   PFNGLXWAITVIDEOSYNCSGIPROC glXWaitVideoSyncSGI;
   #endif
 
-  #ifdef GLX_SGI_make_current_read  // #42 http://www.opengl.org/registry/specs/SGI/make_current_read.txt
+  #if(GLX_SGI_make_current_read== 1)  // #42 http://www.opengl.org/registry/specs/SGI/make_current_read.txt
   PFNGLXMAKECURRENTREADSGIPROC glXMakeCurrentReadSGI;
   PFNGLXGETCURRENTREADDRAWABLESGIPROC glXGetCurrentReadDrawableSGI;
   #endif
 
-  #ifdef GLX_SGIX_video_source      // #43 http://www.opengl.org/registry/specs/SGIX/video_source.txt
+  #if(GLX_SGIX_video_source== 1)      // #43 http://www.opengl.org/registry/specs/SGIX/video_source.txt
   #ifdef _VL_H
   PFNGLXCREATEGLXVIDEOSOURCESGIXPROC glXCreateGLXVideoSourceSGIX;
   PFNGLXDESTROYGLXVIDEOSOURCESGIXPROC glXDestroyGLXVideoSourceSGIX;
   #endif /// _VL_H - dunno what this is...
   #endif
 
-  #ifdef GLX_EXT_import_context     // #47 http://www.opengl.org/registry/specs/EXT/import_context.txt
+  #if(GLX_EXT_import_context== 1)     // #47 http://www.opengl.org/registry/specs/EXT/import_context.txt
   PFNGLXGETCURRENTDISPLAYEXTPROC glXGetCurrentDisplayEXT;
   PFNGLXQUERYCONTEXTINFOEXTPROC glXQueryContextInfoEXT;
   PFNGLXGETCONTEXTIDEXTPROC glXGetContextIDEXT;
@@ -1501,7 +1501,7 @@ struct GlExtFuncs {
   PFNGLXFREECONTEXTEXTPROC glXFreeContextEXT;
   #endif
 
-  #ifdef GLX_SGIX_fbconfig          // #49 http://www.opengl.org/registry/specs/SGIX/fbconfig.txt
+  #if(GLX_SGIX_fbconfig== 1)          // #49 http://www.opengl.org/registry/specs/SGIX/fbconfig.txt
   PFNGLXGETFBCONFIGATTRIBSGIXPROC glXGetFBConfigAttribSGIX;
   PFNGLXCHOOSEFBCONFIGSGIXPROC glXChooseFBConfigSGIX;
   PFNGLXCREATEGLXPIXMAPWITHCONFIGSGIXPROC glXCreateGLXPixmapWithConfigSGIX;
@@ -1510,7 +1510,7 @@ struct GlExtFuncs {
   PFNGLXGETFBCONFIGFROMVISUALSGIXPROC glXGetFBConfigFromVisualSGIX;
   #endif
 
-  #ifdef GLX_SGIX_pbuffer           // #50 http://www.opengl.org/registry/specs/SGIX/pbuffer.txt
+  #if(GLX_SGIX_pbuffer== 1)           // #50 http://www.opengl.org/registry/specs/SGIX/pbuffer.txt
   PFNGLXCREATEGLXPBUFFERSGIXPROC glXCreateGLXPbufferSGIX;
   PFNGLXDESTROYGLXPBUFFERSGIXPROC glXDestroyGLXPbufferSGIX;
   PFNGLXQUERYGLXPBUFFERSGIXPROC glXQueryGLXPbufferSGIX;
@@ -1518,19 +1518,19 @@ struct GlExtFuncs {
   PFNGLXGETSELECTEDEVENTSGIXPROC glXGetSelectedEventSGIX;
   #endif
 
-  #ifdef GL_SGIX_sprite             // #52 http://www.opengl.org/registry/specs/SGIX/sprite.txt
+  #if(GL_SGIX_sprite== 1)             // #52 http://www.opengl.org/registry/specs/SGIX/sprite.txt
   PFNGLSPRITEPARAMETERFSGIXPROC glSpriteParameterfSGIX;
   PFNGLSPRITEPARAMETERFVSGIXPROC glSpriteParameterfvSGIX;
   PFNGLSPRITEPARAMETERISGIXPROC glSpriteParameteriSGIX;
   PFNGLSPRITEPARAMETERIVSGIXPROC glSpriteParameterivSGIX;
   #endif
 
-  #ifdef GL_EXT_point_parameters    // #54 http://www.opengl.org/registry/specs/EXT/point_parameters.txt
+  #if(GL_EXT_point_parameters== 1)    // #54 http://www.opengl.org/registry/specs/EXT/point_parameters.txt
   PFNGLPOINTPARAMETERFEXTPROC glPointParameterfEXT;
   PFNGLPOINTPARAMETERFVEXTPROC glPointParameterfvEXT;
   #endif
 
-  #ifdef GL_SGIX_instruments        // #55 http://www.opengl.org/registry/specs/SGIX/instruments.txt
+  #if(GL_SGIX_instruments== 1)        // #55 http://www.opengl.org/registry/specs/SGIX/instruments.txt
   PFNGLGETINSTRUMENTSSGIXPROC glGetInstrumentsSGIX;
   PFNGLINSTRUMENTSBUFFERSGIXPROC glInstrumentsBufferSGIX;
   PFNGLPOLLINSTRUMENTSSGIXPROC glPollInstrumentsSGIX;
@@ -1539,32 +1539,32 @@ struct GlExtFuncs {
   PFNGLSTOPINSTRUMENTSSGIXPROC glStopInstrumentsSGIX;
   #endif
 
-  #ifdef GL_SGIX_framezoom          // #57 http://www.opengl.org/registry/specs/SGIX/framezoom.txt
+  #if(GL_SGIX_framezoom== 1)          // #57 http://www.opengl.org/registry/specs/SGIX/framezoom.txt
   PFNGLFRAMEZOOMSGIXPROC glFrameZoomSGIX;
   #endif
 
-  #ifdef GL_SGIX_tag_sample_buffer  // #58 http://www.opengl.org/registry/specs/SGIX/tag_sample_buffer.txt
+  #if(GL_SGIX_tag_sample_buffer== 1)  // #58 http://www.opengl.org/registry/specs/SGIX/tag_sample_buffer.txt
   PFNGLTAGSAMPLEBUFFERSGIXPROC glTagSampleBufferSGIX;
   #endif
 
-  #ifdef GL_SGIX_reference_plane    // #60 http://www.opengl.org/registry/specs/SGIX/reference_plane.txt
+  #if(GL_SGIX_reference_plane== 1)    // #60 http://www.opengl.org/registry/specs/SGIX/reference_plane.txt
   PFNGLREFERENCEPLANESGIXPROC glReferencePlaneSGIX;
   #endif
 
-  #ifdef GL_SGIX_flush_raster       // #61 http://www.opengl.org/registry/specs/SGIX/flush_raster.txt
+  #if(GL_SGIX_flush_raster== 1)       // #61 http://www.opengl.org/registry/specs/SGIX/flush_raster.txt
   PFNGLFLUSHRASTERSGIXPROC glFlushRasterSGIX;
   #endif
 
-  #ifdef GLX_SGI_cushion            // #62 http://www.opengl.org/registry/specs/SGI/cushion.txt
+  #if(GLX_SGI_cushion== 1)            // #62 http://www.opengl.org/registry/specs/SGI/cushion.txt
   PFNGLXCUSHIONSGIPROC glXCushionSGI;
   #endif
 
-  #ifdef GL_SGIS_fog_function       // #64 http://www.opengl.org/registry/specs/SGIS/fog_func.txt
+  #if(GL_SGIS_fog_function== 1)       // #64 http://www.opengl.org/registry/specs/SGIS/fog_func.txt
   PFNGLFOGFUNCSGISPROC glFogFuncSGIS;
   PFNGLGETFOGFUNCSGISPROC glGetFogFuncSGIS;
   #endif
 
-  #ifdef GL_HP_image_transform      // #66 http://www.opengl.org/registry/specs/HP/image_transform.txt
+  #if(GL_HP_image_transform== 1)      // #66 http://www.opengl.org/registry/specs/HP/image_transform.txt
   PFNGLIMAGETRANSFORMPARAMETERIHPPROC glImageTransformParameteriHP;
   PFNGLIMAGETRANSFORMPARAMETERFHPPROC glImageTransformParameterfHP;
   PFNGLIMAGETRANSFORMPARAMETERIVHPPROC glImageTransformParameterivHP;
@@ -1573,23 +1573,23 @@ struct GlExtFuncs {
   PFNGLGETIMAGETRANSFORMPARAMETERFVHPPROC glGetImageTransformParameterfvHP;
   #endif
 
-  #ifdef GL_EXT_color_subtable      // #74 http://www.opengl.org/registry/specs/EXT/color_subtable.txt
+  #if(GL_EXT_color_subtable== 1)      // #74 http://www.opengl.org/registry/specs/EXT/color_subtable.txt
   PFNGLCOLORSUBTABLEEXTPROC glColorSubTableEXT;
   PFNGLCOPYCOLORSUBTABLEEXTPROC glCopyColorSubTableEXT;
   #endif
 
-  #ifdef GL_PGI_misc_hints          // #77 http://www.opengl.org/registry/specs/PGI/misc_hints.txt
+  #if(GL_PGI_misc_hints== 1)          // #77 http://www.opengl.org/registry/specs/PGI/misc_hints.txt
   PFNGLHINTPGIPROC glHintPGI;
   #endif
 
-  #ifdef GL_EXT_paletted_texture    // #78 http://www.opengl.org/registry/specs/EXT/paletted_texture.txt
+  #if(GL_EXT_paletted_texture== 1)    // #78 http://www.opengl.org/registry/specs/EXT/paletted_texture.txt
   PFNGLCOLORTABLEEXTPROC glColorTableEXT;
   PFNGLGETCOLORTABLEEXTPROC glGetColorTableEXT;
   PFNGLGETCOLORTABLEPARAMETERIVEXTPROC glGetColorTableParameterivEXT;
   PFNGLGETCOLORTABLEPARAMETERFVEXTPROC glGetColorTableParameterfvEXT;
   #endif
 
-  #ifdef GL_SGIX_list_priority      // #80 incomplete http://www.opengl.org/registry/specs/SGIX/list_priority.txt
+  #if(GL_SGIX_list_priority== 1)      // #80 incomplete http://www.opengl.org/registry/specs/SGIX/list_priority.txt
   PFNGLGETLISTPARAMETERFVSGIXPROC glGetListParameterfvSGIX;
   PFNGLGETLISTPARAMETERIVSGIXPROC glGetListParameterivSGIX;
   PFNGLLISTPARAMETERFSGIXPROC glListParameterfSGIX;
@@ -1598,7 +1598,7 @@ struct GlExtFuncs {
   PFNGLLISTPARAMETERIVSGIXPROC glListParameterivSGIX;
   #endif
 
-  #ifdef GLX_SGIX_video_resize      // #83 http://www.opengl.org/registry/specs/SGIX/video_resize.txt
+  #if(GLX_SGIX_video_resize== 1)      // #83 http://www.opengl.org/registry/specs/SGIX/video_resize.txt
   PFNGLXBINDCHANNELTOWINDOWSGIXPROC glXBindChannelToWindowSGIX;
   PFNGLXCHANNELRECTSGIXPROC glXChannelRectSGIX;
   PFNGLXQUERYCHANNELRECTSGIXPROC glXQueryChannelRectSGIX;
@@ -1606,61 +1606,61 @@ struct GlExtFuncs {
   PFNGLXCHANNELRECTSYNCSGIXPROC glXChannelRectSyncSGIX;
   #endif
 
-  #ifdef GLX_SGIX_dm_buffer         // #86 incomplete !!!GLX_SGIX_dmbuffer!!! http://www.opengl.org/registry/specs/SGIX/dmbuffer.txt
+  #if(GLX_SGIX_dm_buffer== 1)         // #86 incomplete !!!GLX_SGIX_dmbuffer!!! http://www.opengl.org/registry/specs/SGIX/dmbuffer.txt
   #ifdef _DM_BUFFER_H_
   PFNGLXASSOCIATEDMPBUFFERSGIXPROC glXAssociateDMPbufferSGIX;
   #endif /// _DM_BUFFER_H_ - no clue 'bout this header
   #endif
 
-  #ifdef GLX_SGIX_swap_group          // #91 http://www.opengl.org/registry/specs/SGIX/swap_group.txt
+  #if(GLX_SGIX_swap_group== 1)          // #91 http://www.opengl.org/registry/specs/SGIX/swap_group.txt
   PFNGLXJOINSWAPGROUPSGIXPROC glXJoinSwapGroupSGIX;
   #endif
 
-  #ifdef GLX_SGIX_swap_barrier        // #92 http://www.opengl.org/registry/specs/SGIX/swap_barrier.txt
+  #if(GLX_SGIX_swap_barrier== 1)        // #92 http://www.opengl.org/registry/specs/SGIX/swap_barrier.txt
   PFNGLXBINDSWAPBARRIERSGIXPROC glXBindSwapBarrierSGIX;
   PFNGLXQUERYMAXSWAPBARRIERSSGIXPROC glXQueryMaxSwapBarriersSGIX;
   #endif
 
-  #ifdef GL_EXT_index_material        // #94 http://www.opengl.org/registry/specs/EXT/index_material.txt
+  #if(GL_EXT_index_material== 1)        // #94 http://www.opengl.org/registry/specs/EXT/index_material.txt
   PFNGLINDEXMATERIALEXTPROC glIndexMaterialEXT;
   #endif
 
-  #ifdef GL_EXT_index_func            // #95 http://www.opengl.org/registry/specs/EXT/index_func.txt
+  #if(GL_EXT_index_func== 1)            // #95 http://www.opengl.org/registry/specs/EXT/index_func.txt
   PFNGLINDEXFUNCEXTPROC glIndexFuncEXT;
   #endif
 
-  #ifdef GL_EXT_compiled_vertex_array  // #97 incomplete http://www.opengl.org/registry/specs/EXT/compiled_vertex_array.txt
+  #if(GL_EXT_compiled_vertex_array== 1)  // #97 incomplete http://www.opengl.org/registry/specs/EXT/compiled_vertex_array.txt
   PFNGLLOCKARRAYSEXTPROC glLockArraysEXT;
   PFNGLUNLOCKARRAYSEXTPROC glUnlockArraysEXT;
   #endif
 
-  #ifdef GL_EXT_cull_vertex           // #98 incomplete http://www.opengl.org/registry/specs/EXT/cull_vertex.txt
+  #if(GL_EXT_cull_vertex== 1)           // #98 incomplete http://www.opengl.org/registry/specs/EXT/cull_vertex.txt
   PFNGLCULLPARAMETERDVEXTPROC glCullParameterdvEXT;
   PFNGLCULLPARAMETERFVEXTPROC glCullParameterfvEXT;
   #endif
 
-  #ifdef GLU_EXT_nurbs_tessellator    // #100 http://www.opengl.org/registry/specs/EXT/nurbs_tessellator.txt
+  #if(GLU_EXT_nurbs_tessellator== 1)    // #100 http://www.opengl.org/registry/specs/EXT/nurbs_tessellator.txt
   #endif
 
-  #ifdef GL_EXT_fragment_lighting     // #102 inc http://www.opengl.org/registry/specs/EXT/fragment_lighting.txt
+  #if(GL_EXT_fragment_lighting== 1)     // #102 inc http://www.opengl.org/registry/specs/EXT/fragment_lighting.txt
   // has funcs but none in glext.h ATM
   #endif
 
-  #ifdef GL_EXT_draw_range_elements   // #112 http://www.opengl.org/registry/specs/EXT/draw_range_elements.txt
+  #if(GL_EXT_draw_range_elements== 1)   // #112 http://www.opengl.org/registry/specs/EXT/draw_range_elements.txt
   PFNGLDRAWRANGEELEMENTSEXTPROC glDrawRangeElementsEXT;
   #endif
 
-  #ifdef GL_EXT_light_texture         // #117 http://www.opengl.org/registry/specs/EXT/light_texture.txt
+  #if(GL_EXT_light_texture== 1)         // #117 http://www.opengl.org/registry/specs/EXT/light_texture.txt
   PFNGLAPPLYTEXTUREEXTPROC glApplyTextureEXT;
   PFNGLTEXTURELIGHTEXTPROC glTextureLightEXT;
   PFNGLTEXTUREMATERIALEXTPROC glTextureMaterialEXT;
   #endif
 
-  #ifdef GL_EXT_scene_marker          // #120 GLX_EXT_scene_marker http://www.opengl.org/registry/specs/EXT/scene_marker.txt
+  #if(GL_EXT_scene_marker== 1)          // #120 GLX_EXT_scene_marker http://www.opengl.org/registry/specs/EXT/scene_marker.txt
   // some funcs but not in glext.h ATM
   #endif
 
-  #ifdef GL_SGIX_async                // #132 incomplete http://www.opengl.org/registry/specs/SGIX/async.txt
+  #if(GL_SGIX_async== 1)                // #132 incomplete http://www.opengl.org/registry/specs/SGIX/async.txt
   PFNGLASYNCMARKERSGIXPROC glAsyncMarkerSGIX;
   PFNGLFINISHASYNCSGIXPROC glFinishAsyncSGIX;
   PFNGLPOLLASYNCSGIXPROC glPollAsyncSGIX;
@@ -1669,14 +1669,14 @@ struct GlExtFuncs {
   PFNGLISASYNCMARKERSGIXPROC glIsAsyncMarkerSGIX;
   #endif
 
-  #ifdef GL_INTEL_parallel_arrays     // #136 http://www.opengl.org/registry/specs/INTEL/parallel_arrays.txt
+  #if(GL_INTEL_parallel_arrays== 1)     // #136 http://www.opengl.org/registry/specs/INTEL/parallel_arrays.txt
   PFNGLVERTEXPOINTERVINTELPROC glVertexPointervINTEL;
   PFNGLNORMALPOINTERVINTELPROC glNormalPointervINTEL;
   PFNGLCOLORPOINTERVINTELPROC glColorPointervINTEL;
   PFNGLTEXCOORDPOINTERVINTELPROC glTexCoordPointervINTEL;
   #endif
 
-  #ifdef GL_EXT_pixel_transform       // #138 http://www.opengl.org/registry/specs/EXT/pixel_transform.txt
+  #if(GL_EXT_pixel_transform== 1)       // #138 http://www.opengl.org/registry/specs/EXT/pixel_transform.txt
   PFNGLPIXELTRANSFORMPARAMETERIEXTPROC glPixelTransformParameteriEXT;
   PFNGLPIXELTRANSFORMPARAMETERFEXTPROC glPixelTransformParameterfEXT;
   PFNGLPIXELTRANSFORMPARAMETERIVEXTPROC glPixelTransformParameterivEXT;
@@ -1685,7 +1685,7 @@ struct GlExtFuncs {
   PFNGLGETPIXELTRANSFORMPARAMETERFVEXTPROC glGetPixelTransformParameterfvEXT;
   #endif
 
-  #ifdef GL_EXT_secondary_color       // #145 http://www.opengl.org/registry/specs/EXT/secondary_color.txt
+  #if(GL_EXT_secondary_color== 1)       // #145 http://www.opengl.org/registry/specs/EXT/secondary_color.txt
   PFNGLSECONDARYCOLOR3BEXTPROC glSecondaryColor3bEXT;
   PFNGLSECONDARYCOLOR3BVEXTPROC glSecondaryColor3bvEXT;
   PFNGLSECONDARYCOLOR3DEXTPROC glSecondaryColor3dEXT;
@@ -1705,16 +1705,16 @@ struct GlExtFuncs {
   PFNGLSECONDARYCOLORPOINTEREXTPROC glSecondaryColorPointerEXT;
   #endif
 
-  #ifdef GL_EXT_texture_perturb_normal  // #147 http://www.opengl.org/registry/specs/EXT/texture_perturb_normal.txt
+  #if(GL_EXT_texture_perturb_normal== 1)  // #147 http://www.opengl.org/registry/specs/EXT/texture_perturb_normal.txt
   PFNGLTEXTURENORMALEXTPROC glTextureNormalEXT;
   #endif
 
-  #ifdef GL_EXT_multi_draw_arrays     // GL_SUN_multi_draw_arrays #148 http://www.opengl.org/registry/specs/EXT/multi_draw_arrays.txt
+  #if(GL_EXT_multi_draw_arrays== 1)     // GL_SUN_multi_draw_arrays #148 http://www.opengl.org/registry/specs/EXT/multi_draw_arrays.txt
   PFNGLMULTIDRAWARRAYSEXTPROC glMultiDrawArraysEXT;
   PFNGLMULTIDRAWELEMENTSEXTPROC glMultiDrawElementsEXT;
   #endif
 
-  #ifdef GL_EXT_fog_coord             // #149 http://www.opengl.org/registry/specs/EXT/fog_coord.txt
+  #if(GL_EXT_fog_coord== 1)             // #149 http://www.opengl.org/registry/specs/EXT/fog_coord.txt
   PFNGLFOGCOORDFEXTPROC glFogCoordfEXT;
   PFNGLFOGCOORDFVEXTPROC glFogCoordfvEXT;
   PFNGLFOGCOORDDEXTPROC glFogCoorddEXT;
@@ -1722,7 +1722,7 @@ struct GlExtFuncs {
   PFNGLFOGCOORDPOINTEREXTPROC glFogCoordPointerEXT;
   #endif
 
-  #ifdef GL_EXT_coordinate_frame      // #156 inc http://www.opengl.org/registry/specs/EXT/coordinate_frame.txt
+  #if(GL_EXT_coordinate_frame== 1)      // #156 inc http://www.opengl.org/registry/specs/EXT/coordinate_frame.txt
   PFNGLTANGENT3BEXTPROC glTangent3bEXT;
   PFNGLTANGENT3BVEXTPROC glTangent3bvEXT;
   PFNGLTANGENT3DEXTPROC glTangent3dEXT;
@@ -1747,11 +1747,11 @@ struct GlExtFuncs {
   PFNGLBINORMALPOINTEREXTPROC glBinormalPointerEXT;
   #endif
 
-  #ifdef GL_SUNX_constant_data        // #163 http://www.opengl.org/registry/specs/SUNX/constant_data.txt
+  #if(GL_SUNX_constant_data== 1)        // #163 http://www.opengl.org/registry/specs/SUNX/constant_data.txt
   PFNGLFINISHTEXTURESUNXPROC glFinishTextureSUNX;
   #endif
 
-  #ifdef GL_SUN_global_alpha          // #164 http://www.opengl.org/registry/specs/SUN/global_alpha.txt
+  #if(GL_SUN_global_alpha== 1)          // #164 http://www.opengl.org/registry/specs/SUN/global_alpha.txt
   PFNGLGLOBALALPHAFACTORBSUNPROC glGlobalAlphaFactorbSUN;
   PFNGLGLOBALALPHAFACTORSSUNPROC glGlobalAlphaFactorsSUN;
   PFNGLGLOBALALPHAFACTORISUNPROC glGlobalAlphaFactoriSUN;
@@ -1762,7 +1762,7 @@ struct GlExtFuncs {
   PFNGLGLOBALALPHAFACTORUISUNPROC glGlobalAlphaFactoruiSUN;
   #endif
 
-  #ifdef GL_SUN_triangle_list         // #165 http://www.opengl.org/registry/specs/SUN/triangle_list.txt
+  #if(GL_SUN_triangle_list== 1)         // #165 http://www.opengl.org/registry/specs/SUN/triangle_list.txt
   PFNGLREPLACEMENTCODEUISUNPROC glReplacementCodeuiSUN;
   PFNGLREPLACEMENTCODEUSSUNPROC glReplacementCodeusSUN;
   PFNGLREPLACEMENTCODEUBSUNPROC glReplacementCodeubSUN;
@@ -1772,7 +1772,7 @@ struct GlExtFuncs {
   PFNGLREPLACEMENTCODEPOINTERSUNPROC glReplacementCodePointerSUN;
   #endif
 
-  #ifdef GL_SUN_vertex                // #166 http://www.opengl.org/registry/specs/SUN/vertex.txt
+  #if(GL_SUN_vertex== 1)                // #166 http://www.opengl.org/registry/specs/SUN/vertex.txt
   PFNGLCOLOR4UBVERTEX2FSUNPROC glColor4ubVertex2fSUN;
   PFNGLCOLOR4UBVERTEX2FVSUNPROC glColor4ubVertex2fvSUN;
   PFNGLCOLOR4UBVERTEX3FSUNPROC glColor4ubVertex3fSUN;
@@ -1813,32 +1813,32 @@ struct GlExtFuncs {
   PFNGLREPLACEMENTCODEUITEXCOORD2FNORMAL3FVERTEX3FVSUNPROC glReplacementCodeuiTexCoord2fNormal3fVertex3fvSUN;
   PFNGLREPLACEMENTCODEUITEXCOORD2FCOLOR4FNORMAL3FVERTEX3FSUNPROC glReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fSUN;
   PFNGLREPLACEMENTCODEUITEXCOORD2FCOLOR4FNORMAL3FVERTEX3FVSUNPROC glReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fvSUN;
-  #ifdef OS_WIN
   #endif
 
-  #ifdef WGL_EXT_display_color_table  // #167 inc http://www.opengl.org/registry/specs/EXT/wgl_display_color_table.txt
+  #ifdef OS_WIN
+  #if(WGL_EXT_display_color_table== 1)  // #167 inc http://www.opengl.org/registry/specs/EXT/wgl_display_color_table.txt
   PFNWGLCREATEDISPLAYCOLORTABLEEXTPROC wglCreateDisplayColorTableEXT;
   PFNWGLLOADDISPLAYCOLORTABLEEXTPROC wglLoadDisplayColorTableEXT;
   PFNWGLBINDDISPLAYCOLORTABLEEXTPROC wglBindDisplayColorTableEXT;
   PFNWGLDESTROYDISPLAYCOLORTABLEEXTPROC wglDestroyDisplayColorTableEXT;
   #endif
 
-  #ifdef WGL_EXT_extensions_string    // #168 http://www.opengl.org/registry/specs/EXT/wgl_extensions_string.txt
+  #if(WGL_EXT_extensions_string== 1)    // #168 http://www.opengl.org/registry/specs/EXT/wgl_extensions_string.txt
   PFNWGLGETEXTENSIONSSTRINGEXTPROC wglGetExtensionsStringEXT;
   #endif
 
-  #ifdef WGL_EXT_make_current_read    // #169 http://www.opengl.org/registry/specs/EXT/wgl_make_current_read.txt
+  #if(WGL_EXT_make_current_read== 1)    // #169 http://www.opengl.org/registry/specs/EXT/wgl_make_current_read.txt
   PFNWGLMAKECONTEXTCURRENTEXTPROC wglMakeContextCurrentEXT;
   PFNWGLGETCURRENTREADDCEXTPROC wglGetCurrentReadDCEXT;
   #endif
 
-  #ifdef WGL_EXT_pixel_format         // #170 http://www.opengl.org/registry/specs/EXT/wgl_pixel_format.txt
+  #if(WGL_EXT_pixel_format== 1)         // #170 http://www.opengl.org/registry/specs/EXT/wgl_pixel_format.txt
   PFNWGLGETPIXELFORMATATTRIBIVEXTPROC wglGetPixelFormatAttribivEXT;
   PFNWGLGETPIXELFORMATATTRIBFVEXTPROC wglGetPixelFormatAttribfvEXT;
   PFNWGLCHOOSEPIXELFORMATEXTPROC wglChoosePixelFormatEXT;
   #endif
 
-  #ifdef WGL_EXT_pbuffer              // #171 http://www.opengl.org/registry/specs/EXT/wgl_pbuffer.txt
+  #if(WGL_EXT_pbuffer== 1)              // #171 http://www.opengl.org/registry/specs/EXT/wgl_pbuffer.txt
   PFNWGLCREATEPBUFFEREXTPROC wglCreatePbufferEXT;
   PFNWGLGETPBUFFERDCEXTPROC wglGetPbufferDCEXT;
   PFNWGLRELEASEPBUFFERDCEXTPROC wglReleasePbufferDCEXT;
@@ -1846,32 +1846,32 @@ struct GlExtFuncs {
   PFNWGLQUERYPBUFFEREXTPROC wglQueryPbufferEXT;
   #endif
 
-  #ifdef WGL_EXT_swap_control         // #172 http://www.opengl.org/registry/specs/EXT/wgl_swap_control.txt
+  #if(WGL_EXT_swap_control== 1)         // #172 http://www.opengl.org/registry/specs/EXT/wgl_swap_control.txt
   PFNWGLSWAPINTERVALEXTPROC wglSwapIntervalEXT;
   PFNWGLGETSWAPINTERVALEXTPROC wglGetSwapIntervalEXT;
   #endif
-  #endif
+  #endif /// OS_WIN
 
-  #ifdef GL_EXT_blend_func_separate   // #173 http://www.opengl.org/registry/specs/EXT/blend_func_separate.txt
+  #if(GL_EXT_blend_func_separate== 1)   // #173 http://www.opengl.org/registry/specs/EXT/blend_func_separate.txt
   PFNGLBLENDFUNCSEPARATEEXTPROC glBlendFuncSeparateEXT;
   #endif
 
-  #ifdef GLX_SUN_get_transparent_index  // #183 http://www.opengl.org/registry/specs/SUN/get_transparent_index.txt
+  #if(GLX_SUN_get_transparent_index== 1)  // #183 http://www.opengl.org/registry/specs/SUN/get_transparent_index.txt
   PFNGLXGETTRANSPARENTINDEXSUNPROC glXGetTransparentIndexSUN;
   #endif
 
-  #ifdef GL_EXT_vertex_weighting      // #188 http://www.opengl.org/registry/specs/EXT/vertex_weighting.txt
+  #if(GL_EXT_vertex_weighting== 1)      // #188 http://www.opengl.org/registry/specs/EXT/vertex_weighting.txt
   PFNGLVERTEXWEIGHTFEXTPROC glVertexWeightfEXT;
   PFNGLVERTEXWEIGHTFVEXTPROC glVertexWeightfvEXT;
   PFNGLVERTEXWEIGHTPOINTEREXTPROC glVertexWeightPointerEXT;
   #endif
 
-  #ifdef GL_NV_vertex_array_range     // #190 http://www.opengl.org/registry/specs/NV/vertex_array_range.txt
+  #if(GL_NV_vertex_array_range== 1)     // #190 http://www.opengl.org/registry/specs/NV/vertex_array_range.txt
   PFNGLFLUSHVERTEXARRAYRANGENVPROC glFlushVertexArrayRangeNV;
   PFNGLVERTEXARRAYRANGENVPROC glVertexArrayRangeNV;
   #endif
 
-  #ifdef GL_NV_register_combiners     // #191 http://www.opengl.org/registry/specs/NV/register_combiners.txt
+  #if(GL_NV_register_combiners== 1)     // #191 http://www.opengl.org/registry/specs/NV/register_combiners.txt
   PFNGLCOMBINERPARAMETERFVNVPROC glCombinerParameterfvNV;
   PFNGLCOMBINERPARAMETERFNVPROC glCombinerParameterfNV;
   PFNGLCOMBINERPARAMETERIVNVPROC glCombinerParameterivNV;
@@ -1887,11 +1887,11 @@ struct GlExtFuncs {
   PFNGLGETFINALCOMBINERINPUTPARAMETERIVNVPROC glGetFinalCombinerInputParameterivNV;
   #endif
 
-  #ifdef GL_MESA_resize_buffers       // #196 http://www.opengl.org/registry/specs/MESA/resize_buffers.txt
+  #if(GL_MESA_resize_buffers== 1)       // #196 http://www.opengl.org/registry/specs/MESA/resize_buffers.txt
   PFNGLRESIZEBUFFERSMESAPROC glResizeBuffersMESA;
   #endif
 
-  #ifdef GL_MESA_window_pos           // #197 http://www.opengl.org/registry/specs/MESA/window_pos.txt
+  #if(GL_MESA_window_pos== 1)           // #197 http://www.opengl.org/registry/specs/MESA/window_pos.txt
   PFNGLWINDOWPOS2DMESAPROC glWindowPos2dMESA;
   PFNGLWINDOWPOS2DVMESAPROC glWindowPos2dvMESA;
   PFNGLWINDOWPOS2FMESAPROC glWindowPos2fMESA;
@@ -1918,12 +1918,12 @@ struct GlExtFuncs {
   PFNGLWINDOWPOS4SVMESAPROC glWindowPos4svMESA;
   #endif
 
-  #ifdef GL_IBM_multimode_draw_arrays  // #200 http://www.opengl.org/registry/specs/IBM/multimode_draw_arrays.txt
+  #if(GL_IBM_multimode_draw_arrays== 1)  // #200 http://www.opengl.org/registry/specs/IBM/multimode_draw_arrays.txt
   PFNGLMULTIMODEDRAWARRAYSIBMPROC glMultiModeDrawArraysIBM;
   PFNGLMULTIMODEDRAWELEMENTSIBMPROC glMultiModeDrawElementsIBM;
   #endif
 
-  #ifdef GL_IBM_vertex_array_lists    // #201 http://www.opengl.org/registry/specs/IBM/vertex_array_lists.txt
+  #if(GL_IBM_vertex_array_lists== 1)    // #201 http://www.opengl.org/registry/specs/IBM/vertex_array_lists.txt
   PFNGLCOLORPOINTERLISTIBMPROC glColorPointerListIBM;
   PFNGLSECONDARYCOLORPOINTERLISTIBMPROC glSecondaryColorPointerListIBM;
   PFNGLEDGEFLAGPOINTERLISTIBMPROC glEdgeFlagPointerListIBM;
@@ -1934,36 +1934,36 @@ struct GlExtFuncs {
   PFNGLVERTEXPOINTERLISTIBMPROC glVertexPointerListIBM;
   #endif
 
-  #ifdef GL_3DFX_tbuffer              // #208 http://www.opengl.org/registry/specs/3DFX/tbuffer.txt
+  #if(GL_3DFX_tbuffer== 1)              // #208 http://www.opengl.org/registry/specs/3DFX/tbuffer.txt
   PFNGLTBUFFERMASK3DFXPROC glTbufferMask3DFX;
   #endif
 
-  #ifdef GL_EXT_multisample           // WGL_EXT_multisample #209 http://www.opengl.org/registry/specs/EXT/wgl_multisample.txt
+  #if(GL_EXT_multisample== 1)           // WGL_EXT_multisample #209 http://www.opengl.org/registry/specs/EXT/wgl_multisample.txt
   PFNGLSAMPLEMASKEXTPROC glSampleMaskEXT;
   PFNGLSAMPLEPATTERNEXTPROC glSamplePatternEXT;
   #endif
 
-  #ifdef GL_SGIS_texture_color_mask   // #214 http://www.opengl.org/registry/specs/SGIS/texture_color_mask.txt
+  #if(GL_SGIS_texture_color_mask== 1)   // #214 http://www.opengl.org/registry/specs/SGIS/texture_color_mask.txt
   PFNGLTEXTURECOLORMASKSGISPROC glTextureColorMaskSGIS;
   #endif
 
-  #ifdef GLX_MESA_copy_sub_buffer     // #215 http://www.opengl.org/registry/specs/MESA/copy_sub_buffer.txt
+  #if(GLX_MESA_copy_sub_buffer== 1)     // #215 http://www.opengl.org/registry/specs/MESA/copy_sub_buffer.txt
   PFNGLXCOPYSUBBUFFERMESAPROC glXCopySubBufferMESA;
   #endif
 
-  #ifdef GLX_MESA_pixmap_colormap     // #216 http://www.opengl.org/registry/specs/MESA/pixmap_colormap.txt
+  #if(GLX_MESA_pixmap_colormap== 1)     // #216 http://www.opengl.org/registry/specs/MESA/pixmap_colormap.txt
   PFNGLXCREATEGLXPIXMAPMESAPROC glXCreateGLXPixmapMESA;
   #endif
 
-  #ifdef GLX_MESA_release_buffers     // #217 http://www.opengl.org/registry/specs/MESA/release_buffers.txt
+  #if(GLX_MESA_release_buffers== 1)     // #217 http://www.opengl.org/registry/specs/MESA/release_buffers.txt
   PFNGLXRELEASEBUFFERSMESAPROC glXReleaseBuffersMESA;
   #endif
 
-  #ifdef GLX_MESA_set_3dfx_mode       // #218 http://www.opengl.org/registry/specs/MESA/set_3dfx_mode.txt
+  #if(GLX_MESA_set_3dfx_mode== 1)       // #218 http://www.opengl.org/registry/specs/MESA/set_3dfx_mode.txt
   PFNGLXSET3DFXMODEMESAPROC glXSet3DfxModeMESA;
   #endif
 
-  #ifdef GL_NV_fence                  // #222 http://www.opengl.org/registry/specs/NV/fence.txt
+  #if(GL_NV_fence== 1)                  // #222 http://www.opengl.org/registry/specs/NV/fence.txt
   PFNGLDELETEFENCESNVPROC glDeleteFencesNV;
   PFNGLGENFENCESNVPROC glGenFencesNV;
   PFNGLISFENCENVPROC glIsFenceNV;
@@ -1973,11 +1973,11 @@ struct GlExtFuncs {
   PFNGLSETFENCENVPROC glSetFenceNV;
   #endif
 
-  #ifdef GL_IBM_static_data           // #223 http://www.opengl.org/registry/specs/IBM/static_data.txt
+  #if(GL_IBM_static_data== 1)           // #223 http://www.opengl.org/registry/specs/IBM/static_data.txt
   PFNGLFLUSHSTATICDATAIBMPROC glFlushStaticDataIBM;
   #endif
 
-  #ifdef GL_NV_evaluators             // #225 http://www.opengl.org/registry/specs/NV/evaluators.txt
+  #if(GL_NV_evaluators== 1)             // #225 http://www.opengl.org/registry/specs/NV/evaluators.txt
   PFNGLMAPCONTROLPOINTSNVPROC glMapControlPointsNV;
   PFNGLMAPPARAMETERIVNVPROC glMapParameterivNV;
   PFNGLMAPPARAMETERFVNVPROC glMapParameterfvNV;
@@ -1989,12 +1989,12 @@ struct GlExtFuncs {
   PFNGLEVALMAPSNVPROC glEvalMapsNV;
   #endif
 
-  #ifdef GL_NV_register_combiners2    // #227 http://www.opengl.org/registry/specs/NV/register_combiners2.txt
+  #if(GL_NV_register_combiners2== 1)    // #227 http://www.opengl.org/registry/specs/NV/register_combiners2.txt
   PFNGLCOMBINERSTAGEPARAMETERFVNVPROC glCombinerStageParameterfvNV;
   PFNGLGETCOMBINERSTAGEPARAMETERFVNVPROC glGetCombinerStageParameterfvNV;
   #endif
 
-  #ifdef GL_NV_vertex_program         // #233 http://www.opengl.org/registry/specs/NV/vertex_program.txt
+  #if(GL_NV_vertex_program== 1)         // #233 http://www.opengl.org/registry/specs/NV/vertex_program.txt
   PFNGLAREPROGRAMSRESIDENTNVPROC glAreProgramsResidentNV;
   PFNGLBINDPROGRAMNVPROC glBindProgramNV;
   PFNGLDELETEPROGRAMSNVPROC glDeleteProgramsNV;
@@ -2061,7 +2061,7 @@ struct GlExtFuncs {
   PFNGLVERTEXATTRIBS4UBVNVPROC glVertexAttribs4ubvNV;
   #endif
 
-  #ifdef GLX_OML_sync_control         // #238 http://www.opengl.org/registry/specs/OML/glx_sync_control.txt
+  #if(GLX_OML_sync_control== 1)         // #238 http://www.opengl.org/registry/specs/OML/glx_sync_control.txt
   PFNGLXGETSYNCVALUESOMLPROC glXGetSyncValuesOML;
   PFNGLXGETMSCRATEOMLPROC glXGetMscRateOML;
   PFNGLXSWAPBUFFERSMSCOMLPROC glXSwapBuffersMscOML;
@@ -2069,7 +2069,7 @@ struct GlExtFuncs {
   PFNGLXWAITFORSBCOMLPROC glXWaitForSbcOML;
   #endif
 
-  #ifdef WGL_OML_sync_control         // #242 http://www.opengl.org/registry/specs/OML/wgl_sync_control.txt
+  #if(WGL_OML_sync_control== 1)         // #242 http://www.opengl.org/registry/specs/OML/wgl_sync_control.txt
   PFNWGLGETSYNCVALUESOMLPROC wglGetSyncValuesOML;
   PFNWGLGETMSCRATEOMLPROC wglGetMscRateOML;
   PFNWGLSWAPBUFFERSMSCOMLPROC wglSwapBuffersMscOML;
@@ -2078,14 +2078,14 @@ struct GlExtFuncs {
   PFNWGLWAITFORSBCOMLPROC wglWaitForSbcOML;
   #endif
 
-  #ifdef GL_ATI_envmap_bumpmap        // #244 http://www.opengl.org/registry/specs/ATI/envmap_bumpmap.txt
+  #if(GL_ATI_envmap_bumpmap== 1)        // #244 http://www.opengl.org/registry/specs/ATI/envmap_bumpmap.txt
   PFNGLTEXBUMPPARAMETERIVATIPROC glTexBumpParameterivATI;
   PFNGLTEXBUMPPARAMETERFVATIPROC glTexBumpParameterfvATI;
   PFNGLGETTEXBUMPPARAMETERIVATIPROC glGetTexBumpParameterivATI;
   PFNGLGETTEXBUMPPARAMETERFVATIPROC glGetTexBumpParameterfvATI;
   #endif
 
-  #ifdef GL_ATI_fragment_shader       // #245 http://www.opengl.org/registry/specs/ATI/fragment_shader.txt
+  #if(GL_ATI_fragment_shader== 1)       // #245 http://www.opengl.org/registry/specs/ATI/fragment_shader.txt
   PFNGLGENFRAGMENTSHADERSATIPROC glGenFragmentShadersATI;
   PFNGLBINDFRAGMENTSHADERATIPROC glBindFragmentShaderATI;
   PFNGLDELETEFRAGMENTSHADERATIPROC glDeleteFragmentShaderATI;
@@ -2102,12 +2102,12 @@ struct GlExtFuncs {
   PFNGLSETFRAGMENTSHADERCONSTANTATIPROC glSetFragmentShaderConstantATI;
   #endif
 
-  #ifdef GL_ATI_pn_triangles          // #246 http://www.opengl.org/registry/specs/ATI/pn_triangles.txt
+  #if(GL_ATI_pn_triangles== 1)          // #246 http://www.opengl.org/registry/specs/ATI/pn_triangles.txt
   PFNGLPNTRIANGLESIATIPROC glPNTrianglesiATI;
   PFNGLPNTRIANGLESFATIPROC glPNTrianglesfATI;
   #endif
 
-  #ifdef GL_ATI_vertex_array_object   // #247 http://www.opengl.org/registry/specs/ATI/vertex_array_object.txt
+  #if(GL_ATI_vertex_array_object== 1)   // #247 http://www.opengl.org/registry/specs/ATI/vertex_array_object.txt
   PFNGLNEWOBJECTBUFFERATIPROC glNewObjectBufferATI;
   PFNGLISOBJECTBUFFERATIPROC glIsObjectBufferATI;
   PFNGLUPDATEOBJECTBUFFERATIPROC glUpdateObjectBufferATI;
@@ -2122,7 +2122,7 @@ struct GlExtFuncs {
   PFNGLGETVARIANTARRAYOBJECTIVATIPROC glGetVariantArrayObjectivATI;
   #endif
 
-  #ifdef GL_EXT_vertex_shader         // #248 http://www.opengl.org/registry/specs/EXT/vertex_shader.txt
+  #if(GL_EXT_vertex_shader== 1)         // #248 http://www.opengl.org/registry/specs/EXT/vertex_shader.txt
   PFNGLBEGINVERTEXSHADEREXTPROC glBeginVertexShaderEXT;
   PFNGLENDVERTEXSHADEREXTPROC glEndVertexShaderEXT;
   PFNGLBINDVERTEXSHADEREXTPROC glBindVertexShaderEXT;
@@ -2167,7 +2167,7 @@ struct GlExtFuncs {
   PFNGLGETLOCALCONSTANTFLOATVEXTPROC glGetLocalConstantFloatvEXT;
   #endif
 
-  #ifdef GL_ATI_vertex_streams        // #249 http://www.opengl.org/registry/specs/ATI/vertex_streams.txt
+  #if(GL_ATI_vertex_streams== 1)        // #249 http://www.opengl.org/registry/specs/ATI/vertex_streams.txt
   PFNGLVERTEXSTREAM1SATIPROC glVertexStream1sATI;
   PFNGLVERTEXSTREAM1SVATIPROC glVertexStream1svATI;
   PFNGLVERTEXSTREAM1IATIPROC glVertexStream1iATI;
@@ -2215,19 +2215,19 @@ struct GlExtFuncs {
   PFNGLVERTEXBLENDENVFATIPROC glVertexBlendEnvfATI;
   #endif
 
-  #ifdef WGL_I3D_digital_video_control  // #250 http://www.opengl.org/registry/specs/I3D/wgl_digital_video_control.txt
+  #if(WGL_I3D_digital_video_control== 1)  // #250 http://www.opengl.org/registry/specs/I3D/wgl_digital_video_control.txt
   PFNWGLGETDIGITALVIDEOPARAMETERSI3DPROC wglGetDigitalVideoParametersI3D;
   PFNWGLSETDIGITALVIDEOPARAMETERSI3DPROC wglSetDigitalVideoParametersI3D;
   #endif
 
-  #ifdef WGL_I3D_gamma                // #251 http://www.opengl.org/registry/specs/I3D/wgl_gamma.txt
+  #if(WGL_I3D_gamma== 1)                // #251 http://www.opengl.org/registry/specs/I3D/wgl_gamma.txt
   PFNWGLGETGAMMATABLEPARAMETERSI3DPROC wglGetGammaTableParametersI3D;
   PFNWGLSETGAMMATABLEPARAMETERSI3DPROC wglSetGammaTableParametersI3D;
   PFNWGLGETGAMMATABLEI3DPROC wglGetGammaTableI3D;
   PFNWGLSETGAMMATABLEI3DPROC wglSetGammaTableI3D;
   #endif
 
-  #ifdef WGL_I3D_genlock              // #252 http://www.opengl.org/registry/specs/I3D/wgl_genlock.txt
+  #if(WGL_I3D_genlock== 1)              // #252 http://www.opengl.org/registry/specs/I3D/wgl_genlock.txt
   PFNWGLENABLEGENLOCKI3DPROC wglEnableGenlockI3D;
   PFNWGLDISABLEGENLOCKI3DPROC wglDisableGenlockI3D;
   PFNWGLISENABLEDGENLOCKI3DPROC wglIsEnabledGenlockI3D;
@@ -2242,38 +2242,38 @@ struct GlExtFuncs {
   PFNWGLQUERYGENLOCKMAXSOURCEDELAYI3DPROC wglQueryGenlockMaxSourceDelayI3D;
   #endif
 
-  #ifdef WGL_I3D_image_buffer         // #253 http://www.opengl.org/registry/specs/I3D/wgl_image_buffer.txt
+  #if(WGL_I3D_image_buffer== 1)         // #253 http://www.opengl.org/registry/specs/I3D/wgl_image_buffer.txt
   PFNWGLCREATEIMAGEBUFFERI3DPROC wglCreateImageBufferI3D;
   PFNWGLDESTROYIMAGEBUFFERI3DPROC wglDestroyImageBufferI3D;
   PFNWGLASSOCIATEIMAGEBUFFEREVENTSI3DPROC wglAssociateImageBufferEventsI3D;
   PFNWGLRELEASEIMAGEBUFFEREVENTSI3DPROC wglReleaseImageBufferEventsI3D;
   #endif
 
-  #ifdef WGL_I3D_swap_frame_lock      // #254 http://www.opengl.org/registry/specs/I3D/wgl_swap_frame_lock.txt
+  #if(WGL_I3D_swap_frame_lock== 1)      // #254 http://www.opengl.org/registry/specs/I3D/wgl_swap_frame_lock.txt
   PFNWGLENABLEFRAMELOCKI3DPROC wglEnableFrameLockI3D;
   PFNWGLDISABLEFRAMELOCKI3DPROC wglDisableFrameLockI3D;
   PFNWGLISENABLEDFRAMELOCKI3DPROC wglIsEnabledFrameLockI3D;
   PFNWGLQUERYFRAMELOCKMASTERI3DPROC wglQueryFrameLockMasterI3D;
   #endif
 
-  #ifdef WGL_I3D_swap_frame_usage     // #255 http://www.opengl.org/registry/specs/I3D/wgl_swap_frame_usage.txt
+  #if(WGL_I3D_swap_frame_usage== 1)     // #255 http://www.opengl.org/registry/specs/I3D/wgl_swap_frame_usage.txt
   PFNWGLGETFRAMEUSAGEI3DPROC wglGetFrameUsageI3D;
   PFNWGLBEGINFRAMETRACKINGI3DPROC wglBeginFrameTrackingI3D;
   PFNWGLENDFRAMETRACKINGI3DPROC wglEndFrameTrackingI3D;
   PFNWGLQUERYFRAMETRACKINGI3DPROC wglQueryFrameTrackingI3D;
   #endif
 
-  #ifdef GL_ATI_element_array         // #256 http://www.opengl.org/registry/specs/ATI/element_array.txt
+  #if(GL_ATI_element_array== 1)         // #256 http://www.opengl.org/registry/specs/ATI/element_array.txt
   PFNGLELEMENTPOINTERATIPROC glElementPointerATI;
   PFNGLDRAWELEMENTARRAYATIPROC glDrawElementArrayATI;
   PFNGLDRAWRANGEELEMENTARRAYATIPROC glDrawRangeElementArrayATI;
   #endif
 
-  #ifdef GL_SUN_mesh_array            // #257 http://www.opengl.org/registry/specs/SUN/mesh_array.txt
+  #if(GL_SUN_mesh_array== 1)            // #257 http://www.opengl.org/registry/specs/SUN/mesh_array.txt
   PFNGLDRAWMESHARRAYSSUNPROC glDrawMeshArraysSUN;
   #endif
 
-  #ifdef GL_NV_occlusion_query        // #261 http://www.opengl.org/registry/specs/NV/occlusion_query.txt
+  #if(GL_NV_occlusion_query== 1)        // #261 http://www.opengl.org/registry/specs/NV/occlusion_query.txt
   PFNGLGENOCCLUSIONQUERIESNVPROC glGenOcclusionQueriesNV;
   PFNGLDELETEOCCLUSIONQUERIESNVPROC glDeleteOcclusionQueriesNV;
   PFNGLISOCCLUSIONQUERYNVPROC glIsOcclusionQueryNV;
@@ -2283,16 +2283,16 @@ struct GlExtFuncs {
   PFNGLGETOCCLUSIONQUERYUIVNVPROC glGetOcclusionQueryuivNV;
   #endif
 
-  #ifdef GL_NV_point_sprite           // #262 http://www.opengl.org/registry/specs/NV/point_sprite.txt
+  #if(GL_NV_point_sprite== 1)           // #262 http://www.opengl.org/registry/specs/NV/point_sprite.txt
   PFNGLPOINTPARAMETERINVPROC glPointParameteriNV;
   PFNGLPOINTPARAMETERIVNVPROC glPointParameterivNV;
   #endif
 
-  #ifdef GL_EXT_stencil_two_side      // #268 http://www.opengl.org/registry/specs/EXT/stencil_two_side.txt
+  #if(GL_EXT_stencil_two_side== 1)      // #268 http://www.opengl.org/registry/specs/EXT/stencil_two_side.txt
   PFNGLACTIVESTENCILFACEEXTPROC glActiveStencilFaceEXT;
   #endif
 
-  #ifdef GL_APPLE_element_array       // #271 http://www.opengl.org/registry/specs/APPLE/element_array.txt
+  #if(GL_APPLE_element_array== 1)       // #271 http://www.opengl.org/registry/specs/APPLE/element_array.txt
   PFNGLELEMENTPOINTERAPPLEPROC glElementPointerAPPLE;
   PFNGLDRAWELEMENTARRAYAPPLEPROC glDrawElementArrayAPPLE;
   PFNGLDRAWRANGEELEMENTARRAYAPPLEPROC glDrawRangeElementArrayAPPLE;
@@ -2300,7 +2300,7 @@ struct GlExtFuncs {
   PFNGLMULTIDRAWRANGEELEMENTARRAYAPPLEPROC glMultiDrawRangeElementArrayAPPLE;
   #endif
 
-  #ifdef GL_APPLE_fence               // #272 http://www.opengl.org/registry/specs/APPLE/fence.txt
+  #if(GL_APPLE_fence== 1)               // #272 http://www.opengl.org/registry/specs/APPLE/fence.txt
   PFNGLGENFENCESAPPLEPROC glGenFencesAPPLE;
   PFNGLDELETEFENCESAPPLEPROC glDeleteFencesAPPLE;
   PFNGLSETFENCEAPPLEPROC glSetFenceAPPLE;
@@ -2311,24 +2311,24 @@ struct GlExtFuncs {
   PFNGLFINISHOBJECTAPPLEPROC glFinishObjectAPPLE;
   #endif
 
-  #ifdef GL_APPLE_vertex_array_object  // #273 http://www.opengl.org/registry/specs/APPLE/vertex_array_object.txt
+  #if(GL_APPLE_vertex_array_object== 1)  // #273 http://www.opengl.org/registry/specs/APPLE/vertex_array_object.txt
   PFNGLBINDVERTEXARRAYAPPLEPROC glBindVertexArrayAPPLE;
   PFNGLDELETEVERTEXARRAYSAPPLEPROC glDeleteVertexArraysAPPLE;
   PFNGLGENVERTEXARRAYSAPPLEPROC glGenVertexArraysAPPLE;
   PFNGLISVERTEXARRAYAPPLEPROC glIsVertexArrayAPPLE;
   #endif
 
-  #ifdef GL_APPLE_vertex_array_range  // #274 http://www.opengl.org/registry/specs/APPLE/vertex_array_range.txt
+  #if(GL_APPLE_vertex_array_range== 1)  // #274 http://www.opengl.org/registry/specs/APPLE/vertex_array_range.txt
   PFNGLVERTEXARRAYRANGEAPPLEPROC glVertexArrayRangeAPPLE;
   PFNGLFLUSHVERTEXARRAYRANGEAPPLEPROC glFlushVertexArrayRangeAPPLE;
   PFNGLVERTEXARRAYPARAMETERIAPPLEPROC glVertexArrayParameteriAPPLE;
   #endif
 
-  #ifdef GL_ATI_draw_buffers          // #277 http://www.opengl.org/registry/specs/ATI/draw_buffers.txt
+  #if(GL_ATI_draw_buffers== 1)          // #277 http://www.opengl.org/registry/specs/ATI/draw_buffers.txt
   PFNGLDRAWBUFFERSATIPROC glDrawBuffersATI;
   #endif
 
-  #ifdef GL_NV_fragment_program       // #282 http://www.opengl.org/registry/specs/NV/fragment_program.txt
+  #if(GL_NV_fragment_program== 1)       // #282 http://www.opengl.org/registry/specs/NV/fragment_program.txt
   PFNGLPROGRAMNAMEDPARAMETER4FNVPROC glProgramNamedParameter4fNV;
   PFNGLPROGRAMNAMEDPARAMETER4FVNVPROC glProgramNamedParameter4fvNV;
   PFNGLPROGRAMNAMEDPARAMETER4DNVPROC glProgramNamedParameter4dNV;
@@ -2337,7 +2337,7 @@ struct GlExtFuncs {
   PFNGLGETPROGRAMNAMEDPARAMETERDVNVPROC glGetProgramNamedParameterdvNV;
   #endif
 
-  #ifdef GL_NV_half_float             // #283 http://www.opengl.org/registry/specs/NV/half_float.txt
+  #if(GL_NV_half_float== 1)             // #283 http://www.opengl.org/registry/specs/NV/half_float.txt
   PFNGLVERTEX2HNVPROC glVertex2hNV;
   PFNGLVERTEX2HVNVPROC glVertex2hvNV;
   PFNGLVERTEX3HNVPROC glVertex3hNV;
@@ -2386,33 +2386,33 @@ struct GlExtFuncs {
   PFNGLVERTEXATTRIBS4HVNVPROC glVertexAttribs4hvNV;
   #endif
 
-  #ifdef GL_NV_pixel_data_range       // #284 http://www.opengl.org/registry/specs/NV/pixel_data_range.txt
+  #if(GL_NV_pixel_data_range== 1)       // #284 http://www.opengl.org/registry/specs/NV/pixel_data_range.txt
   PFNGLPIXELDATARANGENVPROC glPixelDataRangeNV;
   PFNGLFLUSHPIXELDATARANGENVPROC glFlushPixelDataRangeNV;
   #endif
 
-  #ifdef GL_NV_primitive_restart      // #285 http://www.opengl.org/registry/specs/NV/primitive_restart.txt
+  #if(GL_NV_primitive_restart== 1)      // #285 http://www.opengl.org/registry/specs/NV/primitive_restart.txt
   PFNGLPRIMITIVERESTARTNVPROC glPrimitiveRestartNV;
   PFNGLPRIMITIVERESTARTINDEXNVPROC glPrimitiveRestartIndexNV;
   #endif
 
-  #ifdef GL_ATI_map_object_buffer     // #288 http://www.opengl.org/registry/specs/ATI/map_object_buffer.txt
+  #if(GL_ATI_map_object_buffer== 1)     // #288 http://www.opengl.org/registry/specs/ATI/map_object_buffer.txt
   PFNGLMAPOBJECTBUFFERATIPROC glMapObjectBufferATI;
   PFNGLUNMAPOBJECTBUFFERATIPROC glUnmapObjectBufferATI;
   #endif
 
-  #ifdef GL_ATI_separate_stencil      // #289 http://www.opengl.org/registry/specs/ATI/separate_stencil.txt
+  #if(GL_ATI_separate_stencil== 1)      // #289 http://www.opengl.org/registry/specs/ATI/separate_stencil.txt
   PFNGLSTENCILOPSEPARATEATIPROC glStencilOpSeparateATI;
   PFNGLSTENCILFUNCSEPARATEATIPROC glStencilFuncSeparateATI;
   #endif
 
-  #ifdef GL_ATI_vertex_attrib_array_object  // #290 http://www.opengl.org/registry/specs/ATI/vertex_attrib_array_object.txt
+  #if(GL_ATI_vertex_attrib_array_object== 1)  // #290 http://www.opengl.org/registry/specs/ATI/vertex_attrib_array_object.txt
   PFNGLVERTEXATTRIBARRAYOBJECTATIPROC glVertexAttribArrayObjectATI;
   PFNGLGETVERTEXATTRIBARRAYOBJECTFVATIPROC glGetVertexAttribArrayObjectfvATI;
   PFNGLGETVERTEXATTRIBARRAYOBJECTIVATIPROC glGetVertexAttribArrayObjectivATI;
   #endif
 
-  #ifdef GL_OES_byte_coordinates      // #291 http://www.opengl.org/registry/specs/OES/OES_byte_coordinates.txt
+  #if(GL_OES_byte_coordinates== 1)      // #291 http://www.opengl.org/registry/specs/OES/OES_byte_coordinates.txt
   /* DISABLED UNTIL THEY FIGURE OUT HOW MANY PARAMETERS THEIR FUNCS HAVE
   PFNGLMULTITEXCOORD1BOESPROC glMultiTexCoord1bOES;
   PFNGLMULTITEXCOORD1BVOESPROC glMultiTexCoord1bvOES;
@@ -2439,7 +2439,7 @@ struct GlExtFuncs {
   */
   #endif
 
-  #ifdef GL_OES_fixed_point           // #292 http://www.opengl.org/registry/specs/OES/OES_fixed_point.txt
+  #if(GL_OES_fixed_point== 1)           // #292 http://www.opengl.org/registry/specs/OES/OES_fixed_point.txt
   PFNGLALPHAFUNCXOESPROC glAlphaFuncxOES;
   PFNGLCLEARCOLORXOESPROC glClearColorxOES;
   PFNGLCLEARDEPTHXOESPROC glClearDepthxOES;
@@ -2546,7 +2546,7 @@ struct GlExtFuncs {
   PFNGLVERTEX4XVOESPROC glVertex4xvOES;
   #endif
 
-  #ifdef GL_OES_single_precision      // #293 http://www.opengl.org/registry/specs/OES/OES_single_precision.txt
+  #if(GL_OES_single_precision== 1)      // #293 http://www.opengl.org/registry/specs/OES/OES_single_precision.txt
   PFNGLCLEARDEPTHFOESPROC glClearDepthfOES;
   PFNGLCLIPPLANEFOESPROC glClipPlanefOES;
   PFNGLDEPTHRANGEFOESPROC glDepthRangefOES;
@@ -2555,19 +2555,19 @@ struct GlExtFuncs {
   PFNGLORTHOFOESPROC glOrthofOES;
   #endif
 
-  #ifdef GL_OES_query_matrix          // #296 http://www.opengl.org/registry/specs/OES/OES_query_matrix.txt
+  #if(GL_OES_query_matrix== 1)          // #296 http://www.opengl.org/registry/specs/OES/OES_query_matrix.txt
   PFNGLQUERYMATRIXXOESPROC glQueryMatrixxOES;
   #endif
 
-  #ifdef GL_EXT_depth_bounds_test     // #297 http://www.opengl.org/registry/specs/EXT/depth_bounds_test.txt
+  #if(GL_EXT_depth_bounds_test== 1)     // #297 http://www.opengl.org/registry/specs/EXT/depth_bounds_test.txt
   PFNGLDEPTHBOUNDSEXTPROC glDepthBoundsEXT;
   #endif
 
-  #ifdef GL_EXT_blend_equation_separate  // #299 http://www.opengl.org/registry/specs/EXT/blend_equation_separate.txt
+  #if(GL_EXT_blend_equation_separate== 1)  // #299 http://www.opengl.org/registry/specs/EXT/blend_equation_separate.txt
   PFNGLBLENDEQUATIONSEPARATEEXTPROC glBlendEquationSeparateEXT;
   #endif
 
-  #ifdef GLX_SGIX_hyperpipe           // #307 http://www.opengl.org/registry/specs/SGIX/hyperpipe_group.txt
+  #if(GLX_SGIX_hyperpipe== 1)           // #307 http://www.opengl.org/registry/specs/SGIX/hyperpipe_group.txt
   PFNGLXQUERYHYPERPIPENETWORKSGIXPROC glXQueryHyperpipeNetworkSGIX;
   PFNGLXHYPERPIPECONFIGSGIXPROC glXHyperpipeConfigSGIX;
   PFNGLXQUERYHYPERPIPECONFIGSGIXPROC glXQueryHyperpipeConfigSGIX;
@@ -2578,11 +2578,11 @@ struct GlExtFuncs {
   PFNGLXQUERYHYPERPIPEATTRIBSGIXPROC glXQueryHyperpipeAttribSGIX;
   #endif
 
-  #ifdef GLX_MESA_agp_offset          // #308 http://www.opengl.org/registry/specs/MESA/agp_offset.txt
+  #if(GLX_MESA_agp_offset== 1)          // #308 http://www.opengl.org/registry/specs/MESA/agp_offset.txt
   PFNGLXGETAGPOFFSETMESAPROC glXGetAGPOffsetMESA;
   #endif
 
-  #ifdef GL_EXT_framebuffer_object    // #310 http://www.opengl.org/registry/specs/EXT/framebuffer_object.txt
+  #if(GL_EXT_framebuffer_object== 1)    // #310 http://www.opengl.org/registry/specs/EXT/framebuffer_object.txt
   PFNGLISRENDERBUFFEREXTPROC glIsRenderbufferEXT;
   PFNGLBINDRENDERBUFFEREXTPROC glBindRenderbufferEXT;
   PFNGLDELETERENDERBUFFERSEXTPROC glDeleteRenderbuffersEXT;
@@ -2602,42 +2602,42 @@ struct GlExtFuncs {
   PFNGLGENERATEMIPMAPEXTPROC glGenerateMipmapEXT;
   #endif
 
-  #ifdef GL_GREMEDY_string_marker     // #311 http://www.opengl.org/registry/specs/GREMEDY/string_marker.txt
+  #if(GL_GREMEDY_string_marker== 1)     // #311 http://www.opengl.org/registry/specs/GREMEDY/string_marker.txt
   PFNGLSTRINGMARKERGREMEDYPROC glStringMarkerGREMEDY;
   #endif
 
-  #ifdef WGL_3DL_stereo_control       // #313 http://www.opengl.org/registry/specs/3DL/stereo_control.txt
+  #if(WGL_3DL_stereo_control== 1)       // #313 http://www.opengl.org/registry/specs/3DL/stereo_control.txt
   PFNWGLSETSTEREOEMITTERSTATE3DLPROC wglSetStereoEmitterState3DL;
   #endif
 
-  #ifdef GL_EXT_stencil_clear_tag     // #314 http://www.opengl.org/registry/specs/EXT/stencil_clear_tag.txt
+  #if(GL_EXT_stencil_clear_tag== 1)     // #314 http://www.opengl.org/registry/specs/EXT/stencil_clear_tag.txt
   PFNGLSTENCILCLEARTAGEXTPROC glStencilClearTagEXT;
   #endif
 
-  #ifdef GL_EXT_framebuffer_blit      // #316 http://www.opengl.org/registry/specs/EXT/framebuffer_blit.txt
+  #if(GL_EXT_framebuffer_blit== 1)      // #316 http://www.opengl.org/registry/specs/EXT/framebuffer_blit.txt
   PFNGLBLITFRAMEBUFFEREXTPROC glBlitFramebufferEXT;
   #endif
 
-  #ifdef GL_EXT_framebuffer_multisample  // #317 http://www.opengl.org/registry/specs/EXT/framebuffer_multisample.txt
+  #if(GL_EXT_framebuffer_multisample== 1)  // #317 http://www.opengl.org/registry/specs/EXT/framebuffer_multisample.txt
   PFNGLRENDERBUFFERSTORAGEMULTISAMPLEEXTPROC glRenderbufferStorageMultisampleEXT;
   #endif
 
-  #ifdef GL_EXT_timer_query           // #319 http://www.opengl.org/registry/specs/EXT/timer_query.txt
+  #if(GL_EXT_timer_query== 1)           // #319 http://www.opengl.org/registry/specs/EXT/timer_query.txt
   PFNGLGETQUERYOBJECTI64VEXTPROC glGetQueryObjecti64vEXT;
   PFNGLGETQUERYOBJECTUI64VEXTPROC glGetQueryObjectui64vEXT;
   #endif
 
-  #ifdef GL_EXT_gpu_program_parameters  // #320 http://www.opengl.org/registry/specs/EXT/gpu_program_parameters.txt
+  #if(GL_EXT_gpu_program_parameters== 1)  // #320 http://www.opengl.org/registry/specs/EXT/gpu_program_parameters.txt
   PFNGLPROGRAMENVPARAMETERS4FVEXTPROC glProgramEnvParameters4fvEXT;
   PFNGLPROGRAMLOCALPARAMETERS4FVEXTPROC glProgramLocalParameters4fvEXT;
   #endif
 
-  #ifdef GL_APPLE_flush_buffer_range  // #321 http://www.opengl.org/registry/specs/APPLE/flush_buffer_range.txt
+  #if(GL_APPLE_flush_buffer_range== 1)  // #321 http://www.opengl.org/registry/specs/APPLE/flush_buffer_range.txt
   PFNGLBUFFERPARAMETERIAPPLEPROC glBufferParameteriAPPLE;
   PFNGLFLUSHMAPPEDBUFFERRANGEAPPLEPROC glFlushMappedBufferRangeAPPLE;
   #endif
 
-  #ifdef GL_NV_gpu_program4           // #322 http://www.opengl.org/registry/specs/NV/gpu_program4.txt
+  #if(GL_NV_gpu_program4== 1)           // #322 http://www.opengl.org/registry/specs/NV/gpu_program4.txt
   PFNGLPROGRAMLOCALPARAMETERI4INVPROC glProgramLocalParameterI4iNV;
   PFNGLPROGRAMLOCALPARAMETERI4IVNVPROC glProgramLocalParameterI4ivNV;
   PFNGLPROGRAMLOCALPARAMETERSI4IVNVPROC glProgramLocalParametersI4ivNV;
@@ -2656,18 +2656,18 @@ struct GlExtFuncs {
   PFNGLGETPROGRAMENVPARAMETERIUIVNVPROC glGetProgramEnvParameterIuivNV;
   #endif
 
-  #ifdef GL_NV_geometry_program4      // #323 http://www.opengl.org/registry/specs/NV/geometry_program4.txt
+  #if(GL_NV_geometry_program4== 1)      // #323 http://www.opengl.org/registry/specs/NV/geometry_program4.txt
   PFNGLPROGRAMVERTEXLIMITNVPROC glProgramVertexLimitNV;
   PFNGLFRAMEBUFFERTEXTUREEXTPROC glFramebufferTextureEXT;
   PFNGLFRAMEBUFFERTEXTURELAYEREXTPROC glFramebufferTextureLayerEXT;
   PFNGLFRAMEBUFFERTEXTUREFACEEXTPROC glFramebufferTextureFaceEXT;
   #endif
 
-  #ifdef GL_EXT_geometry_shader4      // #324 http://www.opengl.org/registry/specs/EXT/geometry_shader4.txt
+  #if(GL_EXT_geometry_shader4== 1)      // #324 http://www.opengl.org/registry/specs/EXT/geometry_shader4.txt
   PFNGLPROGRAMPARAMETERIEXTPROC glProgramParameteriEXT;
   #endif
 
-  #ifdef GL_NV_vertex_program4        // #325 http://www.opengl.org/registry/specs/NV/vertex_program4.txt
+  #if(GL_NV_vertex_program4== 1)        // #325 http://www.opengl.org/registry/specs/NV/vertex_program4.txt
   PFNGLVERTEXATTRIBI1IEXTPROC glVertexAttribI1iEXT;
   PFNGLVERTEXATTRIBI2IEXTPROC glVertexAttribI2iEXT;
   PFNGLVERTEXATTRIBI3IEXTPROC glVertexAttribI3iEXT;
@@ -2693,7 +2693,7 @@ struct GlExtFuncs {
   PFNGLGETVERTEXATTRIBIUIVEXTPROC glGetVertexAttribIuivEXT;
   #endif
 
-  #ifdef GL_EXT_gpu_shader4           // #326 http://www.opengl.org/registry/specs/EXT/gpu_shader4.txt
+  #if(GL_EXT_gpu_shader4== 1)           // #326 http://www.opengl.org/registry/specs/EXT/gpu_shader4.txt
   PFNGLGETUNIFORMUIVEXTPROC glGetUniformuivEXT;
   PFNGLBINDFRAGDATALOCATIONEXTPROC glBindFragDataLocationEXT;
   PFNGLGETFRAGDATALOCATIONEXTPROC glGetFragDataLocationEXT;
@@ -2707,36 +2707,36 @@ struct GlExtFuncs {
   PFNGLUNIFORM4UIVEXTPROC glUniform4uivEXT;
   #endif
 
-  #ifdef GL_EXT_draw_instanced        // #327 http://www.opengl.org/registry/specs/EXT/draw_instanced.txt
+  #if(GL_EXT_draw_instanced== 1)        // #327 http://www.opengl.org/registry/specs/EXT/draw_instanced.txt
   PFNGLDRAWARRAYSINSTANCEDEXTPROC glDrawArraysInstancedEXT;
   PFNGLDRAWELEMENTSINSTANCEDEXTPROC glDrawElementsInstancedEXT;
   #endif
 
-  #ifdef GL_EXT_texture_buffer_object  // #330 http://www.opengl.org/registry/specs/EXT/texture_buffer_object.txt
+  #if(GL_EXT_texture_buffer_object== 1)  // #330 http://www.opengl.org/registry/specs/EXT/texture_buffer_object.txt
   PFNGLTEXBUFFEREXTPROC glTexBufferEXT;
   #endif
 
-  #ifdef GL_NV_depth_buffer_float     // #334 http://www.opengl.org/registry/specs/NV/depth_buffer_float.txt
+  #if(GL_NV_depth_buffer_float== 1)     // #334 http://www.opengl.org/registry/specs/NV/depth_buffer_float.txt
   PFNGLDEPTHRANGEDNVPROC glDepthRangedNV;
   PFNGLCLEARDEPTHDNVPROC glClearDepthdNV;
   PFNGLDEPTHBOUNDSDNVPROC glDepthBoundsdNV;
   #endif
 
-  #ifdef GL_NV_framebuffer_multisample_coverage  // #336 http://www.opengl.org/registry/specs/NV/framebuffer_multisample_coverage.txt
+  #if(GL_NV_framebuffer_multisample_coverage== 1)  // #336 http://www.opengl.org/registry/specs/NV/framebuffer_multisample_coverage.txt
   PFNGLRENDERBUFFERSTORAGEMULTISAMPLECOVERAGENVPROC glRenderbufferStorageMultisampleCoverageNV;
   #endif
 
-  #ifdef GL_NV_parameter_buffer_object // #339 http://www.opengl.org/registry/specs/NV/parameter_buffer_object.txt
+  #if(GL_NV_parameter_buffer_object== 1) // #339 http://www.opengl.org/registry/specs/NV/parameter_buffer_object.txt
   PFNGLPROGRAMBUFFERPARAMETERSFVNVPROC glProgramBufferParametersfvNV;
   PFNGLPROGRAMBUFFERPARAMETERSIIVNVPROC glProgramBufferParametersIivNV;
   PFNGLPROGRAMBUFFERPARAMETERSIUIVNVPROC glProgramBufferParametersIuivNV;
   #endif
 
-  #ifdef GL_EXT_draw_buffers2         // #340 http://www.opengl.org/registry/specs/EXT/draw_buffers2.txt
+  #if(GL_EXT_draw_buffers2== 1)         // #340 http://www.opengl.org/registry/specs/EXT/draw_buffers2.txt
   PFNGLCOLORMASKINDEXEDEXTPROC glColorMaskIndexedEXT;
   #endif
 
-  #ifdef GL_NV_transform_feedback     // #341 http://www.opengl.org/registry/specs/NV/transform_feedback.txt
+  #if(GL_NV_transform_feedback== 1)     // #341 http://www.opengl.org/registry/specs/NV/transform_feedback.txt
   PFNGLBEGINTRANSFORMFEEDBACKNVPROC glBeginTransformFeedbackNV;
   PFNGLENDTRANSFORMFEEDBACKNVPROC glEndTransformFeedbackNV;
   PFNGLTRANSFORMFEEDBACKATTRIBSNVPROC glTransformFeedbackAttribsNV;
@@ -2751,13 +2751,13 @@ struct GlExtFuncs {
   PFNGLTRANSFORMFEEDBACKSTREAMATTRIBSNVPROC glTransformFeedbackStreamAttribsNV;
   #endif
 
-  #ifdef GL_EXT_bindable_uniform      // #342 http://www.opengl.org/registry/specs/EXT/bindable_uniform.txt
+  #if(GL_EXT_bindable_uniform== 1)      // #342 http://www.opengl.org/registry/specs/EXT/bindable_uniform.txt
   PFNGLUNIFORMBUFFEREXTPROC glUniformBufferEXT;
   PFNGLGETUNIFORMBUFFERSIZEEXTPROC glGetUniformBufferSizeEXT;
   PFNGLGETUNIFORMOFFSETEXTPROC glGetUniformOffsetEXT;
   #endif
 
-  #ifdef GL_EXT_texture_integer       // #343 http://www.opengl.org/registry/specs/EXT/texture_integer.txt
+  #if(GL_EXT_texture_integer== 1)       // #343 http://www.opengl.org/registry/specs/EXT/texture_integer.txt
   PFNGLTEXPARAMETERIIVEXTPROC glTexParameterIivEXT;
   PFNGLTEXPARAMETERIUIVEXTPROC glTexParameterIuivEXT;
   PFNGLGETTEXPARAMETERIIVEXTPROC glGetTexParameterIivEXT;
@@ -2766,21 +2766,21 @@ struct GlExtFuncs {
   PFNGLCLEARCOLORIUIEXTPROC glClearColorIuiEXT;
   #endif
 
-  #ifdef GLX_EXT_texture_from_pixmap  // #344 http://www.opengl.org/registry/specs/EXT/texture_from_pixmap.txt
+  #if(GLX_EXT_texture_from_pixmap== 1)  // #344 http://www.opengl.org/registry/specs/EXT/texture_from_pixmap.txt
   PFNGLXBINDTEXIMAGEEXTPROC glXBindTexImageEXT;
   PFNGLXRELEASETEXIMAGEEXTPROC glXReleaseTexImageEXT;
   #endif
 
-  #ifdef GL_GREMEDY_frame_terminator  // #345 http://www.opengl.org/registry/specs/GREMEDY/frame_terminator.txt
+  #if(GL_GREMEDY_frame_terminator== 1)  // #345 http://www.opengl.org/registry/specs/GREMEDY/frame_terminator.txt
   PFNGLFRAMETERMINATORGREMEDYPROC glFrameTerminatorGREMEDY;
   #endif
 
-  #ifdef GL_NV_conditional_render     // #346 http://www.opengl.org/registry/specs/NV/conditional_render.txt
+  #if(GL_NV_conditional_render== 1)     // #346 http://www.opengl.org/registry/specs/NV/conditional_render.txt
   PFNGLBEGINCONDITIONALRENDERNVPROC glBeginConditionalRenderNV;
   PFNGLENDCONDITIONALRENDERNVPROC glEndConditionalRenderNV;
   #endif
 
-  #ifdef GL_NV_present_video          // #347 GLX_NV_present_video WGL_NV_present_video http://www.opengl.org/registry/specs/NV/present_video.txt
+  #if(GL_NV_present_video== 1)          // #347 GLX_NV_present_video WGL_NV_present_video http://www.opengl.org/registry/specs/NV/present_video.txt
   PFNGLPRESENTFRAMEKEYEDNVPROC glPresentFrameKeyedNV;
   PFNGLPRESENTFRAMEDUALFILLNVPROC glPresentFrameDualFillNV;
   PFNGLGETVIDEOIVNVPROC glGetVideoivNV;
@@ -2798,7 +2798,7 @@ struct GlExtFuncs {
   #endif /// OS_WIN
   #endif
 
-  #ifdef GLX_NV_video_out             // #348 http://www.opengl.org/registry/specs/NV/glx_video_output.txt
+  #if(GLX_NV_video_out== 1)             // #348 http://www.opengl.org/registry/specs/NV/glx_video_output.txt
   PFNGLXGETVIDEODEVICENVPROC glXGetVideoDeviceNV;
   PFNGLXRELEASEVIDEODEVICENVPROC glXReleaseVideoDeviceNV;
   PFNGLXBINDVIDEOIMAGENVPROC glXBindVideoImageNV;
@@ -2807,7 +2807,7 @@ struct GlExtFuncs {
   PFNGLXGETVIDEOINFONVPROC glXGetVideoInfoNV;
   #endif
 
-  #ifdef WGL_NV_video_output          // #349 http://www.opengl.org/registry/specs/NV/wgl_video_output.txt
+  #if(WGL_NV_video_output== 1)          // #349 http://www.opengl.org/registry/specs/NV/wgl_video_output.txt
   PFNWGLGETVIDEODEVICENVPROC wglGetVideoDeviceNV;
   PFNWGLRELEASEVIDEODEVICENVPROC wglReleaseVideoDeviceNV;
   PFNWGLBINDVIDEOIMAGENVPROC wglBindVideoImageNV;
@@ -2816,7 +2816,7 @@ struct GlExtFuncs {
   PFNWGLGETVIDEOINFONVPROC wglGetVideoInfoNV;
   #endif
 
-  #ifdef GLX_NV_swap_group            // #350 http://www.opengl.org/registry/specs/NV/glx_swap_group.txt
+  #if(GLX_NV_swap_group== 1)            // #350 http://www.opengl.org/registry/specs/NV/glx_swap_group.txt
   PFNGLXJOINSWAPGROUPNVPROC glXJoinSwapGroupNV;
   PFNGLXBINDSWAPBARRIERNVPROC glXBindSwapBarrierNV;
   PFNGLXQUERYSWAPGROUPNVPROC glXQuerySwapGroupNV;
@@ -2825,7 +2825,7 @@ struct GlExtFuncs {
   PFNGLXRESETFRAMECOUNTNVPROC glXResetFrameCountNV;
   #endif
 
-  #ifdef WGL_NV_swap_group            // #351 http://www.opengl.org/registry/specs/NV/wgl_swap_group.txt
+  #if(WGL_NV_swap_group== 1)            // #351 http://www.opengl.org/registry/specs/NV/wgl_swap_group.txt
   PFNWGLJOINSWAPGROUPNVPROC wglJoinSwapGroupNV;
   PFNWGLBINDSWAPBARRIERNVPROC wglBindSwapBarrierNV;
   PFNWGLQUERYSWAPGROUPNVPROC wglQuerySwapGroupNV;
@@ -2834,7 +2834,7 @@ struct GlExtFuncs {
   PFNWGLRESETFRAMECOUNTNVPROC wglResetFrameCountNV;
   #endif
 
-  #ifdef GL_EXT_transform_feedback    // #352 http://www.opengl.org/registry/specs/EXT/transform_feedback.txt
+  #if(GL_EXT_transform_feedback== 1)    // #352 http://www.opengl.org/registry/specs/EXT/transform_feedback.txt
   PFNGLBEGINTRANSFORMFEEDBACKEXTPROC glBeginTransformFeedbackEXT;
   PFNGLENDTRANSFORMFEEDBACKEXTPROC glEndTransformFeedbackEXT;
   PFNGLBINDBUFFERRANGEEXTPROC glBindBufferRangeEXT;
@@ -2844,7 +2844,7 @@ struct GlExtFuncs {
   PFNGLGETTRANSFORMFEEDBACKVARYINGEXTPROC glGetTransformFeedbackVaryingEXT;
   #endif
 
-  #ifdef GL_EXT_direct_state_access   // #353 http://www.opengl.org/registry/specs/EXT/direct_state_access.txt
+  #if(GL_EXT_direct_state_access== 1)   // #353 http://www.opengl.org/registry/specs/EXT/direct_state_access.txt
   PFNGLMATRIXLOADFEXTPROC glMatrixLoadfEXT;
   PFNGLMATRIXLOADDEXTPROC glMatrixLoaddEXT;
   PFNGLMATRIXMULTFEXTPROC glMatrixMultfEXT;
@@ -3102,7 +3102,7 @@ struct GlExtFuncs {
   PFNGLVERTEXARRAYVERTEXATTRIBDIVISOREXTPROC glVertexArrayVertexAttribDivisorEXT;
   #endif
 
-  #ifdef WGL_NV_gpu_affinity          // #355 http://www.opengl.org/registry/specs/NV/gpu_affinity.txt
+  #if(WGL_NV_gpu_affinity== 1)          // #355 http://www.opengl.org/registry/specs/NV/gpu_affinity.txt
   PFNWGLENUMGPUSNVPROC wglEnumGpusNV;
   PFNWGLENUMGPUDEVICESNVPROC wglEnumGpuDevicesNV;
   PFNWGLCREATEAFFINITYDCNVPROC wglCreateAffinityDCNV;
@@ -3110,13 +3110,13 @@ struct GlExtFuncs {
   PFNWGLDELETEDCNVPROC wglDeleteDCNV;
   #endif
 
-  #ifdef GL_NV_explicit_multisample   // #357 http://www.opengl.org/registry/specs/NV/explicit_multisample.txt
+  #if(GL_NV_explicit_multisample== 1)   // #357 http://www.opengl.org/registry/specs/NV/explicit_multisample.txt
   PFNGLGETMULTISAMPLEFVNVPROC glGetMultisamplefvNV;
   PFNGLSAMPLEMASKINDEXEDNVPROC glSampleMaskIndexedNV;
   PFNGLTEXRENDERBUFFERNVPROC glTexRenderbufferNV;
   #endif
 
-  #ifdef GL_NV_transform_feedback2    // #358 http://www.opengl.org/registry/specs/NV/transform_feedback2.txt
+  #if(GL_NV_transform_feedback2== 1)    // #358 http://www.opengl.org/registry/specs/NV/transform_feedback2.txt
   PFNGLBINDTRANSFORMFEEDBACKNVPROC glBindTransformFeedbackNV;
   PFNGLDELETETRANSFORMFEEDBACKSNVPROC glDeleteTransformFeedbacksNV;
   PFNGLGENTRANSFORMFEEDBACKSNVPROC glGenTransformFeedbacksNV;
@@ -3126,7 +3126,7 @@ struct GlExtFuncs {
   PFNGLDRAWTRANSFORMFEEDBACKNVPROC glDrawTransformFeedbackNV;
   #endif
 
-  #ifdef GL_AMD_performance_monitor   // #360 http://www.opengl.org/registry/specs/AMD/performance_monitor.txt
+  #if(GL_AMD_performance_monitor== 1)   // #360 http://www.opengl.org/registry/specs/AMD/performance_monitor.txt
   PFNGLGETPERFMONITORGROUPSAMDPROC glGetPerfMonitorGroupsAMD;
   PFNGLGETPERFMONITORCOUNTERSAMDPROC glGetPerfMonitorCountersAMD;
   PFNGLGETPERFMONITORGROUPSTRINGAMDPROC glGetPerfMonitorGroupStringAMD;
@@ -3140,7 +3140,7 @@ struct GlExtFuncs {
   PFNGLGETPERFMONITORCOUNTERDATAAMDPROC glGetPerfMonitorCounterDataAMD;
   #endif
 
-  #ifdef WGL_AMD_gpu_association      // #361 http://www.opengl.org/registry/specs/AMD/wgl_gpu_association.txt
+  #if(WGL_AMD_gpu_association== 1)      // #361 http://www.opengl.org/registry/specs/AMD/wgl_gpu_association.txt
   PFNWGLGETGPUIDSAMDPROC wglGetGPUIDsAMD;
   PFNWGLGETGPUINFOAMDPROC wglGetGPUInfoAMD;
   PFNWGLGETCONTEXTGPUIDAMDPROC wglGetContextGPUIDAMD;
@@ -3152,28 +3152,28 @@ struct GlExtFuncs {
   PFNWGLBLITCONTEXTFRAMEBUFFERAMDPROC wglBlitContextFramebufferAMD;
   #endif
 
-  #ifdef GL_AMD_vertex_shader_tessellator  // #363 http://www.opengl.org/registry/specs/AMD/vertex_shader_tessellator.txt
+  #if(GL_AMD_vertex_shader_tessellator== 1)  // #363 http://www.opengl.org/registry/specs/AMD/vertex_shader_tessellator.txt
   PFNGLTESSELLATIONFACTORAMDPROC glTessellationFactorAMD;
   PFNGLTESSELLATIONMODEAMDPROC glTessellationModeAMD;
   #endif
 
-  #ifdef GL_EXT_provoking_vertex      // #364 http://www.opengl.org/registry/specs/EXT/provoking_vertex.txt
+  #if(GL_EXT_provoking_vertex== 1)      // #364 http://www.opengl.org/registry/specs/EXT/provoking_vertex.txt
   PFNGLPROVOKINGVERTEXEXTPROC glProvokingVertexEXT;
   #endif
 
-  #ifdef GL_AMD_draw_buffers_blend    // #366 http://www.opengl.org/registry/specs/AMD/draw_buffers_blend.txt
+  #if(GL_AMD_draw_buffers_blend== 1)    // #366 http://www.opengl.org/registry/specs/AMD/draw_buffers_blend.txt
   PFNGLBLENDFUNCINDEXEDAMDPROC glBlendFuncIndexedAMD;
   PFNGLBLENDFUNCSEPARATEINDEXEDAMDPROC glBlendFuncSeparateIndexedAMD;
   PFNGLBLENDEQUATIONINDEXEDAMDPROC glBlendEquationIndexedAMD;
   PFNGLBLENDEQUATIONSEPARATEINDEXEDAMDPROC glBlendEquationSeparateIndexedAMD;
   #endif
 
-  #ifdef GL_APPLE_texture_range       // #367 http://www.opengl.org/registry/specs/APPLE/texture_range.txt
+  #if(GL_APPLE_texture_range== 1)       // #367 http://www.opengl.org/registry/specs/APPLE/texture_range.txt
   PFNGLTEXTURERANGEAPPLEPROC glTextureRangeAPPLE;
   PFNGLGETTEXPARAMETERPOINTERVAPPLEPROC glGetTexParameterPointervAPPLE;
   #endif
 
-  #ifdef GL_APPLE_vertex_program_evaluators  // #369 http://www.opengl.org/registry/specs/APPLE/vertex_program_evaluators.txt
+  #if(GL_APPLE_vertex_program_evaluators== 1)  // #369 http://www.opengl.org/registry/specs/APPLE/vertex_program_evaluators.txt
   PFNGLENABLEVERTEXATTRIBAPPLEPROC glEnableVertexAttribAPPLE;
   PFNGLDISABLEVERTEXATTRIBAPPLEPROC glDisableVertexAttribAPPLE;
   PFNGLISVERTEXATTRIBENABLEDAPPLEPROC glIsVertexAttribEnabledAPPLE;
@@ -3183,13 +3183,13 @@ struct GlExtFuncs {
   PFNGLMAPVERTEXATTRIB2FAPPLEPROC glMapVertexAttrib2fAPPLE;
   #endif
 
-  #ifdef GL_APPLE_object_purgeable    // #371 http://www.opengl.org/registry/specs/APPLE/object_purgeable.txt
+  #if(GL_APPLE_object_purgeable== 1)    // #371 http://www.opengl.org/registry/specs/APPLE/object_purgeable.txt
   PFNGLOBJECTPURGEABLEAPPLEPROC glObjectPurgeableAPPLE;
   PFNGLOBJECTUNPURGEABLEAPPLEPROC glObjectUnpurgeableAPPLE;
   PFNGLGETOBJECTPARAMETERIVAPPLEPROC glGetObjectParameterivAPPLE;
   #endif
 
-  #ifdef GL_NV_video_capture          // #374 GLX_NV_video_capture WGL_NV_video_capture http://www.opengl.org/registry/specs/NV/video_capture.txt
+  #if(GL_NV_video_capture== 1)          // #374 GLX_NV_video_capture WGL_NV_video_capture http://www.opengl.org/registry/specs/NV/video_capture.txt
   PFNGLBEGINVIDEOCAPTURENVPROC glBeginVideoCaptureNV;
   PFNGLBINDVIDEOCAPTURESTREAMBUFFERNVPROC glBindVideoCaptureStreamBufferNV;
   PFNGLBINDVIDEOCAPTURESTREAMTEXTURENVPROC glBindVideoCaptureStreamTextureNV;
@@ -3218,11 +3218,11 @@ struct GlExtFuncs {
   #endif
   #endif
 
-  #ifdef GLX_EXT_swap_control         // #375 http://www.opengl.org/registry/specs/EXT/swap_control.txt
+  #if(GLX_EXT_swap_control== 1)         // #375 http://www.opengl.org/registry/specs/EXT/swap_control.txt
   PFNGLXSWAPINTERVALEXTPROC glXSwapIntervalEXT;
   #endif
 
-  #ifdef GL_NV_copy_image             // #376 WGL_NV_copy_image GLX_NV_copy_image http://www.opengl.org/registry/specs/NV/copy_image.txt
+  #if(GL_NV_copy_image== 1)             // #376 WGL_NV_copy_image GLX_NV_copy_image http://www.opengl.org/registry/specs/NV/copy_image.txt
   PFNGLCOPYIMAGESUBDATANVPROC glCopyImageSubDataNV;
   #ifdef OS_LINUX
   PFNGLXCOPYIMAGESUBDATANVPROC glXCopyImageSubDataNV;
@@ -3232,13 +3232,13 @@ struct GlExtFuncs {
   #endif
   #endif
 
-  #ifdef GL_EXT_separate_shader_objects  // #377 http://www.opengl.org/registry/specs/EXT/separate_shader_objects.txt
+  #if(GL_EXT_separate_shader_objects== 1)  // #377 http://www.opengl.org/registry/specs/EXT/separate_shader_objects.txt
   PFNGLUSESHADERPROGRAMEXTPROC glUseShaderProgramEXT;
   PFNGLACTIVEPROGRAMEXTPROC glActiveProgramEXT;
   PFNGLCREATESHADERPROGRAMEXTPROC glCreateShaderProgramEXT;
   #endif
 
-  #ifdef GL_NV_shader_buffer_load     // #379 http://www.opengl.org/registry/specs/NV/shader_buffer_load.txt
+  #if(GL_NV_shader_buffer_load== 1)     // #379 http://www.opengl.org/registry/specs/NV/shader_buffer_load.txt
   PFNGLMAKEBUFFERRESIDENTNVPROC glMakeBufferResidentNV;
   PFNGLMAKEBUFFERNONRESIDENTNVPROC glMakeBufferNonResidentNV;
   PFNGLISBUFFERRESIDENTNVPROC glIsBufferResidentNV;
@@ -3254,7 +3254,7 @@ struct GlExtFuncs {
   PFNGLPROGRAMUNIFORMUI64VNVPROC glProgramUniformui64vNV;
   #endif
 
-  #ifdef GL_NV_vertex_buffer_unified_memory  // #380 http://www.opengl.org/registry/specs/NV/vertex_buffer_unified_memory.txt
+  #if(GL_NV_vertex_buffer_unified_memory== 1)  // #380 http://www.opengl.org/registry/specs/NV/vertex_buffer_unified_memory.txt
   PFNGLBUFFERADDRESSRANGENVPROC glBufferAddressRangeNV;
   PFNGLVERTEXFORMATNVPROC glVertexFormatNV;
   PFNGLNORMALFORMATNVPROC glNormalFormatNV;
@@ -3269,16 +3269,16 @@ struct GlExtFuncs {
   PFNGLGETINTEGERUI64I_VNVPROC glGetIntegerui64i_vNV;
   #endif
 
-  #ifdef GL_NV_texture_barrier        // #381 http://www.opengl.org/registry/specs/NV/texture_barrier.txt
+  #if(GL_NV_texture_barrier== 1)        // #381 http://www.opengl.org/registry/specs/NV/texture_barrier.txt
   PFNGLTEXTUREBARRIERNVPROC glTextureBarrierNV;
   #endif
 
-  #ifdef GL_EXT_shader_image_load_store // #386 http://www.opengl.org/registry/specs/EXT/shader_image_load_store.txt
+  #if(GL_EXT_shader_image_load_store== 1) // #386 http://www.opengl.org/registry/specs/EXT/shader_image_load_store.txt
   PFNGLBINDIMAGETEXTUREEXTPROC glBindImageTextureEXT;
   PFNGLMEMORYBARRIEREXTPROC glMemoryBarrierEXT;
   #endif
 
-  #ifdef GL_EXT_vertex_attrib_64bit   // #387 http://www.opengl.org/registry/specs/EXT/vertex_attrib_64bit.txt
+  #if(GL_EXT_vertex_attrib_64bit== 1)   // #387 http://www.opengl.org/registry/specs/EXT/vertex_attrib_64bit.txt
   PFNGLVERTEXATTRIBL1DEXTPROC glVertexAttribL1dEXT;
   PFNGLVERTEXATTRIBL2DEXTPROC glVertexAttribL2dEXT;
   PFNGLVERTEXATTRIBL3DEXTPROC glVertexAttribL3dEXT;
@@ -3291,12 +3291,12 @@ struct GlExtFuncs {
   PFNGLGETVERTEXATTRIBLDVEXTPROC glGetVertexAttribLdvEXT;
   #endif
 
-  #ifdef GL_NV_gpu_program5           // #388 GL_NV_gpu_program_fp64 http://www.opengl.org/registry/specs/NV/gpu_program5.txt
+  #if(GL_NV_gpu_program5== 1)           // #388 GL_NV_gpu_program_fp64 http://www.opengl.org/registry/specs/NV/gpu_program5.txt
   PFNGLPROGRAMSUBROUTINEPARAMETERSUIVNVPROC glProgramSubroutineParametersuivNV;
   PFNGLGETPROGRAMSUBROUTINEPARAMETERUIVNVPROC glGetProgramSubroutineParameteruivNV;
   #endif
 
-  #ifdef GL_NV_vertex_attrib_integer_64bit  // #392 http://www.opengl.org/registry/specs/NV/vertex_attrib_integer_64bit.txt
+  #if(GL_NV_vertex_attrib_integer_64bit== 1)  // #392 http://www.opengl.org/registry/specs/NV/vertex_attrib_integer_64bit.txt
   PFNGLVERTEXATTRIBL1I64NVPROC glVertexAttribL1i64NV;
   PFNGLVERTEXATTRIBL2I64NVPROC glVertexAttribL2i64NV;
   PFNGLVERTEXATTRIBL3I64NVPROC glVertexAttribL3i64NV;
@@ -3318,20 +3318,20 @@ struct GlExtFuncs {
   PFNGLVERTEXATTRIBLFORMATNVPROC glVertexAttribLFormatNV;
   #endif
 
-  #ifdef GL_AMD_name_gen_delete       // #394 http://www.opengl.org/registry/specs/AMD/name_gen_delete.txt
+  #if(GL_AMD_name_gen_delete== 1)       // #394 http://www.opengl.org/registry/specs/AMD/name_gen_delete.txt
   PFNGLGENNAMESAMDPROC glGenNamesAMD;
   PFNGLDELETENAMESAMDPROC glDeleteNamesAMD;
   PFNGLISNAMEAMDPROC glIsNameAMD;
   #endif
 
-  #ifdef GL_AMD_debug_output          // #395 http://www.opengl.org/registry/specs/AMD/debug_output.txt
+  #if(GL_AMD_debug_output== 1)          // #395 http://www.opengl.org/registry/specs/AMD/debug_output.txt
   PFNGLDEBUGMESSAGEENABLEAMDPROC glDebugMessageEnableAMD;
   PFNGLDEBUGMESSAGEINSERTAMDPROC glDebugMessageInsertAMD;
   PFNGLDEBUGMESSAGECALLBACKAMDPROC glDebugMessageCallbackAMD;
   PFNGLGETDEBUGMESSAGELOGAMDPROC glGetDebugMessageLogAMD;
   #endif
 
-  #ifdef GL_NV_vdpau_interop          // #396 http://www.opengl.org/registry/specs/NV/vdpau_interop.txt
+  #if(GL_NV_vdpau_interop== 1)          // #396 http://www.opengl.org/registry/specs/NV/vdpau_interop.txt
   PFNGLVDPAUINITNVPROC glVDPAUInitNV;
   PFNGLVDPAUFININVPROC glVDPAUFiniNV;
   PFNGLVDPAUREGISTERVIDEOSURFACENVPROC glVDPAURegisterVideoSurfaceNV;
@@ -3344,7 +3344,7 @@ struct GlExtFuncs {
   PFNGLVDPAUUNMAPSURFACESNVPROC glVDPAUUnmapSurfacesNV;
   #endif
 
-  #ifdef GL_NV_texture_multisample    // #403 GL_ missing in registry, asuming mistake http://www.opengl.org/registry/specs/NV/texture_multisample.txt
+  #if(GL_NV_texture_multisample== 1)    // #403 GL_ missing in registry, asuming mistake http://www.opengl.org/registry/specs/NV/texture_multisample.txt
   PFNGLTEXIMAGE2DMULTISAMPLECOVERAGENVPROC glTexImage2DMultisampleCoverageNV;
   PFNGLTEXIMAGE3DMULTISAMPLECOVERAGENVPROC glTexImage3DMultisampleCoverageNV;
   PFNGLTEXTUREIMAGE2DMULTISAMPLENVPROC glTextureImage2DMultisampleNV;
@@ -3353,15 +3353,15 @@ struct GlExtFuncs {
   PFNGLTEXTUREIMAGE3DMULTISAMPLECOVERAGENVPROC glTextureImage3DMultisampleCoverageNV;
   #endif
 
-  #ifdef GL_AMD_sample_positions      // #405 http://www.opengl.org/registry/specs/AMD/sample_positions.txt
+  #if(GL_AMD_sample_positions== 1)      // #405 http://www.opengl.org/registry/specs/AMD/sample_positions.txt
   PFNGLSETMULTISAMPLEFVAMDPROC glSetMultisamplefvAMD;
   #endif
 
-  #ifdef GL_EXT_x11_sync_object       // #406 http://www.opengl.org/registry/specs/EXT/x11_sync_object.txt
+  #if(GL_EXT_x11_sync_object== 1)       // #406 http://www.opengl.org/registry/specs/EXT/x11_sync_object.txt
   PFNGLIMPORTSYNCEXTPROC glImportSyncEXT;
   #endif
 
-  #ifdef WGL_NV_DX_interop            // #407 http://www.opengl.org/registry/specs/NV/DX_interop.txt
+  #if(WGL_NV_DX_interop== 1)            // #407 http://www.opengl.org/registry/specs/NV/DX_interop.txt
   PFNWGLDXSETRESOURCESHAREHANDLENVPROC wglDXSetResourceShareHandleNV;
   PFNWGLDXOPENDEVICENVPROC wglDXOpenDeviceNV;
   PFNWGLDXCLOSEDEVICENVPROC wglDXCloseDeviceNV;
@@ -3372,12 +3372,12 @@ struct GlExtFuncs {
   PFNWGLDXUNLOCKOBJECTSNVPROC wglDXUnlockObjectsNV;
   #endif
 
-  #ifdef GL_AMD_multi_draw_indirect   // #408 http://www.opengl.org/registry/specs/AMD/multi_draw_indirect.txt
+  #if(GL_AMD_multi_draw_indirect== 1)   // #408 http://www.opengl.org/registry/specs/AMD/multi_draw_indirect.txt
   PFNGLMULTIDRAWARRAYSINDIRECTAMDPROC glMultiDrawArraysIndirectAMD;
   PFNGLMULTIDRAWELEMENTSINDIRECTAMDPROC glMultiDrawElementsIndirectAMD;
   #endif
 
-  #ifdef GL_NV_path_rendering         // #410 http://www.opengl.org/registry/specs/NV/path_rendering.txt
+  #if(GL_NV_path_rendering== 1)         // #410 http://www.opengl.org/registry/specs/NV/path_rendering.txt
   PFNGLGENPATHSNVPROC glGenPathsNV;
   PFNGLDELETEPATHSNVPROC glDeletePathsNV;
   PFNGLISPATHNVPROC glIsPathNV;
@@ -3429,11 +3429,11 @@ struct GlExtFuncs {
   PFNGLPOINTALONGPATHNVPROC glPointAlongPathNV;
   #endif
 
-  #ifdef GL_AMD_stencil_operation_extended  // #413 http://www.opengl.org/registry/specs/AMD/stencil_operation_extended.txt
+  #if(GL_AMD_stencil_operation_extended== 1)  // #413 http://www.opengl.org/registry/specs/AMD/stencil_operation_extended.txt
   PFNGLSTENCILOPVALUEAMDPROC glStencilOpValueAMD;
   #endif
 
-  #ifdef GL_NV_bindless_texture       // #418 http://www.opengl.org/registry/specs/NV/bindless_texture.txt
+  #if(GL_NV_bindless_texture== 1)       // #418 http://www.opengl.org/registry/specs/NV/bindless_texture.txt
   PFNGLGETTEXTUREHANDLENVPROC glGetTextureHandleNV;
   PFNGLGETTEXTURESAMPLERHANDLENVPROC glGetTextureSamplerHandleNV;
   PFNGLMAKETEXTUREHANDLERESIDENTNVPROC glMakeTextureHandleResidentNV;
@@ -3449,60 +3449,60 @@ struct GlExtFuncs {
   PFNGLISIMAGEHANDLERESIDENTNVPROC glIsImageHandleResidentNV;
   #endif
 
-  #ifdef GL_NVX_conditional_render    // #425 http://www.opengl.org/registry/specs/NVX/nvx_conditional_render.txt
+  #if(GL_NVX_conditional_render== 1)    // #425 http://www.opengl.org/registry/specs/NVX/nvx_conditional_render.txt
   PFNGLBEGINCONDITIONALRENDERNVXPROC glBeginConditionalRenderNVX;
   PFNGLENDCONDITIONALRENDERNVXPROC glEndConditionalRenderNVX;
   #endif
 
-  #ifdef GL_AMD_sparse_texture        // #426 http://www.opengl.org/registry/specs/AMD/sparse_texture.txt
+  #if(GL_AMD_sparse_texture== 1)        // #426 http://www.opengl.org/registry/specs/AMD/sparse_texture.txt
   PFNGLTEXSTORAGESPARSEAMDPROC glTexStorageSparseAMD;
   PFNGLTEXTURESTORAGESPARSEAMDPROC glTextureStorageSparseAMD;
   #endif
 
-  #ifdef GL_INTEL_map_texture         // #429 http://www.opengl.org/registry/specs/INTEL/map_texture.txt
+  #if(GL_INTEL_map_texture== 1)         // #429 http://www.opengl.org/registry/specs/INTEL/map_texture.txt
   PFNGLSYNCTEXTUREINTELPROC glSyncTextureINTEL;
   PFNGLUNMAPTEXTURE2DINTELPROC glUnmapTexture2DINTEL;
   PFNGLMAPTEXTURE2DINTELPROC glMapTexture2DINTEL;
   #endif
 
-  #ifdef GL_NV_draw_texture           // #430 http://www.opengl.org/registry/specs/NV/draw_texture.txt
+  #if(GL_NV_draw_texture== 1)           // #430 http://www.opengl.org/registry/specs/NV/draw_texture.txt
   PFNGLDRAWTEXTURENVPROC glDrawTextureNV;
   #endif
 
-  #ifdef GL_AMD_interleaved_elements  // #431 http://www.opengl.org/registry/specs/AMD/interleaved_elements.txt
+  #if(GL_AMD_interleaved_elements== 1)  // #431 http://www.opengl.org/registry/specs/AMD/interleaved_elements.txt
   PFNGLVERTEXATTRIBPARAMETERIAMDPROC glVertexAttribParameteriAMD;
   #endif
 
-  #ifdef GL_NV_bindless_multi_draw_indirect  // #432 http://www.opengl.org/registry/specs/NV/bindless_multi_draw_indirect.txt
+  #if(GL_NV_bindless_multi_draw_indirect== 1)  // #432 http://www.opengl.org/registry/specs/NV/bindless_multi_draw_indirect.txt
   PFNGLMULTIDRAWARRAYSINDIRECTBINDLESSNVPROC glMultiDrawArraysIndirectBindlessNV;
   PFNGLMULTIDRAWELEMENTSINDIRECTBINDLESSNVPROC glMultiDrawElementsIndirectBindlessNV;
   #endif
 
-  #ifdef GL_NV_blend_equation_advanced  // #433 GL_NV_blend_equation_advanced_coherent http://www.opengl.org/registry/specs/NV/blend_equation_advanced.txt
+  #if(GL_NV_blend_equation_advanced== 1)  // #433 GL_NV_blend_equation_advanced_coherent http://www.opengl.org/registry/specs/NV/blend_equation_advanced.txt
   PFNGLBLENDPARAMETERINVPROC glBlendParameteriNV;
   PFNGLBLENDBARRIERNVPROC glBlendBarrierNV;
   #endif
 
-  #ifdef WGL_NV_delay_before_swap     // #436 http://www.opengl.org/registry/specs/NV/wgl_delay_before_swap.txt
+  #if(WGL_NV_delay_before_swap== 1)     // #436 http://www.opengl.org/registry/specs/NV/wgl_delay_before_swap.txt
   PFNWGLDELAYBEFORESWAPNVPROC wglDelayBeforeSwapNV;
   #endif
 
-  #ifdef GL_EXT_debug_label           // #439 http://www.opengl.org/registry/specs/EXT/EXT_debug_label.txt
+  #if(GL_EXT_debug_label== 1)           // #439 http://www.opengl.org/registry/specs/EXT/EXT_debug_label.txt
   PFNGLLABELOBJECTEXTPROC glLabelObjectEXT;
   PFNGLGETOBJECTLABELEXTPROC glGetObjectLabelEXT;
   #endif
 
-  #ifdef GL_EXT_debug_marker          // #440 http://www.opengl.org/registry/specs/EXT/EXT_debug_marker.txt
+  #if(GL_EXT_debug_marker== 1)          // #440 http://www.opengl.org/registry/specs/EXT/EXT_debug_marker.txt
   PFNGLINSERTEVENTMARKEREXTPROC glInsertEventMarkerEXT;
   PFNGLPUSHGROUPMARKEREXTPROC glPushGroupMarkerEXT;
   PFNGLPOPGROUPMARKEREXTPROC glPopGroupMarkerEXT;
   #endif
 
-  #ifdef GL_AMD_occlusion_query_event // #422 http://www.opengl.org/registry/specs/AMD/occlusion_query_event.txt
+  #if(GL_AMD_occlusion_query_event== 1) // #422 http://www.opengl.org/registry/specs/AMD/occlusion_query_event.txt
   PFNGLQUERYOBJECTPARAMETERUIAMDPROC glQueryObjectParameteruiAMD;
   #endif
 
-  #ifdef GL_INTEL_performance_query   // #443 http://www.opengl.org/registry/specs/INTEL/performance_query.txt
+  #if(GL_INTEL_performance_query== 1)   // #443 http://www.opengl.org/registry/specs/INTEL/performance_query.txt
   /*
   PFNGLBEGINPERFQUERYINTELPROC glBeginPerfQueryINTEL;
   PFNGLCREATEPERFQUERYINTELPROC glCreatePerfQueryINTEL;
@@ -3517,7 +3517,7 @@ struct GlExtFuncs {
   */
   #endif
 
-  #ifdef GL_AMD_gpu_shader_int64      // #451 http://www.opengl.org/registry/specs/AMD/gpu_shader_int64.txt
+  #if(GL_AMD_gpu_shader_int64== 1)      // #451 http://www.opengl.org/registry/specs/AMD/gpu_shader_int64.txt
   PFNGLUNIFORM1I64NVPROC glUniform1i64NV;
   PFNGLUNIFORM2I64NVPROC glUniform2i64NV;
   PFNGLUNIFORM3I64NVPROC glUniform3i64NV;
@@ -3606,7 +3606,7 @@ extern GlExtFuncs glExt;        /// one set of function pointers for MAC and LIN
 
 
 
-#ifdef GL_VERSION_1_2 /// OpenGL 1.2 funcs =================------------------------------
+#if(GL_VERSION_1_2== 1) // OpenGL 1.2 funcs =================------------------------------
 inline GLAPI void APIENTRY glDrawRangeElements (GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const void *indices) {
             _glr->glExt.glDrawRangeElements (       mode,        start,        end,         count,        type,             indices); }
 inline GLAPI void APIENTRY glTexImage3D (GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const void *pixels) {
@@ -3617,7 +3617,7 @@ inline GLAPI void APIENTRY glCopyTexSubImage3D (GLenum target, GLint level, GLin
   _glr->glExt.glCopyTexSubImage3D (target, level, xoffset, yoffset, zoffset, x, y, width, height); }
 #endif
 
-#ifdef GL_VERSION_1_3 /// OpenGL 1.3 funcs =================------------------------------
+#if(GL_VERSION_1_3== 1) // OpenGL 1.3 funcs =================------------------------------
 inline GLAPI void APIENTRY glActiveTexture (GLenum texture) {
   _glr->glExt.glActiveTexture (texture); }
 inline GLAPI void APIENTRY glSampleCoverage (GLfloat value, GLboolean invert) {
@@ -3714,7 +3714,7 @@ inline GLAPI void APIENTRY glMultTransposeMatrixd (const GLdouble *m) {
 #endif /// OS_WIN
 #endif
 
-#ifdef GL_VERSION_1_4 /// OpenGL 1.4 funcs =================------------------------------
+#if(GL_VERSION_1_4== 1) // OpenGL 1.4 funcs =================------------------------------
 inline GLAPI void APIENTRY glBlendFuncSeparate (GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha) {
   _glr->glExt.glBlendFuncSeparate (sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);}
 inline GLAPI void APIENTRY glMultiDrawArrays (GLenum mode, const GLint *first, const GLsizei *count, GLsizei drawcount) {
@@ -3811,7 +3811,7 @@ inline GLAPI void APIENTRY glBlendEquation (GLenum mode) {
   _glr->glExt.glBlendEquation (mode);}
 #endif
 
-#ifdef GL_VERSION_1_5 /// OpenGL 1.5 funcs =================------------------------------
+#if(GL_VERSION_1_5== 1) // OpenGL 1.5 funcs =================------------------------------
 inline GLAPI void APIENTRY glGenQueries (GLsizei n, GLuint *ids) {
   _glr->glExt.glGenQueries (n, ids);}
 inline GLAPI void APIENTRY glDeleteQueries (GLsizei n, const GLuint *ids) {
@@ -3852,7 +3852,7 @@ inline GLAPI void APIENTRY glGetBufferPointerv (GLenum target, GLenum pname, voi
   _glr->glExt.glGetBufferPointerv (target, pname, params);}
 #endif
 
-#ifdef GL_VERSION_2_0 /// OpenGL 2.0 funcs =================------------------------------
+#if(GL_VERSION_2_0== 1) // OpenGL 2.0 funcs =================------------------------------
 inline GLAPI void APIENTRY glBlendEquationSeparate (GLenum modeRGB, GLenum modeAlpha) {
   _glr->glExt.glBlendEquationSeparate (modeRGB, modeAlpha);}
 inline GLAPI void APIENTRY glDrawBuffers (GLsizei n, const GLenum *bufs) {
@@ -4041,7 +4041,7 @@ inline GLAPI void APIENTRY glVertexAttribPointer (GLuint index, GLint size, GLen
   _glr->glExt.glVertexAttribPointer (index, size, type, normalized, stride, pointer);}
 #endif
 
-#ifdef GL_VERSION_2_1 /// OpenGL 2.1 funcs =================------------------------------
+#if(GL_VERSION_2_1== 1) // OpenGL 2.1 funcs =================------------------------------
 inline GLAPI void APIENTRY glUniformMatrix2x3fv (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value) {
   _glr->glExt.glUniformMatrix2x3fv (location, count, transpose, value);}
 inline GLAPI void APIENTRY glUniformMatrix3x2fv (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value) {
@@ -4056,7 +4056,7 @@ inline GLAPI void APIENTRY glUniformMatrix4x3fv (GLint location, GLsizei count, 
   _glr->glExt.glUniformMatrix4x3fv (location, count, transpose, value);}
 #endif
 
-#ifdef GL_VERSION_3_0 /// OpenGL 3.0 funcs =================------------------------------
+#if(GL_VERSION_3_0== 1) // OpenGL 3.0 funcs =================------------------------------
 inline GLAPI void APIENTRY glColorMaski (GLuint index, GLboolean r, GLboolean g, GLboolean b, GLboolean a) {
   _glr->glExt.glColorMaski (index, r, g, b, a);}
 inline GLAPI void APIENTRY glGetBooleani_v (GLenum target, GLuint index, GLboolean *data) {
@@ -4227,7 +4227,7 @@ inline GLAPI GLboolean APIENTRY glIsVertexArray (GLuint array) {
   return _glr->glExt.glIsVertexArray (array);}
 #endif
 
-#ifdef GL_VERSION_3_1 /// OpenGL 3.1 funcs =================------------------------------
+#if(GL_VERSION_3_1== 1) // OpenGL 3.1 funcs =================------------------------------
 inline GLAPI void APIENTRY glDrawArraysInstanced (GLenum mode, GLint first, GLsizei count, GLsizei instancecount) {
   _glr->glExt.glDrawArraysInstanced (mode, first, count, instancecount);}
 inline GLAPI void APIENTRY glDrawElementsInstanced (GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount) {
@@ -4254,7 +4254,7 @@ inline GLAPI void APIENTRY glUniformBlockBinding (GLuint program, GLuint uniform
   _glr->glExt.glUniformBlockBinding (program, uniformBlockIndex, uniformBlockBinding);}
 #endif
 
-#ifdef GL_VERSION_3_2 /// OpenGL 3.2 funcs =================------------------------------
+#if(GL_VERSION_3_2== 1) // OpenGL 3.2 funcs =================------------------------------
 inline GLAPI void APIENTRY glDrawElementsBaseVertex (GLenum mode, GLsizei count, GLenum type, const void *indices, GLint basevertex) {
   _glr->glExt.glDrawElementsBaseVertex (mode, count, type, indices, basevertex);}
 inline GLAPI void APIENTRY glDrawRangeElementsBaseVertex (GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const void *indices, GLint basevertex) {
@@ -4295,7 +4295,7 @@ inline GLAPI void APIENTRY glSampleMaski (GLuint maskNumber, GLbitfield mask) {
   _glr->glExt.glSampleMaski (maskNumber, mask);}
 #endif
 
-#ifdef GL_VERSION_3_3 /// OpenGL 3.3 funcs =================------------------------------
+#if(GL_VERSION_3_3== 1) // OpenGL 3.3 funcs =================------------------------------
 inline GLAPI void APIENTRY glBindFragDataLocationIndexed (GLuint program, GLuint colorNumber, GLuint index, const GLchar *name) {
   _glr->glExt.glBindFragDataLocationIndexed (program, colorNumber, index, name);}
 inline GLAPI GLint APIENTRY glGetFragDataIndex (GLuint program, const GLchar *name) {
@@ -4414,7 +4414,7 @@ inline GLAPI void APIENTRY glSecondaryColorP3uiv (GLenum type, const GLuint *col
   _glr->glExt.glSecondaryColorP3uiv (type, color);}
 #endif
 
-#ifdef GL_VERSION_4_0 /// OpenGL 4.0 funcs =================------------------------------
+#if(GL_VERSION_4_0== 1) // OpenGL 4.0 funcs =================------------------------------
 inline GLAPI void APIENTRY glMinSampleShading (GLfloat value) {
   _glr->glExt.glMinSampleShading (value);}
 inline GLAPI void APIENTRY glBlendEquationi (GLuint buf, GLenum mode) {
@@ -4509,7 +4509,7 @@ inline GLAPI void APIENTRY glGetQueryIndexediv (GLenum target, GLuint index, GLe
   _glr->glExt.glGetQueryIndexediv (target, index, pname, params);}
 #endif
 
-#ifdef GL_VERSION_4_1 /// OpenGL 4.1 funcs =================------------------------------
+#if(GL_VERSION_4_1== 1) // OpenGL 4.1 funcs =================------------------------------
 inline GLAPI void APIENTRY glReleaseShaderCompiler (void) {
   _glr->glExt.glReleaseShaderCompiler ();}
 inline GLAPI void APIENTRY glShaderBinary (GLsizei count, const GLuint *shaders, GLenum binaryformat, const void *binary, GLsizei length) {
@@ -4688,7 +4688,7 @@ inline GLAPI void APIENTRY glGetDoublei_v (GLenum target, GLuint index, GLdouble
   _glr->glExt.glGetDoublei_v (target, index, data);}
 #endif
 
-#ifdef GL_VERSION_4_2 /// OpenGL 4.2 funcs =================------------------------------
+#if(GL_VERSION_4_2== 1) // OpenGL 4.2 funcs =================------------------------------
 inline GLAPI void APIENTRY glDrawArraysInstancedBaseInstance (GLenum mode, GLint first, GLsizei count, GLsizei instancecount, GLuint baseinstance) {
   _glr->glExt.glDrawArraysInstancedBaseInstance (mode, first, count, instancecount, baseinstance);}
 inline GLAPI void APIENTRY glDrawElementsInstancedBaseInstance (GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLuint baseinstance) {
@@ -4715,7 +4715,7 @@ inline GLAPI void APIENTRY glDrawTransformFeedbackStreamInstanced (GLenum mode, 
   _glr->glExt.glDrawTransformFeedbackStreamInstanced (mode, id, stream, instancecount);}
 #endif
 
-#ifdef GL_VERSION_4_3 /// OpenGL 4.3 funcs =================------------------------------
+#if(GL_VERSION_4_3== 1) // OpenGL 4.3 funcs =================------------------------------
 inline GLAPI void APIENTRY glClearBufferData (GLenum target, GLenum internalformat, GLenum format, GLenum type, const void *data) {
   _glr->glExt.glClearBufferData (target, internalformat, format, type, data);}
 inline GLAPI void APIENTRY glClearBufferSubData (GLenum target, GLenum internalformat, GLintptr offset, GLsizeiptr size, GLenum format, GLenum type, const void *data) {
@@ -4804,7 +4804,7 @@ inline GLAPI void APIENTRY glGetObjectPtrLabel (const void *ptr, GLsizei bufSize
   _glr->glExt.glGetObjectPtrLabel (ptr, bufSize, length, label);}
 #endif
 
-#ifdef GL_VERSION_4_4 /// OpenGL 4.4 funcs =================------------------------------
+#if(GL_VERSION_4_4== 1) // OpenGL 4.4 funcs =================------------------------------
 inline GLAPI void APIENTRY glBufferStorage (GLenum target, GLsizeiptr size, const void *data, GLbitfield flags) {
   _glr->glExt.glBufferStorage (target, size, data, flags);}
 inline GLAPI void APIENTRY glClearTexImage (GLuint texture, GLint level, GLenum format, GLenum type, const void *data) {
@@ -4836,7 +4836,7 @@ inline GLAPI void APIENTRY glBindVertexBuffers (GLuint first, GLsizei count, con
 // ARB extensions //
 ///==============///
 
-#ifdef GL_ARB_bindless_texture // GL_ARB_bindless_texture core 4.4, it is in glext.h, not in OpenGL registry pages tho...
+#if(GL_ARB_bindless_texture== 1) // GL_ARB_bindless_texture core 4.4, it is in glext.h, not in OpenGL registry pages tho...
 inline GLAPI GLuint64 APIENTRY glGetTextureHandleARB (GLuint texture) {
   return _glr->glExt.glGetTextureHandleARB (texture);}
 inline GLAPI GLuint64 APIENTRY glGetTextureSamplerHandleARB (GLuint texture, GLuint sampler) {
@@ -4871,18 +4871,18 @@ inline GLAPI void APIENTRY glGetVertexAttribLui64vARB (GLuint index, GLenum pnam
   _glr->glExt.glGetVertexAttribLui64vARB (index, pname, params);}
 #endif
 
-#ifdef GLX_ARB_get_proc_address
+#if(GLX_ARB_get_proc_address== 1)
 // hope this func just works as it is...
 //inline __GLXextFuncPtr glXGetProcAddressARB (const GLubyte *procName) {
   //return _glr->glExt.glXGetProcAddressARB (procName);}
 #endif
 
-#ifdef GL_ARB_cl_event
+#if(GL_ARB_cl_event== 1)
 inline GLAPI GLsync APIENTRY glCreateSyncFromCLeventARB (struct _cl_context *context, struct _cl_event *event, GLbitfield flags) {
   return _glr->glExt.glCreateSyncFromCLeventARB (context, event, flags);}
 #endif
 
-#ifdef GL_ARB_color_buffer_float
+#if(GL_ARB_color_buffer_float== 1)
 inline GLAPI void APIENTRY glClampColorARB (GLenum target, GLenum clamp) {
   _glr->glExt.glClampColorARB (target, clamp);}
 #endif
@@ -4906,12 +4906,12 @@ inline GLAPI void APIENTRY glClampColorARB (GLenum target, GLenum clamp) {
 
 
 
-#ifdef GL_ARB_compute_variable_group_size // #153 
+#if(GL_ARB_compute_variable_group_size== 1) // #153 
 inline GLAPI void APIENTRY glDispatchComputeGroupSizeARB (GLuint num_groups_x, GLuint num_groups_y, GLuint num_groups_z, GLuint group_size_x, GLuint group_size_y, GLuint group_size_z) {
   _glr->glExt.glDispatchComputeGroupSizeARB (num_groups_x, num_groups_y, num_groups_z, group_size_x, group_size_y, group_size_z);}
 #endif
 
-#ifdef GL_ARB_debug_output // #104
+#if(GL_ARB_debug_output== 1) // #104
 inline GLAPI void APIENTRY glDebugMessageControlARB (GLenum source, GLenum type, GLenum severity, GLsizei count, const GLuint *ids, GLboolean enabled) {
   _glr->glExt.glDebugMessageControlARB (source, type, severity, count, ids, enabled);}
 inline GLAPI void APIENTRY glDebugMessageInsertARB (GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *buf) {
@@ -4922,12 +4922,12 @@ inline GLAPI GLuint APIENTRY glGetDebugMessageLogARB (GLuint count, GLsizei bufS
   return _glr->glExt.glGetDebugMessageLogARB (count, bufSize, sources, types, ids, severities, lengths, messageLog);}
 #endif
 
-#ifdef GL_ARB_draw_buffers // #037 
+#if(GL_ARB_draw_buffers== 1) // #037 
 inline GLAPI void APIENTRY glDrawBuffersARB (GLsizei n, const GLenum *bufs) {
   _glr->glExt.glDrawBuffersARB (n, bufs);}
 #endif
 
-#ifdef GL_ARB_draw_buffers_blend // #069 
+#if(GL_ARB_draw_buffers_blend== 1) // #069 
 inline GLAPI void APIENTRY glBlendEquationiARB (GLuint buf, GLenum mode) {
   _glr->glExt.glBlendEquationiARB (buf,  mode);}
 inline GLAPI void APIENTRY glBlendEquationSeparateiARB (GLuint buf, GLenum modeRGB, GLenum modeAlpha) {
@@ -4938,14 +4938,14 @@ inline GLAPI void APIENTRY glBlendFuncSeparateiARB (GLuint buf, GLenum srcRGB, G
   _glr->glExt.glBlendFuncSeparateiARB (buf, srcRGB, dstRGB, srcAlpha, dstAlpha);}
 #endif
 
-#ifdef GL_ARB_draw_instanced // #044 
+#if(GL_ARB_draw_instanced== 1) // #044 
 inline GLAPI void APIENTRY glDrawArraysInstancedARB (GLenum mode, GLint first, GLsizei count, GLsizei primcount) {
   _glr->glExt.glDrawArraysInstancedARB (mode, first, count, primcount);}
 inline GLAPI void APIENTRY glDrawElementsInstancedARB (GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei primcount) {
   _glr->glExt.glDrawElementsInstancedARB (mode, count, type, indices, primcount);}
 #endif
 
-#ifdef GL_ARB_fragment_program // #027 
+#if(GL_ARB_fragment_program== 1) // #027 
 inline GLAPI void APIENTRY glProgramStringARB (GLenum target, GLenum format, GLsizei len, const void *string) {
   _glr->glExt.glProgramStringARB (target, format, len, string);}
 inline GLAPI void APIENTRY glBindProgramARB (GLenum target, GLuint program) {
@@ -4986,7 +4986,7 @@ inline GLAPI GLboolean APIENTRY glIsProgramARB (GLuint program) {
   return _glr->glExt.glIsProgramARB (program);}
 #endif
 
-#ifdef GL_ARB_geometry_shader4 // #047 
+#if(GL_ARB_geometry_shader4== 1) // #047 
 inline GLAPI void APIENTRY glProgramParameteriARB (GLuint program, GLenum pname, GLint value) {
   _glr->glExt.glProgramParameteriARB (program, pname, value);}
 inline GLAPI void APIENTRY glFramebufferTextureARB (GLenum target, GLenum attachment, GLuint texture, GLint level) {
@@ -4998,7 +4998,7 @@ inline GLAPI void APIENTRY glFramebufferTextureFaceARB (GLenum target, GLenum at
 #endif
 
 #ifdef OS_WIN // - these funcs seem to just work under linux. windows needs to get them
-#ifdef GL_ARB_imaging // - not in openGL registry list
+#if(GL_ARB_imaging== 1) // - not in openGL registry list
 inline GLAPI void APIENTRY glColorTable (GLenum target, GLenum internalformat, GLsizei width, GLenum format, GLenum type, const void *table) {
   _glr->glExt.glColorTable (target, internalformat, width, format, type, table);}
 inline GLAPI void APIENTRY glColorTableParameterfv (GLenum target, GLenum pname, const GLfloat *params) {
@@ -5066,19 +5066,19 @@ inline GLAPI void APIENTRY glResetMinmax (GLenum target) {
 #endif
 #endif /// OS_WIN
 
-#ifdef GL_ARB_indirect_parameters // #154 
+#if(GL_ARB_indirect_parameters== 1) // #154 
 inline GLAPI void APIENTRY glMultiDrawArraysIndirectCountARB (GLenum mode, GLintptr indirect, GLintptr drawcount, GLsizei maxdrawcount, GLsizei stride) {
   _glr->glExt.glMultiDrawArraysIndirectCountARB (mode, indirect, drawcount, maxdrawcount, stride);}
 inline GLAPI void APIENTRY glMultiDrawElementsIndirectCountARB (GLenum mode, GLenum type, GLintptr indirect, GLintptr drawcount, GLsizei maxdrawcount, GLsizei stride) {
   _glr->glExt.glMultiDrawElementsIndirectCountARB (mode, type, indirect, drawcount, maxdrawcount, stride);}
 #endif
 
-#ifdef GL_ARB_instanced_arrays // #049 
+#if(GL_ARB_instanced_arrays== 1) // #049 
 inline GLAPI void APIENTRY glVertexAttribDivisorARB (GLuint index, GLuint divisor) {
   _glr->glExt.glVertexAttribDivisorARB (index, divisor);}
 #endif
 
-#ifdef GL_ARB_matrix_palette // #016 
+#if(GL_ARB_matrix_palette== 1) // #016 
 inline GLAPI void APIENTRY glCurrentPaletteMatrixARB (GLint index) {
   _glr->glExt.glCurrentPaletteMatrixARB (index);}
 inline GLAPI void APIENTRY glMatrixIndexubvARB (GLint size, const GLubyte *indices) {
@@ -5091,12 +5091,12 @@ inline GLAPI void APIENTRY glMatrixIndexPointerARB (GLint size, GLenum type, GLs
   _glr->glExt.glMatrixIndexPointerARB (size,  type, stride, pointer);}
 #endif
 
-#ifdef GL_ARB_multisample // #005 
+#if(GL_ARB_multisample== 1) // #005 
 inline GLAPI void APIENTRY glSampleCoverageARB (GLfloat value, GLboolean invert) {
   _glr->glExt.glSampleCoverageARB (value, invert);}
 #endif
 
-#ifdef GL_ARB_multitexture // #001 
+#if(GL_ARB_multitexture== 1) // #001 
 inline GLAPI void APIENTRY glActiveTextureARB (GLenum texture) {
   _glr->glExt.glActiveTextureARB (texture);}
 inline GLAPI void APIENTRY glClientActiveTextureARB (GLenum texture) {
@@ -5167,7 +5167,7 @@ inline GLAPI void APIENTRY glMultiTexCoord4svARB (GLenum target, const GLshort *
   _glr->glExt.glMultiTexCoord4svARB (target, v);}
 #endif
 
-#ifdef GL_ARB_occlusion_query // #029 
+#if(GL_ARB_occlusion_query== 1) // #029 
 inline GLAPI void APIENTRY glGenQueriesARB (GLsizei n, GLuint *ids) {
   _glr->glExt.glGenQueriesARB (n, ids);}
 inline GLAPI void APIENTRY glDeleteQueriesARB (GLsizei n, const GLuint *ids) {
@@ -5186,14 +5186,14 @@ inline GLAPI void APIENTRY glGetQueryObjectuivARB (GLuint id, GLenum pname, GLui
   _glr->glExt.glGetQueryObjectuivARB (id, pname, params);}
 #endif
 
-#ifdef GL_ARB_point_parameters // #014 
+#if(GL_ARB_point_parameters== 1) // #014 
 inline GLAPI void APIENTRY glPointParameterfARB (GLenum pname, GLfloat param) {
   _glr->glExt.glPointParameterfARB (pname, param);}
 inline GLAPI void APIENTRY glPointParameterfvARB (GLenum pname, const GLfloat *params) {
   _glr->glExt.glPointParameterfvARB (pname, params);}
 #endif
 
-#ifdef GL_ARB_robustness // #105 
+#if(GL_ARB_robustness== 1) // #105 
 inline GLAPI GLenum APIENTRY glGetGraphicsResetStatusARB (void) {
   return _glr->glExt.glGetGraphicsResetStatusARB ();}
 inline GLAPI void APIENTRY glGetnTexImageARB (GLenum target, GLint level, GLenum format, GLenum type, GLsizei bufSize, void *img) {
@@ -5236,12 +5236,12 @@ inline GLAPI void APIENTRY glGetnMinmaxARB (GLenum target, GLboolean reset, GLen
   _glr->glExt.glGetnMinmaxARB (target, reset, format, type, bufSize, values);}
 #endif
 
-#ifdef GL_ARB_sample_shading // #070 
+#if(GL_ARB_sample_shading== 1) // #070 
 inline GLAPI void APIENTRY glMinSampleShadingARB (GLfloat value) {
   _glr->glExt.glMinSampleShadingARB (value);}
 #endif
 
-#ifdef GL_ARB_shader_objects // #030 
+#if(GL_ARB_shader_objects== 1) // #030 
 inline GLAPI void APIENTRY glDeleteObjectARB (GLhandleARB obj) {
   _glr->glExt.glDeleteObjectARB (obj);}
 inline GLAPI GLhandleARB APIENTRY glGetHandleARB (GLenum pname) {
@@ -5322,7 +5322,7 @@ inline GLAPI void APIENTRY glGetShaderSourceARB (GLhandleARB obj, GLsizei maxLen
   _glr->glExt.glGetShaderSourceARB (obj, maxLength, length, source);}
 #endif
 
-#ifdef GL_ARB_shading_language_include // #076 
+#if(GL_ARB_shading_language_include== 1) // #076 
 inline GLAPI void APIENTRY glNamedStringARB (GLenum type, GLint namelen, const GLchar *name, GLint stringlen, const GLchar *string) {
   _glr->glExt.glNamedStringARB (type, namelen, name, stringlen, string);}
 inline GLAPI void APIENTRY glDeleteNamedStringARB (GLint namelen, const GLchar *name) {
@@ -5337,17 +5337,17 @@ inline GLAPI void APIENTRY glGetNamedStringivARB (GLint namelen, const GLchar *n
   _glr->glExt.glGetNamedStringivARB (namelen, name, pname, params);}
 #endif
 
-#ifdef GL_ARB_sparse_texture // #158 
+#if(GL_ARB_sparse_texture== 1) // #158 
 inline GLAPI void APIENTRY glTexPageCommitmentARB (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLboolean resident) {
   _glr->glExt.glTexPageCommitmentARB (target, level, xoffset, yoffset, zoffset, width, height, depth, resident);}
 #endif
 
-#ifdef GL_ARB_texture_buffer_object // #092 
+#if(GL_ARB_texture_buffer_object== 1) // #092 
 inline GLAPI void APIENTRY glTexBufferARB (GLenum target, GLenum internalformat, GLuint buffer) {
   _glr->glExt.glTexBufferARB (target, internalformat, buffer);}
 #endif
 
-#ifdef GL_ARB_texture_compression // #012 
+#if(GL_ARB_texture_compression== 1) // #012 
 inline GLAPI void APIENTRY glCompressedTexImage3DARB (GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLsizei imageSize, const void *data) {
   _glr->glExt.glCompressedTexImage3DARB (target, level, internalformat, width, height, depth, border, imageSize, data);}
 inline GLAPI void APIENTRY glCompressedTexImage2DARB (GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void *data) {
@@ -5364,7 +5364,7 @@ inline GLAPI void APIENTRY glGetCompressedTexImageARB (GLenum target, GLint leve
   _glr->glExt.glGetCompressedTexImageARB (target, level, img);}
 #endif
 
-#ifdef GL_ARB_transpose_matrix // #003 
+#if(GL_ARB_transpose_matrix== 1) // #003 
 inline GLAPI void APIENTRY glLoadTransposeMatrixfARB (const GLfloat *m) {
   _glr->glExt.glLoadTransposeMatrixfARB (m);}
 inline GLAPI void APIENTRY glLoadTransposeMatrixdARB (const GLdouble *m) {
@@ -5375,7 +5375,7 @@ inline GLAPI void APIENTRY glMultTransposeMatrixdARB (const GLdouble *m) {
   _glr->glExt.glMultTransposeMatrixdARB (m);}
 #endif
 
-#ifdef GL_ARB_vertex_blend // #015 
+#if(GL_ARB_vertex_blend== 1) // #015 
 inline GLAPI void APIENTRY glWeightbvARB (GLint size, const GLbyte *weights) {
   _glr->glExt.glWeightbvARB (size, weights);}
 inline GLAPI void APIENTRY glWeightsvARB (GLint size, const GLshort *weights) {
@@ -5398,7 +5398,7 @@ inline GLAPI void APIENTRY glVertexBlendARB (GLint count) {
   _glr->glExt.glVertexBlendARB (count);}
 #endif
 
-#ifdef GL_ARB_vertex_buffer_object // #028 
+#if(GL_ARB_vertex_buffer_object== 1) // #028 
 inline GLAPI void APIENTRY glBindBufferARB (GLenum target, GLuint buffer) {
   _glr->glExt.glBindBufferARB (target, buffer);}
 inline GLAPI void APIENTRY glDeleteBuffersARB (GLsizei n, const GLuint *buffers) {
@@ -5423,7 +5423,7 @@ inline GLAPI void APIENTRY glGetBufferPointervARB (GLenum target, GLenum pname, 
   _glr->glExt.glGetBufferPointervARB (target, pname, params);}
 #endif
 
-#ifdef GL_ARB_vertex_program // #026 
+#if(GL_ARB_vertex_program== 1) // #026 
 inline GLAPI void APIENTRY glVertexAttrib1dARB (GLuint index, GLdouble x) {
   _glr->glExt.glVertexAttrib1dARB (index, x);}
 inline GLAPI void APIENTRY glVertexAttrib1dvARB (GLuint index, const GLdouble *v) {
@@ -5512,7 +5512,7 @@ inline GLAPI void APIENTRY glGetVertexAttribPointervARB (GLuint index, GLenum pn
   _glr->glExt.glGetVertexAttribPointervARB (index, pname, pointer);}
 #endif
 
-#ifdef GL_ARB_vertex_shader // #031 
+#if(GL_ARB_vertex_shader== 1) // #031 
 inline GLAPI void APIENTRY glBindAttribLocationARB (GLhandleARB programObj, GLuint index, const GLcharARB *name) {
   _glr->glExt.glBindAttribLocationARB (programObj, index, name);}
 inline GLAPI void APIENTRY glGetActiveAttribARB (GLhandleARB programObj, GLuint index, GLsizei maxLength, GLsizei *length, GLint *size, GLenum *type, GLcharARB *name) {
@@ -5521,7 +5521,7 @@ inline GLAPI GLint APIENTRY glGetAttribLocationARB (GLhandleARB programObj, cons
   return _glr->glExt.glGetAttribLocationARB (programObj, name);}
 #endif
 
-#ifdef GL_ARB_window_pos // #025 
+#if(GL_ARB_window_pos== 1) // #025 
 inline GLAPI void APIENTRY glWindowPos2dARB (GLdouble x, GLdouble y) {
   _glr->glExt.glWindowPos2dARB (x, y);}
 inline GLAPI void APIENTRY glWindowPos2dvARB (const GLdouble *v) {
@@ -5567,7 +5567,7 @@ inline GLAPI void APIENTRY glWindowPos3svARB (const GLshort *v) {
 
 #ifdef OS_WIN
 
-#ifdef WGL_ARB_buffer_region
+#if(WGL_ARB_buffer_region== 1)
 inline HANDLE WINAPI wglCreateBufferRegionARB (HDC hDC, int iLayerPlane, UINT uType) {
   return _glr->glExt.wglCreateBufferRegionARB (hDC, iLayerPlane, uType);}
 inline VOID WINAPI wglDeleteBufferRegionARB (HANDLE hRegion) {
@@ -5578,24 +5578,24 @@ inline BOOL WINAPI wglRestoreBufferRegionARB (HANDLE hRegion, int x, int y, int 
   return _glr->glExt.wglRestoreBufferRegionARB (hRegion, x, y, width, height, xSrc, ySrc);}
 #endif
 
-#ifdef WGL_ARB_create_context
+#if(WGL_ARB_create_context== 1)
 inline HGLRC WINAPI wglCreateContextAttribsARB (HDC hDC, HGLRC hShareContext, const int *attribList) {
   return _glr->glExt.wglCreateContextAttribsARB (hDC, hShareContext, attribList);}
 #endif
 
-#ifdef WGL_ARB_extensions_string
+#if(WGL_ARB_extensions_string== 1)
 inline const char *WINAPI wglGetExtensionsStringARB (HDC hdc) {
   return _glr->glExt.wglGetExtensionsStringARB (hdc);}
 #endif
 
-#ifdef WGL_ARB_make_current_read
+#if(WGL_ARB_make_current_read== 1)
 inline BOOL WINAPI wglMakeContextCurrentARB (HDC hDrawDC, HDC hReadDC, HGLRC hglrc) {
   return _glr->glExt.wglMakeContextCurrentARB (hDrawDC, hReadDC, hglrc);}
 inline HDC WINAPI wglGetCurrentReadDCARB (void) {
   return _glr->glExt.wglGetCurrentReadDCARB ();}
 #endif
 
-#ifdef WGL_ARB_pbuffer
+#if(WGL_ARB_pbuffer== 1)
 inline HPBUFFERARB WINAPI wglCreatePbufferARB (HDC hDC, int iPixelFormat, int iWidth, int iHeight, const int *piAttribList) {
   return _glr->glExt.wglCreatePbufferARB (hDC, iPixelFormat, iWidth, iHeight, piAttribList);}
 inline HDC WINAPI wglGetPbufferDCARB (HPBUFFERARB hPbuffer) {
@@ -5608,7 +5608,7 @@ inline BOOL WINAPI wglQueryPbufferARB (HPBUFFERARB hPbuffer, int iAttribute, int
   return _glr->glExt.wglQueryPbufferARB (hPbuffer, iAttribute, piValue);}
 #endif
 
-#ifdef  WGL_ARB_pixel_format
+#if(WGL_ARB_pixel_format== 1)
 inline BOOL WINAPI wglGetPixelFormatAttribivARB (HDC hdc, int iPixelFormat, int iLayerPlane, UINT nAttributes, const int *piAttributes, int *piValues) {
   return _glr->glExt.wglGetPixelFormatAttribivARB (hdc, iPixelFormat, iLayerPlane, nAttributes, piAttributes, piValues);}
 inline BOOL WINAPI wglGetPixelFormatAttribfvARB (HDC hdc, int iPixelFormat, int iLayerPlane, UINT nAttributes, const int *piAttributes, FLOAT *pfValues) {
@@ -5617,7 +5617,7 @@ inline BOOL WINAPI wglChoosePixelFormatARB (HDC hdc, const int *piAttribIList, c
   return _glr->glExt.wglChoosePixelFormatARB (hdc, piAttribIList, pfAttribFList, nMaxFormats, piFormats, nNumFormats);}
 #endif
 
-#ifdef WGL_ARB_render_texture
+#if(WGL_ARB_render_texture== 1)
 inline BOOL WINAPI wglBindTexImageARB (HPBUFFERARB hPbuffer, int iBuffer) {
   return _glr->glExt.wglBindTexImageARB (hPbuffer, iBuffer);}
 inline BOOL WINAPI wglReleaseTexImageARB (HPBUFFERARB hPbuffer, int iBuffer) {
@@ -5626,12 +5626,12 @@ inline BOOL WINAPI wglSetPbufferAttribARB (HPBUFFERARB hPbuffer, const int *piAt
   return _glr->glExt.wglSetPbufferAttribARB (hPbuffer, piAttribList);}
 #endif
 
-#ifdef WGL_3DL_stereo_control
+#if(WGL_3DL_stereo_control== 1)
 inline BOOL WINAPI wglSetStereoEmitterState3DL (HDC hDC, UINT uState) {
   return _glr->glExt.wglSetStereoEmitterState3DL (hDC, uState);}
 #endif
 
-#ifdef WGL_AMD_gpu_association
+#if(WGL_AMD_gpu_association== 1)
 inline UINT WINAPI wglGetGPUIDsAMD (UINT maxCount, UINT *ids) {
   return _glr->glExt.wglGetGPUIDsAMD (maxCount, ids);}
 inline INT WINAPI wglGetGPUInfoAMD (UINT id, int property, GLenum dataType, UINT size, void *data) {
@@ -5652,7 +5652,7 @@ inline VOID WINAPI wglBlitContextFramebufferAMD (HGLRC dstCtx, GLint srcX0, GLin
   _glr->glExt.wglBlitContextFramebufferAMD (dstCtx, srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);}
 #endif
 
-#ifdef WGL_EXT_display_color_table
+#if(WGL_EXT_display_color_table== 1)
 inline GLboolean WINAPI wglCreateDisplayColorTableEXT (GLushort id) {
   return _glr->glExt.wglCreateDisplayColorTableEXT (id);}
 inline GLboolean WINAPI wglLoadDisplayColorTableEXT (const GLushort *table, GLuint length) {
@@ -5663,19 +5663,19 @@ inline VOID WINAPI wglDestroyDisplayColorTableEXT (GLushort id) {
   _glr->glExt.wglDestroyDisplayColorTableEXT (id);}
 #endif
 
-#ifdef WGL_EXT_extensions_string
+#if(WGL_EXT_extensions_string== 1)
 inline const char *WINAPI wglGetExtensionsStringEXT (void) {
   return _glr->glExt.wglGetExtensionsStringEXT ();}
 #endif
 
-#ifdef WGL_EXT_make_current_read
+#if(WGL_EXT_make_current_read== 1)
 inline BOOL WINAPI wglMakeContextCurrentEXT (HDC hDrawDC, HDC hReadDC, HGLRC hglrc) {
   return _glr->glExt.wglMakeContextCurrentEXT (hDrawDC, hReadDC, hglrc);}
 inline HDC WINAPI wglGetCurrentReadDCEXT (void) {
   return _glr->glExt.wglGetCurrentReadDCEXT ();}
 #endif
 
-#ifdef WGL_EXT_pbuffer
+#if(WGL_EXT_pbuffer== 1)
 inline HPBUFFEREXT WINAPI wglCreatePbufferEXT (HDC hDC, int iPixelFormat, int iWidth, int iHeight, const int *piAttribList) {
   return _glr->glExt.wglCreatePbufferEXT (hDC, iPixelFormat, iWidth, iHeight, piAttribList);}
 inline HDC WINAPI wglGetPbufferDCEXT (HPBUFFEREXT hPbuffer) {
@@ -5688,7 +5688,7 @@ inline BOOL WINAPI wglQueryPbufferEXT (HPBUFFEREXT hPbuffer, int iAttribute, int
   return _glr->glExt.wglQueryPbufferEXT (hPbuffer, iAttribute, piValue);}
 #endif
 
-#ifdef WGL_EXT_pixel_format
+#if(WGL_EXT_pixel_format== 1)
 inline BOOL WINAPI wglGetPixelFormatAttribivEXT (HDC hdc, int iPixelFormat, int iLayerPlane, UINT nAttributes, int *piAttributes, int *piValues) {
   return _glr->glExt.wglGetPixelFormatAttribivEXT (hdc, iPixelFormat, iLayerPlane, nAttributes, piAttributes, piValues);}
 inline BOOL WINAPI wglGetPixelFormatAttribfvEXT (HDC hdc, int iPixelFormat, int iLayerPlane, UINT nAttributes, int *piAttributes, FLOAT *pfValues) {
@@ -5697,21 +5697,21 @@ inline BOOL WINAPI wglChoosePixelFormatEXT (HDC hdc, const int *piAttribIList, c
   return _glr->glExt.wglChoosePixelFormatEXT (hdc, piAttribIList, pfAttribFList, nMaxFormats, piFormats, nNumFormats);}
 #endif
 
-#ifdef WGL_EXT_swap_control
+#if(WGL_EXT_swap_control== 1)
 inline BOOL WINAPI wglSwapIntervalEXT (int interval) {
   return _glr->glExt.wglSwapIntervalEXT (interval);}
 inline int WINAPI wglGetSwapIntervalEXT (void) {
   return _glr->glExt.wglGetSwapIntervalEXT ();}
 #endif
 
-#ifdef WGL_I3D_digital_video_control
+#if(WGL_I3D_digital_video_control== 1)
 inline BOOL WINAPI wglGetDigitalVideoParametersI3D (HDC hDC, int iAttribute, int *piValue) {
   return _glr->glExt.wglGetDigitalVideoParametersI3D (hDC, iAttribute, piValue);}
 inline BOOL WINAPI wglSetDigitalVideoParametersI3D (HDC hDC, int iAttribute, const int *piValue) {
   return _glr->glExt.wglSetDigitalVideoParametersI3D (hDC, iAttribute, piValue);}
 #endif
 
-#ifdef WGL_I3D_gamma
+#if(WGL_I3D_gamma== 1)
 inline BOOL WINAPI wglGetGammaTableParametersI3D (HDC hDC, int iAttribute, int *piValue) {
   return _glr->glExt.wglGetGammaTableParametersI3D (hDC, iAttribute, piValue);}
 inline BOOL WINAPI wglSetGammaTableParametersI3D (HDC hDC, int iAttribute, const int *piValue) {
@@ -5722,7 +5722,7 @@ inline BOOL WINAPI wglSetGammaTableI3D (HDC hDC, int iEntries, const USHORT *puR
   return _glr->glExt.wglSetGammaTableI3D (hDC, iEntries, puRed, puGreen, puBlue);}
 #endif
 
-#ifdef WGL_I3D_genlock
+#if(WGL_I3D_genlock== 1)
 inline BOOL WINAPI wglEnableGenlockI3D (HDC hDC) {
   return _glr->glExt.wglEnableGenlockI3D (hDC);}
 inline BOOL WINAPI wglDisableGenlockI3D (HDC hDC) {
@@ -5749,7 +5749,7 @@ inline BOOL WINAPI wglQueryGenlockMaxSourceDelayI3D (HDC hDC, UINT *uMaxLineDela
   return _glr->glExt.wglQueryGenlockMaxSourceDelayI3D (hDC, uMaxLineDelay, uMaxPixelDelay);}
 #endif
 
-#ifdef WGL_I3D_image_buffer
+#if(WGL_I3D_image_buffer== 1)
 inline LPVOID WINAPI wglCreateImageBufferI3D (HDC hDC, DWORD dwSize, UINT uFlags) {
   return _glr->glExt.wglCreateImageBufferI3D (hDC, dwSize, uFlags);}
 inline BOOL WINAPI wglDestroyImageBufferI3D (HDC hDC, LPVOID pAddress) {
@@ -5760,7 +5760,7 @@ inline BOOL WINAPI wglReleaseImageBufferEventsI3D (HDC hDC, const LPVOID *pAddre
   return _glr->glExt.wglReleaseImageBufferEventsI3D (hDC, pAddress, count);}
 #endif
 
-#ifdef WGL_I3D_swap_frame_lock
+#if(WGL_I3D_swap_frame_lock== 1)
 inline BOOL WINAPI wglEnableFrameLockI3D (void) {
   return _glr->glExt.wglEnableFrameLockI3D ();}
 inline BOOL WINAPI wglDisableFrameLockI3D (void) {
@@ -5771,7 +5771,7 @@ inline BOOL WINAPI wglQueryFrameLockMasterI3D (BOOL *pFlag) {
   return _glr->glExt.wglQueryFrameLockMasterI3D (pFlag);}
 #endif
 
-#ifdef WGL_I3D_swap_frame_usage
+#if(WGL_I3D_swap_frame_usage== 1)
 inline BOOL WINAPI wglGetFrameUsageI3D (float *pUsage) {
   return _glr->glExt.wglGetFrameUsageI3D (pUsage);}
 inline BOOL WINAPI wglBeginFrameTrackingI3D (void) {
@@ -5782,7 +5782,7 @@ inline BOOL WINAPI wglQueryFrameTrackingI3D (DWORD *pFrameCount, DWORD *pMissedF
   return _glr->glExt.wglQueryFrameTrackingI3D (pFrameCount, pMissedFrames, pLastMissedUsage);}
 #endif
 
-#ifdef WGL_NV_DX_interop
+#if(WGL_NV_DX_interop== 1)
 inline BOOL WINAPI wglDXSetResourceShareHandleNV (void *dxObject, HANDLE shareHandle) {
   return _glr->glExt.wglDXSetResourceShareHandleNV (dxObject, shareHandle);}
 inline HANDLE WINAPI wglDXOpenDeviceNV (void *dxDevice) {
@@ -5801,12 +5801,12 @@ inline BOOL WINAPI wglDXUnlockObjectsNV (HANDLE hDevice, GLint count, HANDLE *hO
   return _glr->glExt.wglDXUnlockObjectsNV (hDevice, count, hObjects);}
 #endif
 
-#ifdef WGL_NV_delay_before_swap
+#if(WGL_NV_delay_before_swap== 1)
 inline BOOL WINAPI wglDelayBeforeSwapNV (HDC hDC, GLfloat seconds) {
   return _glr->glExt.wglDelayBeforeSwapNV (hDC, seconds);}
 #endif
 
-#ifdef WGL_NV_gpu_affinity
+#if(WGL_NV_gpu_affinity== 1)
 inline BOOL WINAPI wglEnumGpusNV (UINT iGpuIndex, HGPUNV *phGpu) {
   return _glr->glExt.wglEnumGpusNV (iGpuIndex, phGpu);}
 inline BOOL WINAPI wglEnumGpuDevicesNV (HGPUNV hGpu, UINT iDeviceIndex, PGPU_DEVICE lpGpuDevice) {
@@ -5819,7 +5819,7 @@ inline BOOL WINAPI wglDeleteDCNV (HDC hdc) {
   return _glr->glExt.wglDeleteDCNV (hdc);}
 #endif
 
-#ifdef WGL_NV_present_video
+#if(WGL_NV_present_video== 1)
 inline int WINAPI wglEnumerateVideoDevicesNV (HDC hDC, HVIDEOOUTPUTDEVICENV *phDeviceList) {
   return _glr->glExt.wglEnumerateVideoDevicesNV (hDC, phDeviceList);}
 inline BOOL WINAPI wglBindVideoDeviceNV (HDC hDC, unsigned int uVideoSlot, HVIDEOOUTPUTDEVICENV hVideoDevice, const int *piAttribList) {
@@ -5828,7 +5828,7 @@ inline BOOL WINAPI wglQueryCurrentContextNV (int iAttribute, int *piValue) {
   return _glr->glExt.wglQueryCurrentContextNV (iAttribute, piValue);}
 #endif
 
-#ifdef WGL_NV_swap_group
+#if(WGL_NV_swap_group== 1)
 inline BOOL WINAPI wglJoinSwapGroupNV (HDC hDC, GLuint group) {
   return _glr->glExt.wglJoinSwapGroupNV (hDC, group);}
 inline BOOL WINAPI wglBindSwapBarrierNV (GLuint group, GLuint barrier) {
@@ -5843,14 +5843,14 @@ inline BOOL WINAPI wglResetFrameCountNV (HDC hDC) {
   return _glr->glExt.wglResetFrameCountNV (hDC);}
 #endif
 
-#ifdef WGL_NV_vertex_array_range
+#if(WGL_NV_vertex_array_range== 1)
 inline void *WINAPI wglAllocateMemoryNV (GLsizei size, GLfloat readfreq, GLfloat writefreq, GLfloat priority) {
   return _glr->glExt.wglAllocateMemoryNV (size, readfreq, writefreq, priority);}
 inline void WINAPI wglFreeMemoryNV (void *pointer) {
   _glr->glExt.wglFreeMemoryNV (pointer);}
 #endif
 
-#ifdef WGL_NV_video_capture
+#if(WGL_NV_video_capture== 1)
 inline BOOL WINAPI wglBindVideoCaptureDeviceNV (UINT uVideoSlot, HVIDEOINPUTDEVICENV hDevice) {
   return _glr->glExt.wglBindVideoCaptureDeviceNV (uVideoSlot, hDevice);}
 inline UINT WINAPI wglEnumerateVideoCaptureDevicesNV (HDC hDc, HVIDEOINPUTDEVICENV *phDeviceList) {
@@ -5863,7 +5863,7 @@ inline BOOL WINAPI wglReleaseVideoCaptureDeviceNV (HDC hDc, HVIDEOINPUTDEVICENV 
   return _glr->glExt.wglReleaseVideoCaptureDeviceNV (hDc, hDevice);}
 #endif
 
-#ifdef WGL_NV_video_output
+#if(WGL_NV_video_output== 1)
 inline BOOL WINAPI wglGetVideoDeviceNV (HDC hDC, int numDevices, HPVIDEODEV *hVideoDevice) {
   return _glr->glExt.wglGetVideoDeviceNV (hDC, numDevices, hVideoDevice);}
 inline BOOL WINAPI wglReleaseVideoDeviceNV (HPVIDEODEV hVideoDevice) {
@@ -5878,7 +5878,7 @@ inline BOOL WINAPI wglGetVideoInfoNV (HPVIDEODEV hpVideoDevice, unsigned long *p
   return _glr->glExt.wglGetVideoInfoNV (hpVideoDevice, pulCounterOutputPbuffer, pulCounterOutputVideo);}
 #endif
 
-#ifdef WGL_OML_sync_control
+#if(WGL_OML_sync_control== 1)
 inline BOOL WINAPI wglGetSyncValuesOML (HDC hdc, INT64 *ust, INT64 *msc, INT64 *sbc) {
   return _glr->glExt.wglGetSyncValuesOML (hdc, ust, msc, sbc);}
 inline BOOL WINAPI wglGetMscRateOML (HDC hdc, INT32 *numerator, INT32 *denominator) {
@@ -5948,7 +5948,7 @@ inline void glXGetSelectedEvent (Display *dpy, GLXDrawable draw, unsigned long *
   //return _glr->glExt.glXGetProcAddress (procName);}
 */
 
-#ifdef GLX_ARB_create_context
+#if(GLX_ARB_create_context== 1)
 inline GLXContext glXCreateContextAttribsARB (Display *dpy, GLXFBConfig config, GLXContext share_context, Bool direct, const int *attrib_list) {
   return _glr->glExt.glXCreateContextAttribsARB (dpy, config, share_context, direct, attrib_list);}
 #endif
@@ -5957,7 +5957,7 @@ inline GLXContext glXCreateContextAttribsARB (Display *dpy, GLXFBConfig config, 
 //inline __GLXextFuncPtr glXGetProcAddressARB (const GLubyte *procName) {
   //return _glr->glExt.glXGetProcAddressARB (procName);}
 
-#ifdef GLX_EXT_import_context
+#if(GLX_EXT_import_context== 1)
 inline Display *glXGetCurrentDisplayEXT (void) {
   return _glr->glExt.glXGetCurrentDisplayEXT ();}
 inline int glXQueryContextInfoEXT (Display *dpy, GLXContext context, int attribute, int *value) {
@@ -5970,56 +5970,56 @@ inline void glXFreeContextEXT (Display *dpy, GLXContext context) {
   _glr->glExt.glXFreeContextEXT (dpy, context);}
 #endif
 
-#ifdef GLX_EXT_swap_control
+#if(GLX_EXT_swap_control== 1)
 inline void glXSwapIntervalEXT (Display *dpy, GLXDrawable drawable, int interval) {
   _glr->glExt.glXSwapIntervalEXT (dpy, drawable, interval);}
 #endif
 
-#ifdef GLX_EXT_texture_from_pixmap
+#if(GLX_EXT_texture_from_pixmap== 1)
 inline void glXBindTexImageEXT (Display *dpy, GLXDrawable drawable, int buffer, const int *attrib_list) {
   _glr->glExt.glXBindTexImageEXT (dpy, drawable, buffer, attrib_list);}
 inline void glXReleaseTexImageEXT (Display *dpy, GLXDrawable drawable, int buffer) {
   _glr->glExt.glXReleaseTexImageEXT (dpy, drawable, buffer);}
 #endif
 
-#ifdef GLX_MESA_agp_offset
+#if(GLX_MESA_agp_offset== 1)
 inline unsigned int glXGetAGPOffsetMESA (const void *pointer) {
   return _glr->glExt.glXGetAGPOffsetMESA (pointer);}
 #endif
 
-#ifdef GLX_MESA_copy_sub_buffer
+#if(GLX_MESA_copy_sub_buffer== 1)
 inline void glXCopySubBufferMESA (Display *dpy, GLXDrawable drawable, int x, int y, int width, int height) {
   _glr->glExt.glXCopySubBufferMESA (dpy, drawable, x, y, width, height);}
 #endif
 
-#ifdef GLX_MESA_pixmap_colormap
+#if(GLX_MESA_pixmap_colormap== 1)
 inline GLXPixmap glXCreateGLXPixmapMESA (Display *dpy, XVisualInfo *visual, Pixmap pixmap, Colormap cmap) {
   return _glr->glExt.glXCreateGLXPixmapMESA (dpy, visual, pixmap, cmap);}
 #endif
 
-#ifdef GLX_MESA_release_buffers
+#if(GLX_MESA_release_buffers== 1)
 inline Bool glXReleaseBuffersMESA (Display *dpy, GLXDrawable drawable) {
   return _glr->glExt.glXReleaseBuffersMESA (dpy, drawable);}
 #endif
 
-#ifdef GLX_MESA_set_3dfx_mode
+#if(GLX_MESA_set_3dfx_mode== 1)
 inline Bool glXSet3DfxModeMESA (int mode) {
   return _glr->glExt.glXSet3DfxModeMESA (mode);}
 #endif
 
-#ifdef GLX_NV_copy_image
+#if(GLX_NV_copy_image== 1)
 inline void glXCopyImageSubDataNV (Display *dpy, GLXContext srcCtx, GLuint srcName, GLenum srcTarget, GLint srcLevel, GLint srcX, GLint srcY, GLint srcZ, GLXContext dstCtx, GLuint dstName, GLenum dstTarget, GLint dstLevel, GLint dstX, GLint dstY, GLint dstZ, GLsizei width, GLsizei height, GLsizei depth) {
   _glr->glExt.glXCopyImageSubDataNV (dpy, srcCtx, srcName, srcTarget, srcLevel, srcX, srcY, srcZ, dstCtx, dstName, dstTarget, dstLevel, dstX, dstY, dstZ, width, height, depth);}
 #endif
 
-#ifdef GLX_NV_present_video
+#if(GLX_NV_present_video== 1)
 inline unsigned int *glXEnumerateVideoDevicesNV (Display *dpy, int screen, int *nelements) {
   return _glr->glExt.glXEnumerateVideoDevicesNV (dpy, screen, nelements);}
 inline int glXBindVideoDeviceNV (Display *dpy, unsigned int video_slot, unsigned int video_device, const int *attrib_list) {
   return _glr->glExt.glXBindVideoDeviceNV (dpy, video_slot, video_device, attrib_list);}
 #endif
 
-#ifdef GLX_NV_swap_group
+#if(GLX_NV_swap_group== 1)
 inline Bool glXJoinSwapGroupNV (Display *dpy, GLXDrawable drawable, GLuint group) {
   return _glr->glExt.glXJoinSwapGroupNV (dpy, drawable, group);}
 inline Bool glXBindSwapBarrierNV (Display *dpy, GLuint group, GLuint barrier) {
@@ -6034,7 +6034,7 @@ inline Bool glXResetFrameCountNV (Display *dpy, int screen) {
   return _glr->glExt.glXResetFrameCountNV (dpy, screen);}
 #endif
 
-#ifdef GLX_NV_video_capture
+#if(GLX_NV_video_capture== 1)
 inline int glXBindVideoCaptureDeviceNV (Display *dpy, unsigned int video_capture_slot, GLXVideoCaptureDeviceNV device) {
   return _glr->glExt.glXBindVideoCaptureDeviceNV (dpy, video_capture_slot, device);}
 inline GLXVideoCaptureDeviceNV *glXEnumerateVideoCaptureDevicesNV (Display *dpy, int screen, int *nelements) {
@@ -6047,7 +6047,7 @@ inline void glXReleaseVideoCaptureDeviceNV (Display *dpy, GLXVideoCaptureDeviceN
   _glr->glExt.glXReleaseVideoCaptureDeviceNV (dpy, device);}
 #endif
 
-#ifdef GLX_NV_video_output
+#if(GLX_NV_video_output== 1)
 inline int glXGetVideoDeviceNV (Display *dpy, int screen, int numVideoDevices, GLXVideoDeviceNV *pVideoDevice) {
   return _glr->glExt.glXGetVideoDeviceNV (dpy, screen, numVideoDevices, pVideoDevice);}
 inline int glXReleaseVideoDeviceNV (Display *dpy, int screen, GLXVideoDeviceNV VideoDevice) {
@@ -6062,7 +6062,7 @@ inline int glXGetVideoInfoNV (Display *dpy, int screen, GLXVideoDeviceNV VideoDe
   return _glr->glExt.glXGetVideoInfoNV (dpy, screen, VideoDevice, pulCounterOutputPbuffer, pulCounterOutputVideo);}
 #endif
 
-#ifdef GLX_OML_sync_control
+#if(GLX_OML_sync_control== 1)
 inline Bool glXGetSyncValuesOML (Display *dpy, GLXDrawable drawable, int64_t *ust, int64_t *msc, int64_t *sbc) {
   return _glr->glExt.glXGetSyncValuesOML (dpy, drawable, ust, msc, sbc);}
 inline Bool glXGetMscRateOML (Display *dpy, GLXDrawable drawable, int32_t *numerator, int32_t *denominator) {
@@ -6075,14 +6075,14 @@ inline Bool glXWaitForSbcOML (Display *dpy, GLXDrawable drawable, int64_t target
   return _glr->glExt.glXWaitForSbcOML (dpy, drawable, target_sbc, ust, msc, sbc);}
 #endif
 
-#ifdef GLX_SGIX_dmbuffer
+#if(GLX_SGIX_dmbuffer== 1)
 #ifdef _DM_BUFFER_H_
 inline Bool glXAssociateDMPbufferSGIX (Display *dpy, GLXPbufferSGIX pbuffer, DMparams *params, DMbuffer dmbuffer) {
   return _glr->glExt.glXAssociateDMPbufferSGIX (dpy, pbuffer, params, dmbuffer);}
 #endif // _DM_BUFFER_H included
 #endif
 
-#ifdef GLX_SGIX_fbconfig
+#if(GLX_SGIX_fbconfig== 1)
 inline int glXGetFBConfigAttribSGIX (Display *dpy, GLXFBConfigSGIX config, int attribute, int *value) {
   return _glr->glExt.glXGetFBConfigAttribSGIX (dpy, config, attribute, value);}
 inline GLXFBConfigSGIX *glXChooseFBConfigSGIX (Display *dpy, int screen, int *attrib_list, int *nelements) {
@@ -6097,7 +6097,7 @@ inline GLXFBConfigSGIX glXGetFBConfigFromVisualSGIX (Display *dpy, XVisualInfo *
   return _glr->glExt.glXGetFBConfigFromVisualSGIX (dpy, vis);}
 #endif
 
-#ifdef GLX_SGIX_hyperpipe
+#if(GLX_SGIX_hyperpipe== 1)
 inline GLXHyperpipeNetworkSGIX *glXQueryHyperpipeNetworkSGIX (Display *dpy, int *npipes) {
   return _glr->glExt.glXQueryHyperpipeNetworkSGIX (dpy, npipes);}
 inline int glXHyperpipeConfigSGIX (Display *dpy, int networkId, int npipes, GLXHyperpipeConfigSGIX *cfg, int *hpId) {
@@ -6116,7 +6116,7 @@ inline int glXQueryHyperpipeAttribSGIX (Display *dpy, int timeSlice, int attrib,
   return _glr->glExt.glXQueryHyperpipeAttribSGIX (dpy, timeSlice, attrib, size, returnAttribList);}
 #endif
 
-#ifdef GLX_SGIX_pbuffer
+#if(GLX_SGIX_pbuffer== 1)
 inline GLXPbufferSGIX glXCreateGLXPbufferSGIX (Display *dpy, GLXFBConfigSGIX config, unsigned int width, unsigned int height, int *attrib_list) {
   return _glr->glExt.glXCreateGLXPbufferSGIX (dpy, config, width, height, attrib_list);}
 inline void glXDestroyGLXPbufferSGIX (Display *dpy, GLXPbufferSGIX pbuf) {
@@ -6129,19 +6129,19 @@ inline void glXGetSelectedEventSGIX (Display *dpy, GLXDrawable drawable, unsigne
   _glr->glExt.glXGetSelectedEventSGIX (dpy, drawable, mask);}
 #endif
 
-#ifdef GLX_SGIX_swap_barrier
+#if(GLX_SGIX_swap_barrier== 1)
 inline void glXBindSwapBarrierSGIX (Display *dpy, GLXDrawable drawable, int barrier) {
   _glr->glExt.glXBindSwapBarrierSGIX (dpy, drawable, barrier);}
 inline Bool glXQueryMaxSwapBarriersSGIX (Display *dpy, int screen, int *max) {
   return _glr->glExt.glXQueryMaxSwapBarriersSGIX (dpy, screen, max);}
 #endif
 
-#ifdef GLX_SGIX_swap_group
+#if(GLX_SGIX_swap_group== 1)
 inline void glXJoinSwapGroupSGIX (Display *dpy, GLXDrawable drawable, GLXDrawable member) {
   _glr->glExt.glXJoinSwapGroupSGIX (dpy, drawable, member);}
 #endif
 
-#ifdef GLX_SGIX_video_resize
+#if(GLX_SGIX_video_resize== 1)
 inline int glXBindChannelToWindowSGIX (Display *display, int screen, int channel, Window window) {
   return _glr->glExt.glXBindChannelToWindowSGIX (display, screen, channel, window);}
 inline int glXChannelRectSGIX (Display *display, int screen, int channel, int x, int y, int w, int h) {
@@ -6154,7 +6154,7 @@ inline int glXChannelRectSyncSGIX (Display *display, int screen, int channel, GL
   return _glr->glExt.glXChannelRectSyncSGIX (display, screen, channel, synctype);}
 #endif
 
-#ifdef GLX_SGIX_video_source
+#if(GLX_SGIX_video_source== 1)
 #ifdef _VL_H
 inline GLXVideoSourceSGIX glXCreateGLXVideoSourceSGIX (Display *display, int screen, VLServer server, VLPath path, int nodeClass, VLNode drainNode) {
   return _glr->glExt.glXCreateGLXVideoSourceSGIX (display, screen, server, path, nodeClass, drainNode);}
@@ -6163,31 +6163,31 @@ inline void glXDestroyGLXVideoSourceSGIX (Display *dpy, GLXVideoSourceSGIX glxvi
 #endif /// _VL_H included
 #endif
 
-#ifdef GLX_SGI_cushion
+#if(GLX_SGI_cushion== 1)
 inline void glXCushionSGI (Display *dpy, Window window, float cushion) {
   _glr->glExt.glXCushionSGI (dpy, window, cushion);}
 #endif
 
-#ifdef GLX_SGI_make_current_read
+#if(GLX_SGI_make_current_read== 1)
 inline Bool glXMakeCurrentReadSGI (Display *dpy, GLXDrawable draw, GLXDrawable read, GLXContext ctx) {
   return _glr->glExt.glXMakeCurrentReadSGI (dpy, draw, read, ctx);}
 inline GLXDrawable glXGetCurrentReadDrawableSGI (void) {
   return _glr->glExt.glXGetCurrentReadDrawableSGI ();}
 #endif
 
-#ifdef GLX_SGI_swap_control
+#if(GLX_SGI_swap_control== 1)
 inline int glXSwapIntervalSGI (int interval) {
   return _glr->glExt.glXSwapIntervalSGI (interval);}
 #endif
 
-#ifdef GLX_SGI_video_sync
+#if(GLX_SGI_video_sync== 1)
 inline int glXGetVideoSyncSGI (unsigned int *count) {
   return _glr->glExt.glXGetVideoSyncSGI (count);}
 inline int glXWaitVideoSyncSGI (int divisor, int remainder, unsigned int *count) {
   return _glr->glExt.glXWaitVideoSyncSGI (divisor, remainder, count);}
 #endif
 
-#ifdef GLX_SUN_get_transparent_index
+#if(GLX_SUN_get_transparent_index== 1)
 inline Status glXGetTransparentIndexSUN (Display *dpy, Window overlay, Window underlay, long *pTransparentIndex) {
   return _glr->glExt.glXGetTransparentIndexSUN (dpy, overlay, underlay, pTransparentIndex);}
 #endif
@@ -6254,7 +6254,7 @@ inline GLAPI void APIENTRY glVertex4bOES (GLbyte x, GLbyte y, GLbyte z, GLbyte w
 inline GLAPI void APIENTRY glVertex4bvOES (const GLbyte *coords) {
   _glr->glExt.glVertex4bvOES (coords);}
 */
-#ifdef GL_OES_fixed_point // #292 
+#if(GL_OES_fixed_point== 1) // #292 
 inline GLAPI void APIENTRY glAlphaFuncxOES (GLenum func, GLfixed ref) {
   _glr->glExt.glAlphaFuncxOES (func, ref);}
 inline GLAPI void APIENTRY glClearColorxOES (GLfixed red, GLfixed green, GLfixed blue, GLfixed alpha) {
@@ -6465,12 +6465,12 @@ inline GLAPI void APIENTRY glVertex4xvOES (const GLfixed *coords) {
   _glr->glExt.glVertex4xvOES (coords);}
 #endif
 
-#ifdef GL_OES_query_matrix // #296 
+#if(GL_OES_query_matrix== 1) // #296 
 inline GLAPI GLbitfield APIENTRY glQueryMatrixxOES (GLfixed *mantissa, GLint *exponent) {
   return _glr->glExt.glQueryMatrixxOES (mantissa, exponent);}
 #endif
 
-#ifdef GL_OES_single_precision // #293 
+#if(GL_OES_single_precision== 1) // #293 
 inline GLAPI void APIENTRY glClearDepthfOES (GLclampf depth) {
   _glr->glExt.glClearDepthfOES (depth);}
 inline GLAPI void APIENTRY glClipPlanefOES (GLenum plane, const GLfloat *equation) {
@@ -6485,12 +6485,12 @@ inline GLAPI void APIENTRY glOrthofOES (GLfloat l, GLfloat r, GLfloat b, GLfloat
   _glr->glExt.glOrthofOES (l, r, b, t, n, f);}
 #endif
 
-#ifdef GL_3DFX_tbuffer // #208 
+#if(GL_3DFX_tbuffer== 1) // #208 
 inline GLAPI void APIENTRY glTbufferMask3DFX (GLuint mask) {
   _glr->glExt.glTbufferMask3DFX (mask);}
 #endif
 
-#ifdef GL_AMD_debug_output // #395 
+#if(GL_AMD_debug_output== 1) // #395 
 inline GLAPI void APIENTRY glDebugMessageEnableAMD (GLenum category, GLenum severity, GLsizei count, const GLuint *ids, GLboolean enabled) {
   _glr->glExt.glDebugMessageEnableAMD (category, severity, count, ids, enabled);}
 inline GLAPI void APIENTRY glDebugMessageInsertAMD (GLenum category, GLenum severity, GLuint id, GLsizei length, const GLchar *buf) {
@@ -6501,7 +6501,7 @@ inline GLAPI GLuint APIENTRY glGetDebugMessageLogAMD (GLuint count, GLsizei bufs
   return _glr->glExt.glGetDebugMessageLogAMD (count, bufsize, categories, severities, ids, lengths, message);}
 #endif
 
-#ifdef GL_AMD_draw_buffers_blend // #366 
+#if(GL_AMD_draw_buffers_blend== 1) // #366 
 inline GLAPI void APIENTRY glBlendFuncIndexedAMD (GLuint buf, GLenum src, GLenum dst) {
   _glr->glExt.glBlendFuncIndexedAMD (buf, src, dst);}
 inline GLAPI void APIENTRY glBlendFuncSeparateIndexedAMD (GLuint buf, GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha) {
@@ -6512,7 +6512,7 @@ inline GLAPI void APIENTRY glBlendEquationSeparateIndexedAMD (GLuint buf, GLenum
   _glr->glExt.glBlendEquationSeparateIndexedAMD (buf, modeRGB, modeAlpha);}
 #endif
 
-#ifdef GL_AMD_gpu_shader_int64 // #451 
+#if(GL_AMD_gpu_shader_int64== 1) // #451 
 inline GLAPI void APIENTRY glUniform1i64NV (GLint location, GLint64EXT x) {
   _glr->glExt.glUniform1i64NV (location, x);}
 inline GLAPI void APIENTRY glUniform2i64NV (GLint location, GLint64EXT x, GLint64EXT y) {
@@ -6583,19 +6583,19 @@ inline GLAPI void APIENTRY glProgramUniform4ui64vNV (GLuint program, GLint locat
   _glr->glExt.glProgramUniform4ui64vNV (program, location, count, value);}
 #endif
 
-#ifdef GL_AMD_interleaved_elements // #431 
+#if(GL_AMD_interleaved_elements== 1) // #431 
 inline GLAPI void APIENTRY glVertexAttribParameteriAMD (GLuint index, GLenum pname, GLint param) {
   _glr->glExt.glVertexAttribParameteriAMD (index, pname, param);}
 #endif
 
-#ifdef GL_AMD_multi_draw_indirect // #408 
+#if(GL_AMD_multi_draw_indirect== 1) // #408 
 inline GLAPI void APIENTRY glMultiDrawArraysIndirectAMD (GLenum mode, const void *indirect, GLsizei primcount, GLsizei stride) {
   _glr->glExt.glMultiDrawArraysIndirectAMD (mode, indirect, primcount, stride);}
 inline GLAPI void APIENTRY glMultiDrawElementsIndirectAMD (GLenum mode, GLenum type, const void *indirect, GLsizei primcount, GLsizei stride) {
   _glr->glExt.glMultiDrawElementsIndirectAMD (mode, type, indirect, primcount, stride);}
 #endif
 
-#ifdef GL_AMD_name_gen_delete // #394 
+#if(GL_AMD_name_gen_delete== 1) // #394 
 inline GLAPI void APIENTRY glGenNamesAMD (GLenum identifier, GLuint num, GLuint *names) {
   _glr->glExt.glGenNamesAMD (identifier, num, names);}
 inline GLAPI void APIENTRY glDeleteNamesAMD (GLenum identifier, GLuint num, const GLuint *names) {
@@ -6604,12 +6604,12 @@ inline GLAPI GLboolean APIENTRY glIsNameAMD (GLenum identifier, GLuint name) {
   return _glr->glExt.glIsNameAMD (identifier, name);}
 #endif
 
-#ifdef GL_AMD_occlusion_query_event // #442 
+#if(GL_AMD_occlusion_query_event== 1) // #442 
 inline GLAPI void APIENTRY glQueryObjectParameteruiAMD (GLenum target, GLuint id, GLenum pname, GLuint param) {
   _glr->glExt.glQueryObjectParameteruiAMD (target, id, pname, param);}
 #endif
 
-#ifdef GL_AMD_performance_monitor // #360 
+#if(GL_AMD_performance_monitor== 1) // #360 
 inline GLAPI void APIENTRY glGetPerfMonitorGroupsAMD (GLint *numGroups, GLsizei groupsSize, GLuint *groups) {
   _glr->glExt.glGetPerfMonitorGroupsAMD (numGroups, groupsSize, groups);}
 inline GLAPI void APIENTRY glGetPerfMonitorCountersAMD (GLuint group, GLint *numCounters, GLint *maxActiveCounters, GLsizei counterSize, GLuint *counters) {
@@ -6634,31 +6634,31 @@ inline GLAPI void APIENTRY glGetPerfMonitorCounterDataAMD (GLuint monitor, GLenu
   _glr->glExt.glGetPerfMonitorCounterDataAMD (monitor, pname, dataSize, data, bytesWritten);}
 #endif
 
-#ifdef GL_AMD_sample_positions // #405 
+#if(GL_AMD_sample_positions== 1) // #405 
 inline GLAPI void APIENTRY glSetMultisamplefvAMD (GLenum pname, GLuint index, const GLfloat *val) {
   _glr->glExt.glSetMultisamplefvAMD (pname, index, val);}
 #endif
 
-#ifdef GL_AMD_sparse_texture // #426 
+#if(GL_AMD_sparse_texture== 1) // #426 
 inline GLAPI void APIENTRY glTexStorageSparseAMD (GLenum target, GLenum internalFormat, GLsizei width, GLsizei height, GLsizei depth, GLsizei layers, GLbitfield flags) {
   _glr->glExt.glTexStorageSparseAMD (target, internalFormat, width, height, depth, layers, flags);}
 inline GLAPI void APIENTRY glTextureStorageSparseAMD (GLuint texture, GLenum target, GLenum internalFormat, GLsizei width, GLsizei height, GLsizei depth, GLsizei layers, GLbitfield flags) {
   _glr->glExt.glTextureStorageSparseAMD (texture, target, internalFormat, width, height, depth, layers, flags);}
 #endif
 
-#ifdef GL_AMD_stencil_operation_extended // #413 
+#if(GL_AMD_stencil_operation_extended== 1) // #413 
 inline GLAPI void APIENTRY glStencilOpValueAMD (GLenum face, GLuint value) {
   _glr->glExt.glStencilOpValueAMD (face, value);}
 #endif
 
-#ifdef GL_AMD_vertex_shader_tessellator // #363 
+#if(GL_AMD_vertex_shader_tessellator== 1) // #363 
 inline GLAPI void APIENTRY glTessellationFactorAMD (GLfloat factor) {
   _glr->glExt.glTessellationFactorAMD (factor);}
 inline GLAPI void APIENTRY glTessellationModeAMD (GLenum mode) {
   _glr->glExt.glTessellationModeAMD (mode);}
 #endif
 
-#ifdef GL_APPLE_element_array // #271 
+#if(GL_APPLE_element_array== 1) // #271 
 inline GLAPI void APIENTRY glElementPointerAPPLE (GLenum type, const void *pointer) {
   _glr->glExt.glElementPointerAPPLE (type, pointer);}
 inline GLAPI void APIENTRY glDrawElementArrayAPPLE (GLenum mode, GLint first, GLsizei count) {
@@ -6671,7 +6671,7 @@ inline GLAPI void APIENTRY glMultiDrawRangeElementArrayAPPLE (GLenum mode, GLuin
   _glr->glExt.glMultiDrawRangeElementArrayAPPLE (mode, start, end, first, count, primcount);}
 #endif
 
-#ifdef GL_APPLE_fence // #272 
+#if(GL_APPLE_fence== 1) // #272 
 inline GLAPI void APIENTRY glGenFencesAPPLE (GLsizei n, GLuint *fences) {
   _glr->glExt.glGenFencesAPPLE (n, fences);}
 inline GLAPI void APIENTRY glDeleteFencesAPPLE (GLsizei n, const GLuint *fences) {
@@ -6690,14 +6690,14 @@ inline GLAPI void APIENTRY glFinishObjectAPPLE (GLenum object, GLint name) {
   _glr->glExt.glFinishObjectAPPLE (object, name);}
 #endif
 
-#ifdef GL_APPLE_flush_buffer_range // #321 
+#if(GL_APPLE_flush_buffer_range== 1) // #321 
 inline GLAPI void APIENTRY glBufferParameteriAPPLE (GLenum target, GLenum pname, GLint param) {
   _glr->glExt.glBufferParameteriAPPLE (target, pname, param);}
 inline GLAPI void APIENTRY glFlushMappedBufferRangeAPPLE (GLenum target, GLintptr offset, GLsizeiptr size) {
   _glr->glExt.glFlushMappedBufferRangeAPPLE (target, offset, size);}
 #endif
 
-#ifdef GL_APPLE_object_purgeable // #371 
+#if(GL_APPLE_object_purgeable== 1) // #371 
 inline GLAPI GLenum APIENTRY glObjectPurgeableAPPLE (GLenum objectType, GLuint name, GLenum option) {
   return _glr->glExt.glObjectPurgeableAPPLE (objectType, name, option);}
 inline GLAPI GLenum APIENTRY glObjectUnpurgeableAPPLE (GLenum objectType, GLuint name, GLenum option) {
@@ -6706,14 +6706,14 @@ inline GLAPI void APIENTRY glGetObjectParameterivAPPLE (GLenum objectType, GLuin
   _glr->glExt.glGetObjectParameterivAPPLE (objectType, name, pname, params);}
 #endif
 
-#ifdef GL_APPLE_texture_range // #367 
+#if(GL_APPLE_texture_range== 1) // #367 
 inline GLAPI void APIENTRY glTextureRangeAPPLE (GLenum target, GLsizei length, const void *pointer) {
   _glr->glExt.glTextureRangeAPPLE (target, length, pointer);}
 inline GLAPI void APIENTRY glGetTexParameterPointervAPPLE (GLenum target, GLenum pname, void **params) {
   _glr->glExt.glGetTexParameterPointervAPPLE (target, pname, params);}
 #endif
 
-#ifdef GL_APPLE_vertex_array_object // #273 
+#if(GL_APPLE_vertex_array_object== 1) // #273 
 inline GLAPI void APIENTRY glBindVertexArrayAPPLE (GLuint array) {
   _glr->glExt.glBindVertexArrayAPPLE (array);}
 inline GLAPI void APIENTRY glDeleteVertexArraysAPPLE (GLsizei n, const GLuint *arrays) {
@@ -6724,7 +6724,7 @@ inline GLAPI GLboolean APIENTRY glIsVertexArrayAPPLE (GLuint array) {
   return _glr->glExt.glIsVertexArrayAPPLE (array);}
 #endif
 
-#ifdef GL_APPLE_vertex_array_range // #274 
+#if(GL_APPLE_vertex_array_range== 1) // #274 
 inline GLAPI void APIENTRY glVertexArrayRangeAPPLE (GLsizei length, void *pointer) {
   _glr->glExt.glVertexArrayRangeAPPLE (length, pointer);}
 inline GLAPI void APIENTRY glFlushVertexArrayRangeAPPLE (GLsizei length, void *pointer) {
@@ -6733,7 +6733,7 @@ inline GLAPI void APIENTRY glVertexArrayParameteriAPPLE (GLenum pname, GLint par
   _glr->glExt.glVertexArrayParameteriAPPLE (pname, param);}
 #endif
 
-#ifdef GL_APPLE_vertex_program_evaluators // #369 
+#if(GL_APPLE_vertex_program_evaluators== 1) // #369 
 inline GLAPI void APIENTRY glEnableVertexAttribAPPLE (GLuint index, GLenum pname) {
   _glr->glExt.glEnableVertexAttribAPPLE (index, pname);}
 inline GLAPI void APIENTRY glDisableVertexAttribAPPLE (GLuint index, GLenum pname) {
@@ -6750,12 +6750,12 @@ inline GLAPI void APIENTRY glMapVertexAttrib2fAPPLE (GLuint index, GLuint size, 
   _glr->glExt.glMapVertexAttrib2fAPPLE (index, size, u1, u2, ustride, uorder, v1, v2, vstride, vorder, points);}
 #endif
 
-#ifdef GL_ATI_draw_buffers // #277 
+#if(GL_ATI_draw_buffers== 1) // #277 
 inline GLAPI void APIENTRY glDrawBuffersATI (GLsizei n, const GLenum *bufs) {
   _glr->glExt.glDrawBuffersATI (n, bufs);}
 #endif
 
-#ifdef GL_ATI_element_array // #256 
+#if(GL_ATI_element_array== 1) // #256 
 inline GLAPI void APIENTRY glElementPointerATI (GLenum type, const void *pointer) {
   _glr->glExt.glElementPointerATI (type, pointer);}
 inline GLAPI void APIENTRY glDrawElementArrayATI (GLenum mode, GLsizei count) {
@@ -6764,7 +6764,7 @@ inline GLAPI void APIENTRY glDrawRangeElementArrayATI (GLenum mode, GLuint start
   _glr->glExt.glDrawRangeElementArrayATI (mode, start,  end,  count);}
 #endif
 
-#ifdef GL_ATI_envmap_bumpmap // #244 
+#if(GL_ATI_envmap_bumpmap== 1) // #244 
 inline GLAPI void APIENTRY glTexBumpParameterivATI (GLenum pname, const GLint *param) {
   _glr->glExt.glTexBumpParameterivATI (pname, param);}
 inline GLAPI void APIENTRY glTexBumpParameterfvATI (GLenum pname, const GLfloat *param) {
@@ -6775,7 +6775,7 @@ inline GLAPI void APIENTRY glGetTexBumpParameterfvATI (GLenum pname, GLfloat *pa
   _glr->glExt.glGetTexBumpParameterfvATI (pname, param);}
 #endif
 
-#ifdef GL_ATI_fragment_shader // #245 
+#if(GL_ATI_fragment_shader== 1) // #245 
 inline GLAPI GLuint APIENTRY glGenFragmentShadersATI (GLuint range) {
   return _glr->glExt.glGenFragmentShadersATI (range);}
 inline GLAPI void APIENTRY glBindFragmentShaderATI (GLuint id) {
@@ -6806,28 +6806,28 @@ inline GLAPI void APIENTRY glSetFragmentShaderConstantATI (GLuint dst, const GLf
   _glr->glExt.glSetFragmentShaderConstantATI (dst, value);}
 #endif
 
-#ifdef GL_ATI_map_object_buffer // #288 
+#if(GL_ATI_map_object_buffer== 1) // #288 
 inline GLAPI void *APIENTRY glMapObjectBufferATI (GLuint buffer) {
   return _glr->glExt.glMapObjectBufferATI (buffer);}
 inline GLAPI void APIENTRY glUnmapObjectBufferATI (GLuint buffer) {
   _glr->glExt.glUnmapObjectBufferATI (buffer);}
 #endif
 
-#ifdef GL_ATI_pn_triangles // #246 
+#if(GL_ATI_pn_triangles== 1) // #246 
 inline GLAPI void APIENTRY glPNTrianglesiATI (GLenum pname, GLint param) {
   _glr->glExt.glPNTrianglesiATI (pname, param);}
 inline GLAPI void APIENTRY glPNTrianglesfATI (GLenum pname, GLfloat param) {
   _glr->glExt.glPNTrianglesfATI (pname, param);}
 #endif
 
-#ifdef GL_ATI_separate_stencil // #289 
+#if(GL_ATI_separate_stencil== 1) // #289 
 inline GLAPI void APIENTRY glStencilOpSeparateATI (GLenum face, GLenum sfail, GLenum dpfail, GLenum dppass) {
   _glr->glExt.glStencilOpSeparateATI (face, sfail, dpfail, dppass);}
 inline GLAPI void APIENTRY glStencilFuncSeparateATI (GLenum frontfunc, GLenum backfunc, GLint ref, GLuint mask) {
   _glr->glExt.glStencilFuncSeparateATI (frontfunc, backfunc, ref, mask);}
 #endif
 
-#ifdef GL_ATI_vertex_array_object // #247 
+#if(GL_ATI_vertex_array_object== 1) // #247 
 inline GLAPI GLuint APIENTRY glNewObjectBufferATI (GLsizei size, const void *pointer, GLenum usage) {
   return _glr->glExt.glNewObjectBufferATI (size, pointer,  usage);}
 inline GLAPI GLboolean APIENTRY glIsObjectBufferATI (GLuint buffer) {
@@ -6854,7 +6854,7 @@ inline GLAPI void APIENTRY glGetVariantArrayObjectivATI (GLuint id, GLenum pname
   _glr->glExt.glGetVariantArrayObjectivATI (id, pname, params);}
 #endif
 
-#ifdef GL_ATI_vertex_attrib_array_object // #290 
+#if(GL_ATI_vertex_attrib_array_object== 1) // #290 
 inline GLAPI void APIENTRY glVertexAttribArrayObjectATI (GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, GLuint buffer, GLuint offset) {
   _glr->glExt.glVertexAttribArrayObjectATI (index, size, type, normalized, stride, buffer, offset);}
 inline GLAPI void APIENTRY glGetVertexAttribArrayObjectfvATI (GLuint index, GLenum pname, GLfloat *params) {
@@ -6863,7 +6863,7 @@ inline GLAPI void APIENTRY glGetVertexAttribArrayObjectivATI (GLuint index, GLen
   _glr->glExt.glGetVertexAttribArrayObjectivATI (index, pname, params);}
 #endif
 
-#ifdef GL_ATI_vertex_streams // #249 
+#if(GL_ATI_vertex_streams== 1) // #249 
 inline GLAPI void APIENTRY glVertexStream1sATI (GLenum stream, GLshort x) {
   _glr->glExt.glVertexStream1sATI (stream, x);}
 inline GLAPI void APIENTRY glVertexStream1svATI (GLenum stream, const GLshort *coords) {
@@ -6956,7 +6956,7 @@ inline GLAPI void APIENTRY glVertexBlendEnvfATI (GLenum pname, GLfloat param) {
   _glr->glExt.glVertexBlendEnvfATI (pname, param);}
 #endif
 
-#ifdef GL_EXT_bindable_uniform // #342 
+#if(GL_EXT_bindable_uniform== 1) // #342 
 inline GLAPI void APIENTRY glUniformBufferEXT (GLuint program, GLint location, GLuint buffer) {
   _glr->glExt.glUniformBufferEXT (program, location, buffer);}
 inline GLAPI GLint APIENTRY glGetUniformBufferSizeEXT (GLuint program, GLint location) {
@@ -6965,41 +6965,41 @@ inline GLAPI GLintptr APIENTRY glGetUniformOffsetEXT (GLuint program, GLint loca
   return _glr->glExt.glGetUniformOffsetEXT (program, location);}
 #endif
 
-#ifdef GL_EXT_blend_color // #002 
+#if(GL_EXT_blend_color== 1) // #002 
 inline GLAPI void APIENTRY glBlendColorEXT (GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha) {
   _glr->glExt.glBlendColorEXT (red, green, blue,  alpha);}
 #endif
 
-#ifdef GL_EXT_blend_equation_separate // #299 
+#if(GL_EXT_blend_equation_separate== 1) // #299 
 inline GLAPI void APIENTRY glBlendEquationSeparateEXT (GLenum modeRGB, GLenum modeAlpha) {
   _glr->glExt.glBlendEquationSeparateEXT (modeRGB, modeAlpha);}
 #endif
 
-#ifdef GL_EXT_blend_func_separate // #173 
+#if(GL_EXT_blend_func_separate== 1) // #173 
 inline GLAPI void APIENTRY glBlendFuncSeparateEXT (GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha) {
   _glr->glExt.glBlendFuncSeparateEXT (sfactorRGB, dfactorRGB, sfactorAlpha,  dfactorAlpha);}
 #endif
 
-#ifdef GL_EXT_blend_minmax // #037 
+#if(GL_EXT_blend_minmax== 1) // #037 
 inline GLAPI void APIENTRY glBlendEquationEXT (GLenum mode) {
   _glr->glExt.glBlendEquationEXT (mode);}
 #endif
 
-#ifdef GL_EXT_color_subtable // #074 
+#if(GL_EXT_color_subtable== 1) // #074 
 inline GLAPI void APIENTRY glColorSubTableEXT (GLenum target, GLsizei start, GLsizei count, GLenum format, GLenum type, const void *data) {
   _glr->glExt.glColorSubTableEXT (target, start, count, format, type, data);}
 inline GLAPI void APIENTRY glCopyColorSubTableEXT (GLenum target, GLsizei start, GLint x, GLint y, GLsizei width) {
   _glr->glExt.glCopyColorSubTableEXT (target, start, x, y, width);}
 #endif
 
-#ifdef GL_EXT_compiled_vertex_array // #097 
+#if(GL_EXT_compiled_vertex_array== 1) // #097 
 inline GLAPI void APIENTRY glLockArraysEXT (GLint first, GLsizei count) {
   _glr->glExt.glLockArraysEXT (first,  count);}
 inline GLAPI void APIENTRY glUnlockArraysEXT (void) {
   _glr->glExt.glUnlockArraysEXT ();}
 #endif
 
-#ifdef GL_EXT_convolution // #012 
+#if(GL_EXT_convolution== 1) // #012 
 inline GLAPI void APIENTRY glConvolutionFilter1DEXT (GLenum target, GLenum internalformat, GLsizei width, GLenum format, GLenum type, const void *image) {
   _glr->glExt.glConvolutionFilter1DEXT (target, internalformat, width, format, type, image);}
 inline GLAPI void APIENTRY glConvolutionFilter2DEXT (GLenum target, GLenum internalformat, GLsizei width, GLsizei height, GLenum format, GLenum type, const void *image) {
@@ -7028,7 +7028,7 @@ inline GLAPI void APIENTRY glSeparableFilter2DEXT (GLenum target, GLenum interna
   _glr->glExt.glSeparableFilter2DEXT (target, internalformat, width, height, format, type, row, column);}
 #endif
 
-#ifdef GL_EXT_coordinate_frame // #156 
+#if(GL_EXT_coordinate_frame== 1) // #156 
 inline GLAPI void APIENTRY glTangent3bEXT (GLbyte tx, GLbyte ty, GLbyte tz) {
   _glr->glExt.glTangent3bEXT (tx, ty, tz);}
 inline GLAPI void APIENTRY glTangent3bvEXT (const GLbyte *v) {
@@ -7075,7 +7075,7 @@ inline GLAPI void APIENTRY glBinormalPointerEXT (GLenum type, GLsizei stride, co
   _glr->glExt.glBinormalPointerEXT (type, stride, pointer);}
 #endif
 
-#ifdef GL_EXT_copy_texture // #010 
+#if(GL_EXT_copy_texture== 1) // #010 
 inline GLAPI void APIENTRY glCopyTexImage1DEXT (GLenum target, GLint level, GLenum internalformat, GLint x, GLint y, GLsizei width, GLint border) {
   _glr->glExt.glCopyTexImage1DEXT (target, level, internalformat, x, y, width, border);}
 inline GLAPI void APIENTRY glCopyTexImage2DEXT (GLenum target, GLint level, GLenum internalformat, GLint x, GLint y, GLsizei width, GLsizei height, GLint border) {
@@ -7088,21 +7088,21 @@ inline GLAPI void APIENTRY glCopyTexSubImage3DEXT (GLenum target, GLint level, G
   _glr->glExt.glCopyTexSubImage3DEXT (target, level, xoffset, yoffset, zoffset, x, y, width, height);}
 #endif
 
-#ifdef GL_EXT_cull_vertex // #098 
+#if(GL_EXT_cull_vertex== 1) // #098 
 inline GLAPI void APIENTRY glCullParameterdvEXT (GLenum pname, GLdouble *params) {
   _glr->glExt.glCullParameterdvEXT (pname, params);}
 inline GLAPI void APIENTRY glCullParameterfvEXT (GLenum pname, GLfloat *params) {
   _glr->glExt.glCullParameterfvEXT (pname, params);}
 #endif
 
-#ifdef GL_EXT_debug_label // #439 
+#if(GL_EXT_debug_label== 1) // #439 
 inline GLAPI void APIENTRY glLabelObjectEXT (GLenum type, GLuint object, GLsizei length, const GLchar *label) {
   _glr->glExt.glLabelObjectEXT (type, object, length, label);}
 inline GLAPI void APIENTRY glGetObjectLabelEXT (GLenum type, GLuint object, GLsizei bufSize, GLsizei *length, GLchar *label) {
   _glr->glExt.glGetObjectLabelEXT (type, object, bufSize, length, label);}
 #endif
 
-#ifdef GL_EXT_debug_marker // #440 
+#if(GL_EXT_debug_marker== 1) // #440 
 inline GLAPI void APIENTRY glInsertEventMarkerEXT (GLsizei length, const GLchar *marker) {
   _glr->glExt.glInsertEventMarkerEXT (length, marker);}
 inline GLAPI void APIENTRY glPushGroupMarkerEXT (GLsizei length, const GLchar *marker) {
@@ -7111,12 +7111,12 @@ inline GLAPI void APIENTRY glPopGroupMarkerEXT (void) {
   _glr->glExt.glPopGroupMarkerEXT ();}
 #endif
 
-#ifdef GL_EXT_depth_bounds_test // #297 
+#if(GL_EXT_depth_bounds_test== 1) // #297 
 inline GLAPI void APIENTRY glDepthBoundsEXT (GLclampd zmin, GLclampd zmax) {
   _glr->glExt.glDepthBoundsEXT (zmin, zmax);}
 #endif
 
-#ifdef GL_EXT_direct_state_access // #353 
+#if(GL_EXT_direct_state_access== 1) // #353 
 inline GLAPI void APIENTRY glMatrixLoadfEXT (GLenum mode, const GLfloat *m) {
   _glr->glExt.glMatrixLoadfEXT (mode, m);}
 inline GLAPI void APIENTRY glMatrixLoaddEXT (GLenum mode, const GLdouble *m) {
@@ -7629,24 +7629,24 @@ inline GLAPI void APIENTRY glVertexArrayVertexAttribDivisorEXT (GLuint vaobj, GL
   _glr->glExt.glVertexArrayVertexAttribDivisorEXT (vaobj, index, divisor);}
 #endif
 
-#ifdef GL_EXT_draw_buffers2 // #340 
+#if(GL_EXT_draw_buffers2== 1) // #340 
 inline GLAPI void APIENTRY glColorMaskIndexedEXT (GLuint index, GLboolean r, GLboolean g, GLboolean b, GLboolean a) {
   _glr->glExt.glColorMaskIndexedEXT (index, r, g, b, a);}
 #endif
 
-#ifdef GL_EXT_draw_instanced // #327 
+#if(GL_EXT_draw_instanced== 1) // #327 
 inline GLAPI void APIENTRY glDrawArraysInstancedEXT (GLenum mode, GLint start, GLsizei count, GLsizei primcount) {
   _glr->glExt.glDrawArraysInstancedEXT (mode, start, count, primcount);}
 inline GLAPI void APIENTRY glDrawElementsInstancedEXT (GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei primcount) {
   _glr->glExt.glDrawElementsInstancedEXT (mode, count, type, indices, primcount);}
 #endif
 
-#ifdef GL_EXT_draw_range_elements // #112 
+#if(GL_EXT_draw_range_elements== 1) // #112 
 inline GLAPI void APIENTRY glDrawRangeElementsEXT (GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const void *indices) {
   _glr->glExt.glDrawRangeElementsEXT (mode, start, end, count, type, indices);}
 #endif
 
-#ifdef GL_EXT_fog_coord // #149 
+#if(GL_EXT_fog_coord== 1) // #149 
 inline GLAPI void APIENTRY glFogCoordfEXT (GLfloat coord) {
   _glr->glExt.glFogCoordfEXT (coord);}
 inline GLAPI void APIENTRY glFogCoordfvEXT (const GLfloat *coord) {
@@ -7659,17 +7659,17 @@ inline GLAPI void APIENTRY glFogCoordPointerEXT (GLenum type, GLsizei stride, co
   _glr->glExt.glFogCoordPointerEXT (type, stride, pointer);}
 #endif
 
-#ifdef GL_EXT_framebuffer_blit // #316 
+#if(GL_EXT_framebuffer_blit== 1) // #316 
 inline GLAPI void APIENTRY glBlitFramebufferEXT (GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter) {
   _glr->glExt.glBlitFramebufferEXT (srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);}
 #endif
 
-#ifdef GL_EXT_framebuffer_multisample // #409 
+#if(GL_EXT_framebuffer_multisample== 1) // #409 
 inline GLAPI void APIENTRY glRenderbufferStorageMultisampleEXT (GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height) {
   _glr->glExt.glRenderbufferStorageMultisampleEXT (target, samples, internalformat, width, height);}
 #endif
 
-#ifdef GL_EXT_framebuffer_object // #310 
+#if(GL_EXT_framebuffer_object== 1) // #310 
 inline GLAPI GLboolean APIENTRY glIsRenderbufferEXT (GLuint renderbuffer) {
   return _glr->glExt.glIsRenderbufferEXT (renderbuffer);}
 inline GLAPI void APIENTRY glBindRenderbufferEXT (GLenum target, GLuint renderbuffer) {
@@ -7706,19 +7706,19 @@ inline GLAPI void APIENTRY glGenerateMipmapEXT (GLenum target) {
   _glr->glExt.glGenerateMipmapEXT (target);}
 #endif
 
-#ifdef GL_EXT_geometry_shader4 // #324 
+#if(GL_EXT_geometry_shader4== 1) // #324 
 inline GLAPI void APIENTRY glProgramParameteriEXT (GLuint program, GLenum pname, GLint value) {
   _glr->glExt.glProgramParameteriEXT (program, pname, value);}
 #endif
 
-#ifdef GL_EXT_gpu_program_parameters // #320 
+#if(GL_EXT_gpu_program_parameters== 1) // #320 
 inline GLAPI void APIENTRY glProgramEnvParameters4fvEXT (GLenum target, GLuint index, GLsizei count, const GLfloat *params) {
   _glr->glExt.glProgramEnvParameters4fvEXT (target, index, count, params);}
 inline GLAPI void APIENTRY glProgramLocalParameters4fvEXT (GLenum target, GLuint index, GLsizei count, const GLfloat *params) {
   _glr->glExt.glProgramLocalParameters4fvEXT (target, index, count, params);}
 #endif
 
-#ifdef GL_EXT_gpu_shader4 // #326 
+#if(GL_EXT_gpu_shader4== 1) // #326 
 inline GLAPI void APIENTRY glGetUniformuivEXT (GLuint program, GLint location, GLuint *params) {
   _glr->glExt.glGetUniformuivEXT (program, location, params);}
 inline GLAPI void APIENTRY glBindFragDataLocationEXT (GLuint program, GLuint color, const GLchar *name) {
@@ -7743,7 +7743,7 @@ inline GLAPI void APIENTRY glUniform4uivEXT (GLint location, GLsizei count, cons
   _glr->glExt.glUniform4uivEXT (location, count, value);}
 #endif
 
-#ifdef GL_EXT_histogram // #011 
+#if(GL_EXT_histogram== 1) // #011 
 inline GLAPI void APIENTRY glGetHistogramParameterfvEXT (GLenum target, GLenum pname, GLfloat *params) {
   _glr->glExt.glGetHistogramParameterfvEXT (target, pname, params);}
 inline GLAPI void APIENTRY glGetHistogramParameterivEXT (GLenum target, GLenum pname, GLint *params) {
@@ -7764,17 +7764,17 @@ inline GLAPI void APIENTRY glResetMinmaxEXT (GLenum target) {
   _glr->glExt.glResetMinmaxEXT (target);}
 #endif
 
-#ifdef GL_EXT_index_func // #095 
+#if(GL_EXT_index_func== 1) // #095 
 inline GLAPI void APIENTRY glIndexFuncEXT (GLenum func, GLclampf ref) {
   _glr->glExt.glIndexFuncEXT (func, ref);}
 #endif
 
-#ifdef GL_EXT_index_material // #094 
+#if(GL_EXT_index_material== 1) // #094 
 inline GLAPI void APIENTRY glIndexMaterialEXT (GLenum face, GLenum mode) {
   _glr->glExt.glIndexMaterialEXT (face, mode);}
 #endif
 
-#ifdef GL_EXT_light_texture // #117 
+#if(GL_EXT_light_texture== 1) // #117 
 inline GLAPI void APIENTRY glApplyTextureEXT (GLenum mode) {
   _glr->glExt.glApplyTextureEXT (mode);}
 inline GLAPI void APIENTRY glTextureLightEXT (GLenum pname) {
@@ -7783,21 +7783,21 @@ inline GLAPI void APIENTRY glTextureMaterialEXT (GLenum face, GLenum mode) {
   _glr->glExt.glTextureMaterialEXT (face, mode);}
 #endif
 
-#ifdef GL_EXT_multi_draw_arrays // #148 
+#if(GL_EXT_multi_draw_arrays== 1) // #148 
 inline GLAPI void APIENTRY glMultiDrawArraysEXT (GLenum mode, const GLint *first, const GLsizei *count, GLsizei primcount) {
   _glr->glExt.glMultiDrawArraysEXT (mode, first, count, primcount);}
 inline GLAPI void APIENTRY glMultiDrawElementsEXT (GLenum mode, const GLsizei *count, GLenum type, const void *const*indices, GLsizei primcount) {
   _glr->glExt.glMultiDrawElementsEXT (mode, count, type, indices, primcount);}
 #endif
 
-#ifdef GL_EXT_multisample // #209 
+#if(GL_EXT_multisample== 1) // #209 
 inline GLAPI void APIENTRY glSampleMaskEXT (GLclampf value, GLboolean invert) {
   _glr->glExt.glSampleMaskEXT (value, invert);}
 inline GLAPI void APIENTRY glSamplePatternEXT (GLenum pattern) {
   _glr->glExt.glSamplePatternEXT (pattern);}
 #endif
 
-#ifdef GL_EXT_paletted_texture // #078 
+#if(GL_EXT_paletted_texture== 1) // #078 
 inline GLAPI void APIENTRY glColorTableEXT (GLenum target, GLenum internalFormat, GLsizei width, GLenum format, GLenum type, const void *table) {
   _glr->glExt.glColorTableEXT (target, internalFormat, width, format, type, table);}
 inline GLAPI void APIENTRY glGetColorTableEXT (GLenum target, GLenum format, GLenum type, void *data) {
@@ -7808,7 +7808,7 @@ inline GLAPI void APIENTRY glGetColorTableParameterfvEXT (GLenum target, GLenum 
   _glr->glExt.glGetColorTableParameterfvEXT (target, pname, params);}
 #endif
 
-#ifdef GL_EXT_pixel_transform // #138 
+#if(GL_EXT_pixel_transform== 1) // #138 
 inline GLAPI void APIENTRY glPixelTransformParameteriEXT (GLenum target, GLenum pname, GLint param) {
   _glr->glExt.glPixelTransformParameteriEXT (target, pname, param);}
 inline GLAPI void APIENTRY glPixelTransformParameterfEXT (GLenum target, GLenum pname, GLfloat param) {
@@ -7823,24 +7823,24 @@ inline GLAPI void APIENTRY glGetPixelTransformParameterfvEXT (GLenum target, GLe
   _glr->glExt.glGetPixelTransformParameterfvEXT (target, pname, params);}
 #endif
 
-#ifdef GL_EXT_point_parameters // #054 
+#if(GL_EXT_point_parameters== 1) // #054 
 inline GLAPI void APIENTRY glPointParameterfEXT (GLenum pname, GLfloat param) {
   _glr->glExt.glPointParameterfEXT (pname, param);}
 inline GLAPI void APIENTRY glPointParameterfvEXT (GLenum pname, const GLfloat *params) {
   _glr->glExt.glPointParameterfvEXT (pname, params);}
 #endif
 
-#ifdef GL_EXT_polygon_offset // #003 
+#if(GL_EXT_polygon_offset== 1) // #003 
 inline GLAPI void APIENTRY glPolygonOffsetEXT (GLfloat factor, GLfloat bias) {
   _glr->glExt.glPolygonOffsetEXT (factor, bias);}
 #endif
 
-#ifdef GL_EXT_provoking_vertex // #364 
+#if(GL_EXT_provoking_vertex== 1) // #364 
 inline GLAPI void APIENTRY glProvokingVertexEXT (GLenum mode) {
   _glr->glExt.glProvokingVertexEXT (mode);}
 #endif
 
-#ifdef GL_EXT_secondary_color // #145 
+#if(GL_EXT_secondary_color== 1) // #145 
 inline GLAPI void APIENTRY glSecondaryColor3bEXT (GLbyte red, GLbyte green, GLbyte blue) {
   _glr->glExt.glSecondaryColor3bEXT (red, green, blue);}
 inline GLAPI void APIENTRY glSecondaryColor3bvEXT (const GLbyte *v) {
@@ -7877,7 +7877,7 @@ inline GLAPI void APIENTRY glSecondaryColorPointerEXT (GLint size, GLenum type, 
   _glr->glExt.glSecondaryColorPointerEXT (size, type, stride, pointer);}
 #endif
 
-#ifdef GL_EXT_separate_shader_objects // #377 
+#if(GL_EXT_separate_shader_objects== 1) // #377 
 inline GLAPI void APIENTRY glUseShaderProgramEXT (GLenum type, GLuint program) {
   _glr->glExt.glUseShaderProgramEXT (type, program);}
 inline GLAPI void APIENTRY glActiveProgramEXT (GLuint program) {
@@ -7886,43 +7886,43 @@ inline GLAPI GLuint APIENTRY glCreateShaderProgramEXT (GLenum type, const GLchar
   return _glr->glExt.glCreateShaderProgramEXT (type, string);}
 #endif
 
-#ifdef GL_EXT_shader_image_load_store // #386 
+#if(GL_EXT_shader_image_load_store== 1) // #386 
 inline GLAPI void APIENTRY glBindImageTextureEXT (GLuint index, GLuint texture, GLint level, GLboolean layered, GLint layer, GLenum access, GLint format) {
   _glr->glExt.glBindImageTextureEXT (index, texture, level, layered, layer, access, format);}
 inline GLAPI void APIENTRY glMemoryBarrierEXT (GLbitfield barriers) {
   _glr->glExt.glMemoryBarrierEXT (barriers);}
 #endif
 
-#ifdef GL_EXT_stencil_clear_tag // #314 
+#if(GL_EXT_stencil_clear_tag== 1) // #314 
 inline GLAPI void APIENTRY glStencilClearTagEXT (GLsizei stencilTagBits, GLuint stencilClearTag) {
   _glr->glExt.glStencilClearTagEXT (stencilTagBits, stencilClearTag);}
 #endif
 
-#ifdef GL_EXT_stencil_two_side // #268 
+#if(GL_EXT_stencil_two_side== 1) // #268 
 inline GLAPI void APIENTRY glActiveStencilFaceEXT (GLenum face) {
   _glr->glExt.glActiveStencilFaceEXT (face);}
 #endif
 
-#ifdef GL_EXT_subtexture // #009 
+#if(GL_EXT_subtexture== 1) // #009 
 inline GLAPI void APIENTRY glTexSubImage1DEXT (GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLenum type, const void *pixels) {
   _glr->glExt.glTexSubImage1DEXT (target, level, xoffset, width, format, type, pixels);}
 inline GLAPI void APIENTRY glTexSubImage2DEXT (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const void *pixels) {
   _glr->glExt.glTexSubImage2DEXT (target, level, xoffset, yoffset, width, height, format, type, pixels);}
 #endif
 
-#ifdef GL_EXT_texture3D // #006 
+#if(GL_EXT_texture3D== 1) // #006 
 inline GLAPI void APIENTRY glTexImage3DEXT (GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const void *pixels) {
   _glr->glExt.glTexImage3DEXT (target, level, internalformat, width, height, depth, border, format, type, pixels);}
 inline GLAPI void APIENTRY glTexSubImage3DEXT (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, const void *pixels) {
   _glr->glExt.glTexSubImage3DEXT (target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, pixels);}
 #endif
 
-#ifdef GL_EXT_texture_buffer_object // #330 
+#if(GL_EXT_texture_buffer_object== 1) // #330 
 inline GLAPI void APIENTRY glTexBufferEXT (GLenum target, GLenum internalformat, GLuint buffer) {
   _glr->glExt.glTexBufferEXT (target, internalformat, buffer);}
 #endif
 
-#ifdef GL_EXT_texture_integer // #343 
+#if(GL_EXT_texture_integer== 1) // #343 
 inline GLAPI void APIENTRY glTexParameterIivEXT (GLenum target, GLenum pname, const GLint *params) {
   _glr->glExt.glTexParameterIivEXT (target, pname, params);}
 inline GLAPI void APIENTRY glTexParameterIuivEXT (GLenum target, GLenum pname, const GLuint *params) {
@@ -7937,7 +7937,7 @@ inline GLAPI void APIENTRY glClearColorIuiEXT (GLuint red, GLuint green, GLuint 
   _glr->glExt.glClearColorIuiEXT (red, green, blue, alpha);}
 #endif
 
-#ifdef GL_EXT_texture_object // #020 
+#if(GL_EXT_texture_object== 1) // #020 
 inline GLAPI GLboolean APIENTRY glAreTexturesResidentEXT (GLsizei n, const GLuint *textures, GLboolean *residences) {
   return _glr->glExt.glAreTexturesResidentEXT (n, textures, residences);}
 inline GLAPI void APIENTRY glBindTextureEXT (GLenum target, GLuint texture) {
@@ -7952,19 +7952,19 @@ inline GLAPI void APIENTRY glPrioritizeTexturesEXT (GLsizei n, const GLuint *tex
   _glr->glExt.glPrioritizeTexturesEXT (n, textures, priorities);}
 #endif
 
-#ifdef GL_EXT_texture_perturb_normal // #147 
+#if(GL_EXT_texture_perturb_normal== 1) // #147 
 inline GLAPI void APIENTRY glTextureNormalEXT (GLenum mode) {
   _glr->glExt.glTextureNormalEXT (mode);}
 #endif
 
-#ifdef GL_EXT_timer_query // #319 
+#if(GL_EXT_timer_query== 1) // #319 
 inline GLAPI void APIENTRY glGetQueryObjecti64vEXT (GLuint id, GLenum pname, GLint64 *params) {
   _glr->glExt.glGetQueryObjecti64vEXT (id, pname, params);}
 inline GLAPI void APIENTRY glGetQueryObjectui64vEXT (GLuint id, GLenum pname, GLuint64 *params) {
   _glr->glExt.glGetQueryObjectui64vEXT (id, pname, params);}
 #endif
 
-#ifdef GL_EXT_transform_feedback // #352 
+#if(GL_EXT_transform_feedback== 1) // #352 
 inline GLAPI void APIENTRY glBeginTransformFeedbackEXT (GLenum primitiveMode) {
   _glr->glExt.glBeginTransformFeedbackEXT (primitiveMode);}
 inline GLAPI void APIENTRY glEndTransformFeedbackEXT (void) {
@@ -7981,7 +7981,7 @@ inline GLAPI void APIENTRY glGetTransformFeedbackVaryingEXT (GLuint program, GLu
   _glr->glExt.glGetTransformFeedbackVaryingEXT (program, index, bufSize, length, size, type, name);}
 #endif
 
-#ifdef GL_EXT_vertex_array // #030 
+#if(GL_EXT_vertex_array== 1) // #030 
 inline GLAPI void APIENTRY glArrayElementEXT (GLint i) {
   _glr->glExt.glArrayElementEXT (i);}
 inline GLAPI void APIENTRY glColorPointerEXT (GLint size, GLenum type, GLsizei stride, GLsizei count, const void *pointer) {
@@ -8002,7 +8002,7 @@ inline GLAPI void APIENTRY glVertexPointerEXT (GLint size, GLenum type, GLsizei 
   _glr->glExt.glVertexPointerEXT (size, type, stride, count, pointer);}
 #endif
 
-#ifdef GL_EXT_vertex_attrib_64bit // #387 
+#if(GL_EXT_vertex_attrib_64bit== 1) // #387 
 inline GLAPI void APIENTRY glVertexAttribL1dEXT (GLuint index, GLdouble x) {
   _glr->glExt.glVertexAttribL1dEXT (index, x);}
 inline GLAPI void APIENTRY glVertexAttribL2dEXT (GLuint index, GLdouble x, GLdouble y) {
@@ -8025,7 +8025,7 @@ inline GLAPI void APIENTRY glGetVertexAttribLdvEXT (GLuint index, GLenum pname, 
   _glr->glExt.glGetVertexAttribLdvEXT (index, pname, params);}
 #endif
 
-#ifdef GL_EXT_vertex_shader // #248 
+#if(GL_EXT_vertex_shader== 1) // #248 
 inline GLAPI void APIENTRY glBeginVertexShaderEXT (void) {
   _glr->glExt.glBeginVertexShaderEXT ();}
 inline GLAPI void APIENTRY glEndVertexShaderEXT (void) {
@@ -8112,7 +8112,7 @@ inline GLAPI void APIENTRY glGetLocalConstantFloatvEXT (GLuint id, GLenum value,
   _glr->glExt.glGetLocalConstantFloatvEXT (id, value, data);}
 #endif
 
-#ifdef GL_EXT_vertex_weighting // #188 
+#if(GL_EXT_vertex_weighting== 1) // #188 
 inline GLAPI void APIENTRY glVertexWeightfEXT (GLfloat weight) {
   _glr->glExt.glVertexWeightfEXT (weight);}
 inline GLAPI void APIENTRY glVertexWeightfvEXT (const GLfloat *weight) {
@@ -8121,22 +8121,22 @@ inline GLAPI void APIENTRY glVertexWeightPointerEXT (GLint size, GLenum type, GL
   _glr->glExt.glVertexWeightPointerEXT (size, type, stride, pointer);}
 #endif
 
-#ifdef GL_EXT_x11_sync_object // #406 
+#if(GL_EXT_x11_sync_object== 1) // #406 
 inline GLAPI GLsync APIENTRY glImportSyncEXT (GLenum external_sync_type, GLintptr external_sync, GLbitfield flags) {
   return _glr->glExt.glImportSyncEXT (external_sync_type, external_sync, flags);}
 #endif
 
-#ifdef GL_GREMEDY_frame_terminator // #345 
+#if(GL_GREMEDY_frame_terminator== 1) // #345 
 inline GLAPI void APIENTRY glFrameTerminatorGREMEDY (void) {
   _glr->glExt.glFrameTerminatorGREMEDY ();}
 #endif
 
-#ifdef GL_GREMEDY_string_marker // #311 
+#if(GL_GREMEDY_string_marker== 1) // #311 
 inline GLAPI void APIENTRY glStringMarkerGREMEDY (GLsizei len, const void *string) {
   _glr->glExt.glStringMarkerGREMEDY (len, string);}
 #endif
 
-#ifdef GL_HP_image_transform // #066 
+#if(GL_HP_image_transform== 1) // #066 
 inline GLAPI void APIENTRY glImageTransformParameteriHP (GLenum target, GLenum pname, GLint param) {
   _glr->glExt.glImageTransformParameteriHP (target, pname, param);}
 inline GLAPI void APIENTRY glImageTransformParameterfHP (GLenum target, GLenum pname, GLfloat param) {
@@ -8151,19 +8151,19 @@ inline GLAPI void APIENTRY glGetImageTransformParameterfvHP (GLenum target, GLen
   _glr->glExt.glGetImageTransformParameterfvHP (target, pname, params);}
 #endif
 
-#ifdef GL_IBM_multimode_draw_arrays // #200 
+#if(GL_IBM_multimode_draw_arrays== 1) // #200 
 inline GLAPI void APIENTRY glMultiModeDrawArraysIBM (const GLenum *mode, const GLint *first, const GLsizei *count, GLsizei primcount, GLint modestride) {
   _glr->glExt.glMultiModeDrawArraysIBM (mode, first, count, primcount, modestride);}
 inline GLAPI void APIENTRY glMultiModeDrawElementsIBM (const GLenum *mode, const GLsizei *count, GLenum type, const void *const*indices, GLsizei primcount, GLint modestride) {
   _glr->glExt.glMultiModeDrawElementsIBM (mode, count, type, indices, primcount, modestride);}
 #endif
 
-#ifdef GL_IBM_static_data // #223 
+#if(GL_IBM_static_data== 1) // #223 
 inline GLAPI void APIENTRY glFlushStaticDataIBM (GLenum target) {
   _glr->glExt.glFlushStaticDataIBM (target);}
 #endif
 
-#ifdef GL_IBM_vertex_array_lists // #201 
+#if(GL_IBM_vertex_array_lists== 1) // #201 
 inline GLAPI void APIENTRY glColorPointerListIBM (GLint size, GLenum type, GLint stride, const void **pointer, GLint ptrstride) {
   _glr->glExt.glColorPointerListIBM (size, type, stride, pointer, ptrstride);}
 inline GLAPI void APIENTRY glSecondaryColorPointerListIBM (GLint size, GLenum type, GLint stride, const void **pointer, GLint ptrstride) {
@@ -8182,12 +8182,12 @@ inline GLAPI void APIENTRY glVertexPointerListIBM (GLint size, GLenum type, GLin
   _glr->glExt.glVertexPointerListIBM (size, type, stride, pointer, ptrstride);}
 #endif
 
-#ifdef GL_INGR_blend_func_separate //  - not in any list
+#if(GL_INGR_blend_func_separate== 1) //  - not in any list
 inline GLAPI void APIENTRY glBlendFuncSeparateINGR (GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha) {
   _glr->glExt.glBlendFuncSeparateINGR (sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);}
 #endif
 
-#ifdef GL_INTEL_map_texture // #429 
+#if(GL_INTEL_map_texture== 1) // #429 
 inline GLAPI void APIENTRY glSyncTextureINTEL (GLuint texture) {
   _glr->glExt.glSyncTextureINTEL (texture);}
 inline GLAPI void APIENTRY glUnmapTexture2DINTEL (GLuint texture, GLint level) {
@@ -8196,7 +8196,7 @@ inline GLAPI void *APIENTRY glMapTexture2DINTEL (GLuint texture, GLint level, GL
   return _glr->glExt.glMapTexture2DINTEL (texture, level, access, stride, layout);}
 #endif
 
-#ifdef GL_INTEL_parallel_arrays // #136 
+#if(GL_INTEL_parallel_arrays== 1) // #136 
 inline GLAPI void APIENTRY glVertexPointervINTEL (GLint size, GLenum type, const void **pointer) {
   _glr->glExt.glVertexPointervINTEL (size, type, pointer);}
 inline GLAPI void APIENTRY glNormalPointervINTEL (GLenum type, const void **pointer) {
@@ -8230,12 +8230,12 @@ inline GLAPI void APIENTRY glGetPerfQueryInfoINTEL (GLuint queryId, GLuint query
 */
 #endif
 
-#ifdef GL_MESA_resize_buffers // #196 
+#if(GL_MESA_resize_buffers== 1) // #196 
 inline GLAPI void APIENTRY glResizeBuffersMESA (void) {
   _glr->glExt.glResizeBuffersMESA ();}
 #endif
 
-#ifdef GL_MESA_window_pos // #197 
+#if(GL_MESA_window_pos== 1) // #197 
 inline GLAPI void APIENTRY glWindowPos2dMESA (GLdouble x, GLdouble y) {
   _glr->glExt.glWindowPos2dMESA (x, y);}
 inline GLAPI void APIENTRY glWindowPos2dvMESA (const GLdouble *v) {
@@ -8286,21 +8286,21 @@ inline GLAPI void APIENTRY glWindowPos4svMESA (const GLshort *v) {
   _glr->glExt.glWindowPos4svMESA (v);}
 #endif
 
-#ifdef GL_NVX_conditional_render // #425 
+#if(GL_NVX_conditional_render== 1) // #425 
 inline GLAPI void APIENTRY glBeginConditionalRenderNVX (GLuint id) {
   _glr->glExt.glBeginConditionalRenderNVX (id);}
 inline GLAPI void APIENTRY glEndConditionalRenderNVX (void) {
   _glr->glExt.glEndConditionalRenderNVX ();}
 #endif
 
-#ifdef GL_NV_bindless_multi_draw_indirect // #432 
+#if(GL_NV_bindless_multi_draw_indirect== 1) // #432 
 inline GLAPI void APIENTRY glMultiDrawArraysIndirectBindlessNV (GLenum mode, const void *indirect, GLsizei drawCount, GLsizei stride, GLint vertexBufferCount) {
   _glr->glExt.glMultiDrawArraysIndirectBindlessNV (mode, indirect, drawCount, stride, vertexBufferCount);}
 inline GLAPI void APIENTRY glMultiDrawElementsIndirectBindlessNV (GLenum mode, GLenum type, const void *indirect, GLsizei drawCount, GLsizei stride, GLint vertexBufferCount) {
   _glr->glExt.glMultiDrawElementsIndirectBindlessNV (mode, type, indirect, drawCount, stride, vertexBufferCount);}
 #endif
 
-#ifdef GL_NV_bindless_texture // #418 
+#if(GL_NV_bindless_texture== 1) // #418 
 inline GLAPI GLuint64 APIENTRY glGetTextureHandleNV (GLuint texture) {
   return _glr->glExt.glGetTextureHandleNV (texture);}
 inline GLAPI GLuint64 APIENTRY glGetTextureSamplerHandleNV (GLuint texture, GLuint sampler) {
@@ -8329,21 +8329,21 @@ inline GLAPI GLboolean APIENTRY glIsImageHandleResidentNV (GLuint64 handle) {
   return _glr->glExt.glIsImageHandleResidentNV (handle);}
 #endif
 
-#ifdef GL_NV_blend_equation_advanced // #433 
+#if(GL_NV_blend_equation_advanced== 1) // #433 
 inline GLAPI void APIENTRY glBlendParameteriNV (GLenum pname, GLint value) {
   _glr->glExt.glBlendParameteriNV (pname, value);}
 inline GLAPI void APIENTRY glBlendBarrierNV (void) {
   _glr->glExt.glBlendBarrierNV ();}
 #endif
 
-#ifdef GL_NV_conditional_render // #346 
+#if(GL_NV_conditional_render== 1) // #346 
 inline GLAPI void APIENTRY glBeginConditionalRenderNV (GLuint id, GLenum mode) {
   _glr->glExt.glBeginConditionalRenderNV (id, mode);}
 inline GLAPI void APIENTRY glEndConditionalRenderNV (void) {
   _glr->glExt.glEndConditionalRenderNV ();}
 #endif
 
-#ifdef GL_NV_copy_image // #376  WGL_NV_copy_image GLX_NV_copy_image
+#if(GL_NV_copy_image== 1) // #376  WGL_NV_copy_image GLX_NV_copy_image
 inline GLAPI void APIENTRY glCopyImageSubDataNV (GLuint srcName, GLenum srcTarget, GLint srcLevel, GLint srcX, GLint srcY, GLint srcZ, GLuint dstName, GLenum dstTarget, GLint dstLevel, GLint dstX, GLint dstY, GLint dstZ, GLsizei width, GLsizei height, GLsizei depth) {
   _glr->glExt.glCopyImageSubDataNV (srcName, srcTarget, srcLevel, srcX, srcY, srcZ, dstName, dstTarget, dstLevel, dstX, dstY, dstZ, width, height, depth);}
 #ifdef OS_WIN
@@ -8352,7 +8352,7 @@ inline BOOL WINAPI wglCopyImageSubDataNV (HGLRC hSrcRC, GLuint srcName, GLenum s
 #endif /// OS_WIN
 #endif
 
-#ifdef GL_NV_depth_buffer_float // #334 
+#if(GL_NV_depth_buffer_float== 1) // #334 
 inline GLAPI void APIENTRY glDepthRangedNV (GLdouble zNear, GLdouble zFar) {
   _glr->glExt.glDepthRangedNV (zNear, zFar);}
 inline GLAPI void APIENTRY glClearDepthdNV (GLdouble depth) {
@@ -8361,12 +8361,12 @@ inline GLAPI void APIENTRY glDepthBoundsdNV (GLdouble zmin, GLdouble zmax) {
   _glr->glExt.glDepthBoundsdNV (zmin, zmax);}
 #endif
 
-#ifdef GL_NV_draw_texture // #430 
+#if(GL_NV_draw_texture== 1) // #430 
 inline GLAPI void APIENTRY glDrawTextureNV (GLuint texture, GLuint sampler, GLfloat x0, GLfloat y0, GLfloat x1, GLfloat y1, GLfloat z, GLfloat s0, GLfloat t0, GLfloat s1, GLfloat t1) {
   _glr->glExt.glDrawTextureNV (texture, sampler, x0, y0, x1, y1, z, s0, t0, s1, t1);}
 #endif
 
-#ifdef GL_NV_evaluators // #225 
+#if(GL_NV_evaluators== 1) // #225 
 inline GLAPI void APIENTRY glMapControlPointsNV (GLenum target, GLuint index, GLenum type, GLsizei ustride, GLsizei vstride, GLint uorder, GLint vorder, GLboolean packed, const void *points) {
   _glr->glExt.glMapControlPointsNV (target, index, type, ustride, vstride, uorder, vorder, packed, points);}
 inline GLAPI void APIENTRY glMapParameterivNV (GLenum target, GLenum pname, const GLint *params) {
@@ -8387,7 +8387,7 @@ inline GLAPI void APIENTRY glEvalMapsNV (GLenum target, GLenum mode) {
   _glr->glExt.glEvalMapsNV (target, mode);}
 #endif
 
-#ifdef GL_NV_explicit_multisample // #357 
+#if(GL_NV_explicit_multisample== 1) // #357 
 inline GLAPI void APIENTRY glGetMultisamplefvNV (GLenum pname, GLuint index, GLfloat *val) {
   _glr->glExt.glGetMultisamplefvNV (pname, index, val);}
 inline GLAPI void APIENTRY glSampleMaskIndexedNV (GLuint index, GLbitfield mask) {
@@ -8396,7 +8396,7 @@ inline GLAPI void APIENTRY glTexRenderbufferNV (GLenum target, GLuint renderbuff
   _glr->glExt.glTexRenderbufferNV (target, renderbuffer);}
 #endif
 
-#ifdef GL_NV_fence // #222 
+#if(GL_NV_fence== 1) // #222 
 inline GLAPI void APIENTRY glDeleteFencesNV (GLsizei n, const GLuint *fences) {
   _glr->glExt.glDeleteFencesNV (n, fences);}
 inline GLAPI void APIENTRY glGenFencesNV (GLsizei n, GLuint *fences) {
@@ -8413,7 +8413,7 @@ inline GLAPI void APIENTRY glSetFenceNV (GLuint fence, GLenum condition) {
   _glr->glExt.glSetFenceNV (fence, condition);}
 #endif
 
-#ifdef GL_NV_fragment_program // #282 
+#if(GL_NV_fragment_program== 1) // #282 
 inline GLAPI void APIENTRY glProgramNamedParameter4fNV (GLuint id, GLsizei len, const GLubyte *name, GLfloat x, GLfloat y, GLfloat z, GLfloat w) {
   _glr->glExt.glProgramNamedParameter4fNV (id, len, name, x, y, z, w);}
 inline GLAPI void APIENTRY glProgramNamedParameter4fvNV (GLuint id, GLsizei len, const GLubyte *name, const GLfloat *v) {
@@ -8428,12 +8428,12 @@ inline GLAPI void APIENTRY glGetProgramNamedParameterdvNV (GLuint id, GLsizei le
   _glr->glExt.glGetProgramNamedParameterdvNV (id, len, name, params);}
 #endif
 
-#ifdef GL_NV_framebuffer_multisample_coverage // #336 
+#if(GL_NV_framebuffer_multisample_coverage== 1) // #336 
 inline GLAPI void APIENTRY glRenderbufferStorageMultisampleCoverageNV (GLenum target, GLsizei coverageSamples, GLsizei colorSamples, GLenum internalformat, GLsizei width, GLsizei height) {
   _glr->glExt.glRenderbufferStorageMultisampleCoverageNV (target, coverageSamples, colorSamples, internalformat, width, height);}
 #endif
 
-#ifdef GL_NV_geometry_program4 // #323 
+#if(GL_NV_geometry_program4== 1) // #323 
 inline GLAPI void APIENTRY glProgramVertexLimitNV (GLenum target, GLint limit) {
   _glr->glExt.glProgramVertexLimitNV (target, limit);}
 inline GLAPI void APIENTRY glFramebufferTextureEXT (GLenum target, GLenum attachment, GLuint texture, GLint level) {
@@ -8444,7 +8444,7 @@ inline GLAPI void APIENTRY glFramebufferTextureFaceEXT (GLenum target, GLenum at
   _glr->glExt.glFramebufferTextureFaceEXT (target, attachment, texture, level, face);}
 #endif
 
-#ifdef GL_NV_gpu_program4 // #322 
+#if(GL_NV_gpu_program4== 1) // #322 
 inline GLAPI void APIENTRY glProgramLocalParameterI4iNV (GLenum target, GLuint index, GLint x, GLint y, GLint z, GLint w) {
   _glr->glExt.glProgramLocalParameterI4iNV (target, index, x, y, z, w);}
 inline GLAPI void APIENTRY glProgramLocalParameterI4ivNV (GLenum target, GLuint index, const GLint *params) {
@@ -8479,14 +8479,14 @@ inline GLAPI void APIENTRY glGetProgramEnvParameterIuivNV (GLenum target, GLuint
   _glr->glExt.glGetProgramEnvParameterIuivNV (target, index, params);}
 #endif
 
-#ifdef GL_NV_gpu_program5 // #388 
+#if(GL_NV_gpu_program5== 1) // #388 
 inline GLAPI void APIENTRY glProgramSubroutineParametersuivNV (GLenum target, GLsizei count, const GLuint *params) {
   _glr->glExt.glProgramSubroutineParametersuivNV (target, count, params);}
 inline GLAPI void APIENTRY glGetProgramSubroutineParameteruivNV (GLenum target, GLuint index, GLuint *param) {
   _glr->glExt.glGetProgramSubroutineParameteruivNV (target, index, param);}
 #endif
 
-#ifdef GL_NV_half_float // #283 
+#if(GL_NV_half_float== 1) // #283 
 inline GLAPI void APIENTRY glVertex2hNV (GLhalfNV x, GLhalfNV y) {
   _glr->glExt.glVertex2hNV (x, y);}
 inline GLAPI void APIENTRY glVertex2hvNV (const GLhalfNV *v) {
@@ -8581,7 +8581,7 @@ inline GLAPI void APIENTRY glVertexAttribs4hvNV (GLuint index, GLsizei n, const 
   _glr->glExt.glVertexAttribs4hvNV (index, n, v);}
 #endif
 
-#ifdef GL_NV_occlusion_query // #261 
+#if(GL_NV_occlusion_query== 1) // #261 
 inline GLAPI void APIENTRY glGenOcclusionQueriesNV (GLsizei n, GLuint *ids) {
   _glr->glExt.glGenOcclusionQueriesNV (n, ids);}
 inline GLAPI void APIENTRY glDeleteOcclusionQueriesNV (GLsizei n, const GLuint *ids) {
@@ -8598,7 +8598,7 @@ inline GLAPI void APIENTRY glGetOcclusionQueryuivNV (GLuint id, GLenum pname, GL
   _glr->glExt.glGetOcclusionQueryuivNV (id, pname, params);}
 #endif
 
-#ifdef GL_NV_parameter_buffer_object // #339 
+#if(GL_NV_parameter_buffer_object== 1) // #339 
 inline GLAPI void APIENTRY glProgramBufferParametersfvNV (GLenum target, GLuint bindingIndex, GLuint wordIndex, GLsizei count, const GLfloat *params) {
   _glr->glExt.glProgramBufferParametersfvNV (target, bindingIndex, wordIndex, count, params);}
 inline GLAPI void APIENTRY glProgramBufferParametersIivNV (GLenum target, GLuint bindingIndex, GLuint wordIndex, GLsizei count, const GLint *params) {
@@ -8607,7 +8607,7 @@ inline GLAPI void APIENTRY glProgramBufferParametersIuivNV (GLenum target, GLuin
   _glr->glExt.glProgramBufferParametersIuivNV (target, bindingIndex, wordIndex, count, params);}
 #endif
 
-#ifdef GL_NV_path_rendering // #410 
+#if(GL_NV_path_rendering== 1) // #410 
 inline GLAPI GLuint APIENTRY glGenPathsNV (GLsizei range) {
   return _glr->glExt.glGenPathsNV (range);}
 inline GLAPI void APIENTRY glDeletePathsNV (GLuint path, GLsizei range) {
@@ -8708,21 +8708,21 @@ inline GLAPI GLboolean APIENTRY glPointAlongPathNV (GLuint path, GLsizei startSe
   return _glr->glExt.glPointAlongPathNV (path, startSegment, numSegments, distance, x, y, tangentX, tangentY);}
 #endif
 
-#ifdef GL_NV_pixel_data_range // #284 
+#if(GL_NV_pixel_data_range== 1) // #284 
 inline GLAPI void APIENTRY glPixelDataRangeNV (GLenum target, GLsizei length, const void *pointer) {
   _glr->glExt.glPixelDataRangeNV (target, length, pointer);}
 inline GLAPI void APIENTRY glFlushPixelDataRangeNV (GLenum target) {
   _glr->glExt.glFlushPixelDataRangeNV (target);}
 #endif
 
-#ifdef GL_NV_point_sprite // #262 
+#if(GL_NV_point_sprite== 1) // #262 
 inline GLAPI void APIENTRY glPointParameteriNV (GLenum pname, GLint param) {
   _glr->glExt.glPointParameteriNV (pname, param);}
 inline GLAPI void APIENTRY glPointParameterivNV (GLenum pname, const GLint *params) {
   _glr->glExt.glPointParameterivNV (pname, params);}
 #endif
 
-#ifdef GL_NV_present_video // #347  GLX_NV_present_video WGL_NV_present_video
+#if(GL_NV_present_video== 1) // #347  GLX_NV_present_video WGL_NV_present_video
 inline GLAPI void APIENTRY glPresentFrameKeyedNV (GLuint video_slot, GLuint64EXT minPresentTime, GLuint beginPresentTimeId, GLuint presentDurationId, GLenum type, GLenum target0, GLuint fill0, GLuint key0, GLenum target1, GLuint fill1, GLuint key1) {
   _glr->glExt.glPresentFrameKeyedNV (video_slot, minPresentTime, beginPresentTimeId, presentDurationId, type, target0, fill0, key0, target1, fill1, key1);}
 inline GLAPI void APIENTRY glPresentFrameDualFillNV (GLuint video_slot, GLuint64EXT minPresentTime, GLuint beginPresentTimeId, GLuint presentDurationId, GLenum type, GLenum target0, GLuint fill0, GLenum target1, GLuint fill1, GLenum target2, GLuint fill2, GLenum target3, GLuint fill3) {
@@ -8737,14 +8737,14 @@ inline GLAPI void APIENTRY glGetVideoui64vNV (GLuint video_slot, GLenum pname, G
   _glr->glExt.glGetVideoui64vNV (video_slot, pname, params);}
 #endif
 
-#ifdef GL_NV_primitive_restart // #285 
+#if(GL_NV_primitive_restart== 1) // #285 
 inline GLAPI void APIENTRY glPrimitiveRestartNV (void) {
   _glr->glExt.glPrimitiveRestartNV ();}
 inline GLAPI void APIENTRY glPrimitiveRestartIndexNV (GLuint index) {
   _glr->glExt.glPrimitiveRestartIndexNV (index);}
 #endif
 
-#ifdef GL_NV_register_combiners // #191 
+#if(GL_NV_register_combiners== 1) // #191 
 inline GLAPI void APIENTRY glCombinerParameterfvNV (GLenum pname, const GLfloat *params) {
   _glr->glExt.glCombinerParameterfvNV (pname, params);}
 inline GLAPI void APIENTRY glCombinerParameterfNV (GLenum pname, GLfloat param) {
@@ -8773,14 +8773,14 @@ inline GLAPI void APIENTRY glGetFinalCombinerInputParameterivNV (GLenum variable
   _glr->glExt.glGetFinalCombinerInputParameterivNV (variable, pname, params);}
 #endif
 
-#ifdef GL_NV_register_combiners2 // #227 
+#if(GL_NV_register_combiners2== 1) // #227 
 inline GLAPI void APIENTRY glCombinerStageParameterfvNV (GLenum stage, GLenum pname, const GLfloat *params) {
   _glr->glExt.glCombinerStageParameterfvNV (stage, pname, params);}
 inline GLAPI void APIENTRY glGetCombinerStageParameterfvNV (GLenum stage, GLenum pname, GLfloat *params) {
   _glr->glExt.glGetCombinerStageParameterfvNV (stage, pname, params);}
 #endif
 
-#ifdef GL_NV_shader_buffer_load // #379 
+#if(GL_NV_shader_buffer_load== 1) // #379 
 inline GLAPI void APIENTRY glMakeBufferResidentNV (GLenum target, GLenum access) {
   _glr->glExt.glMakeBufferResidentNV (target, access);}
 inline GLAPI void APIENTRY glMakeBufferNonResidentNV (GLenum target) {
@@ -8809,12 +8809,12 @@ inline GLAPI void APIENTRY glProgramUniformui64vNV (GLuint program, GLint locati
   _glr->glExt.glProgramUniformui64vNV (program, location, count, value);}
 #endif
 
-#ifdef GL_NV_texture_barrier // #381 
+#if(GL_NV_texture_barrier== 1) // #381 
 inline GLAPI void APIENTRY glTextureBarrierNV (void) {
   _glr->glExt.glTextureBarrierNV ();}
 #endif
 
-#ifdef GL_NV_texture_multisample // #403 
+#if(GL_NV_texture_multisample== 1) // #403 
 inline GLAPI void APIENTRY glTexImage2DMultisampleCoverageNV (GLenum target, GLsizei coverageSamples, GLsizei colorSamples, GLint internalFormat, GLsizei width, GLsizei height, GLboolean fixedSampleLocations) {
   _glr->glExt.glTexImage2DMultisampleCoverageNV (target, coverageSamples, colorSamples, internalFormat, width, height, fixedSampleLocations);}
 inline GLAPI void APIENTRY glTexImage3DMultisampleCoverageNV (GLenum target, GLsizei coverageSamples, GLsizei colorSamples, GLint internalFormat, GLsizei width, GLsizei height, GLsizei depth, GLboolean fixedSampleLocations) {
@@ -8829,7 +8829,7 @@ inline GLAPI void APIENTRY glTextureImage3DMultisampleCoverageNV (GLuint texture
   _glr->glExt.glTextureImage3DMultisampleCoverageNV (texture, target, coverageSamples, colorSamples, internalFormat, width, height, depth, fixedSampleLocations);}
 #endif
 
-#ifdef GL_NV_transform_feedback // #341 
+#if(GL_NV_transform_feedback== 1) // #341 
 inline GLAPI void APIENTRY glBeginTransformFeedbackNV (GLenum primitiveMode) {
   _glr->glExt.glBeginTransformFeedbackNV (primitiveMode);}
 inline GLAPI void APIENTRY glEndTransformFeedbackNV (void) {
@@ -8856,7 +8856,7 @@ inline GLAPI void APIENTRY glTransformFeedbackStreamAttribsNV (GLsizei count, co
   _glr->glExt.glTransformFeedbackStreamAttribsNV (count, attribs, nbuffers, bufstreams, bufferMode);}
 #endif
 
-#ifdef GL_NV_transform_feedback2 // #358 
+#if(GL_NV_transform_feedback2== 1) // #358 
 inline GLAPI void APIENTRY glBindTransformFeedbackNV (GLenum target, GLuint id) {
   _glr->glExt.glBindTransformFeedbackNV (target, id);}
 inline GLAPI void APIENTRY glDeleteTransformFeedbacksNV (GLsizei n, const GLuint *ids) {
@@ -8873,7 +8873,7 @@ inline GLAPI void APIENTRY glDrawTransformFeedbackNV (GLenum mode, GLuint id) {
   _glr->glExt.glDrawTransformFeedbackNV (mode, id);}
 #endif
 
-#ifdef GL_NV_vdpau_interop // #396 
+#if(GL_NV_vdpau_interop== 1) // #396 
 inline GLAPI void APIENTRY glVDPAUInitNV (const void *vdpDevice, const void *getProcAddress) {
   _glr->glExt.glVDPAUInitNV (vdpDevice, getProcAddress);}
 inline GLAPI void APIENTRY glVDPAUFiniNV (void) {
@@ -8897,14 +8897,14 @@ inline GLAPI void APIENTRY glVDPAUUnmapSurfacesNV (GLsizei numSurface, const GLv
   _glr->glExt.glVDPAUUnmapSurfacesNV (numSurface, surfaces);}
 #endif
 
-#ifdef GL_NV_vertex_array_range // #190 
+#if(GL_NV_vertex_array_range== 1) // #190 
 inline GLAPI void APIENTRY glFlushVertexArrayRangeNV (void) {
   _glr->glExt.glFlushVertexArrayRangeNV ();}
 inline GLAPI void APIENTRY glVertexArrayRangeNV (GLsizei length, const void *pointer) {
   _glr->glExt.glVertexArrayRangeNV (length, pointer);}
 #endif
 
-#ifdef GL_NV_vertex_attrib_integer_64bit // #392 
+#if(GL_NV_vertex_attrib_integer_64bit== 1) // #392 
 inline GLAPI void APIENTRY glVertexAttribL1i64NV (GLuint index, GLint64EXT x) {
   _glr->glExt.glVertexAttribL1i64NV (index, x);}
 inline GLAPI void APIENTRY glVertexAttribL2i64NV (GLuint index, GLint64EXT x, GLint64EXT y) {
@@ -8945,7 +8945,7 @@ inline GLAPI void APIENTRY glVertexAttribLFormatNV (GLuint index, GLint size, GL
   _glr->glExt.glVertexAttribLFormatNV (index, size, type, stride);}
 #endif
 
-#ifdef GL_NV_vertex_buffer_unified_memory // #380 
+#if(GL_NV_vertex_buffer_unified_memory== 1) // #380 
 inline GLAPI void APIENTRY glBufferAddressRangeNV (GLenum pname, GLuint index, GLuint64EXT address, GLsizeiptr length) {
   _glr->glExt.glBufferAddressRangeNV (pname, index, address, length);}
 inline GLAPI void APIENTRY glVertexFormatNV (GLint size, GLenum type, GLsizei stride) {
@@ -8972,7 +8972,7 @@ inline GLAPI void APIENTRY glGetIntegerui64i_vNV (GLenum value, GLuint index, GL
   _glr->glExt.glGetIntegerui64i_vNV (value, index, result);}
 #endif
 
-#ifdef GL_NV_vertex_program // #233 
+#if(GL_NV_vertex_program== 1) // #233 
 inline GLAPI GLboolean APIENTRY glAreProgramsResidentNV (GLsizei n, const GLuint *programs, GLboolean *residences) {
   return _glr->glExt.glAreProgramsResidentNV (n, programs, residences);}
 inline GLAPI void APIENTRY glBindProgramNV (GLenum target, GLuint id) {
@@ -9103,7 +9103,7 @@ inline GLAPI void APIENTRY glVertexAttribs4ubvNV (GLuint index, GLsizei count, c
   _glr->glExt.glVertexAttribs4ubvNV (index, count, v);}
 #endif
 
-#ifdef GL_NV_vertex_program4 // #325 
+#if(GL_NV_vertex_program4== 1) // #325 
 inline GLAPI void APIENTRY glVertexAttribI1iEXT (GLuint index, GLint x) {
   _glr->glExt.glVertexAttribI1iEXT (index, x);}
 inline GLAPI void APIENTRY glVertexAttribI2iEXT (GLuint index, GLint x, GLint y) {
@@ -9152,7 +9152,7 @@ inline GLAPI void APIENTRY glGetVertexAttribIuivEXT (GLuint index, GLenum pname,
   _glr->glExt.glGetVertexAttribIuivEXT (index, pname, params);}
 #endif
 
-#ifdef GL_NV_video_capture // #374 
+#if(GL_NV_video_capture== 1) // #374 
 inline GLAPI void APIENTRY glBeginVideoCaptureNV (GLuint video_capture_slot) {
   _glr->glExt.glBeginVideoCaptureNV (video_capture_slot);}
 inline GLAPI void APIENTRY glBindVideoCaptureStreamBufferNV (GLuint video_capture_slot, GLuint stream, GLenum frame_region, GLintptrARB offset) {
@@ -9179,33 +9179,33 @@ inline GLAPI void APIENTRY glVideoCaptureStreamParameterdvNV (GLuint video_captu
   _glr->glExt.glVideoCaptureStreamParameterdvNV (video_capture_slot, stream, pname, params);}
 #endif
 
-#ifdef GL_PGI_misc_hints // #077 
+#if(GL_PGI_misc_hints== 1) // #077 
 inline GLAPI void APIENTRY glHintPGI (GLenum target, GLint mode) {
   _glr->glExt.glHintPGI (target, mode);}
 #endif
 
-#ifdef GL_SGIS_detail_texture // #021 
+#if(GL_SGIS_detail_texture== 1) // #021 
 inline GLAPI void APIENTRY glDetailTexFuncSGIS (GLenum target, GLsizei n, const GLfloat *points) {
   _glr->glExt.glDetailTexFuncSGIS (target, n, points);}
 inline GLAPI void APIENTRY glGetDetailTexFuncSGIS (GLenum target, GLfloat *points) {
   _glr->glExt.glGetDetailTexFuncSGIS (target, points);}
 #endif
 
-#ifdef GL_SGIS_fog_function // #064 
+#if(GL_SGIS_fog_function== 1) // #064 
 inline GLAPI void APIENTRY glFogFuncSGIS (GLsizei n, const GLfloat *points) {
   _glr->glExt.glFogFuncSGIS (n, points);}
 inline GLAPI void APIENTRY glGetFogFuncSGIS (GLfloat *points) {
   _glr->glExt.glGetFogFuncSGIS (points);}
 #endif
 
-#ifdef GL_SGIS_multisample // #025 
+#if(GL_SGIS_multisample== 1) // #025 
 inline GLAPI void APIENTRY glSampleMaskSGIS (GLclampf value, GLboolean invert) {
   _glr->glExt.glSampleMaskSGIS (value, invert);}
 inline GLAPI void APIENTRY glSamplePatternSGIS (GLenum pattern) {
   _glr->glExt.glSamplePatternSGIS (pattern);}
 #endif
 
-#ifdef GL_SGIS_pixel_texture // #015 
+#if(GL_SGIS_pixel_texture== 1) // #015 
 inline GLAPI void APIENTRY glPixelTexGenParameteriSGIS (GLenum pname, GLint param) {
   _glr->glExt.glPixelTexGenParameteriSGIS (pname, param);}
 inline GLAPI void APIENTRY glPixelTexGenParameterivSGIS (GLenum pname, const GLint *params) {
@@ -9220,40 +9220,40 @@ inline GLAPI void APIENTRY glGetPixelTexGenParameterfvSGIS (GLenum pname, GLfloa
   _glr->glExt.glGetPixelTexGenParameterfvSGIS (pname, params);}
 #endif
 
-#ifdef GL_SGIS_point_parameters //  -not in any list
+#if(GL_SGIS_point_parameters== 1) //  -not in any list
 inline GLAPI void APIENTRY glPointParameterfSGIS (GLenum pname, GLfloat param) {
   _glr->glExt.glPointParameterfSGIS (pname, param);}
 inline GLAPI void APIENTRY glPointParameterfvSGIS (GLenum pname, const GLfloat *params) {
   _glr->glExt.glPointParameterfvSGIS (pname, params);}
 #endif
 
-#ifdef GL_SGIS_sharpen_texture // #022 
+#if(GL_SGIS_sharpen_texture== 1) // #022 
 inline GLAPI void APIENTRY glSharpenTexFuncSGIS (GLenum target, GLsizei n, const GLfloat *points) {
   _glr->glExt.glSharpenTexFuncSGIS (target, n, points);}
 inline GLAPI void APIENTRY glGetSharpenTexFuncSGIS (GLenum target, GLfloat *points) {
   _glr->glExt.glGetSharpenTexFuncSGIS (target, points);}
 #endif
 
-#ifdef GL_SGIS_texture4D // #016 
+#if(GL_SGIS_texture4D== 1) // #016 
 inline GLAPI void APIENTRY glTexImage4DSGIS (GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLsizei size4d, GLint border, GLenum format, GLenum type, const void *pixels) {
   _glr->glExt.glTexImage4DSGIS (target, level, internalformat, width, height, depth, size4d, border, format, type, pixels);}
 inline GLAPI void APIENTRY glTexSubImage4DSGIS (GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLint woffset, GLsizei width, GLsizei height, GLsizei depth, GLsizei size4d, GLenum format, GLenum type, const void *pixels) {
   _glr->glExt.glTexSubImage4DSGIS (target, level, xoffset, yoffset, zoffset, woffset, width, height, depth, size4d, format, type, pixels);}
 #endif
 
-#ifdef GL_SGIS_texture_color_mask // #214 
+#if(GL_SGIS_texture_color_mask== 1) // #214 
 inline GLAPI void APIENTRY glTextureColorMaskSGIS (GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha) {
   _glr->glExt.glTextureColorMaskSGIS (red, green, blue, alpha);}
 #endif
 
-#ifdef GL_SGIS_texture_filter4 // #007 
+#if(GL_SGIS_texture_filter4== 1) // #007 
 inline GLAPI void APIENTRY glGetTexFilterFuncSGIS (GLenum target, GLenum filter, GLfloat *weights) {
   _glr->glExt.glGetTexFilterFuncSGIS (target, filter, weights);}
 inline GLAPI void APIENTRY glTexFilterFuncSGIS (GLenum target, GLenum filter, GLsizei n, const GLfloat *weights) {
   _glr->glExt.glTexFilterFuncSGIS (target, filter, n, weights);}
 #endif
 
-#ifdef GL_SGIX_async // #132 
+#if(GL_SGIX_async== 1) // #132 
 inline GLAPI void APIENTRY glAsyncMarkerSGIX (GLuint marker) {
   _glr->glExt.glAsyncMarkerSGIX (marker);}
 inline GLAPI GLint APIENTRY glFinishAsyncSGIX (GLuint *markerp) {
@@ -9268,12 +9268,12 @@ inline GLAPI GLboolean APIENTRY glIsAsyncMarkerSGIX (GLuint marker) {
   return _glr->glExt.glIsAsyncMarkerSGIX (marker);}
 #endif
 
-#ifdef GL_SGIX_flush_raster // #061 
+#if(GL_SGIX_flush_raster== 1) // #061 
 inline GLAPI void APIENTRY glFlushRasterSGIX (void) {
   _glr->glExt.glFlushRasterSGIX ();}
 #endif
 
-#ifdef GL_SGIX_fragment_lighting //  - not in any list
+#if(GL_SGIX_fragment_lighting== 1) //  - not in any list
 inline GLAPI void APIENTRY glFragmentLightfSGIX (GLenum light, GLenum pname, GLfloat param) {
   _glr->glExt.glFragmentLightfSGIX (light, pname, param);}
 inline GLAPI void APIENTRY glFragmentLightfvSGIX (GLenum light, GLenum pname, const GLfloat *params) {
@@ -9310,17 +9310,17 @@ inline GLAPI void APIENTRY glLightEnviSGIX (GLenum pname, GLint param) {
   _glr->glExt.glLightEnviSGIX (pname, param);}
 #endif
 
-#ifdef GL_SGIX_framezoom // #057 
+#if(GL_SGIX_framezoom== 1) // #057 
 inline GLAPI void APIENTRY glFrameZoomSGIX (GLint factor) {
   _glr->glExt.glFrameZoomSGIX (factor);}
 #endif
 
-#ifdef GL_SGIX_igloo_interface //  - not in any list
+#if(GL_SGIX_igloo_interface== 1) //  - not in any list
 inline GLAPI void APIENTRY glIglooInterfaceSGIX (GLenum pname, const void *params) {
   _glr->glExt.glIglooInterfaceSGIX (pname, params);}
 #endif
 
-#ifdef GL_SGIX_instruments // #055 
+#if(GL_SGIX_instruments== 1) // #055 
 inline GLAPI GLint APIENTRY glGetInstrumentsSGIX (void) {
   return _glr->glExt.glGetInstrumentsSGIX ();}
 inline GLAPI void APIENTRY glInstrumentsBufferSGIX (GLsizei size, GLint *buffer) {
@@ -9335,7 +9335,7 @@ inline GLAPI void APIENTRY glStopInstrumentsSGIX (GLint marker) {
   _glr->glExt.glStopInstrumentsSGIX (marker);}
 #endif
 
-#ifdef GL_SGIX_list_priority // #080 
+#if(GL_SGIX_list_priority== 1) // #080 
 inline GLAPI void APIENTRY glGetListParameterfvSGIX (GLuint list, GLenum pname, GLfloat *params) {
   _glr->glExt.glGetListParameterfvSGIX (list, pname, params);}
 inline GLAPI void APIENTRY glGetListParameterivSGIX (GLuint list, GLenum pname, GLint *params) {
@@ -9350,12 +9350,12 @@ inline GLAPI void APIENTRY glListParameterivSGIX (GLuint list, GLenum pname, con
   _glr->glExt.glListParameterivSGIX (list, pname, params);}
 #endif
 
-#ifdef GL_SGIX_pixel_texture // #015a 
+#if(GL_SGIX_pixel_texture== 1) // #015a 
 inline GLAPI void APIENTRY glPixelTexGenSGIX (GLenum mode) {
   _glr->glExt.glPixelTexGenSGIX (mode);}
 #endif
 
-#ifdef GL_SGIX_polynomial_ffd //  - not in any list
+#if(GL_SGIX_polynomial_ffd== 1) //  - not in any list
 inline GLAPI void APIENTRY glDeformationMap3dSGIX (GLenum target, GLdouble u1, GLdouble u2, GLint ustride, GLint uorder, GLdouble v1, GLdouble v2, GLint vstride, GLint vorder, GLdouble w1, GLdouble w2, GLint wstride, GLint worder, const GLdouble *points) {
   _glr->glExt.glDeformationMap3dSGIX (target, u1, u2, ustride, uorder, v1, v2, vstride, vorder, w1, w2, wstride, worder, points);}
 inline GLAPI void APIENTRY glDeformationMap3fSGIX (GLenum target, GLfloat u1, GLfloat u2, GLint ustride, GLint uorder, GLfloat v1, GLfloat v2, GLint vstride, GLint vorder, GLfloat w1, GLfloat w2, GLint wstride, GLint worder, const GLfloat *points) {
@@ -9366,12 +9366,12 @@ inline GLAPI void APIENTRY glLoadIdentityDeformationMapSGIX (GLbitfield mask) {
   _glr->glExt.glLoadIdentityDeformationMapSGIX (mask);}
 #endif
 
-#ifdef GL_SGIX_reference_plane// #060 
+#if(GL_SGIX_reference_plane== 1) // #060 
 inline GLAPI void APIENTRY glReferencePlaneSGIX (const GLdouble *equation) {
   _glr->glExt.glReferencePlaneSGIX (equation);}
 #endif
 
-#ifdef GL_SGIX_sprite // #052 
+#if(GL_SGIX_sprite== 1) // #052 
 inline GLAPI void APIENTRY glSpriteParameterfSGIX (GLenum pname, GLfloat param) {
   _glr->glExt.glSpriteParameterfSGIX (pname, param);}
 inline GLAPI void APIENTRY glSpriteParameterfvSGIX (GLenum pname, const GLfloat *params) {
@@ -9382,12 +9382,12 @@ inline GLAPI void APIENTRY glSpriteParameterivSGIX (GLenum pname, const GLint *p
   _glr->glExt.glSpriteParameterivSGIX (pname, params);}
 #endif
 
-#ifdef GL_SGIX_tag_sample_buffer // #058 
+#if(GL_SGIX_tag_sample_buffer== 1) // #058 
 inline GLAPI void APIENTRY glTagSampleBufferSGIX (void) {
   _glr->glExt.glTagSampleBufferSGIX ();}
 #endif
 
-#ifdef GL_SGI_color_table // #014 
+#if(GL_SGI_color_table== 1) // #014 
 inline GLAPI void APIENTRY glColorTableSGI (GLenum target, GLenum internalformat, GLsizei width, GLenum format, GLenum type, const void *table) {
   _glr->glExt.glColorTableSGI (target, internalformat, width, format, type, table);}
 inline GLAPI void APIENTRY glColorTableParameterfvSGI (GLenum target, GLenum pname, const GLfloat *params) {
@@ -9404,12 +9404,12 @@ inline GLAPI void APIENTRY glGetColorTableParameterivSGI (GLenum target, GLenum 
   _glr->glExt.glGetColorTableParameterivSGI (target, pname, params);}
 #endif
 
-#ifdef GL_SUNX_constant_data // #163 
+#if(GL_SUNX_constant_data== 1) // #163 
 inline GLAPI void APIENTRY glFinishTextureSUNX (void) {
   _glr->glExt.glFinishTextureSUNX ();}
 #endif
 
-#ifdef GL_SUN_global_alpha // #164 
+#if(GL_SUN_global_alpha== 1) // #164 
 inline GLAPI void APIENTRY glGlobalAlphaFactorbSUN (GLbyte factor) {
   _glr->glExt.glGlobalAlphaFactorbSUN (factor);}
 inline GLAPI void APIENTRY glGlobalAlphaFactorsSUN (GLshort factor) {
@@ -9428,12 +9428,12 @@ inline GLAPI void APIENTRY glGlobalAlphaFactoruiSUN (GLuint factor) {
   _glr->glExt.glGlobalAlphaFactoruiSUN (factor);}
 #endif
 
-#ifdef GL_SUN_mesh_array // #257 
+#if(GL_SUN_mesh_array== 1) // #257 
 inline GLAPI void APIENTRY glDrawMeshArraysSUN (GLenum mode, GLint first, GLsizei count, GLsizei width) {
   _glr->glExt.glDrawMeshArraysSUN (mode, first, count, width);}
 #endif
 
-#ifdef GL_SUN_triangle_list // #165 
+#if(GL_SUN_triangle_list== 1) // #165 
 inline GLAPI void APIENTRY glReplacementCodeuiSUN (GLuint code) {
   _glr->glExt.glReplacementCodeuiSUN (code);}
 inline GLAPI void APIENTRY glReplacementCodeusSUN (GLushort code) {
@@ -9450,7 +9450,7 @@ inline GLAPI void APIENTRY glReplacementCodePointerSUN (GLenum type, GLsizei str
   _glr->glExt.glReplacementCodePointerSUN (type, stride, pointer);}
 #endif
 
-#ifdef GL_SUN_vertex // #166 
+#if(GL_SUN_vertex== 1) // #166 
 inline GLAPI void APIENTRY glColor4ubVertex2fSUN (GLubyte r, GLubyte g, GLubyte b, GLubyte a, GLfloat x, GLfloat y) {
   _glr->glExt.glColor4ubVertex2fSUN (r, g, b, a, x, y);}
 inline GLAPI void APIENTRY glColor4ubVertex2fvSUN (const GLubyte *c, const GLfloat *v) {
@@ -12688,7 +12688,7 @@ documentation for these is pretty scarce, but should function if the grCard supp
 #147 GL_ARB_multi_bind                [bind multiple obj in a singe call] http://www.opengl.org/registry/specs/ARB/multi_bind.txt
 #148 GL_ARB_query_buffer_object       [querrys return in buf mem, so shaders can access without a trip to normal mem] http://www.opengl.org/registry/specs/ARB/query_buffer_object.txt
 #149 GL_ARB_texture_mirror_clamp_to_edge [new texture mode, mirrors only once] http://www.opengl.org/registry/specs/ARB/texture_mirror_clamp_to_edge.txt
-#150 ARB_texture_stencil8             [STENCIL_INDEX8 tex internal format] http://www.opengl.org/registry/specs/ARB/texture_stencil8.txt
+#150 GL_ARB_texture_stencil8          [STENCIL_INDEX8 tex internal format] http://www.opengl.org/registry/specs/ARB/texture_stencil8.txt
 #151 GL_ARB_vertex_type_10f_11f_11f_rev [new data format] http://www.opengl.org/registry/specs/ARB/vertex_type_10f_11f_11f_rev.txt
 #152 4.4 GL_ARB_bindless_texture      [GLSL can access a tex without binding (faster)] http://www.opengl.org/registry/specs/ARB/bindless_texture.txt
 #153 GL_ARB_compute_variable_group_size [shader stuff] http://www.opengl.org/registry/specs/ARB/compute_variable_group_size.txt

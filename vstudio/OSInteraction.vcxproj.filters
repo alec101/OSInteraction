@@ -137,6 +137,9 @@
     <ClInclude Include="..\extlib\oGL\include\wglext.h">
       <Filter>Header Files\oGL</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\osiGlDisable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\osiCocoa.mm">
