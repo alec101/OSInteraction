@@ -655,10 +655,9 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 // -------------------->>> PROCESS MSGS <<<------------------------- //
 ///=================================================================///
 bool _processMSG(void) {
-  bool chatty= true;
-
-  bool ret= false;
-
+  bool chatty= true;    /// debug texts
+  
+  bool ret= false;      /// return value - true if a message was processed, false if no message was in queue
 
   NSAutoreleasePool *pool=[[NSAutoreleasePool alloc] init];
 

@@ -133,14 +133,14 @@ main() {
 #define XINPUTINCLUDE "../extlib/directx/include/XInput.h"    // <<< xinput header file & directory location, if used - manually set this if using other
 #define DINPUTINCLUDE "../extlib/directx/include/dinput.h"    // <<< dinput header file & directory location, if used - manually set this if using other
 #define D3DINCLUDE    "../extlib/directx/include/d3d9.h"      // <<< direct3D9 header file & direcotry location, if used - manually set this if using other
-#define XINPUTLIB32 "../extlib/directx/lib/XInput_32.lib"         // <<< xinput 32bit library file & directory location, if used
-#define XINPUTLIB64 "../extlib/directx/lib/XInput_64.lib"         // <<< xinput 64bit library file & directory location, if used
-#define DINPUTLIB32 "../extlib/directx/lib/dinput8_32.lib"        // <<< dinput 32bit library file & directory location, if used
-#define DINPUTLIB64 "../extlib/directx/lib/dinput8_64.lib"        // <<< dinput 64bit library file & directory location, if used
-#define DXGUIDLIB32 "../extlib/directx/lib/dxguid_32.lib"         // <<< direct input guid 32bit library file & directory location, if dinput is used
-#define DXGUIDLIB64 "../extlib/directx/lib/dxguid_64.lib"         // <<< direct input guid 64bit library file & directory location, if dinput is used
-#define D3D9LIB32   "../extlib/directx/lib/d3d9_32.lib"           // <<< direct3D9 32bit library file & directory location, if it is used
-#define D3D9LIB64   "../extlib/directx/lib/d3d9_64.lib"           // <<< direct3D9 64bit library file & directory location, if it is used
+#define XINPUTLIB32 "directx/lib/XInput_32.lib"         // <<< xinput 32bit library file & directory location, if used
+#define XINPUTLIB64 "directx/lib/XInput_64.lib"         // <<< xinput 64bit library file & directory location, if used
+#define DINPUTLIB32 "directx/lib/dinput8_32.lib"        // <<< dinput 32bit library file & directory location, if used
+#define DINPUTLIB64 "directx/lib/dinput8_64.lib"        // <<< dinput 64bit library file & directory location, if used
+#define DXGUIDLIB32 "directx/lib/dxguid_32.lib"         // <<< direct input guid 32bit library file & directory location, if dinput is used
+#define DXGUIDLIB64 "directx/lib/dxguid_64.lib"         // <<< direct input guid 64bit library file & directory location, if dinput is used
+#define D3D9LIB32   "directx/lib/d3d9_32.lib"           // <<< direct3D9 32bit library file & directory location, if it is used
+#define D3D9LIB64   "directx/lib/d3d9_64.lib"           // <<< direct3D9 64bit library file & directory location, if it is used
 
 // WINDOWS SETTINGS / DIRECTORIES ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #ifndef _CRT_SECURE_NO_WARNINGS
@@ -182,6 +182,7 @@ main() {
 #include <stdint.h>
 #include <stdarg.h>
 #include <math.h>
+#include <mutex>  // using std mutex for locking critical data - some objects will have the mutex object to protect critical data if using osi from different threads
 
 
 // OpenGL headers
@@ -191,7 +192,6 @@ main() {
 #ifdef OS_WIN
 //#include <GL/gl.h>
 #include <GL/GL.h>
-#include <GL/GLU.h>
 #pragma comment(lib, "opengl32")  /// if this pragma does not work, the library must be manually included
 #pragma comment(lib, "glu32")     /// if this pragma does not work, the library must be manually included
 
@@ -205,7 +205,6 @@ main() {
 
 //#define GLX_GLXEXT_PROTOTYPES 1
 #include <GL/gl.h>
-#include <GL/glu.h>
 #include <GL/glx.h>
 #include <GL/glxext.h>
 #include <GL/glext.h>
@@ -215,7 +214,6 @@ main() {
 #ifdef OS_MAC
 #include <OpenGL/gl.h>            // legacy
 #include <OpenGL/OpenGL.h>
-#include <OpenGL/glu.h>
 // there's a corearb header, too NEEDS CHECKING
 #endif /// OS_MAC
 
@@ -336,12 +334,13 @@ struct osiSettings {
 class osinteraction {
   str8 _iconFile;
 public:
-
+  
   osiSettings settings;               /// [atm only renderer options] osinteraction settings. usually change this and the next action/function will use these settings
   str8 path;                          /// program path
   str8 cmdLine;                       /// command line
   int argc;                           /// command line nr of arguments, same as the main(int argc..)
   char **argv;                        /// command line arguments list, same as the main(.. , char *argv[])
+  std::mutex mutex;                   /// lock the object when reading from 100 threads... reading from osi should be done from 1 thread, tho, but critical data is locked in case you do read from 100 sources
 
   osiDisplay display;                 /// display class, handles monitors, resolutions
   osiWindow win[MAX_WINDOWS];         /// all windows
@@ -369,29 +368,25 @@ public:
 
   // SYSTEM EVENTS HANDLER: call this in MAIN PROGRAM LOOP
   
-  bool checkMSG();                    /// checks for OS messages, should be INCLUDED in the MAIN LOOP. returns true if any msg was processed
+  bool checkMSG();                    /// checks for OS messages, should be INCLUDED in the MAIN LOOP. returns true if any msg was processed - locks osi.mutex
 
   //void startThread(void (void *));   std::threads!!! /// start / create a new thread
   //void endThread(int status= 0);     std::threads!!! /// call it within the thread to end the thread
   
-  // openGL window creation / deletion funcs:
+  // openGL window creation / deletion funcs - osi.mutex is locked
   
   // createGLWindow is the main function to use
   // [mode1]: windowed, using size, center screen [mode2] fullscreen [mode3] fullscreen window [mode4] full Virtual Screen window, on all monitors
   bool createGLWindow(osiWindow *w, osiMonitor *m, const char *name, int dx, int dy, int8_t mode, short freq= 0, const char *iconFile= NULL);
   bool killGLWindow(osiWindow *w);    /// destroys a specific opengl window
   
-  // next funcs call createGLWindow / killGLWindow; they might make life easier, but nothing more
+  // next funcs call createGLWindow / killGLWindow; they might make life easier, but nothing more - osi.mutex is locked
   
-  ///frequency must be the same for all windows...
   bool primaryGLWindow(const char *name, int dx, int dy, int8_t mode, int16_t freq= 0); // mode: 1= windowed, 2= fullscreen, 3= fullscreeen window(must research this one), 4= fullscreen virtual desktop (every monitor)
   bool primaryGLWindow();             /// creates a basic window, fullscreen
   bool killPrimaryGLWindow();         /// calls restoreResolution, if in fullscreen
   void setProgramIcon(const char *fileName);/// sets program icon - CALL BEFORE ANY WINDOW CREATION, or pass icon file to each window
-  //void setWindowIcon(osiWindow *w, cchar *file);   /// sets a specific window icon 
   bool createSplashWindow(osiWindow *w, osiMonitor *m, const char *file);
-  
-  
 
   // very useful functions that will work on all OSes
   
@@ -460,7 +455,7 @@ private:
   
   // nothing to do with this class:
 public:
-  bool resizeGLScene(GLsizei dx, GLsizei dy);   // debug stuff
+  //bool resizeGLScene(GLsizei dx, GLsizei dy);   // debug stuff
 };
 
 #ifdef OS_WIN

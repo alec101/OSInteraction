@@ -36,7 +36,7 @@ class osiMouse {
 public:
   // USAGE / settings
   
-  int8_t mode;               // [MODE 1]: OS events(default) - works on every OS
+  int8_t mode;             // [MODE 1]: OS events(default) - works on every OS
                            // [MODE 2]: manual update() using different funcs (can't make it work under linux/mac, but still researching ways...)
                            // [MODE 3]: win(direct input) / linux(n/a) / mac(n/a)
   
@@ -224,7 +224,7 @@ public:
   
   // CONFIGURATION
   
-  int8_t mode;                       // [MODE0]: disabled, can check (and should) against this
+  int8_t mode;                     // [MODE0]: disabled, can check (and should) against this
                                    // [MODE1]: OS native
                                    // [MODE2]: win(directinput) / linux(n/a) / mac(n/a)
                                    // [MODE3]: win(xinput)      / linux(n/a) / mac(n/a)
@@ -313,9 +313,8 @@ public:
     int32_t x, y, x2, y2, throttle, rudder, u, v, pov;
     uint8_t but[MAX_JOYSTICK_BUTTONS];
     int32_t butPressure[MAX_JOYSTICK_BUTTONS];
-    bool _accessCB_HIDplug, _accessOsi_HIDplug;
-    bool _accessCB_HIDchange, _accessOsi_HIDchange;
-    _CallbackTame() { _accessCB_HIDplug= _accessOsi_HIDplug= _accessCB_HIDchange= _accessOsi_HIDchange= false; delData(); }
+    std::mutex mutex;             /// object lock system
+    _CallbackTame() { delData(); }
     void delData() {
       x= y= x2= y2= throttle= rudder= u= v= 0;
       pov= -1;
@@ -501,6 +500,8 @@ BOOL CALLBACK _diDevCallback(LPCDIDEVICEINSTANCE, LPVOID); /// no, i did not cre
 
 class osiInput {
 public:
+
+  std::mutex mutex;               /// when reading from different threads, this is the locking mutex that will lock every class that osiInput handles
   osiMouse m;                     /// more than 1 mouse?
   osiKeyboard k;                  /// more than 1 keyboard?
   osiJoystick j[MAX_JOYSTICKS];   ///  j[0-7]= OS driver;  j[8-15] XINPUT;  j[16-19] DIRECT INPUT
@@ -541,9 +542,9 @@ public:
 
   // functions
   
-  bool init(int mMode= 1, int kMode= 1);          // ? START (see 'mode' variable for mouse & keyboard for more customization)
-  void populate(bool scanMouseKeyboard= false);   // WIP, this might have more use in the future - calls EVERY init ATM 
-  void update();                                  // manually update everything (mouse& keyboard& sticks& pads& wheels)
+  bool init(int mMode= 1, int kMode= 1);          // must be called after a main window is created (see 'mode' variable for mouse & keyboard for more customization) - locks in.mutex
+  void populate(bool scanMouseKeyboard= false);   // searches for joysticks / other HIDs - locks in.mutex
+  void update();                                  // update everything (mouse& keyboard& sticks& pads& wheels) - locks in.mutex
   void resetPressedButtons(); /// in case of ALT-TAB, all buttons/timers must be reset, to avoid bugs!!!
   void resetAxis();           /// resets all HID axis (sticks/pads/wheels)
 

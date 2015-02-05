@@ -5,36 +5,25 @@
 
 
 /* TODO:
+ * - [linux]: transparent splash window
  * - NOTES for every OS, in each h or cpp file
    - [renderer] - special oGL window (hidden)+ renderer, that are specialized only for graphics card mathematical computations (use the grcard as another CPU)
- * - [linux][mac] - optimus enablement ?
-   - [all] thread safe - lock() + unlock() for all major objects
-   - [all] LEGACY - OLD OGL STUFF render to bitmap... this is done using a software renderer... this should go if it's hard to implement
-   - [all] LEGACY? MUST FURTHER RESEARCH pbuffers are os dependant... that's the next osi target http://developer.download.nvidia.com/assets/gamedev/docs/PixelBuffers.pdf
-   - [all] LEGACY? IF SO, THIS CAN JUST GO OR VERY LOW PRIORITY custom pbuffer object, glBlaBla instead wglBlaBla for pbuffers - this will ease the use of pbuffers a ton
- * - [all] LEGACY? glMakeCurrent on window/pbuffer so glMakeCurrent(osiRenderer, void *surface, int surfaceType= 0 ) (0= window / 1= bitmap / 2= pbuffer)
- * - [mac] lock/unlock system for nrJoysticks callback add+remove still not 100% thread safe - a whole struct with the hid that was added must be passed to osi, in an event type system (more than 1 can be waiting to be added in theory)
- * - [all] input thread safety between program and osi? 2 flags that 1 can be raised by the program, and 1 by osi, both flags situated in each object
- * -xx [all(mostly mac)] threads !!!SCRAPE?! why: std::threads adopted in c++11, which is already needed xx
- *   [linux] exe's don't have icons :( - http://linuxcritic.wordpress.com/2010/04/07/anatomy-of-a-desktop-file/ a clever .desktop must be autocreated
+ * - [linux] - optimus enablement ? xrandr can handle this it seems, so it's a output/crtc/provider thing, but i don't have the hardware to test this
  * - [win] gamepad vibration under directinput (it is possible) & force feedback (MUST HAVE A VIBRATION GAMEPAD FIRST...)
  * - more todo's in osiInput.cpp
- * - glLoadGen keep an eye on, maybe something similar can be made (reddit hint) https://bitbucket.org/alfonse/glloadgen/src/b6c2ec9ceb08949313d11f5c1bdc5213c3b2815a/glspecs/glxspec.lua?at=default
- * - [all] check for sound device change message
+
  * LOWER PRIORITY:
+ *   [linux] exe's don't have icons :( - http://linuxcritic.wordpress.com/2010/04/07/anatomy-of-a-desktop-file/ a clever .desktop must be autocreated
  * - [all]: extensions that are core, that have both glFuncARB and just glFunc, clear the glFuncARB ?
  *          or figure something out about it. Macs don't have the funcARB, and _generates errors_
  * - [all]: mouse cursor change - there should be multiple mouse cursors that can be initialized and fast-set from, and a func that just changes the mouse based on data
- * - [linux]: multiple screens handling? this might be a thing of the past, tho (multiple screens)
+ * - [linux]: multiple screens handling? this might be a thing of the past, tho
  * - [linux]: input: using Str8 strings to read from certain files. should do a Str32, when a new Str::format is done
- * - [linux]: transparent splash window
  * - [all] mouse 'grabbing' is not that easy. using the system 'grab' funcs will not work on multiple windows
  *         therefore, the mouse cursor must be 'kept' inside the bounds of the created windows...
  *         if the windows have a monitor gap between them, the cursor must jump over the gap. VERY HARD <<<<<
  * - [linux][mac] LINUX NOT FOUND prevent screensaver/ monitor low power
  * - [linux][mac] LINUX NOT FOUND what happens on sleep? should be handled like 'app lose focus', or better, another flag, as the app must pause or something (some dont pause on app focus)
- * - [linux] test mouse grab
- * - [linux] test keyboard grab (first make shure it is possible to exit program)
  *
  * - [win][linux][mac] joystick, wheel (BUY THEM first)
  *
@@ -47,9 +36,17 @@
  *
  * - [all]  Libcmt.lib try eliminating printf? alternative : console to write to file; problem: format: str::format incoming, i guess!!!!
  *
+
+ SCRAPE INCOMING:
  * - keyboard mode 2 in is getting more and more useless and a big drag... and is not avaible in linux + mac
  * - what happens when the time variables overflow? must do something about that (osi.getNano, etc)
+   - [all] LEGACY- SCRAPE INCOMING - OLD OGL STUFF render to bitmap... this is done using a software renderer... this should go if it's hard to implement
+   - [all] LEGACY- SCRAPE INCOMING MUST FURTHER RESEARCH pbuffers are os dependant... that's the next osi target http://developer.download.nvidia.com/assets/gamedev/docs/PixelBuffers.pdf
+   - [all] LEGACY- SCRAPE INCOMING IF SO, THIS CAN JUST GO OR VERY LOW PRIORITY custom pbuffer object, glBlaBla instead wglBlaBla for pbuffers - this will ease the use of pbuffers a ton
+ * - [all] LEGACY- SCRAPE INCOMING GlMakeCurrent on window/pbuffer so glMakeCurrent(osiRenderer, void *surface, int surfaceType= 0 ) (0= window / 1= bitmap / 2= pbuffer)
 
+ * -xx [all(mostly mac)] threads !!!SCRAPE?! why: std::threads adopted in c++11, which is already needed xx
+ 
 */
 
 
@@ -465,6 +462,7 @@ bool osinteraction::primaryGLWindow() {
 
 // MAIN CREATE WINDOW FUNC. has every customisation
 bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int32 dx, int32 dy, int8 mode, int16 freq, cchar *iconFile) {
+  mutex.lock();
   bool chatty= false;
 
   str8 func= "osinteraction::createGLWindow: ";
@@ -500,7 +498,7 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
   w->freq= freq;
   if(!primWin) primWin= w;                          /// if no primary window is set, this will be the primary
   
-  printf("win x[%d] y[%d], monitor x[%d] y[%d]\n", w->x0, w->y0, m->x0, m->y0);
+  if(chatty) printf("win x[%d] y[%d], monitor x[%d] y[%d]\n", w->x0, w->y0, m->x0, m->y0);
   
   #ifdef OS_WIN
   
@@ -540,6 +538,7 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
 
   if (!RegisterClass(&wc)) {                        /// register the window class
     error.simple(func+ "Failed to register wc");
+    mutex.unlock();
     return false;
   }
 
@@ -591,12 +590,14 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
   {
     killGLWindow(w);                    // Reset The Display
     error.simple(func+ "Window creation error.");
+    mutex.unlock();
     return false;
   }
 
   if (!(w->_hDC= GetDC(w->_hWnd))) {                /// get a device context
     killGLWindow(w);
     error.simple(func+ "Can't create a GL DC");
+    mutex.unlock();
     return false;
   }
 
@@ -690,12 +691,14 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
   if (!(PixelFormat= ChoosePixelFormat(w->_hDC, &pfd))) {  /// lots of checks, don't think any needed
     killGLWindow(w);
     error.simple(func+ "Can't aquire a PixelFormat");
+    mutex.unlock();
     return false;
   }
 
   if(!SetPixelFormat(w->_hDC, PixelFormat, &pfd)) {        /// lots of checks, don't think any needed
     killGLWindow(w);
     error.simple(func+ "Can't set PixelFormat");
+    mutex.unlock();
     return false;
   }
   */
@@ -704,6 +707,7 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
   if(!assignRenderer(w)) {
     osi.killGLWindow(w);
     error.simple(func+ "Cannot create oGL renderer (context)");
+    mutex.unlock();
     return false;
   }
 
@@ -718,6 +722,7 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
   if(!glMakeCurrent(w->glr, w)) {
     killGLWindow(w);
     error.simple(func+ "Can't activate GL RC");
+    mutex.unlock();
     return false;
   }
 
@@ -728,7 +733,7 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
 
   w->glr->checkExt();
   w->glr->getExtFuncs();          /// once a window is created, getExtensions() aquires oGL extensions functions
-
+  mutex.unlock();
   return true;
   #endif /// OS_WIN
 
@@ -743,11 +748,14 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
   glXQueryVersion(osi._dis, &glxMajor, &glxMinor );
   if((glxMajor< 1) || ((glxMajor== 1) && (glxMinor< 3))) {
     error.simple(func+ "GLX version too low");
+    mutex.unlock();
     return false;
   }
 
-  if(!w->_createFBandVisual())
+  if(!w->_createFBandVisual()) {
+    mutex.unlock();
     return false;
+  }
 
   w->_root= m->_root;                                        // 'desktop window'
   w->_dis= _dis;                                           // XServer connection
@@ -853,6 +861,7 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
   if(!assignRenderer(w)) {
     osi.killGLWindow(w);
     error.simple("FATAL ERROR: Cannot create oGL renderer (context)");
+    mutex.unlock();
     return false;
   }
 
@@ -875,7 +884,8 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
   
   w->show();                    /// map window= finish creation/ show window
   w->move(w->x0, w->y0);
-  
+
+  mutex.unlock();
   return true;
 
   #endif /// OS_LINUX
@@ -883,11 +893,13 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
   #ifdef OS_MAC // <<<<<<<<<<<<<< MAC >>>>>>>>>>>>>>>
   
   /// window creation is in OScocoa.mm due to Abjective-C
-  
-  return cocoa.createWindow(w);  /// all window vars are set, just create the window.
+  bool b= cocoa.createWindow(w);  /// all window vars are set, just create the window.
+  mutex.unlock();
+  return b;
   #endif /// OS_MAC
   
   error.simple(func+ "no OS_XXXX specified?");
+  mutex.unlock();
   return false;
 } // osinteraction::createGLWindow END <<<
 
@@ -929,7 +941,7 @@ bool osinteraction::killGLWindow(osiWindow *w) {
 
 bool osinteraction::createSplashWindow(osiWindow *w, osiMonitor *m, cchar *file) {
   if((!w) || (!m) || (!file)) return false;
-
+  mutex.lock();
   // image loading
   /// s will hold the file extension to be loaded, in lowercase
   str8 s("   ");
@@ -952,8 +964,10 @@ bool osinteraction::createSplashWindow(osiWindow *w, osiMonitor *m, cchar *file)
   /// check the file extension
   if(s== "png") {
     png.load(file);
-    if(png.type!= IMG_RGB && png.type!= IMG_RGBA)
+    if(png.type!= IMG_RGB && png.type!= IMG_RGBA) {
+      mutex.unlock();
       return false;
+    }
 
     depth= png.bpp/ png.bpc;
     dx= png.dx;
@@ -963,8 +977,10 @@ bool osinteraction::createSplashWindow(osiWindow *w, osiMonitor *m, cchar *file)
     bpp= png.bpp;
   } else if(s== "tga") {
     tga.load(file);
-    if(tga.type!= IMG_RGB && tga.type!= IMG_RGBA)
+    if(tga.type!= IMG_RGB && tga.type!= IMG_RGBA) {
+      mutex.unlock();
       return false;
+    }
 
     depth= tga.bpp/ tga.bpc;
     dx= tga.dx;
@@ -1065,13 +1081,15 @@ bool osinteraction::createSplashWindow(osiWindow *w, osiMonitor *m, cchar *file)
   
   ShowWindow(w->_hWnd, SW_SHOW);
   //RedrawWindow(w->_hWnd, 0, 0, RDW_UPDATENOW);
-  
+
+  mutex.unlock();
   return true;
 
 Fail:
   if(w->_imgBM) DeleteObject(w->_imgBM);
   if(w->_imgDC) DeleteDC(w->_imgDC);
   w->delData();
+  mutex.unlock();
   return false;
   #endif /// OS_WIN
 
@@ -1226,9 +1244,12 @@ Fail:
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
-  return cocoa.createSplashWindow(w, bitmap, dx, dy, bpp, bpc);
+  bool b= cocoa.createSplashWindow(w, bitmap, dx, dy, bpp, bpc);
+  mutex.unlock();
+  return b;
   #endif /// OS_MAC
 
+  mutex.unlock();
   return true;
 }
 
@@ -1349,7 +1370,6 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
   // it would work good for fullscreen/windowed fullscreen, but in windowed mode
   // there is no resize/move for windows, the close button won't work either, i think
   ///===================================================
-
   bool onlyHandled= true; /// used with chatty
   bool chatty= true;
   bool timeFunc= false;   /// measure the time this func takes to finish
@@ -2270,31 +2290,32 @@ bool osinteraction::_processMSG()  {
 
 bool osinteraction::checkMSG() {
   if(!primWin) return false;    /// if no primary window was created, no messages will be processed
-  getNanosecs(&present);       // current time, or 'present' variable updated here <<<
-  
-  #ifdef OS_WIN
+  mutex.lock();                 /// lock osinteraction
+  getNanosecs(&present);         // current time, or 'present' variable updated here <<<
   bool ret= false;              /// return value, start false, if any msg is processed, ret= true
+
+  #ifdef OS_WIN
   while(1)    // loop thru ALL msgs... i used to peek thru only 1 msg, that was baaad... biig LAG
     if(PeekMessage(&primWin->_msg, NULL, 0, 0, PM_REMOVE)) {	// Is There A Message Waiting?
-      // eventTime= primWin->_msg.time; // not reliable. 1 sec after getMillisecs(). this time is in the dang future
+      // eventTime= primWin->_msg.time; // not reliable. 1 sec before getMillisecs(). this time is in the dang future
       TranslateMessage(&primWin->_msg);
       DispatchMessage(&primWin->_msg);
 
       ret= true;
     } else
       break;
-
-  /// i think processMSG is called by WindProc() when DispatchMessage() is called (hopefully !)
-  return ret;
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
-  return _processMSG();
+  ret= _processMSG();
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
-  return _processMSG();
+  ret= _processMSG();
   #endif /// OS_MAC
+
+  mutex.unlock();
+  return ret;
 } /// osinteraction::checkMSG
 
 
@@ -2563,7 +2584,6 @@ bool osinteraction::glMakeCurrent(osiRenderer *r, osiWindow *w) {
   } else 
     glr= _glr= null;  
 
-
   #ifdef OS_WIN
   if(w) {
     return wglMakeCurrent(w->_hDC, r->glContext)? true: false;
@@ -2622,28 +2642,6 @@ void osinteraction::glGetVersion(int *outMajor, int *outMinor) {
 
 
 
-
-
-
-
-
-// NOT OS DEPENDANT pure gl stuff <----------------------------------------------------------
-// ------------------------------------------------------------------------------------------
-
-bool osinteraction::resizeGLScene(GLsizei dx, GLsizei dy) {
-  bool ret= true;
-  if (dy==0)	dy= 1; /// prevent a divide by 0
-
-  glViewport(0, 0, dx, dy);
-  glMatrixMode(GL_PROJECTION);
-  glLoadIdentity();
-
-  gluPerspective(45.0f, (GLfloat)dx/ (GLfloat)dy, 0.1f, 100.0f);
-  glMatrixMode(GL_MODELVIEW);
-  glLoadIdentity();
-
-  return ret;
-}
 
 
 

@@ -2798,7 +2798,7 @@ struct GlExtFuncs {
   #endif /// OS_WIN
   #endif
 
-  #if(GLX_NV_video_out== 1)             // #348 http://www.opengl.org/registry/specs/NV/glx_video_output.txt
+  #if(GLX_NV_video_output== 1)             // #348 http://www.opengl.org/registry/specs/NV/glx_video_output.txt
   PFNGLXGETVIDEODEVICENVPROC glXGetVideoDeviceNV;
   PFNGLXRELEASEVIDEODEVICENVPROC glXReleaseVideoDeviceNV;
   PFNGLXBINDVIDEOIMAGENVPROC glXBindVideoImageNV;

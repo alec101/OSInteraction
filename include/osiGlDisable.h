@@ -721,34 +721,45 @@ TODO:
 // nothing to bother from here on vvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
 // if you disable specific stuff, some other stuff that is based on the disabled stuff will not work anymore ("or something" as Butthead would say)
+#ifdef GL_VERSION_1_5
 #if(GL_VERSION_1_5== 0)
 typedef ptrdiff_t GLsizeiptr;
 typedef ptrdiff_t GLintptr;
 #endif
+#endif
 
+#ifdef GL_VERSION_2_0
 #if(GL_VERSION_2_0== 0)
 typedef char GLchar;
 #endif
+#endif
 
+#ifdef GL_VERSION_3_2
 #if(GL_VERSION_3_2== 0)
 typedef struct __GLsync *GLsync;
 typedef uint64_t GLuint64;
 typedef int64_t GLint64;
 #endif
+#endif
 
+#ifdef GL_ARB_bindless_texture
 #if(GL_ARB_bindless_texture== 0)
 typedef uint64_t GLuint64EXT;
 #endif
+#endif
 
+#ifdef GL_ARB_vertex_buffer
 #if(GL_ARB_vertex_buffer_object== 0)
 typedef ptrdiff_t GLsizeiptrARB;
 typedef ptrdiff_t GLintptrARB;
 #endif
-
-#if(WGL_ARB_pbuffer== 0)
-DECLARE_HANDLE(HPBUFFERARB);
 #endif
 
+#ifdef WGL_ARB_pbuffer
+#if(WGL_ARB_pbuffer== 2)
+DECLARE_HANDLE(HPBUFFERARB);
+#endif
+#endif
 
 #endif /// #ifndef OSI_GL_DISABLE - header end
 
