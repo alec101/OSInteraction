@@ -5,6 +5,7 @@
                    displayName="Header Files"
                    projectFiles="true">
       <logicalFolder name="f2" displayName="OpenGL" projectFiles="true">
+        <itemPath>../extlib/oGL/include/glcorearb.h</itemPath>
         <itemPath>../include/oGL/glext.h</itemPath>
         <itemPath>../include/oGL/glxext.h</itemPath>
         <itemPath>../include/oGL/wglext.h</itemPath>
@@ -73,7 +74,7 @@
   <confs>
     <conf name="linux64D" type="3">
       <toolsSet>
-        <compilerSet>clang|CLang</compilerSet>
+        <compilerSet>default</compilerSet>
         <dependencyChecking>true</dependencyChecking>
         <rebuildPropChanged>false</rebuildPropChanged>
       </toolsSet>
@@ -81,6 +82,7 @@
         <cTool>
           <architecture>2</architecture>
           <standard>10</standard>
+          <commandlineTool>gcc</commandlineTool>
           <incDir>
             <pElem>../include</pElem>
           </incDir>
@@ -88,6 +90,7 @@
         <ccTool>
           <architecture>2</architecture>
           <standard>8</standard>
+          <commandlineTool>clang++-3.5</commandlineTool>
           <incDir>
             <pElem>../include</pElem>
           </incDir>
@@ -99,9 +102,11 @@
           <architecture>2</architecture>
         </asmTool>
         <archiverTool>
-          <output>../lib/osi64linux_dbg.so</output>
+          <output>../lib/osi64lin-dbg.so</output>
         </archiverTool>
       </compileType>
+      <item path="../extlib/oGL/include/glcorearb.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="../include/oGL/glext.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../include/oGL/glxext.h" ex="false" tool="3" flavor2="0">
@@ -181,7 +186,7 @@
     </conf>
     <conf name="linux64R" type="3">
       <toolsSet>
-        <compilerSet>clang|CLang</compilerSet>
+        <compilerSet>default</compilerSet>
         <dependencyChecking>true</dependencyChecking>
         <rebuildPropChanged>false</rebuildPropChanged>
       </toolsSet>
@@ -198,6 +203,7 @@
           <developmentMode>5</developmentMode>
           <architecture>2</architecture>
           <standard>8</standard>
+          <commandlineTool>clang++-3.5</commandlineTool>
           <incDir>
             <pElem>../include</pElem>
           </incDir>
@@ -211,9 +217,11 @@
           <architecture>2</architecture>
         </asmTool>
         <archiverTool>
-          <output>../lib/osi64linux.so</output>
+          <output>../lib/osi64lin.so</output>
         </archiverTool>
       </compileType>
+      <item path="../extlib/oGL/include/glcorearb.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="../include/oGL/glext.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../include/oGL/glxext.h" ex="false" tool="3" flavor2="0">
@@ -293,7 +301,7 @@
     </conf>
     <conf name="linux32D" type="3">
       <toolsSet>
-        <compilerSet>clang|CLang</compilerSet>
+        <compilerSet>default</compilerSet>
         <dependencyChecking>true</dependencyChecking>
         <rebuildPropChanged>false</rebuildPropChanged>
       </toolsSet>
@@ -308,6 +316,7 @@
         <ccTool>
           <architecture>1</architecture>
           <standard>8</standard>
+          <commandlineTool>clang++-3.5</commandlineTool>
           <incDir>
             <pElem>../include</pElem>
           </incDir>
@@ -319,9 +328,11 @@
           <architecture>1</architecture>
         </asmTool>
         <archiverTool>
-          <output>../lib/osi32linux_dbg.so</output>
+          <output>../lib/osi32lin-dbg.so</output>
         </archiverTool>
       </compileType>
+      <item path="../extlib/oGL/include/glcorearb.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="../include/oGL/glext.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../include/oGL/glxext.h" ex="false" tool="3" flavor2="0">
@@ -401,7 +412,7 @@
     </conf>
     <conf name="linux32R" type="3">
       <toolsSet>
-        <compilerSet>clang|CLang</compilerSet>
+        <compilerSet>default</compilerSet>
         <dependencyChecking>true</dependencyChecking>
         <rebuildPropChanged>false</rebuildPropChanged>
       </toolsSet>
@@ -418,6 +429,7 @@
           <developmentMode>5</developmentMode>
           <architecture>1</architecture>
           <standard>8</standard>
+          <commandlineTool>clang++-3.5</commandlineTool>
           <incDir>
             <pElem>../include</pElem>
           </incDir>
@@ -431,9 +443,11 @@
           <architecture>1</architecture>
         </asmTool>
         <archiverTool>
-          <output>../lib/osi32linux.so</output>
+          <output>../lib/osi32lin.so</output>
         </archiverTool>
       </compileType>
+      <item path="../extlib/oGL/include/glcorearb.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="../include/oGL/glext.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../include/oGL/glxext.h" ex="false" tool="3" flavor2="0">
@@ -539,9 +553,11 @@
           <architecture>2</architecture>
         </asmTool>
         <archiverTool>
-          <output>../lib/osi64mac_dbg.so</output>
+          <output>../lib/osi64mac-dbg.so</output>
         </archiverTool>
       </compileType>
+      <item path="../extlib/oGL/include/glcorearb.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="../include/oGL/glext.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../include/oGL/glxext.h" ex="false" tool="3" flavor2="0">
@@ -654,6 +670,8 @@
           <output>../lib/osi64mac.so</output>
         </archiverTool>
       </compileType>
+      <item path="../extlib/oGL/include/glcorearb.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="../include/oGL/glext.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../include/oGL/glxext.h" ex="false" tool="3" flavor2="0">
@@ -759,9 +777,11 @@
           <architecture>1</architecture>
         </asmTool>
         <archiverTool>
-          <output>../lib/osi32mac_dbg.so</output>
+          <output>../lib/osi32mac-dbg.so</output>
         </archiverTool>
       </compileType>
+      <item path="../extlib/oGL/include/glcorearb.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="../include/oGL/glext.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../include/oGL/glxext.h" ex="false" tool="3" flavor2="0">
@@ -874,6 +894,8 @@
           <output>../lib/osi32mac.so</output>
         </archiverTool>
       </compileType>
+      <item path="../extlib/oGL/include/glcorearb.h" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="../include/oGL/glext.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../include/oGL/glxext.h" ex="false" tool="3" flavor2="0">

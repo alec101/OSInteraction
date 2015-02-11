@@ -1072,7 +1072,7 @@ void osiCocoa::setProgramPath() {
 ///================================================================///
 // -------------------->>> CREATE WINDOW <<<----------------------- //
 ///================================================================///
-bool osiCocoa::createWindow(osiWindow *w) {
+bool osiCocoa::createWindow(osiWindow *w, const char *iconFile) {
   NSAutoreleasePool *pool= [[NSAutoreleasePool alloc] init];
   
   bool ret= true;
@@ -1114,7 +1114,7 @@ bool osiCocoa::createWindow(osiWindow *w) {
   // see http://www.mikeash.com/pyblog/nsopenglcontext-and-one-shot.html
   /// prevent window deletion when hidden
   [win setOneShot:NO];
-
+  
   /* SCRAPE INCOMING
   /// pixel format
   // THIS MIGHT NEED MORE CUSTOMIZATION
@@ -1165,7 +1165,14 @@ bool osiCocoa::createWindow(osiWindow *w) {
   
   
   //see https://developer.apple.com/library/mac/documentation/graphicsimaging/conceptual/OpenGL-MacProgGuide/EnablingOpenGLforHighResolution/EnablingOpenGLforHighResolution.html#//apple_ref/doc/uid/TP40001987-CH1001-SW5  
+  
+  /// osiWindow connection
+  w->_win= win;
+  w->_view= view;
+  w->isCreated= true;
 
+  if(iconFile)
+    w->setIcon(iconFile);
   
   [win makeKeyAndOrderFront: nil];
   
@@ -1176,10 +1183,6 @@ bool osiCocoa::createWindow(osiWindow *w) {
   
   //  [NSApp activateIgnoringOtherApps: YES]; // THIS WAS MOVED TO CONSTRUCTOR
 
-  /// osiWindow connection
-  w->_win= win;
-  w->_view= view;
-  w->isCreated= true;
   
   
   osi.glMakeCurrent(w->glr, w);
@@ -1296,9 +1299,11 @@ void osiCocoa::delWindow(osiWindow* w) {
 
 
 str8 osiCocoa::getCmdLine() {
+  
   NSArray *args = [[NSProcessInfo processInfo] arguments];
   // use -objectAtIndex: to obtain an element of the array
   // and -count to obtain the number of elements in the array
+  
   ulong n= [args count];
   str8 ret;
   for(int a= 0; a< n; a++) {
@@ -1307,6 +1312,7 @@ str8 osiCocoa::getCmdLine() {
     if(a) ret+= " ";
     ret+= [s UTF8String];
   }
+  
   return ret;
 }
 
@@ -1318,7 +1324,7 @@ void osiCocoa::setIcon(uint8_t *bitmap, int dx, int dy, int bpp, int bpc) {
   CGImageRef cgdata= CGImageCreate(dx, dy, bpc, bpp, dx* (bpp/ 8), cspace, (bpp==24? kCGBitmapByteOrderDefault:kCGImageAlphaLast), dProvider, NULL, false, kCGRenderingIntentDefault);
   NSImage *nsi= [NSImage alloc];
   [nsi initWithCGImage:cgdata size: NSZeroSize];
-
+  
   // change application icon
   [NSApp setApplicationIconImage:nsi];
   
@@ -1551,6 +1557,7 @@ void osiCocoa::sleep(int ms) {
 
 // INTERNAL- monitor name - and ofc, a func just got deprecated !
 bool osiCocoa::displayName(uint32 id, str8 *out) {
+  NSAutoreleasePool *pool= [[NSAutoreleasePool alloc] init];
   bool ret= false;
   out->delData();
   NSString *screenName= nil;
@@ -1565,24 +1572,27 @@ bool osiCocoa::displayName(uint32 id, str8 *out) {
     ret= true;
   }
   
-  [deviceInfo release];
+  //[deviceInfo release];
+  [pool release];
   return ret;
 }
 
 
 bool osiCocoa::displayGPU(uint32 id, str8 *out) {
+  NSAutoreleasePool *pool= [[NSAutoreleasePool alloc] init];
   // !!!!! these seem to not be listed anywhere - must test
   // kIODisplayEDIDKey special key tied to the monitor
   // kIOFramebufferInfoKey - this might be it
   // but, there should be a 'location' of the monitor (probly the framebufferInfoKey)
   // !!!!!
+  if(!out) printf("null string");
   
   out->delData();
   
   NSDictionary *deviceInfo= (NSDictionary *)IODisplayCreateInfoDictionary(CGDisplayIOServicePort(id), kIODisplayOnlyPreferredName);
   NSString *locInfo= [deviceInfo objectForKey: [NSString stringWithUTF8String:kIODisplayLocationKey]];
   if(!locInfo) { [deviceInfo release]; return false; }
-
+  
   /// out will hold the whole location info, which has monitor info too (i think) 
   *out= [locInfo UTF8String];
   if(!*out) { [locInfo release]; [deviceInfo release]; return false; }
@@ -1596,8 +1606,9 @@ bool osiCocoa::displayGPU(uint32 id, str8 *out) {
     out->operator-=(1);
   }
   
-  [locInfo release];
-  [deviceInfo release];
+  //[locInfo release];
+  //[deviceInfo release];
+  [pool release];
   return true;
 }
 

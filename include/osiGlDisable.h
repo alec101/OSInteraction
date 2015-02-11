@@ -1,3 +1,4 @@
+#ifndef OSI_DISABLE_GL_DISABLE
 #ifndef OSI_GL_DISABLE
 #define OSI_GL_DISABLE 1
 /*
@@ -295,8 +296,8 @@ TODO:
 //#define GL_EXT_vertex_array                0 // 030 [] http://www.opengl.org/registry/specs/EXT/vertex_array.txt
 //#define GL_EXT_misc_attribute              0 // 031 [] http://www.opengl.org/registry/specs/EXT/misc_attribute.txt
 //#define GL_SGIS_generate_mipmap            0 // 032 [] http://www.opengl.org/registry/specs/SGIS/generate_mipmap.txt
-//#define GL_SGIX_clipmap                    0 // 033 [incomplete] http://www.opengl.org/registry/specs/SGIX/clipmap.txt
-//#define GL_SGIX_shadow                     0 // 034 [incomplete] http://www.opengl.org/registry/specs/SGIX/shadow.txt
+#define GL_SGIX_clipmap                    0 // 033 [incomplete] http://www.opengl.org/registry/specs/SGIX/clipmap.txt
+#define GL_SGIX_shadow                     0 // 034 [incomplete] http://www.opengl.org/registry/specs/SGIX/shadow.txt
 //#define GL_SGIS_texture_edge_clamp         0 // 035 [] http://www.opengl.org/registry/specs/SGIS/texture_edge_clamp.txt
 //#define GL_SGIS_texture_border_clamp       0 // 036 [] http://www.opengl.org/registry/specs/SGIS/texture_border_clamp.txt
 //#define GL_EXT_blend_minmax                0 // 037 [] http://www.opengl.org/registry/specs/EXT/blend_minmax.txt
@@ -334,12 +335,12 @@ TODO:
 //#define GL_PGI_misc_hints                  0 // 077 [] http://www.opengl.org/registry/specs/PGI/misc_hints.txt
 //#define GL_EXT_paletted_texture            0 // 078 [] http://www.opengl.org/registry/specs/EXT/paletted_texture.txt
 //#define GL_EXT_clip_volume_hint            0 // 079 [] http://www.opengl.org/registry/specs/EXT/clip_volume_hint.txt
-//#define GL_SGIX_list_priority              0 // 080 [incomplete] http://www.opengl.org/registry/specs/SGIX/list_priority.txt
+#define GL_SGIX_list_priority              0 // 080 [incomplete] http://www.opengl.org/registry/specs/SGIX/list_priority.txt
 //#define GL_SGIX_ir_instrument1             0 // 081 [] http://www.opengl.org/registry/specs/SGIX/ir_instrument1.txt
 //#define GLX_SGIX_video_resize              0 // 083 [] http://www.opengl.org/registry/specs/SGIX/video_resize.txt
 //#define GL_SGIX_texture_lod_bias           0 // 084 [] http://www.opengl.org/registry/specs/SGIX/texture_lod_bias.txt
-//#define GLU_SGI_filter4_parameters         0 // 085 [incomplete] http://www.opengl.org/registry/specs/SGI/filter4_parameters.txt
-//#define GLX_SGIX_dm_buffer                 0 // 086 [incomplete] http://www.opengl.org/registry/specs/SGIX/dmbuffer.txt
+#define GLU_SGI_filter4_parameters         0 // 085 [incomplete] http://www.opengl.org/registry/specs/SGI/filter4_parameters.txt
+#define GLX_SGIX_dm_buffer                 0 // 086 [incomplete] http://www.opengl.org/registry/specs/SGIX/dmbuffer.txt
 //#define GLX_SGIX_dmbuffer                  0 // ^086
 //#define GL_SGIX_shadow_ambient             0 // 090 [] http://www.opengl.org/registry/specs/SGIX/shadow_ambient.txt
 //#define GLX_SGIX_swap_group                0 // 091 [] http://www.opengl.org/registry/specs/SGIX/swap_group.txt
@@ -347,31 +348,31 @@ TODO:
 //#define GL_EXT_index_texture               0 // 093 [] http://www.opengl.org/registry/specs/EXT/index_texture.txt
 //#define GL_EXT_index_material              0 // 094 [] http://www.opengl.org/registry/specs/EXT/index_material.txt
 //#define GL_EXT_index_func                  0 // 095 [] http://www.opengl.org/registry/specs/EXT/index_func.txt
-//#define GL_EXT_index_array_formats         0 // 096 [incomplete] http://www.opengl.org/registry/specs/EXT/index_array_formats.txt
-//#define GL_EXT_compiled_vertex_array       0 // 097 [incomplete] http://www.opengl.org/registry/specs/EXT/compiled_vertex_array.txt
-//#define GL_EXT_cull_vertex                 0 // 098 [incomplete] http://www.opengl.org/registry/specs/EXT/cull_vertex.txt
+#define GL_EXT_index_array_formats         0 // 096 [incomplete] http://www.opengl.org/registry/specs/EXT/index_array_formats.txt
+#define GL_EXT_compiled_vertex_array       0 // 097 [incomplete] http://www.opengl.org/registry/specs/EXT/compiled_vertex_array.txt
+#define GL_EXT_cull_vertex                 0 // 098 [incomplete] http://www.opengl.org/registry/specs/EXT/cull_vertex.txt
 //#define GLU_EXT_nurbs_tessellator          0 // 100 [] #100 http://www.opengl.org/registry/specs/EXT/nurbs_tessellator.txt
-//#define GL_SGIX_ycrcb                      0 // 101 [incomplete] http://www.opengl.org/registry/specs/SGIX/ycrcb.txt
-//#define GL_EXT_fragment_lighting           0 // 102 [incomplete] http://www.opengl.org/registry/specs/EXT/fragment_lighting.txt
+#define GL_SGIX_ycrcb                      0 // 101 [incomplete] http://www.opengl.org/registry/specs/SGIX/ycrcb.txt
+#define GL_EXT_fragment_lighting           0 // 102 [incomplete] http://www.opengl.org/registry/specs/EXT/fragment_lighting.txt
 //#define GL_IBM_rasterpos_clip              0 // 110 [] http://www.opengl.org/registry/specs/IBM/rasterpos_clip.txt
-//#define GL_HP_texture_lighting             0 // 111 [incomplete] http://www.opengl.org/registry/specs/HP/texture_lighting.txt
+#define GL_HP_texture_lighting             0 // 111 [incomplete] http://www.opengl.org/registry/specs/HP/texture_lighting.txt
 //#define GL_EXT_draw_range_elements         0 // 112 [] http://www.opengl.org/registry/specs/EXT/draw_range_elements.txt
 //#define GL_WIN_phong_shading               0 // 113 [] http://www.opengl.org/registry/specs/WIN/phong_shading.txt
 //#define GL_WIN_specular_fog                0 // 114 [] http://www.opengl.org/registry/specs/WIN/specular_fog.txt
 //#define GL_SGIS_color_range                0 // 115 [] http://www.opengl.org/registry/specs/SGIS/color_range.txt
 //#define GLX_SGIS_color_range               0 // ^115
 //#define GL_EXT_light_texture               0 // 117 [] http://www.opengl.org/registry/specs/EXT/light_texture.txt
-//#define GL_SGIX_blend_alpha_minmax         0 // 119 [incomplete] http://www.opengl.org/registry/specs/SGIX/blend_alpha_minmax.txt
+#define GL_SGIX_blend_alpha_minmax         0 // 119 [incomplete] http://www.opengl.org/registry/specs/SGIX/blend_alpha_minmax.txt
 //#define GL_EXT_scene_marker                0 // 120 [] http://www.opengl.org/registry/specs/EXT/scene_marker.txt
 //#define GLX_EXT_scene_marker               0 // ^120
 //#define GL_SGIX_pixel_texture_bits         0 // 127 [] http://www.opengl.org/registry/specs/SGIX/pixel_texture_bits.txt
 //#define GL_EXT_bgra                        0 // 129 [] http://www.opengl.org/registry/specs/EXT/bgra.txt
-//#define GL_SGIX_async                      0 // 132 [incomplete] http://www.opengl.org/registry/specs/SGIX/async.txt
-//#define GL_SGIX_async_pixel                0 // 133 [inc] http://www.opengl.org/registry/specs/SGIX/async_pixel.txt
-//#define GL_SGIX_async_histogram            0 // 134 [inc] http://www.opengl.org/registry/specs/SGIX/async_histogram.txt
+#define GL_SGIX_async                      0 // 132 [incomplete] http://www.opengl.org/registry/specs/SGIX/async.txt
+#define GL_SGIX_async_pixel                0 // 133 [inc] http://www.opengl.org/registry/specs/SGIX/async_pixel.txt
+#define GL_SGIX_async_histogram            0 // 134 [inc] http://www.opengl.org/registry/specs/SGIX/async_histogram.txt
 //#define GL_INTEL_texture_scissor           0 // 135 [] http://www.opengl.org/registry/specs/INTEL/texture_scissor.txt
 //#define GL_INTEL_parallel_arrays           0 // 136 [] http://www.opengl.org/registry/specs/INTEL/parallel_arrays.txt
-//#define GL_HP_occlusion_test               0 // 137 inc[] http://www.opengl.org/registry/specs/HP/occlusion_test.txt
+#define GL_HP_occlusion_test               0 // 137 inc[] http://www.opengl.org/registry/specs/HP/occlusion_test.txt
 //#define GL_EXT_pixel_transform             0 // 138 [] http://www.opengl.org/registry/specs/EXT/pixel_transform.txt
 //#define GL_EXT_pixel_transform_color_table 0 // 139 [] http://www.opengl.org/registry/specs/EXT/pixel_transform_color_table.txt
 //#define GL_EXT_shared_texture_palette      0 // 141 [] http://www.opengl.org/registry/specs/EXT/shared_texture_palette.txt
@@ -383,16 +384,16 @@ TODO:
 //#define GL_EXT_multi_draw_arrays           0 // 148 [] http://www.opengl.org/registry/specs/EXT/multi_draw_arrays.txt
 //#define GL_SUN_multi_draw_arrays           0 // ^148
 //#define GL_EXT_fog_coord                   0 // 149 [] http://www.opengl.org/registry/specs/EXT/fog_coord.txt
-//#define GL_REND_screen_coordinates         0 // 155 [inc] http://www.opengl.org/registry/specs/REND/screen_coordinates.txt
-//#define GL_EXT_coordinate_frame            0 // 156 [inc] http://www.opengl.org/registry/specs/EXT/coordinate_frame.txt
+#define GL_REND_screen_coordinates         0 // 155 [inc] http://www.opengl.org/registry/specs/REND/screen_coordinates.txt
+#define GL_EXT_coordinate_frame            0 // 156 [inc] http://www.opengl.org/registry/specs/EXT/coordinate_frame.txt
 //#define GL_EXT_texture_env_combine         0 // 158 [] http://www.opengl.org/registry/specs/EXT/texture_env_combine.txt
-//#define GL_APPLE_specular_vector           0 // 159 [inc] http://www.opengl.org/registry/specs/APPLE/specular_vector.txt
-//#define GL_APPLE_transform_hint            0 // 160 [inc] http://www.opengl.org/registry/specs/APPLE/transform_hint.txt
+#define GL_APPLE_specular_vector           0 // 159 [inc] http://www.opengl.org/registry/specs/APPLE/specular_vector.txt
+#define GL_APPLE_transform_hint            0 // 160 [inc] http://www.opengl.org/registry/specs/APPLE/transform_hint.txt
 //#define GL_SUNX_constant_data              0 // 163 [] http://www.opengl.org/registry/specs/SUNX/constant_data.txt
 //#define GL_SUN_global_alpha                0 // 164 [] http://www.opengl.org/registry/specs/SUN/global_alpha.txt
 //#define GL_SUN_triangle_list               0 // 165 [] http://www.opengl.org/registry/specs/SUN/triangle_list.txt
 //#define GL_SUN_vertex                      0 // 166 [] http://www.opengl.org/registry/specs/SUN/vertex.txt
-//#define WGL_EXT_display_color_table        0 // 167 [inc] http://www.opengl.org/registry/specs/EXT/wgl_display_color_table.txt
+#define WGL_EXT_display_color_table        0 // 167 [inc] http://www.opengl.org/registry/specs/EXT/wgl_display_color_table.txt
 //#define WGL_EXT_extensions_string          0 // 168 [] http://www.opengl.org/registry/specs/EXT/wgl_extensions_string.txt
 //#define WGL_EXT_make_current_read          0 // 169 [] http://www.opengl.org/registry/specs/EXT/wgl_make_current_read.txt
 //#define WGL_EXT_pixel_format               0 // 170 [] http://www.opengl.org/registry/specs/EXT/wgl_pixel_format.txt
@@ -434,8 +435,8 @@ TODO:
 //#define WGL_EXT_multisample                0 // ^209 
 //#define GL_SGIX_vertex_preclip             0 // 210 [] http://www.opengl.org/registry/specs/SGIX/vertex_preclip.txt
 //#define GL_SGIX_vertex_preclip_hint        0 // ^210
-//#define GL_SGIX_convolution_accuracy       0 // 211 [inc] http://www.opengl.org/registry/specs/SGIX/convolution_accuracy.txt
-//#define GL_SGIX_resample                   0 // 212 [inc] http://www.opengl.org/registry/specs/SGIX/resample.txt
+#define GL_SGIX_convolution_accuracy       0 // 211 [inc] http://www.opengl.org/registry/specs/SGIX/convolution_accuracy.txt
+#define GL_SGIX_resample                   0 // 212 [inc] http://www.opengl.org/registry/specs/SGIX/resample.txt
 //#define GL_SGIS_point_line_texgen          0 // 213 [] http://www.opengl.org/registry/specs/SGIS/point_line_texgen.txt
 //#define GL_SGIS_texture_color_mask         0 // 214 [] http://www.opengl.org/registry/specs/SGIS/texture_color_mask.txt
 //#define GLX_MESA_copy_sub_buffer           0 // 215 [] http://www.opengl.org/registry/specs/MESA/copy_sub_buffer.txt
@@ -468,7 +469,7 @@ TODO:
 //#define GL_ATI_envmap_bumpmap              0 // 244 [] http://www.opengl.org/registry/specs/ATI/envmap_bumpmap.txt
 //#define GL_ATI_fragment_shader             0 // 245 [] http://www.opengl.org/registry/specs/ATI/fragment_shader.txt
 //#define GL_ATI_pn_triangles                0 // 246 [] http://www.opengl.org/registry/specs/ATI/pn_triangles.txt
-//#define GL_ATI_vertex_array_object         0 //  247 [] http://www.opengl.org/registry/specs/ATI/vertex_array_object.txt
+//#define GL_ATI_vertex_array_object         0 // 247 [] http://www.opengl.org/registry/specs/ATI/vertex_array_object.txt
 //#define GL_EXT_vertex_shader               0 // 248 [] http://www.opengl.org/registry/specs/EXT/vertex_shader.txt
 //#define GL_ATI_vertex_streams              0 // 249 [] http://www.opengl.org/registry/specs/ATI/vertex_streams.txt
 //#define WGL_I3D_digital_video_control      0 // 250 [] http://www.opengl.org/registry/specs/I3D/wgl_digital_video_control.txt
@@ -497,7 +498,7 @@ TODO:
 //#define GL_APPLE_vertex_array_object       0 // 273 [] http://www.opengl.org/registry/specs/APPLE/vertex_array_object.txt
 //#define GL_APPLE_vertex_array_range        0 // 274 [] http://www.opengl.org/registry/specs/APPLE/vertex_array_range.txt
 //#define GL_APPLE_ycbcr_422                 0 // 275 [] http://www.opengl.org/registry/specs/APPLE/ycbcr_422.txt
-//#define GL_S3_s3tc                         0 // 276 [inc] http://www.opengl.org/registry/specs/S3/s3tc.txt
+#define GL_S3_s3tc                         0 // 276 [inc] http://www.opengl.org/registry/specs/S3/s3tc.txt
 //#define GL_ATI_draw_buffers                0 // 277 [] http://www.opengl.org/registry/specs/ATI/draw_buffers.txt
 //#define WGL_ATI_pixel_format_float         0 // 278 [] http://www.opengl.org/registry/specs/ATI/pixel_format_float.txt
 //#define GL_ATI_texture_env_combine3        0 // 279 [] http://www.opengl.org/registry/specs/ATI/texture_env_combine3.txt
@@ -762,7 +763,7 @@ DECLARE_HANDLE(HPBUFFERARB);
 #endif
 
 #endif /// #ifndef OSI_GL_DISABLE - header end
-
+#endif /// OSI_DISABLE_GL_DISABLE
 
 
 

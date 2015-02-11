@@ -94,7 +94,7 @@ How to get the neccesary libs under Linux / Ubuntu:
 * sudo apt-get install libc6-dev-i386     the 32-bit C libraries (only 64bit libs are in linux64)
 * sudo apt-get install xxxxxxxxxxxx       the 64-bit C libraries (only 32bit libs are in linux32)
 * sudo apt-get install libxinerama-dev    Xinerama header files, used to identify monitors
-
+* sudo apt-get install gcc-4.8-multilib g++-4.8-multilib     - or whatever your gcc version is, if you get [fatal error: 'bits/c++config.h' file not found]
 
 -
 ###Licence: 

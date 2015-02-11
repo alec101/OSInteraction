@@ -1,6 +1,10 @@
 #include "osinteraction.h"
 #include "util/typeShortcuts.h"
 
+#ifdef OS_LINUX
+#include <unistd.h>
+#include <X11/XKBlib.h>
+#endif
 
 
 
@@ -176,10 +180,10 @@ void _parseCmdLine(osinteraction *o);
 
 osinteraction::osinteraction() {
   // default settings values
-  settings.renderer.minVerMajor= 3;
-  settings.renderer.minVerMinor= 2;
+  settings.renderer.minVerMajor= 0;           /// highest on the system
+  settings.renderer.minVerMinor= 0;           /// highest on the system
   settings.renderer.setOneRendererPerGPU();
-  settings.renderer.legacyCompatibility= true;
+  settings.renderer.legacyCompatibility= false;
   settings.renderer.debugRenderer= false;
   settings.renderer.shareGroup= null;
   settings.pixelFormat.renderOnWindow= true;
@@ -893,7 +897,7 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
   #ifdef OS_MAC // <<<<<<<<<<<<<< MAC >>>>>>>>>>>>>>>
   
   /// window creation is in OScocoa.mm due to Abjective-C
-  bool b= cocoa.createWindow(w);  /// all window vars are set, just create the window.
+  bool b= cocoa.createWindow(w, (iconFile? (cchar *)iconFile: (cchar *)_iconFile.d));  /// all window vars are set, just create the window.
   mutex.unlock();
   return b;
   #endif /// OS_MAC

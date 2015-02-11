@@ -9,7 +9,7 @@ class osiCocoa {
 public:
   
   void setProgramPath();                /// under mac is not certain that it is set, it seems
-  bool createWindow(osiWindow *w);
+  bool createWindow(osiWindow *w, const char *iconFile);
   bool createSplashWindow(osiWindow *w, uint8_t *bitmap, int dx, int dy, int bpp, int bpc);
 
   bool changeRes(osiWindow *w, osiMonitor *m, int32_t dx, int32_t dy, int8_t bpp, int16_t freq= 0);

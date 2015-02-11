@@ -1,6 +1,10 @@
 #include "osinteraction.h"
 #include "util/typeShortcuts.h"
 
+#ifdef OS_LINUX
+#include <X11/extensions/Xinerama.h>
+#endif
+
 #ifdef USING_DIRECT3D
 #include <d3d9.h>
 #endif
@@ -2094,12 +2098,11 @@ void _populateGrCards(osiDisplay *display) {
   */
   
   if(chatty) printf("searching for GPU(s)...");
-  
   display->nrGPUs= 0;
   if(!display->nrMonitors) return;
   
   str8 *s= new str8[display->nrMonitors];
-
+  
   /// populate each monitor's gpuInfo  
   for(int a= 0; a< display->nrMonitors; a++)
     cocoa.displayGPU(display->monitor[a]._id, &display->monitor[a]._GPUinfo);

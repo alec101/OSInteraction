@@ -6,7 +6,7 @@ extern "C" {
 #endif
 
 /*
-** Copyright (c) 2013 The Khronos Group Inc.
+** Copyright (c) 2013-2014 The Khronos Group Inc.
 **
 ** Permission is hereby granted, free of charge, to any person obtaining a
 ** copy of this software and/or associated documentation files (the
@@ -33,7 +33,7 @@ extern "C" {
 ** used to make the header, and the header can be found at
 **   http://www.opengl.org/registry/
 **
-** Khronos $Revision: 24369 $ on $Date: 2013-12-05 03:43:41 -0800 (Thu, 05 Dec 2013) $
+** Khronos $Revision: 27684 $ on $Date: 2014-08-11 01:21:35 -0700 (Mon, 11 Aug 2014) $
 */
 
 #if defined(_WIN32) && !defined(APIENTRY) && !defined(__CYGWIN__) && !defined(__SCITECH_SNAP__)
@@ -41,7 +41,7 @@ extern "C" {
 #include <windows.h>
 #endif
 
-#define WGL_WGLEXT_VERSION 20131204
+#define WGL_WGLEXT_VERSION 20140810
 
 /* Generated C header for:
  * API: wgl
@@ -69,6 +69,13 @@ BOOL WINAPI wglSaveBufferRegionARB (HANDLE hRegion, int x, int y, int width, int
 BOOL WINAPI wglRestoreBufferRegionARB (HANDLE hRegion, int x, int y, int width, int height, int xSrc, int ySrc);
 #endif
 #endif /* WGL_ARB_buffer_region */
+
+#ifndef WGL_ARB_context_flush_control
+#define WGL_ARB_context_flush_control 1
+#define WGL_CONTEXT_RELEASE_BEHAVIOR_ARB  0x2097
+#define WGL_CONTEXT_RELEASE_BEHAVIOR_NONE_ARB 0
+#define WGL_CONTEXT_RELEASE_BEHAVIOR_FLUSH_ARB 0x2098
+#endif /* WGL_ARB_context_flush_control */
 
 #ifndef WGL_ARB_create_context
 #define WGL_ARB_create_context 1
@@ -238,11 +245,11 @@ BOOL WINAPI wglChoosePixelFormatARB (HDC hdc, const int *piAttribIList, const FL
 #define WGL_TEXTURE_2D_ARB                0x207A
 #define WGL_MIPMAP_LEVEL_ARB              0x207B
 #define WGL_CUBE_MAP_FACE_ARB             0x207C
-#define WGL_TEXTURE_CUBE_MAP_PosiTIVE_X_ARB 0x207D
+#define WGL_TEXTURE_CUBE_MAP_POSITIVE_X_ARB 0x207D
 #define WGL_TEXTURE_CUBE_MAP_NEGATIVE_X_ARB 0x207E
-#define WGL_TEXTURE_CUBE_MAP_PosiTIVE_Y_ARB 0x207F
+#define WGL_TEXTURE_CUBE_MAP_POSITIVE_Y_ARB 0x207F
 #define WGL_TEXTURE_CUBE_MAP_NEGATIVE_Y_ARB 0x2080
-#define WGL_TEXTURE_CUBE_MAP_PosiTIVE_Z_ARB 0x2081
+#define WGL_TEXTURE_CUBE_MAP_POSITIVE_Z_ARB 0x2081
 #define WGL_TEXTURE_CUBE_MAP_NEGATIVE_Z_ARB 0x2082
 #define WGL_FRONT_LEFT_ARB                0x2083
 #define WGL_FRONT_RIGHT_ARB               0x2084

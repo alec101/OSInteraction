@@ -140,6 +140,9 @@
     <ClInclude Include="..\include\osiGlDisable.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\extlib\oGL\include\glcorearb.h">
+      <Filter>Header Files\oGL</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\src\osiCocoa.mm">

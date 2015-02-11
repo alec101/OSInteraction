@@ -1,5 +1,79 @@
-#include "osinteraction.h"
+/* 
+This file tryes to solve the mess that is opengl header files:
+-gl.h on windows is oGL1.1
+-gl.h on linux varies, usually is oGL1.3
+-there is the option to include or not include gl.h, to switch between legacy/core opengl functionality
+-glext.h seems to be ok, on all systems - but in glcorearb.h they say not to include it if you include glcorearb.h
+   so getting access to exotic extensions the right way is done how? they didn't specify this - so you just don't, right?
+-glx.h on some systems includes glxext.h, on some, not. Including the osi provided glxext.h is kinda hard to impossible because of this
+-including glcorearb.h seems to be ok, the problem is, that Apple still uses gl3.h
+
+You can figure out how hard is to put an order in all this !!!
+
+*/
+
+
+
+// standard osi current system define
+#ifdef _WIN32
+#define OS_WIN 1
+#elif defined __linux__
+#define OS_LINUX 1
+#elif defined __APPLE__
+#define OS_MAC 1
+#endif
+
+
+
+// all funcs, glDisable must be ... disabled! #include "osiGlDisable.h"   // either modify this file to enable/disable extensions or include a custom one, before including osinteraction.h
+
+#ifdef OS_WIN
+#include <Windows.h>
+#include <gl/GL.h>
+#include <gl/GLU.h>
+#include "../extlib/oGL/include/wglext.h"            // <<< provided wglext.h - should be updated when a new version appears (and it can change monthly)
+#endif /// OS_WIN
+
+#ifdef OS_LINUX
+
+#include <GL/gl.h>    // this file, on some linux systems, includes glext.h too. 
+#include <GL/glext.h> // <<< the default glext.h on the system, comment this and the osi one will be loaded
+#include <GL/glx.h>
+#include <GL/glxext.h>
+//#include "../extlib/oGL/include/glxext.h"           // <<< provided glxext.h - should be updated when new a version appears (and it can change monthly)
+
+
+#include <X11/extensions/Xrandr.h>
+#include <X11/extensions/Xinerama.h>
+#endif /// OS_LINUX
+
+#ifdef OS_MAC
+#include <OpenGL/gl.h>            // legacy
+#endif /// OS_MAC
+
+/// at the moment, they say not to include glext.h if you use glcorearb, but there might be an osi option to use the EXT, NV, ATI extensions with the corearb stuff
+#include "../extlib/oGL/include/glext.h"            // <<< OpenGL extensions header file (OS independant ones) - should be updated when a new version appears (and it can change monthly)
+
+/// avoid including osinteraction.h
+#define OSI_USE_OPENGL_LEGACY 1
+#define OSI_DISABLE_GL_DISABLE 1
+
+#include <stdio.h>
+#include <stdint.h>
+
+
 #include "util/typeShortcuts.h"
+#include "util/chainList.h"
+#include "util/str8.h"
+#include "osiDisplay.h"
+#include "osiGlExt.h"
+#include "osiRenderer.h"
+#include "osiWindow.h"
+
+
+
+
+
 /* MIGHT TRY TO MAKE THIS NOT NECESARY A PART OF OSI
 #include "glext.h"
 
@@ -25,37 +99,41 @@ GlExtFuncs glExt;
 
 
 
-bool getGlProc(cchar *name, void **addr) {
-  bool chatty= true;
+
+
+bool getGlProc(const char *name, void **addr) {
+  //bool chatty= true;
   if(!addr) return false;
-  
+  void *tmp= null;
+
   #ifdef OS_WIN
-  *addr= (void *)wglGetProcAddress(name);
+  tmp= (void *)wglGetProcAddress(name);
 
   // wgl can fail for old funcs, and GetProcAddress must be used instead https://www.opengl.org/wiki/Load_OpenGL_Functions
-  if(*addr== 0 ||
-    (*addr== (void*)0x1) || (*addr== (void*)0x2) || (&addr== (void*)0x3) ||
-    (*addr== (void*)-1) )
-  {
+  if(tmp== 0 || (tmp== (void*)0x1) || (tmp== (void*)0x2) || (tmp== (void*)0x3) || (tmp== (void*)-1)) {
     HMODULE module= LoadLibraryA("opengl32.dll");
-    *addr= (void *)GetProcAddress(module, name);
+    tmp= (void *)GetProcAddress(module, name);
   }
   #endif /// OS_WIN
   
   #ifdef OS_LINUX
-  *addr= (void *)glXGetProcAddressARB((const GLubyte *)name);
+  tmp= (void *)glXGetProcAddressARB((const GLubyte *)name);
   #endif /// OS_LINUX
   
   #ifdef OS_MAC
-  //needed?
+  return true;  // not needed
   #endif /// OS_MAC
-    
-  return (*addr? true: false);
+
+  if(tmp) *addr= tmp;
+  return (tmp? true: false);
 }
 
+
+
+
+
+
 #define GETGLPROCMACRO(_x_x) getGlProc(#_x_x,  (void **)&r->glExt. _x_x  );
-
-
 
 
 ///=============================///
@@ -63,55 +141,90 @@ bool getGlProc(cchar *name, void **addr) {
 ///=============================///
 
 void getVERfuncs(osiRenderer *r, int major, int minor) {
-  //getGlProc("glTexImage3DEXT", r->glExt.glTexImage3D);
   
   #ifndef OS_MAC
   
-  #ifdef OS_LINUX
-  // linux GLX versions //    SCRAPE INCOMING
-  ///==================///
-  /*
-  /// GLX_VERSION_1_3
-  GETGLPROCMACRO(glXGetFBConfigs)   //getGlProc("glXGetFBConfigs", r->glExt.glXGetFBConfigs); // << what should look like
-  GETGLPROCMACRO(glXChooseFBConfig)
-  GETGLPROCMACRO(glXGetFBConfigAttrib)
-  GETGLPROCMACRO(glXGetVisualFromFBConfig)
-  GETGLPROCMACRO(glXCreateWindow)
-  GETGLPROCMACRO(glXDestroyWindow)
-  GETGLPROCMACRO(glXCreatePixmap)
-  GETGLPROCMACRO(glXDestroyPixmap)
-  GETGLPROCMACRO(glXCreatePbuffer)
-  GETGLPROCMACRO(glXDestroyPbuffer)
-  GETGLPROCMACRO(glXQueryDrawable)
-  GETGLPROCMACRO(glXCreateNewContext)
-  GETGLPROCMACRO(glXMakeContextCurrent)
-  GETGLPROCMACRO(glXGetCurrentReadDrawable)
-  GETGLPROCMACRO(glXQueryContext)
-  GETGLPROCMACRO(glXSelectEvent)
-  GETGLPROCMACRO(glXGetSelectedEvent)
-  */
-
-  /// GLX_VERSION_1_4
-  //GETGLPROCMACRO(glXGetProcAddress)
-  #endif /// OS_LINUX
-
+  // OpenGL 1.0 funcs =================------------------------------
   if(major< 1)
     return;
+  GETGLPROCMACRO(glCullFace) // getGlProc("glDrawRangeElements", r->glExt.glDrawRangeElements); // <<< what should look like
+  GETGLPROCMACRO(glFrontFace)
+  GETGLPROCMACRO(glHint)
+  GETGLPROCMACRO(glLineWidth)
+  GETGLPROCMACRO(glPointSize)
+  GETGLPROCMACRO(glPolygonMode)
+  GETGLPROCMACRO(glScissor)
+  GETGLPROCMACRO(glTexParameterf)
+  GETGLPROCMACRO(glTexParameterfv)
+  GETGLPROCMACRO(glTexParameteri)
+  GETGLPROCMACRO(glTexParameteriv)
+  GETGLPROCMACRO(glTexImage1D)
+  GETGLPROCMACRO(glTexImage2D)
+  GETGLPROCMACRO(glDrawBuffer)
+  GETGLPROCMACRO(glClear)
+  GETGLPROCMACRO(glClearColor)
+  GETGLPROCMACRO(glClearStencil)
+  GETGLPROCMACRO(glClearDepth)
+  GETGLPROCMACRO(glStencilMask)
+  GETGLPROCMACRO(glColorMask)
+  GETGLPROCMACRO(glDepthMask)
+  GETGLPROCMACRO(glDisable)
+  GETGLPROCMACRO(glEnable)
+  GETGLPROCMACRO(glFinish)
+  GETGLPROCMACRO(glFlush)
+  GETGLPROCMACRO(glBlendFunc)
+  GETGLPROCMACRO(glLogicOp)
+  GETGLPROCMACRO(glStencilFunc)
+  GETGLPROCMACRO(glStencilOp)
+  GETGLPROCMACRO(glDepthFunc)
+  GETGLPROCMACRO(glPixelStoref)
+  GETGLPROCMACRO(glPixelStorei)
+  GETGLPROCMACRO(glReadBuffer)
+  GETGLPROCMACRO(glReadPixels)
+  GETGLPROCMACRO(glGetBooleanv)
+  GETGLPROCMACRO(glGetDoublev)
+  GETGLPROCMACRO(glGetError)
+  GETGLPROCMACRO(glGetFloatv)
+  GETGLPROCMACRO(glGetIntegerv)
+  GETGLPROCMACRO(glGetString)
+  GETGLPROCMACRO(glGetTexImage)
+  GETGLPROCMACRO(glGetTexParameterfv)
+  GETGLPROCMACRO(glGetTexParameteriv)
+  GETGLPROCMACRO(glGetTexLevelParameterfv)
+  GETGLPROCMACRO(glGetTexLevelParameteriv)
+  GETGLPROCMACRO(glIsEnabled)
+  GETGLPROCMACRO(glDepthRange)
+  GETGLPROCMACRO(glViewport)
 
-  /// OpenGL 1.2 funcs =================------------------------------
+  // OpenGL 1.1 funcs =================------------------------------
+  if(major== 1 && minor< 1)
+    return;
+  GETGLPROCMACRO(glDrawArrays)
+  GETGLPROCMACRO(glDrawElements)
+  GETGLPROCMACRO(glGetPointerv)
+  GETGLPROCMACRO(glPolygonOffset)
+  GETGLPROCMACRO(glCopyTexImage1D)
+  GETGLPROCMACRO(glCopyTexImage2D)
+  GETGLPROCMACRO(glCopyTexSubImage1D)
+  GETGLPROCMACRO(glCopyTexSubImage2D)
+  GETGLPROCMACRO(glTexSubImage1D)
+  GETGLPROCMACRO(glTexSubImage2D)
+  GETGLPROCMACRO(glBindTexture)
+  GETGLPROCMACRO(glDeleteTextures)
+  GETGLPROCMACRO(glGenTextures)
+  GETGLPROCMACRO(glIsTexture)
+
+  // OpenGL 1.2 funcs =================------------------------------
   if(major== 1 && minor< 2)
     return;
-  #if(GL_VERSION_1_2== 1)
-  GETGLPROCMACRO(glDrawRangeElements) // getGlProc("glDrawRangeElements", r->glExt.glDrawRangeElements); // <<< what should look like
+  GETGLPROCMACRO(glDrawRangeElements)
   GETGLPROCMACRO(glTexImage3D)
   GETGLPROCMACRO(glTexSubImage3D)
   GETGLPROCMACRO(glCopyTexSubImage3D)
-  #endif
 
-  /// OpenGL 1.3 funcs =================------------------------------
+  // OpenGL 1.3 funcs =================------------------------------
   if(major== 1 && minor< 3)
     return;
-  #if(GL_VERSION_1_3== 1)
   GETGLPROCMACRO(glActiveTexture)
   GETGLPROCMACRO(glSampleCoverage)
   GETGLPROCMACRO(glCompressedTexImage3D)
@@ -160,12 +273,10 @@ void getVERfuncs(osiRenderer *r, int major, int minor) {
   GETGLPROCMACRO(glMultTransposeMatrixf)
   GETGLPROCMACRO(glMultTransposeMatrixd)
   #endif /// OS_WIN
-  #endif
 
-  /// OpenGL 1.4 funcs =================------------------------------
+  // OpenGL 1.4 funcs =================------------------------------
   if(major== 1 && minor< 4)
     return;
-  #if(GL_VERSION_1_4== 1)
   GETGLPROCMACRO(glBlendFuncSeparate)
   GETGLPROCMACRO(glMultiDrawArrays)
   GETGLPROCMACRO(glMultiDrawElements)
@@ -173,6 +284,9 @@ void getVERfuncs(osiRenderer *r, int major, int minor) {
   GETGLPROCMACRO(glPointParameterfv)
   GETGLPROCMACRO(glPointParameteri)
   GETGLPROCMACRO(glPointParameteriv)
+  GETGLPROCMACRO(glBlendColor)
+  GETGLPROCMACRO(glBlendEquation)
+  /// deprecated vvv
   GETGLPROCMACRO(glFogCoordf)
   GETGLPROCMACRO(glFogCoordfv)
   GETGLPROCMACRO(glFogCoordd)
@@ -211,14 +325,10 @@ void getVERfuncs(osiRenderer *r, int major, int minor) {
   GETGLPROCMACRO(glWindowPos3iv)
   GETGLPROCMACRO(glWindowPos3s)
   GETGLPROCMACRO(glWindowPos3sv)
-  GETGLPROCMACRO(glBlendColor)
-  GETGLPROCMACRO(glBlendEquation)
-  #endif
 
-  /// OpenGL 1.5 funcs =================------------------------------
+  // OpenGL 1.5 funcs =================------------------------------
   if(major== 1 && minor< 5)
     return;
-  #if(GL_VERSION_1_5== 1)
   GETGLPROCMACRO(glGenQueries)
   GETGLPROCMACRO(glDeleteQueries)
   GETGLPROCMACRO(glIsQuery)
@@ -238,12 +348,10 @@ void getVERfuncs(osiRenderer *r, int major, int minor) {
   GETGLPROCMACRO(glUnmapBuffer)
   GETGLPROCMACRO(glGetBufferParameteriv)
   GETGLPROCMACRO(glGetBufferPointerv)
-  #endif
 
-  /// OpenGL 2.0 funcs =================------------------------------
+  // OpenGL 2.0 funcs =================------------------------------
   if(major< 2)
     return;
-  #if(GL_VERSION_2_0== 1)
   GETGLPROCMACRO(glBlendEquationSeparate)
   GETGLPROCMACRO(glDrawBuffers)
   GETGLPROCMACRO(glStencilOpSeparate)
@@ -337,24 +445,20 @@ void getVERfuncs(osiRenderer *r, int major, int minor) {
   GETGLPROCMACRO(glVertexAttrib4uiv)
   GETGLPROCMACRO(glVertexAttrib4usv)
   GETGLPROCMACRO(glVertexAttribPointer)
-  #endif
 
-  /// OpenGL 2.1 funcs =================------------------------------
+  // OpenGL 2.1 funcs =================------------------------------
   if(major== 2 && minor< 1)
     return;
-  #if(GL_VERSION_2_1== 1)
   GETGLPROCMACRO(glUniformMatrix2x3fv)
   GETGLPROCMACRO(glUniformMatrix3x2fv)
   GETGLPROCMACRO(glUniformMatrix2x4fv)
   GETGLPROCMACRO(glUniformMatrix4x2fv)
   GETGLPROCMACRO(glUniformMatrix3x4fv)
   GETGLPROCMACRO(glUniformMatrix4x3fv)
-  #endif
 
-  /// OpenGL 3.0 funcs =================------------------------------
+  // OpenGL 3.0 funcs =================------------------------------
   if(major< 3)
     return;
-  #if(GL_VERSION_3_0== 1)
   GETGLPROCMACRO(glColorMaski)
   GETGLPROCMACRO(glGetBooleani_v)
   GETGLPROCMACRO(glGetIntegeri_v)
@@ -439,12 +543,10 @@ void getVERfuncs(osiRenderer *r, int major, int minor) {
   GETGLPROCMACRO(glDeleteVertexArrays)
   GETGLPROCMACRO(glGenVertexArrays)
   GETGLPROCMACRO(glIsVertexArray)
-  #endif
 
-  /// OpenGL 3.1 funcs =================------------------------------
+  // OpenGL 3.1 funcs =================------------------------------
   if(major== 3 && minor< 1)
     return;
-  #if(GL_VERSION_3_1== 1)
   GETGLPROCMACRO(glDrawArraysInstanced)
   GETGLPROCMACRO(glDrawElementsInstanced)
   GETGLPROCMACRO(glTexBuffer)
@@ -457,12 +559,10 @@ void getVERfuncs(osiRenderer *r, int major, int minor) {
   GETGLPROCMACRO(glGetActiveUniformBlockiv)
   GETGLPROCMACRO(glGetActiveUniformBlockName)
   GETGLPROCMACRO(glUniformBlockBinding)
-  #endif
 
-  /// OpenGL 3.2 funcs =================------------------------------
+  // OpenGL 3.2 funcs =================------------------------------
   if(major== 3 && minor< 2)
     return;
-  #if(GL_VERSION_3_2== 1)
   GETGLPROCMACRO(glDrawElementsBaseVertex)
   GETGLPROCMACRO(glDrawRangeElementsBaseVertex)
   GETGLPROCMACRO(glDrawElementsInstancedBaseVertex)
@@ -482,12 +582,10 @@ void getVERfuncs(osiRenderer *r, int major, int minor) {
   GETGLPROCMACRO(glTexImage3DMultisample)
   GETGLPROCMACRO(glGetMultisamplefv)
   GETGLPROCMACRO(glSampleMaski)
-  #endif
 
-  /// OpenGL 3.3 funcs =================------------------------------
+  // OpenGL 3.3 funcs =================------------------------------
   if(major== 3 && minor< 3)
     return;
-  #if(GL_VERSION_3_3== 1)
   GETGLPROCMACRO(glBindFragDataLocationIndexed)
   GETGLPROCMACRO(glGetFragDataIndex)
   GETGLPROCMACRO(glGenSamplers)
@@ -516,6 +614,7 @@ void getVERfuncs(osiRenderer *r, int major, int minor) {
   GETGLPROCMACRO(glVertexAttribP3uiv)
   GETGLPROCMACRO(glVertexAttribP4ui)
   GETGLPROCMACRO(glVertexAttribP4uiv)
+  /// deprecated vvv
   GETGLPROCMACRO(glVertexP2ui)
   GETGLPROCMACRO(glVertexP2uiv)
   GETGLPROCMACRO(glVertexP3ui)
@@ -546,12 +645,10 @@ void getVERfuncs(osiRenderer *r, int major, int minor) {
   GETGLPROCMACRO(glColorP4uiv)
   GETGLPROCMACRO(glSecondaryColorP3ui)
   GETGLPROCMACRO(glSecondaryColorP3uiv)
-  #endif
 
-  /// OpenGL 4.0 funcs =================------------------------------
+  // OpenGL 4.0 funcs =================------------------------------
   if(major< 4)
     return;
-  #if(GL_VERSION_4_0== 1)
   GETGLPROCMACRO(glMinSampleShading)
   GETGLPROCMACRO(glBlendEquationi)
   GETGLPROCMACRO(glBlendEquationSeparatei)
@@ -598,12 +695,10 @@ void getVERfuncs(osiRenderer *r, int major, int minor) {
   GETGLPROCMACRO(glBeginQueryIndexed)
   GETGLPROCMACRO(glEndQueryIndexed)
   GETGLPROCMACRO(glGetQueryIndexediv)
-  #endif
 
-  /// OpenGL 4.1 funcs =================------------------------------
+  // OpenGL 4.1 funcs =================------------------------------
   if(major== 4 && minor< 1)
     return;
-  #if(GL_VERSION_4_1== 1)
   GETGLPROCMACRO(glReleaseShaderCompiler)
   GETGLPROCMACRO(glShaderBinary)
   GETGLPROCMACRO(glGetShaderPrecisionFormat)
@@ -692,12 +787,10 @@ void getVERfuncs(osiRenderer *r, int major, int minor) {
   GETGLPROCMACRO(glDepthRangeIndexed)
   GETGLPROCMACRO(glGetFloati_v)
   GETGLPROCMACRO(glGetDoublei_v)
-  #endif
 
-  /// OpenGL 4.2 funcs =================------------------------------
+  // OpenGL 4.2 funcs =================------------------------------
   if(major== 4 && minor< 2)
     return;
-  #if(GL_VERSION_4_2== 1)
   GETGLPROCMACRO(glDrawArraysInstancedBaseInstance)
   GETGLPROCMACRO(glDrawElementsInstancedBaseInstance)
   GETGLPROCMACRO(glDrawElementsInstancedBaseVertexBaseInstance)
@@ -710,12 +803,10 @@ void getVERfuncs(osiRenderer *r, int major, int minor) {
   GETGLPROCMACRO(glTexStorage3D)
   GETGLPROCMACRO(glDrawTransformFeedbackInstanced)
   GETGLPROCMACRO(glDrawTransformFeedbackStreamInstanced)
-  #endif
 
-  /// OpenGL 4.3 funcs =================------------------------------
+  // OpenGL 4.3 funcs =================------------------------------
   if(major== 4 && minor< 3)
     return;
-  #if(GL_VERSION_4_3== 1)
   GETGLPROCMACRO(glClearBufferData)
   GETGLPROCMACRO(glClearBufferSubData)
   GETGLPROCMACRO(glDispatchCompute)
@@ -759,12 +850,10 @@ void getVERfuncs(osiRenderer *r, int major, int minor) {
   GETGLPROCMACRO(glGetObjectLabel)
   GETGLPROCMACRO(glObjectPtrLabel)
   GETGLPROCMACRO(glGetObjectPtrLabel)
-  #endif
 
-  /// OpenGL 4.4 funcs =================------------------------------
+  // OpenGL 4.4 funcs =================------------------------------
   if(major== 4 && minor< 4)
     return;
-  #if(GL_VERSION_4_4== 1)
   GETGLPROCMACRO(glBufferStorage)
   GETGLPROCMACRO(glClearTexImage)
   GETGLPROCMACRO(glClearTexSubImage)
@@ -774,10 +863,124 @@ void getVERfuncs(osiRenderer *r, int major, int minor) {
   GETGLPROCMACRO(glBindSamplers)
   GETGLPROCMACRO(glBindImageTextures)
   GETGLPROCMACRO(glBindVertexBuffers)
-  #endif
 
+  // OpenGL 4.5 funcs =================------------------------------
+  if(major== 4 && minor< 5)
+    return;
+  GETGLPROCMACRO(glClipControl)
+  GETGLPROCMACRO(glCreateTransformFeedbacks)
+  GETGLPROCMACRO(glTransformFeedbackBufferBase)
+  GETGLPROCMACRO(glTransformFeedbackBufferRange)
+  GETGLPROCMACRO(glGetTransformFeedbackiv)
+  GETGLPROCMACRO(glGetTransformFeedbacki_v)
+  GETGLPROCMACRO(glGetTransformFeedbacki64_v)
+  GETGLPROCMACRO(glCreateBuffers)
+  GETGLPROCMACRO(glNamedBufferStorage)
+  GETGLPROCMACRO(glNamedBufferData)
+  GETGLPROCMACRO(glNamedBufferSubData)
+  GETGLPROCMACRO(glCopyNamedBufferSubData)
+  GETGLPROCMACRO(glClearNamedBufferData)
+  GETGLPROCMACRO(glClearNamedBufferSubData)
+  GETGLPROCMACRO(glMapNamedBuffer)
+  GETGLPROCMACRO(glMapNamedBufferRange)
+  GETGLPROCMACRO(glUnmapNamedBuffer)
+  GETGLPROCMACRO(glFlushMappedNamedBufferRange)
+  GETGLPROCMACRO(glGetNamedBufferParameteriv)
+  GETGLPROCMACRO(glGetNamedBufferParameteri64v)
+  GETGLPROCMACRO(glGetNamedBufferPointerv)
+  GETGLPROCMACRO(glGetNamedBufferSubData)
+  GETGLPROCMACRO(glCreateFramebuffers)
+  GETGLPROCMACRO(glNamedFramebufferRenderbuffer)
+  GETGLPROCMACRO(glNamedFramebufferParameteri)
+  GETGLPROCMACRO(glNamedFramebufferTexture)
+  GETGLPROCMACRO(glNamedFramebufferTextureLayer)
+  GETGLPROCMACRO(glNamedFramebufferDrawBuffer)
+  GETGLPROCMACRO(glNamedFramebufferDrawBuffers)
+  GETGLPROCMACRO(glNamedFramebufferReadBuffer)
+  GETGLPROCMACRO(glInvalidateNamedFramebufferData)
+  GETGLPROCMACRO(glInvalidateNamedFramebufferSubData)
+  GETGLPROCMACRO(glClearNamedFramebufferiv)
+  GETGLPROCMACRO(glClearNamedFramebufferuiv)
+  GETGLPROCMACRO(glClearNamedFramebufferfv)
+  GETGLPROCMACRO(glClearNamedFramebufferfi)
+  GETGLPROCMACRO(glBlitNamedFramebuffer)
+  GETGLPROCMACRO(glCheckNamedFramebufferStatus)
+  GETGLPROCMACRO(glGetNamedFramebufferParameteriv)
+  GETGLPROCMACRO(glGetNamedFramebufferAttachmentParameteriv)
+  GETGLPROCMACRO(glCreateRenderbuffers)
+  GETGLPROCMACRO(glNamedRenderbufferStorage)
+  GETGLPROCMACRO(glNamedRenderbufferStorageMultisample)
+  GETGLPROCMACRO(glGetNamedRenderbufferParameteriv)
+  GETGLPROCMACRO(glCreateTextures)
+  GETGLPROCMACRO(glTextureBuffer)
+  GETGLPROCMACRO(glTextureBufferRange)
+  GETGLPROCMACRO(glTextureStorage1D)
+  GETGLPROCMACRO(glTextureStorage2D)
+  GETGLPROCMACRO(glTextureStorage3D)
+  GETGLPROCMACRO(glTextureStorage2DMultisample)
+  GETGLPROCMACRO(glTextureStorage3DMultisample)
+  GETGLPROCMACRO(glTextureSubImage1D)
+  GETGLPROCMACRO(glTextureSubImage2D)
+  GETGLPROCMACRO(glTextureSubImage3D)
+  GETGLPROCMACRO(glCompressedTextureSubImage1D)
+  GETGLPROCMACRO(glCompressedTextureSubImage2D)
+  GETGLPROCMACRO(glCompressedTextureSubImage3D)
+  GETGLPROCMACRO(glCopyTextureSubImage1D)
+  GETGLPROCMACRO(glCopyTextureSubImage2D)
+  GETGLPROCMACRO(glCopyTextureSubImage3D)
+  GETGLPROCMACRO(glTextureParameterf)
+  GETGLPROCMACRO(glTextureParameterfv)
+  GETGLPROCMACRO(glTextureParameteri)
+  GETGLPROCMACRO(glTextureParameterIiv)
+  GETGLPROCMACRO(glTextureParameterIuiv)
+  GETGLPROCMACRO(glTextureParameteriv)
+  GETGLPROCMACRO(glGenerateTextureMipmap)
+  GETGLPROCMACRO(glBindTextureUnit)
+  GETGLPROCMACRO(glGetTextureImage)
+  GETGLPROCMACRO(glGetCompressedTextureImage)
+  GETGLPROCMACRO(glGetTextureLevelParameterfv)
+  GETGLPROCMACRO(glGetTextureLevelParameteriv)
+  GETGLPROCMACRO(glGetTextureParameterfv)
+  GETGLPROCMACRO(glGetTextureParameterIiv)
+  GETGLPROCMACRO(glGetTextureParameterIuiv)
+  GETGLPROCMACRO(glGetTextureParameteriv)
+  GETGLPROCMACRO(glCreateVertexArrays)
+  GETGLPROCMACRO(glDisableVertexArrayAttrib)
+  GETGLPROCMACRO(glEnableVertexArrayAttrib)
+  GETGLPROCMACRO(glVertexArrayElementBuffer)
+  GETGLPROCMACRO(glVertexArrayVertexBuffer)
+  GETGLPROCMACRO(glVertexArrayVertexBuffers)
+  GETGLPROCMACRO(glVertexArrayAttribBinding)
+  GETGLPROCMACRO(glVertexArrayAttribFormat)
+  GETGLPROCMACRO(glVertexArrayAttribIFormat)
+  GETGLPROCMACRO(glVertexArrayAttribLFormat)
+  GETGLPROCMACRO(glVertexArrayBindingDivisor)
+  GETGLPROCMACRO(glGetVertexArrayiv)
+  GETGLPROCMACRO(glGetVertexArrayIndexediv)
+  GETGLPROCMACRO(glGetVertexArrayIndexed64iv)
+  GETGLPROCMACRO(glCreateSamplers)
+  GETGLPROCMACRO(glCreateProgramPipelines)
+  GETGLPROCMACRO(glCreateQueries)
+  GETGLPROCMACRO(glGetQueryBufferObjecti64v)
+  GETGLPROCMACRO(glGetQueryBufferObjectiv)
+  GETGLPROCMACRO(glGetQueryBufferObjectui64v)
+  GETGLPROCMACRO(glGetQueryBufferObjectuiv)
+  GETGLPROCMACRO(glMemoryBarrierByRegion)
+  GETGLPROCMACRO(glGetTextureSubImage)
+  GETGLPROCMACRO(glGetCompressedTextureSubImage)
+  GETGLPROCMACRO(glGetGraphicsResetStatus)
+  GETGLPROCMACRO(glGetnCompressedTexImage)
+  GETGLPROCMACRO(glGetnTexImage)
+  GETGLPROCMACRO(glGetnUniformdv)
+  GETGLPROCMACRO(glGetnUniformfv)
+  GETGLPROCMACRO(glGetnUniformiv)
+  GETGLPROCMACRO(glGetnUniformuiv)
+  GETGLPROCMACRO(glReadnPixels)
+  GETGLPROCMACRO(glTextureBarrier)
+      
   #endif /// OS_MAC ignore
 }
+
 
 
 
@@ -786,8 +989,9 @@ void getVERfuncs(osiRenderer *r, int major, int minor) {
 ///=================================///
 void getOTHERfuncs(osiRenderer *r) {
   #ifndef OS_MAC
-  #ifdef OS_WIN
-  #if(GL_ARB_imaging== 1)
+
+  #ifdef OS_WIN // this is windows only, linux already got this funcs
+  ///#if(GL_ARB_imaging== 1)
   if(r->glOTHERlist[0].avaible) {
     GETGLPROCMACRO(glColorTable)
     GETGLPROCMACRO(glColorTableParameterfv)
@@ -822,9 +1026,9 @@ void getOTHERfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glResetHistogram)
     GETGLPROCMACRO(glResetMinmax)
   }
-  #endif
   #endif /// OS_WIN
-  #if(GL_ARB_bindless_texture== 1)
+
+  ///#if(GL_ARB_bindless_texture== 1)
   if(r->glOTHERlist[1].avaible) {    /// 
     GETGLPROCMACRO(glGetTextureHandleARB)
     GETGLPROCMACRO(glGetTextureSamplerHandleARB)
@@ -843,13 +1047,11 @@ void getOTHERfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glVertexAttribL1ui64vARB)
     GETGLPROCMACRO(glGetVertexAttribLui64vARB)
   }
-  #endif
-  #if(GL_INGR_blend_func_separate== 1)    ///  ?
+  ///#if(GL_INGR_blend_func_separate== 1)    ///  ?
   if(r->glOTHERlist[2].avaible) {
     GETGLPROCMACRO(glBlendFuncSeparateINGR)
   }
-  #endif
-  #if(GL_SGIX_fragment_lighting== 1)    ///  ?
+  ///#if(GL_SGIX_fragment_lighting== 1)    ///  ?
   if(r->glOTHERlist[3].avaible) {
     GETGLPROCMACRO(glFragmentColorMaterialSGIX)
     GETGLPROCMACRO(glFragmentLightfSGIX)
@@ -870,36 +1072,31 @@ void getOTHERfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glGetFragmentMaterialivSGIX)
     GETGLPROCMACRO(glLightEnviSGIX)
   }
-  #endif
-  #if(GL_SGIX_polynomial_ffd== 1)
+  ///#if(GL_SGIX_polynomial_ffd== 1)
   if(r->glOTHERlist[4].avaible) {    /// 
     GETGLPROCMACRO(glDeformationMap3dSGIX)
     GETGLPROCMACRO(glDeformationMap3fSGIX)
     GETGLPROCMACRO(glDeformSGIX)
     GETGLPROCMACRO(glLoadIdentityDeformationMapSGIX)
   }
-  #endif
-  #if(GL_SGIS_point_parameters== 1)
+  ///#if(GL_SGIS_point_parameters== 1)
   if(r->glOTHERlist[5].avaible) {    /// 
     GETGLPROCMACRO(glPointParameterfSGIS)
     GETGLPROCMACRO(glPointParameterfvSGIS)
   }
-  #endif
-  #if(GL_SGIX_igloo_interface== 1)
+  ///#if(GL_SGIX_igloo_interface== 1)
   if(r->glOTHERlist[6].avaible) {    /// 
     GETGLPROCMACRO(glIglooInterfaceSGIX)
 
   }
-  #endif
-  #if(WGL_NV_vertex_array_range== 1)
+  ///#if(WGL_NV_vertex_array_range== 1)
   #ifdef OS_WIN
   if(r->glOTHERlist[7].avaible) {    /// 
     GETGLPROCMACRO(wglAllocateMemoryNV)
     GETGLPROCMACRO(wglFreeMemoryNV)
   }
-  #endif
-
   #endif /// OS_WIN
+
   #endif /// OS_MAC does nothing
 }
 
@@ -910,7 +1107,8 @@ void getOTHERfuncs(osiRenderer *r) {
 ///=============================///
 void getARBfuncs(osiRenderer *r) {
   #ifndef OS_MAC
-  #if(GL_ARB_multitexture== 1)
+
+  ///#if(GL_ARB_multitexture== 1)
   if(r->glARBlist[0].avaible) {             /// #1   http://www.opengl.org/registry/specs/ARB/multitexture.txt
     GETGLPROCMACRO(glActiveTextureARB)
     GETGLPROCMACRO(glClientActiveTextureARB)
@@ -947,20 +1145,18 @@ void getARBfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glMultiTexCoord4sARB)
     GETGLPROCMACRO(glMultiTexCoord4svARB)
   }
-  #endif
-  #if(GLX_ARB_get_proc_address== 1)
+  ///#if(GLX_ARB_get_proc_address== 1)
   //if(r->glARBlist[1].avaible)       /// #2   http://www.opengl.org/registry/specs/ARB/get_proc_address.txt
     //GETGLPROCMACRO(glXGetProcAddressARB)
-  #endif
-  #if(GL_ARB_transpose_matrix== 1)
+  ///#if(GL_ARB_transpose_matrix== 1)
   if(r->glARBlist[2].avaible) {     /// #3   http://www.opengl.org/registry/specs/ARB/transpose_matrix.txt
     GETGLPROCMACRO(glLoadTransposeMatrixfARB)
     GETGLPROCMACRO(glLoadTransposeMatrixdARB)
     GETGLPROCMACRO(glMultTransposeMatrixfARB)
     GETGLPROCMACRO(glMultTransposeMatrixdARB)
   }
-  #endif
-  #if(WGL_ARB_buffer_region== 1)
+  #ifdef OS_WIN
+  ///#if(WGL_ARB_buffer_region== 1)
   if(r->glARBlist[3].avaible) {     /// #4   http://www.opengl.org/registry/specs/ARB/wgl_buffer_region.txt
     GETGLPROCMACRO(wglCreateBufferRegionARB)
     GETGLPROCMACRO(wglDeleteBufferRegionARB)
@@ -968,28 +1164,25 @@ void getARBfuncs(osiRenderer *r) {
     GETGLPROCMACRO(wglRestoreBufferRegionARB)
   }
   #endif
-  #if(GL_ARB_multisample== 1)
+  ///#if(GL_ARB_multisample== 1)
   if(r->glARBlist[4].avaible)         /// #5  GLX_ARB_multisample WGL_ARB_multisample  http://www.opengl.org/registry/specs/ARB/multisample.txt
     GETGLPROCMACRO(glSampleCoverageARB)
-  #endif
-  #if(WGL_ARB_extensions_string== 1)
+  #ifdef OS_WIN
+  ///#if(WGL_ARB_extensions_string== 1)
   if(r->glARBlist[7].avaible)         /// #8  http://www.opengl.org/registry/specs/ARB/wgl_extensions_string.txt
     GETGLPROCMACRO(wglGetExtensionsStringARB)
-  #endif
-  #if(WGL_ARB_pixel_format== 1)
+  ///#if(WGL_ARB_pixel_format== 1)
   if(r->glARBlist[8].avaible) {       /// #9  http://www.opengl.org/registry/specs/ARB/wgl_pixel_format.txt
     GETGLPROCMACRO(wglGetPixelFormatAttribivARB)
     GETGLPROCMACRO(wglGetPixelFormatAttribfvARB)
     GETGLPROCMACRO(wglChoosePixelFormatARB)
   }
-  #endif
-  #if(WGL_ARB_make_current_read== 1)
+  ///#if(WGL_ARB_make_current_read== 1)
   if(r->glARBlist[9].avaible) {       /// #10  http://www.opengl.org/registry/specs/ARB/wgl_make_current_read.txt
     GETGLPROCMACRO(wglMakeContextCurrentARB)
     GETGLPROCMACRO(wglGetCurrentReadDCARB)
   }
-  #endif
-  #if(WGL_ARB_pbuffer== 1)
+  ///#if(WGL_ARB_pbuffer== 1)
   if(r->glARBlist[10].avaible) {      /// #11  http://www.opengl.org/registry/specs/ARB/wgl_pbuffer.txt
     GETGLPROCMACRO(wglCreatePbufferARB)
     GETGLPROCMACRO(wglGetPbufferDCARB)
@@ -997,8 +1190,8 @@ void getARBfuncs(osiRenderer *r) {
     GETGLPROCMACRO(wglDestroyPbufferARB)
     GETGLPROCMACRO(wglQueryPbufferARB)
   }
-  #endif
-  #if(GL_ARB_texture_compression== 1)
+  #endif /// OS_WIN
+  ///#if(GL_ARB_texture_compression== 1)
   if(r->glARBlist[11].avaible) {      /// #12  http://www.opengl.org/registry/specs/ARB/texture_compression.txt
     GETGLPROCMACRO(glCompressedTexImage3DARB)
     GETGLPROCMACRO(glCompressedTexImage2DARB)
@@ -1008,14 +1201,12 @@ void getARBfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glCompressedTexSubImage1DARB)
     GETGLPROCMACRO(glGetCompressedTexImageARB)
   }
-  #endif
-  #if(GL_ARB_point_parameters== 1)
+  ///#if(GL_ARB_point_parameters== 1)
   if(r->glARBlist[13].avaible) {      /// #14  http://www.opengl.org/registry/specs/ARB/point_parameters.txt
     GETGLPROCMACRO(glPointParameterfARB)
     GETGLPROCMACRO(glPointParameterfvARB)
   }
-  #endif
-  #if(GL_ARB_vertex_blend== 1)
+  ///#if(GL_ARB_vertex_blend== 1)
   if(r->glARBlist[14].avaible) {      /// #15  http://www.opengl.org/registry/specs/ARB/vertex_blend.txt
     GETGLPROCMACRO(glWeightbvARB)
     GETGLPROCMACRO(glWeightsvARB)
@@ -1028,8 +1219,7 @@ void getARBfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glWeightPointerARB)
     GETGLPROCMACRO(glVertexBlendARB)
   }
-  #endif
-  #if(GL_ARB_matrix_palette== 1)
+  ///#if(GL_ARB_matrix_palette== 1)
   if(r->glARBlist[15].avaible) {      /// #16  http://www.opengl.org/registry/specs/ARB/matrix_palette.txt
     GETGLPROCMACRO(glCurrentPaletteMatrixARB)
     GETGLPROCMACRO(glMatrixIndexubvARB)
@@ -1037,15 +1227,15 @@ void getARBfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glMatrixIndexuivARB)
     GETGLPROCMACRO(glMatrixIndexPointerARB)
   }
-  #endif
-  #if(WGL_ARB_render_texture== 1)
+  #ifdef OS_WIN
+  ///#if(WGL_ARB_render_texture== 1)
   if(r->glARBlist[19].avaible) {      /// #20  http://www.opengl.org/registry/specs/ARB/wgl_render_texture.txt
     GETGLPROCMACRO(wglBindTexImageARB)
     GETGLPROCMACRO(wglReleaseTexImageARB)
     GETGLPROCMACRO(wglSetPbufferAttribARB)
   }
-  #endif
-  #if(GL_ARB_window_pos== 1)
+  #endif /// OS_WIN
+  ///#if(GL_ARB_window_pos== 1)
   if(r->glARBlist[24].avaible) {      /// #25  http://www.opengl.org/registry/specs/ARB/window_pos.txt
     GETGLPROCMACRO(glWindowPos2dARB)
     GETGLPROCMACRO(glWindowPos2dvARB)
@@ -1064,8 +1254,7 @@ void getARBfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glWindowPos3sARB)
     GETGLPROCMACRO(glWindowPos3svARB)
   }
-  #endif
-  #if(GL_ARB_vertex_program== 1)
+  ///#if(GL_ARB_vertex_program== 1)
   if(r->glARBlist[25].avaible) {      /// #26  http://www.opengl.org/registry/specs/ARB/vertex_program.txt
     GETGLPROCMACRO(glVertexAttrib1dARB)
     GETGLPROCMACRO(glVertexAttrib1dvARB)
@@ -1111,8 +1300,7 @@ void getARBfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glGetVertexAttribivARB)
     GETGLPROCMACRO(glGetVertexAttribPointervARB)
   }
-  #endif
-  #if(GL_ARB_fragment_program== 1)
+  ///#if(GL_ARB_fragment_program== 1)
   if(r->glARBlist[26].avaible) {      /// #27  http://www.opengl.org/registry/specs/ARB/fragment_program.txt
     GETGLPROCMACRO(glProgramStringARB)
     GETGLPROCMACRO(glBindProgramARB)
@@ -1134,8 +1322,7 @@ void getARBfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glGetProgramStringARB)
     GETGLPROCMACRO(glIsProgramARB)
   }
-  #endif
-  #if(GL_ARB_vertex_buffer_object== 1)
+  ///#if(GL_ARB_vertex_buffer_object== 1)
   if(r->glARBlist[27].avaible) {      /// #28  GLX_ARB_vertex_buffer_object http://www.opengl.org/registry/specs/ARB/vertex_buffer_object.txt
     GETGLPROCMACRO(glBindBufferARB)
     GETGLPROCMACRO(glDeleteBuffersARB)
@@ -1149,8 +1336,7 @@ void getARBfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glGetBufferParameterivARB)
     GETGLPROCMACRO(glGetBufferPointervARB)
   }
-  #endif
-  #if(GL_ARB_occlusion_query== 1)
+  ///#if(GL_ARB_occlusion_query== 1)
   if(r->glARBlist[28].avaible) {      /// #29  http://www.opengl.org/registry/specs/ARB/occlusion_query.txt
     GETGLPROCMACRO(glGenQueriesARB)
     GETGLPROCMACRO(glDeleteQueriesARB)
@@ -1161,8 +1347,7 @@ void getARBfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glGetQueryObjectivARB)
     GETGLPROCMACRO(glGetQueryObjectuivARB)
   }
-  #endif
-  #if(GL_ARB_shader_objects== 1)
+  ///#if(GL_ARB_shader_objects== 1)
   if(r->glARBlist[29].avaible) {      /// #30  http://www.opengl.org/registry/specs/ARB/shader_objects.txt
     GETGLPROCMACRO(glDeleteObjectARB)
     GETGLPROCMACRO(glGetHandleARB)
@@ -1204,19 +1389,16 @@ void getARBfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glGetUniformivARB)
     GETGLPROCMACRO(glGetShaderSourceARB)
   }
-  #endif
-  #if(GL_ARB_vertex_shader== 1)
+  ///#if(GL_ARB_vertex_shader== 1)
   if(r->glARBlist[30].avaible){       /// #31  http://www.opengl.org/registry/specs/ARB/vertex_shader.txt
     GETGLPROCMACRO(glBindAttribLocationARB) // doc includes GL_ARB_vertex_program funcs...
     GETGLPROCMACRO(glGetActiveAttribARB)
     GETGLPROCMACRO(glGetAttribLocationARB)
   }
-  #endif
-  #if(GL_ARB_draw_buffers== 1)
+  ///#if(GL_ARB_draw_buffers== 1)
   if(r->glARBlist[36].avaible)        /// #37  http://www.opengl.org/registry/specs/ARB/draw_buffers.txt
     GETGLPROCMACRO(glDrawBuffersARB)
-  #endif
-  #if(GL_ARB_color_buffer_float== 1)
+  ///#if(GL_ARB_color_buffer_float== 1)
   if(r->glARBlist[38].avaible) {      /// #39  WGL_ARB_pixel_format_float GLX_ARB_fbconfig_float http://www.opengl.org/registry/specs/ARB/color_buffer_float.txt
     GETGLPROCMACRO(glClampColorARB)
     #ifdef OS_WIN
@@ -1225,50 +1407,45 @@ void getARBfuncs(osiRenderer *r) {
     GETGLPROCMACRO(wglChoosePixelFormatARB)
     #endif /// OS_WIN
   }
-  #endif
-  #if(GL_ARB_draw_instanced== 1)
+  ///#if(GL_ARB_draw_instanced== 1)
   if(r->glARBlist[43].avaible) {      /// #44  http://www.opengl.org/registry/specs/ARB/draw_instanced.txt
     GETGLPROCMACRO(glDrawArraysInstancedARB)
     GETGLPROCMACRO(glDrawElementsInstancedARB)
   }
-  #endif
-  #if(GL_ARB_geometry_shader4== 1)
+  ///#if(GL_ARB_geometry_shader4== 1)
   if(r->glARBlist[46].avaible) {      /// #47  http://www.opengl.org/registry/specs/ARB/geometry_shader4.txt
     GETGLPROCMACRO(glProgramParameteriARB)
     GETGLPROCMACRO(glFramebufferTextureARB)
     GETGLPROCMACRO(glFramebufferTextureLayerARB)
     GETGLPROCMACRO(glFramebufferTextureFaceARB)
   }
-  #endif
-  #if(GL_ARB_instanced_arrays== 1)
+  ///#if(GL_ARB_instanced_arrays== 1)
   if(r->glARBlist[48].avaible)        /// #49  http://www.opengl.org/registry/specs/ARB/instanced_arrays.txt
     GETGLPROCMACRO(glVertexAttribDivisorARB)
-  #endif
-  #if(GL_ARB_texture_buffer_object== 1)
+  ///#if(GL_ARB_texture_buffer_object== 1)
   if(r->glARBlist[50].avaible)        /// #51  http://www.opengl.org/registry/specs/ARB/texture_buffer_object.txt
     GETGLPROCMACRO(glTexBufferARB)
-  #endif
-  #if(WGL_ARB_create_context== 1)
+  #ifdef OS_WIN
+  ///#if(WGL_ARB_create_context== 1)
   if(r->glARBlist[54].avaible)        /// #55 #74 !!!  !!! WGL_ARB_create_context_profile http://www.opengl.org/registry/specs/ARB/wgl_create_context.txt
     GETGLPROCMACRO(wglCreateContextAttribsARB)
   #endif
-  #if(GLX_ARB_create_context== 1)
+  #ifdef OS_LINUX
+  ///#if(GLX_ARB_create_context== 1)
   if(r->glARBlist[55].avaible)       /// #56 #75  !!! GLX_ARB_create_context_profile http://www.opengl.org/registry/specs/ARB/glx_create_context.txt
     GETGLPROCMACRO(glXCreateContextAttribsARB)
-  #endif
-  #if(GL_ARB_draw_buffers_blend== 1)
+  #endif /// OS_LINUX
+  ///#if(GL_ARB_draw_buffers_blend== 1)
   if(r->glARBlist[68].avaible) {      /// #69  http://www.opengl.org/registry/specs/ARB/draw_buffers_blend.txt
     GETGLPROCMACRO(glBlendEquationiARB)
     GETGLPROCMACRO(glBlendEquationSeparateiARB)
     GETGLPROCMACRO(glBlendFunciARB)
     GETGLPROCMACRO(glBlendFuncSeparateiARB)
   }
-  #endif
-  #if(GL_ARB_sample_shading== 1)
+  ///#if(GL_ARB_sample_shading== 1)
   if(r->glARBlist[69].avaible)        /// #70  http://www.opengl.org/registry/specs/ARB/sample_shading.txt
     GETGLPROCMACRO(glMinSampleShadingARB)
-  #endif
-  #if(GL_ARB_shading_language_include== 1)
+  ///#if(GL_ARB_shading_language_include== 1)
   if(r->glARBlist[75].avaible) {      /// #76  http://www.opengl.org/registry/specs/ARB/shading_language_include.txt
     GETGLPROCMACRO(glNamedStringARB)
     GETGLPROCMACRO(glDeleteNamedStringARB)
@@ -1277,22 +1454,27 @@ void getARBfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glGetNamedStringARB)
     GETGLPROCMACRO(glGetNamedStringivARB)
   }
-  #endif
-  #if(GL_ARB_cl_event== 1)
+  ///#if(GL_ARB_cl_event== 1)
   if(r->glARBlist[102].avaible)        /// #103  http://www.opengl.org/registry/specs/ARB/cl_event.txt
     GETGLPROCMACRO(glCreateSyncFromCLeventARB)
-  #endif
-  #if(GL_ARB_debug_output== 1)
+  ///#if(GL_ARB_debug_output== 1)
   if(r->glARBlist[103].avaible) {      /// #104  http://www.opengl.org/registry/specs/ARB/debug_output.txt
     GETGLPROCMACRO(glDebugMessageControlARB)
     GETGLPROCMACRO(glDebugMessageInsertARB)
     GETGLPROCMACRO(glDebugMessageCallbackARB)
     GETGLPROCMACRO(glGetDebugMessageLogARB)
   }
-  #endif
-  #if(GL_ARB_robustness== 1)
+  ///#if(GL_ARB_robustness== 1)
   if(r->glARBlist[104].avaible) {      /// #105  http://www.opengl.org/registry/specs/ARB/robustness.txt
     GETGLPROCMACRO(glGetGraphicsResetStatusARB)
+    GETGLPROCMACRO(glGetnTexImageARB)
+    GETGLPROCMACRO(glReadnPixelsARB)
+    GETGLPROCMACRO(glGetnCompressedTexImageARB)
+    GETGLPROCMACRO(glGetnUniformfvARB)
+    GETGLPROCMACRO(glGetnUniformivARB)
+    GETGLPROCMACRO(glGetnUniformuivARB)
+    GETGLPROCMACRO(glGetnUniformdvARB)
+    /// deprecated vvv
     GETGLPROCMACRO(glGetnMapdvARB)
     GETGLPROCMACRO(glGetnMapfvARB)
     GETGLPROCMACRO(glGetnMapivARB)
@@ -1300,34 +1482,32 @@ void getARBfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glGetnPixelMapuivARB)
     GETGLPROCMACRO(glGetnPixelMapusvARB)
     GETGLPROCMACRO(glGetnPolygonStippleARB)
-    GETGLPROCMACRO(glGetnTexImageARB)
-    GETGLPROCMACRO(glReadnPixelsARB)
     GETGLPROCMACRO(glGetnColorTableARB)
     GETGLPROCMACRO(glGetnConvolutionFilterARB)
     GETGLPROCMACRO(glGetnSeparableFilterARB)
     GETGLPROCMACRO(glGetnHistogramARB)
     GETGLPROCMACRO(glGetnMinmaxARB)
-    GETGLPROCMACRO(glGetnCompressedTexImageARB)
-    GETGLPROCMACRO(glGetnUniformfvARB)
-    GETGLPROCMACRO(glGetnUniformivARB)
-    GETGLPROCMACRO(glGetnUniformuivARB)
-    GETGLPROCMACRO(glGetnUniformdvARB)
   }
-  #endif
-  #if(GL_ARB_compute_variable_group_size== 1)
+  ///#if(GL_ARB_compute_variable_group_size== 1)
   if(r->glARBlist[152].avaible)        /// #153  http://www.opengl.org/registry/specs/ARB/compute_variable_group_size.txt
     GETGLPROCMACRO(glDispatchComputeGroupSizeARB)    /// shader stuff
-  #endif
-  #if(GL_ARB_indirect_parameters== 1)
+  ///#if(GL_ARB_indirect_parameters== 1)
   if(r->glARBlist[153].avaible) {      /// #154  http://www.opengl.org/registry/specs/ARB/indirect_parameters.txt
     GETGLPROCMACRO(glMultiDrawArraysIndirectCountARB)
     GETGLPROCMACRO(glMultiDrawElementsIndirectCountARB)
   }
-  #endif
-  #if(GL_ARB_sparse_texture== 1)
+  ///#if(GL_ARB_sparse_texture== 1)
   if(r->glARBlist[157].avaible)        /// #158  http://www.opengl.org/registry/specs/ARB/sparse_texture.txt
     GETGLPROCMACRO(glTexPageCommitmentARB)       /// texture memory allocation management
-  #endif
+
+  ///#if(GL_ARB_sparse_buffer== 1)
+  if(r->glARBlist[171].avaible) {      /// #172  http://www.opengl.org/registry/specs/ARB/sparse_buffer.txt
+    /// ' create partially populated textures that would over-subscribe available graphics memory if made fully resident' ... or something, as Butthead would say
+    GETGLPROCMACRO(glBufferPageCommitmentARB)
+    GETGLPROCMACRO(glNamedBufferPageCommitmentEXT)
+    GETGLPROCMACRO(glNamedBufferPageCommitmentARB)
+  }
+
 
   #endif /// OS_MAC ignores everything
 }
@@ -1340,35 +1520,30 @@ void getARBfuncs(osiRenderer *r) {
 void getEXTfuncs(osiRenderer *r) {
   #ifndef OS_MAC
   
-  #if(GL_EXT_blend_color== 1)
+  ///#if(GL_EXT_blend_color== 1)
   if(r->glEXTlist[1].avaible) {    /// #2  http://www.opengl.org/registry/specs/EXT/blend_color.txt
     GETGLPROCMACRO(glBlendColorEXT)
   }
-  #endif
-  #if(GL_EXT_polygon_offset== 1)
+  ///#if(GL_EXT_polygon_offset== 1)
   if(r->glEXTlist[2].avaible) {    /// #3  http://www.opengl.org/registry/specs/EXT/polygon_offset.txt
     GETGLPROCMACRO(glPolygonOffsetEXT)
   }
-  #endif
-  #if(GL_EXT_texture3D== 1)
+  ///#if(GL_EXT_texture3D== 1)
   if(r->glEXTlist[5].avaible) {    /// #6  http://www.opengl.org/registry/specs/EXT/texture3D.txt
     GETGLPROCMACRO(glTexImage3DEXT)
     GETGLPROCMACRO(glTexSubImage3DEXT)
   }
-  #endif
-  #if(GL_SGIS_texture_filter4== 1)
+  ///#if(GL_SGIS_texture_filter4== 1)
   if(r->glEXTlist[6].avaible) {    /// #7  http://www.opengl.org/registry/specs/SGIS/texture_filter4.txt
     GETGLPROCMACRO(glGetTexFilterFuncSGIS)
     GETGLPROCMACRO(glTexFilterFuncSGIS)
   }
-  #endif
-  #if(GL_EXT_subtexture== 1)
+  ///#if(GL_EXT_subtexture== 1)
   if(r->glEXTlist[8].avaible) {    /// #9  http://www.opengl.org/registry/specs/EXT/subtexture.txt
     GETGLPROCMACRO(glTexSubImage1DEXT)
     GETGLPROCMACRO(glTexSubImage2DEXT)
   }
-  #endif
-  #if(GL_EXT_copy_texture== 1)
+  ///#if(GL_EXT_copy_texture== 1)
   if(r->glEXTlist[9].avaible) {    /// #10  http://www.opengl.org/registry/specs/EXT/copy_texture.txt
     GETGLPROCMACRO(glCopyTexImage1DEXT)
     GETGLPROCMACRO(glCopyTexImage2DEXT)
@@ -1376,8 +1551,7 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glCopyTexSubImage2DEXT)
     GETGLPROCMACRO(glCopyTexSubImage3DEXT)
   }
-  #endif
-  #if(GL_EXT_histogram== 1)
+  ///#if(GL_EXT_histogram== 1)
   if(r->glEXTlist[10].avaible) {    /// #11  http://www.opengl.org/registry/specs/EXT/histogram.txt
     GETGLPROCMACRO(glGetHistogramEXT)
     GETGLPROCMACRO(glGetHistogramParameterfvEXT)
@@ -1390,8 +1564,7 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glResetHistogramEXT)
     GETGLPROCMACRO(glResetMinmaxEXT)
   }
-  #endif
-  #if(GL_EXT_convolution== 1)
+  ///#if(GL_EXT_convolution== 1)
   if(r->glEXTlist[11].avaible) {    /// #12  http://www.opengl.org/registry/specs/EXT/convolution.txt
     GETGLPROCMACRO(glConvolutionFilter1DEXT)
     GETGLPROCMACRO(glConvolutionFilter2DEXT)
@@ -1407,8 +1580,7 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glGetSeparableFilterEXT)
     GETGLPROCMACRO(glSeparableFilter2DEXT)
   }
-  #endif
-  #if(GL_SGI_color_table== 1)
+  ///#if(GL_SGI_color_table== 1)
   if(r->glEXTlist[13].avaible) {    /// #14  http://www.opengl.org/registry/specs/SGI/color_table.txt
     GETGLPROCMACRO(glColorTableSGI)
     GETGLPROCMACRO(glColorTableParameterfvSGI)
@@ -1418,8 +1590,7 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glGetColorTableParameterfvSGI)
     GETGLPROCMACRO(glGetColorTableParameterivSGI)
   }
-  #endif
-  #if(GL_SGIS_pixel_texture== 1)
+  ///#if(GL_SGIS_pixel_texture== 1)
   if(r->glEXTlist[14].avaible) {    /// #15 & #15a  GL_SGIX_pixel_texture http://www.opengl.org/registry/specs/SGIS/pixel_texture.txt http://www.opengl.org/registry/specs/SGIX/sgix_pixel_texture.txt
     GETGLPROCMACRO(glPixelTexGenParameteriSGIS)
     GETGLPROCMACRO(glPixelTexGenParameterivSGIS)
@@ -1429,14 +1600,12 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glGetPixelTexGenParameterfvSGIS)
     GETGLPROCMACRO(glPixelTexGenSGIX) /// GL_SGIX_pixel_texture
   }
-  #endif
-  #if(GL_SGIS_texture4D== 1)
+  ///#if(GL_SGIS_texture4D== 1)
   if(r->glEXTlist[15].avaible) {    /// #16  http://www.opengl.org/registry/specs/SGIS/texture4D.txt
     GETGLPROCMACRO(glTexImage4DSGIS)
     GETGLPROCMACRO(glTexSubImage4DSGIS)
   }
-  #endif
-  #if(GL_EXT_texture_object== 1)
+  ///#if(GL_EXT_texture_object== 1)
   if(r->glEXTlist[19].avaible) {    /// #20  http://www.opengl.org/registry/specs/EXT/texture_object.txt
     GETGLPROCMACRO(glAreTexturesResidentEXT)
     GETGLPROCMACRO(glBindTextureEXT)
@@ -1445,26 +1614,22 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glIsTextureEXT)
     GETGLPROCMACRO(glPrioritizeTexturesEXT)
   }
-  #endif
-  #if(GL_SGIS_detail_texture== 1)
+  ///#if(GL_SGIS_detail_texture== 1)
   if(r->glEXTlist[20].avaible) {    /// #21  http://www.opengl.org/registry/specs/SGIS/detail_texture.txt
     GETGLPROCMACRO(glDetailTexFuncSGIS)
     GETGLPROCMACRO(glGetDetailTexFuncSGIS)
   }
-  #endif
-  #if(GL_SGIS_sharpen_texture== 1)
+  ///#if(GL_SGIS_sharpen_texture== 1)
   if(r->glEXTlist[21].avaible) {    /// #22  http://www.opengl.org/registry/specs/SGIS/sharpen_texture.txt
     GETGLPROCMACRO(glSharpenTexFuncSGIS)
     GETGLPROCMACRO(glGetSharpenTexFuncSGIS)
   }
-  #endif
-  #if(GL_SGIS_multisample== 1)
+  ///#if(GL_SGIS_multisample== 1)
   if(r->glEXTlist[24].avaible) {    /// #25  GLX_SGIS_multisample http://www.opengl.org/registry/specs/SGIS/multisample.txt
     GETGLPROCMACRO(glSampleMaskSGIS)
     GETGLPROCMACRO(glSamplePatternSGIS)
   }
-  #endif
-  #if(GL_EXT_vertex_array== 1)
+  ///#if(GL_EXT_vertex_array== 1)
   if(r->glEXTlist[29].avaible) {    /// #30  http://www.opengl.org/registry/specs/EXT/vertex_array.txt
     GETGLPROCMACRO(glArrayElementEXT)
     GETGLPROCMACRO(glColorPointerEXT)
@@ -1476,40 +1641,34 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glTexCoordPointerEXT)
     GETGLPROCMACRO(glVertexPointerEXT)
   }
-  #endif
-  #if(GL_EXT_blend_minmax== 1)
+  ///#if(GL_EXT_blend_minmax== 1)
   if(r->glEXTlist[36].avaible) {    /// #37  http://www.opengl.org/registry/specs/EXT/blend_minmax.txt
     GETGLPROCMACRO(glBlendEquationEXT)
   }
-  #endif
 
   #ifdef OS_LINUX
-  #if(GLX_SGI_swap_control== 1)
+  ///#if(GLX_SGI_swap_control== 1)
   if(r->glEXTlist[39].avaible) {    /// #40  http://www.opengl.org/registry/specs/SGI/swap_control.txt
     GETGLPROCMACRO(glXSwapIntervalSGI)
   }
-  #endif
-  #if(GLX_SGI_video_sync== 1)
+  ///#if(GLX_SGI_video_sync== 1)
   if(r->glEXTlist[40].avaible) {    /// #41  http://www.opengl.org/registry/specs/SGI/video_sync.txt
     GETGLPROCMACRO(glXGetVideoSyncSGI)
     GETGLPROCMACRO(glXWaitVideoSyncSGI)
   }
-  #endif
-  #if(GLX_SGI_make_current_read== 1)
+  ///#if(GLX_SGI_make_current_read== 1)
   if(r->glEXTlist[41].avaible) {    /// #42  http://www.opengl.org/registry/specs/SGI/make_current_read.txt
     GETGLPROCMACRO(glXMakeCurrentReadSGI)
     GETGLPROCMACRO(glXGetCurrentReadDrawableSGI)
   }
-  #endif
-  #if(GLX_SGIX_video_source== 1)
+  ///#if(GLX_SGIX_video_source== 1)
   if(r->glEXTlist[42].avaible) {    /// #43  http://www.opengl.org/registry/specs/SGIX/video_source.txt
     #ifdef _VL_H
     GETGLPROCMACRO(glXCreateGLXVideoSourceSGIX)
     GETGLPROCMACRO(glXDestroyGLXVideoSourceSGIX)
     #endif
   }
-  #endif
-  #if(GLX_EXT_import_context== 1)
+  ///#if(GLX_EXT_import_context== 1)
   if(r->glEXTlist[46].avaible) {    /// #47  http://www.opengl.org/registry/specs/EXT/import_context.txt
     GETGLPROCMACRO(glXGetCurrentDisplayEXT)
     GETGLPROCMACRO(glXQueryContextInfoEXT)
@@ -1517,8 +1676,7 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glXImportContextEXT)
     GETGLPROCMACRO(glXFreeContextEXT)
   }
-  #endif
-  #if(GLX_SGIX_fbconfig== 1)
+  ///#if(GLX_SGIX_fbconfig== 1)
   if(r->glEXTlist[48].avaible) {    /// #49  http://www.opengl.org/registry/specs/SGIX/fbconfig.txt
     GETGLPROCMACRO(glXGetFBConfigAttribSGIX)
     GETGLPROCMACRO(glXChooseFBConfigSGIX)
@@ -1527,8 +1685,7 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glXGetVisualFromFBConfigSGIX)
     GETGLPROCMACRO(glXGetFBConfigFromVisualSGIX)
   }
-  #endif
-  #if(GLX_SGIX_pbuffer== 1)
+  ///#if(GLX_SGIX_pbuffer== 1)
   if(r->glEXTlist[49].avaible) {    /// #50  http://www.opengl.org/registry/specs/SGIX/pbuffer.txt
     GETGLPROCMACRO(glXCreateGLXPbufferSGIX)
     GETGLPROCMACRO(glXDestroyGLXPbufferSGIX)
@@ -1536,24 +1693,21 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glXSelectEventSGIX)
     GETGLPROCMACRO(glXGetSelectedEventSGIX)
   }
-  #endif
   #endif /// OS_LINUX
 
-  #if(GL_SGIX_sprite== 1)
+  ///#if(GL_SGIX_sprite== 1)
   if(r->glEXTlist[51].avaible) {    /// #52  http://www.opengl.org/registry/specs/SGIX/sprite.txt
     GETGLPROCMACRO(glSpriteParameterfSGIX)
     GETGLPROCMACRO(glSpriteParameterfvSGIX)
     GETGLPROCMACRO(glSpriteParameteriSGIX)
     GETGLPROCMACRO(glSpriteParameterivSGIX)
   }
-  #endif
-  #if(GL_EXT_point_parameters== 1)
+  ///#if(GL_EXT_point_parameters== 1)
   if(r->glEXTlist[53].avaible) {    /// #54  http://www.opengl.org/registry/specs/EXT/point_parameters.txt
     GETGLPROCMACRO(glPointParameterfEXT)
     GETGLPROCMACRO(glPointParameterfvEXT)
   }
-  #endif
-  #if(GL_SGIX_instruments== 1)
+  ///#if(GL_SGIX_instruments== 1)
   if(r->glEXTlist[54].avaible) {    /// #55  http://www.opengl.org/registry/specs/SGIX/instruments.txt
     GETGLPROCMACRO(glGetInstrumentsSGIX)
     GETGLPROCMACRO(glInstrumentsBufferSGIX)
@@ -1562,39 +1716,34 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glStartInstrumentsSGIX)
     GETGLPROCMACRO(glStopInstrumentsSGIX)
   }
-  #endif
-  #if(GL_SGIX_framezoom== 1)
+  ///#if(GL_SGIX_framezoom== 1)
   if(r->glEXTlist[56].avaible) {    /// #57  http://www.opengl.org/registry/specs/SGIX/framezoom.txt
     GETGLPROCMACRO(glFrameZoomSGIX)
   }
-  #endif
-  #if(GL_SGIX_tag_sample_buffer== 1)
+  ///#if(GL_SGIX_tag_sample_buffer== 1)
   if(r->glEXTlist[57].avaible) {    /// #58  http://www.opengl.org/registry/specs/SGIX/tag_sample_buffer.txt
     GETGLPROCMACRO(glTagSampleBufferSGIX)
   }
-  #endif
-  #if(GL_SGIX_reference_plane== 1)
+  ///#if(GL_SGIX_reference_plane== 1)
   if(r->glEXTlist[59].avaible) {    /// #60  http://www.opengl.org/registry/specs/SGIX/reference_plane.txt
     GETGLPROCMACRO(glReferencePlaneSGIX)
   }
-  #endif
-  #if(GL_SGIX_flush_raster== 1)
+  ///#if(GL_SGIX_flush_raster== 1)
   if(r->glEXTlist[60].avaible) {    /// #61  http://www.opengl.org/registry/specs/SGIX/flush_raster.txt
     GETGLPROCMACRO(glFlushRasterSGIX)
   }
-  #endif
-  #if(GLX_SGI_cushion== 1)
+  #ifdef OS_LINUX
+  ///#if(GLX_SGI_cushion== 1)
   if(r->glEXTlist[61].avaible) {    /// #62  http://www.opengl.org/registry/specs/SGI/cushion.txt
     GETGLPROCMACRO(glXCushionSGI)
   }
-  #endif
-  #if(GL_SGIS_fog_function== 1)
+  #endif /// OS_LINUX
+  ///#if(GL_SGIS_fog_function== 1)
   if(r->glEXTlist[63].avaible) {    /// #64  http://www.opengl.org/registry/specs/SGIS/fog_func.txt
     GETGLPROCMACRO(glFogFuncSGIS)
     GETGLPROCMACRO(glGetFogFuncSGIS)
   }
-  #endif
-  #if(GL_HP_image_transform== 1)
+  ///#if(GL_HP_image_transform== 1)
   if(r->glEXTlist[65].avaible) {    /// #66  http://www.opengl.org/registry/specs/HP/image_transform.txt
     GETGLPROCMACRO(glImageTransformParameteriHP)
     GETGLPROCMACRO(glImageTransformParameterfHP)
@@ -1603,27 +1752,23 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glGetImageTransformParameterivHP)
     GETGLPROCMACRO(glGetImageTransformParameterfvHP)
   }
-  #endif
-  #if(GL_EXT_color_subtable== 1)
+  ///#if(GL_EXT_color_subtable== 1)
   if(r->glEXTlist[73].avaible) {    /// #74  http://www.opengl.org/registry/specs/EXT/color_subtable.txt
     GETGLPROCMACRO(glColorSubTableEXT)
     GETGLPROCMACRO(glCopyColorSubTableEXT)
   }
-  #endif
-  #if(GL_PGI_misc_hints== 1)
+  ///#if(GL_PGI_misc_hints== 1)
   if(r->glEXTlist[76].avaible) {    /// #77  http://www.opengl.org/registry/specs/PGI/misc_hints.txt
     GETGLPROCMACRO(glHintPGI)
   }
-  #endif
-  #if(GL_EXT_paletted_texture== 1)
+  ///#if(GL_EXT_paletted_texture== 1)
   if(r->glEXTlist[77].avaible) {    /// #78  http://www.opengl.org/registry/specs/EXT/paletted_texture.txt
     GETGLPROCMACRO(glColorTableEXT)
     GETGLPROCMACRO(glGetColorTableEXT)
     GETGLPROCMACRO(glGetColorTableParameterivEXT)
     GETGLPROCMACRO(glGetColorTableParameterfvEXT)
   }
-  #endif
-  #if(GL_SGIX_list_priority== 1)
+  ///#if(GL_SGIX_list_priority== 1)
   if(r->glEXTlist[79].avaible) {    /// #80 incomplete!   http://www.opengl.org/registry/specs/SGIX/list_priority.txt
     GETGLPROCMACRO(glGetListParameterfvSGIX)
     GETGLPROCMACRO(glGetListParameterivSGIX)
@@ -1632,8 +1777,8 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glListParameteriSGIX)
     GETGLPROCMACRO(glListParameterivSGIX)
   }
-  #endif
-  #if(GLX_SGIX_video_resize== 1)
+  #ifdef OS_LINUX
+  ///#if(GLX_SGIX_video_resize== 1)
   if(r->glEXTlist[82].avaible) {    /// #83  http://www.opengl.org/registry/specs/SGIX/video_resize.txt
     GETGLPROCMACRO(glXBindChannelToWindowSGIX)
     GETGLPROCMACRO(glXChannelRectSGIX)
@@ -1641,68 +1786,58 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glXQueryChannelDeltasSGIX)
     GETGLPROCMACRO(glXChannelRectSyncSGIX)
   }
-  #endif
-  #if(GLX_SGIX_dm_buffer== 1)
+  ///#if(GLX_SGIX_dm_buffer== 1)
   if(r->glEXTlist[85].avaible) {    /// #86  incomplete !!!GLX_SGIX_dmbuffer!!! http://www.opengl.org/registry/specs/SGIX/dmbuffer.txt
     #ifdef _DM_BUFFER_H_
     GETGLPROCMACRO(glXAssociateDMPbufferSGIX)
     #endif
   }
-  #endif
-  #if(GLX_SGIX_swap_group== 1)
+  ///#if(GLX_SGIX_swap_group== 1)
   if(r->glEXTlist[90].avaible) {    /// #91  http://www.opengl.org/registry/specs/SGIX/swap_group.txt
     GETGLPROCMACRO(glXJoinSwapGroupSGIX)
   }
-  #endif
-  #if(GLX_SGIX_swap_barrier== 1)
+  ///#if(GLX_SGIX_swap_barrier== 1)
   if(r->glEXTlist[91].avaible) {    /// #92  http://www.opengl.org/registry/specs/SGIX/swap_barrier.txt
     GETGLPROCMACRO(glXBindSwapBarrierSGIX)
     GETGLPROCMACRO(glXQueryMaxSwapBarriersSGIX)
   }
-  #endif
-  #if(GL_EXT_index_material== 1)
+  #endif ///OS_LINUX
+  ///#if(GL_EXT_index_material== 1)
   if(r->glEXTlist[93].avaible) {    /// #94  http://www.opengl.org/registry/specs/EXT/index_material.txt
     GETGLPROCMACRO(glIndexMaterialEXT)
   }
-  #endif
-  #if(GL_EXT_index_func== 1)
+  ///#if(GL_EXT_index_func== 1)
   if(r->glEXTlist[94].avaible) {    /// #95  http://www.opengl.org/registry/specs/EXT/index_func.txt
     GETGLPROCMACRO(glIndexFuncEXT)
   }
-  #endif
-  #if(GL_EXT_compiled_vertex_array== 1)
+  ///#if(GL_EXT_compiled_vertex_array== 1)
   if(r->glEXTlist[96].avaible) {    /// #97 incomplete!   http://www.opengl.org/registry/specs/EXT/compiled_vertex_array.txt
     GETGLPROCMACRO(glLockArraysEXT)
     GETGLPROCMACRO(glUnlockArraysEXT)
   }
-  #endif
-  #if(GL_EXT_cull_vertex== 1)
+  ///#if(GL_EXT_cull_vertex== 1)
   if(r->glEXTlist[97].avaible) {    /// #98 incomplete!  http://www.opengl.org/registry/specs/EXT/cull_vertex.txt
     GETGLPROCMACRO(glCullParameterdvEXT)
     GETGLPROCMACRO(glCullParameterfvEXT)
   }
-  #endif
-  #if(GLU_EXT_nurbs_tessellator== 1)
+  ///#if(GLU_EXT_nurbs_tessellator== 1)
   if(r->glEXTlist[99].avaible) {    // ?? /// #100  http://www.opengl.org/registry/specs/EXT/nurbs_tessellator.txt
     /// #102 inc! GL_EXT_fragment_lighting http://www.opengl.org/registry/specs/EXT/fragment_lighting.txt
     // has funcs but none in glext.h ATM
     /// #112 GL_EXT_draw_range_elements http://www.opengl.org/registry/specs/EXT/draw_range_elements.txt
     GETGLPROCMACRO(glDrawRangeElementsEXT)
   }
-  #endif
-  #if(GL_EXT_light_texture== 1)
+  ///#if(GL_EXT_light_texture== 1)
   if(r->glEXTlist[116].avaible) {    /// #117  http://www.opengl.org/registry/specs/EXT/light_texture.txt
     GETGLPROCMACRO(glApplyTextureEXT)
     GETGLPROCMACRO(glTextureLightEXT)
     GETGLPROCMACRO(glTextureMaterialEXT)
   }
-  #endif
-  #if(GL_EXT_scene_marker== 1)
+  ///#if(GL_EXT_scene_marker== 1)
   if(r->glEXTlist[119].avaible) {    /// #120  GLX_EXT_scene_marker http://www.opengl.org/registry/specs/EXT/scene_marker.txt
     // some funcs but not in glext.h ATM
   }
-  #endif
-  #if(GL_SGIX_async== 1)
+  ///#if(GL_SGIX_async== 1)
   if(r->glEXTlist[131].avaible) {    /// #132 incomplete!  http://www.opengl.org/registry/specs/SGIX/async.txt
     GETGLPROCMACRO(glAsyncMarkerSGIX)
     GETGLPROCMACRO(glFinishAsyncSGIX)
@@ -1711,16 +1846,14 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glDeleteAsyncMarkersSGIX)
     GETGLPROCMACRO(glIsAsyncMarkerSGIX)
   }
-  #endif
-  #if(GL_INTEL_parallel_arrays== 1)
+  ///#if(GL_INTEL_parallel_arrays== 1)
   if(r->glEXTlist[135].avaible) {    /// #136  http://www.opengl.org/registry/specs/INTEL/parallel_arrays.txt
     GETGLPROCMACRO(glVertexPointervINTEL)
     GETGLPROCMACRO(glNormalPointervINTEL)
     GETGLPROCMACRO(glColorPointervINTEL)
     GETGLPROCMACRO(glTexCoordPointervINTEL)
   }
-  #endif
-  #if(GL_EXT_pixel_transform== 1)
+  ///#if(GL_EXT_pixel_transform== 1)
   if(r->glEXTlist[137].avaible) {    /// #138  http://www.opengl.org/registry/specs/EXT/pixel_transform.txt
     GETGLPROCMACRO(glPixelTransformParameteriEXT)
     GETGLPROCMACRO(glPixelTransformParameterfEXT)
@@ -1729,8 +1862,7 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glGetPixelTransformParameterivEXT)
     GETGLPROCMACRO(glGetPixelTransformParameterfvEXT)
   }
-  #endif
-  #if(GL_EXT_secondary_color== 1)
+  ///#if(GL_EXT_secondary_color== 1)
   if(r->glEXTlist[144].avaible) {    /// #145  http://www.opengl.org/registry/specs/EXT/secondary_color.txt
     GETGLPROCMACRO(glSecondaryColor3bEXT)
     GETGLPROCMACRO(glSecondaryColor3bvEXT)
@@ -1750,19 +1882,16 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glSecondaryColor3usvEXT)
     GETGLPROCMACRO(glSecondaryColorPointerEXT)
   }
-  #endif
-  #if(GL_EXT_texture_perturb_normal== 1)
+  ///#if(GL_EXT_texture_perturb_normal== 1)
   if(r->glEXTlist[146].avaible) {    /// #147  http://www.opengl.org/registry/specs/EXT/texture_perturb_normal.txt
     GETGLPROCMACRO(glTextureNormalEXT)
   }
-  #endif
-  #if(GL_EXT_multi_draw_arrays== 1)
+  ///#if(GL_EXT_multi_draw_arrays== 1)
   if(r->glEXTlist[147].avaible) {    /// #148  GL_SUN_multi_draw_arrays http://www.opengl.org/registry/specs/EXT/multi_draw_arrays.txt
     GETGLPROCMACRO(glMultiDrawArraysEXT)
     GETGLPROCMACRO(glMultiDrawElementsEXT)
   }
-  #endif
-  #if(GL_EXT_fog_coord== 1)
+  ///#if(GL_EXT_fog_coord== 1)
   if(r->glEXTlist[148].avaible) {    /// #149  http://www.opengl.org/registry/specs/EXT/fog_coord.txt
     GETGLPROCMACRO(glFogCoordfEXT)
     GETGLPROCMACRO(glFogCoordfvEXT)
@@ -1770,8 +1899,7 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glFogCoorddvEXT)
     GETGLPROCMACRO(glFogCoordPointerEXT)
   }
-  #endif
-  #if(GL_EXT_coordinate_frame== 1)
+  ///#if(GL_EXT_coordinate_frame== 1)
   if(r->glEXTlist[155].avaible) {    /// #156 inc!  http://www.opengl.org/registry/specs/EXT/coordinate_frame.txt
     GETGLPROCMACRO(glTangent3bEXT)
     GETGLPROCMACRO(glTangent3bvEXT)
@@ -1796,13 +1924,11 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glTangentPointerEXT)
     GETGLPROCMACRO(glBinormalPointerEXT)
   }
-  #endif
-  #if(GL_SUNX_constant_data== 1)
+  ///#if(GL_SUNX_constant_data== 1)
   if(r->glEXTlist[162].avaible) {    /// #163  http://www.opengl.org/registry/specs/SUNX/constant_data.txt
     GETGLPROCMACRO(glFinishTextureSUNX)
   }
-  #endif
-  #if(GL_SUN_global_alpha== 1)
+  ///#if(GL_SUN_global_alpha== 1)
   if(r->glEXTlist[163].avaible) {    /// #164  http://www.opengl.org/registry/specs/SUN/global_alpha.txt
     GETGLPROCMACRO(glGlobalAlphaFactorbSUN)
     GETGLPROCMACRO(glGlobalAlphaFactorsSUN)
@@ -1813,8 +1939,7 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glGlobalAlphaFactorusSUN)
     GETGLPROCMACRO(glGlobalAlphaFactoruiSUN)
   }
-  #endif
-  #if(GL_SUN_triangle_list== 1)
+  ///#if(GL_SUN_triangle_list== 1)
   if(r->glEXTlist[164].avaible) {    /// #165  http://www.opengl.org/registry/specs/SUN/triangle_list.txt
     GETGLPROCMACRO(glReplacementCodeuiSUN)
     GETGLPROCMACRO(glReplacementCodeusSUN)
@@ -1824,8 +1949,7 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glReplacementCodeubvSUN)
     GETGLPROCMACRO(glReplacementCodePointerSUN)
   }
-  #endif
-  #if(GL_SUN_vertex== 1)
+  ///#if(GL_SUN_vertex== 1)
   if(r->glEXTlist[165].avaible) {    /// #166  http://www.opengl.org/registry/specs/SUN/vertex.txt
     GETGLPROCMACRO(glColor4ubVertex2fSUN)
     GETGLPROCMACRO(glColor4ubVertex2fvSUN)
@@ -1868,35 +1992,30 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fSUN)
     GETGLPROCMACRO(glReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fvSUN)
   }
-  #endif
   #ifdef OS_WIN
-  #if(WGL_EXT_display_color_table== 1)
+  ///#if(WGL_EXT_display_color_table== 1)
   if(r->glEXTlist[166].avaible) {    /// #167 inc!  http://www.opengl.org/registry/specs/EXT/wgl_display_color_table.txt
     GETGLPROCMACRO(wglCreateDisplayColorTableEXT)
     GETGLPROCMACRO(wglLoadDisplayColorTableEXT)
     GETGLPROCMACRO(wglBindDisplayColorTableEXT)
     GETGLPROCMACRO(wglDestroyDisplayColorTableEXT)
   }
-  #endif
-  #if(WGL_EXT_extensions_string== 1)
+  ///#if(WGL_EXT_extensions_string== 1)
   if(r->glEXTlist[167].avaible) {    /// #168  http://www.opengl.org/registry/specs/EXT/wgl_extensions_string.txt
     GETGLPROCMACRO(wglGetExtensionsStringEXT)
   }
-  #endif
-  #if(WGL_EXT_make_current_read== 1)
+  ///#if(WGL_EXT_make_current_read== 1)
   if(r->glEXTlist[168].avaible) {    /// #169  http://www.opengl.org/registry/specs/EXT/wgl_make_current_read.txt
     GETGLPROCMACRO(wglMakeContextCurrentEXT)
     GETGLPROCMACRO(wglGetCurrentReadDCEXT)
   }
-  #endif
-  #if(WGL_EXT_pixel_format== 1)
+  ///#if(WGL_EXT_pixel_format== 1)
   if(r->glEXTlist[169].avaible) {    /// #170  http://www.opengl.org/registry/specs/EXT/wgl_pixel_format.txt
     GETGLPROCMACRO(wglGetPixelFormatAttribivEXT)
     GETGLPROCMACRO(wglGetPixelFormatAttribfvEXT)
     GETGLPROCMACRO(wglChoosePixelFormatEXT)
   }
-  #endif
-  #if(WGL_EXT_pbuffer== 1)
+  ///#if(WGL_EXT_pbuffer== 1)
   if(r->glEXTlist[170].avaible) {    /// #171  http://www.opengl.org/registry/specs/EXT/wgl_pbuffer.txt
     GETGLPROCMACRO(wglCreatePbufferEXT)
     GETGLPROCMACRO(wglGetPbufferDCEXT)
@@ -1904,38 +2023,34 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(wglDestroyPbufferEXT)
     GETGLPROCMACRO(wglQueryPbufferEXT)
   }
-  #endif
-  #if(WGL_EXT_swap_control== 1)
+  ///#if(WGL_EXT_swap_control== 1)
   if(r->glEXTlist[171].avaible) {    /// #172  http://www.opengl.org/registry/specs/EXT/wgl_swap_control.txt
     GETGLPROCMACRO(wglSwapIntervalEXT)
     GETGLPROCMACRO(wglGetSwapIntervalEXT)
   }
-  #endif
   #endif /// OS_WIN
-  #if(GL_EXT_blend_func_separate== 1)
+  ///#if(GL_EXT_blend_func_separate== 1)
   if(r->glEXTlist[172].avaible) {    /// #173  http://www.opengl.org/registry/specs/EXT/blend_func_separate.txt
     GETGLPROCMACRO(glBlendFuncSeparateEXT)
   }
-  #endif
-  #if(GLX_SUN_get_transparent_index== 1)
+  #ifdef OS_LINUX
+  ///#if(GLX_SUN_get_transparent_index== 1)
   if(r->glEXTlist[182].avaible) {    /// #183  http://www.opengl.org/registry/specs/SUN/get_transparent_index.txt
     GETGLPROCMACRO(glXGetTransparentIndexSUN)
   }
-  #endif
-  #if(GL_EXT_vertex_weighting== 1)
+  #endif /// OS_LINUX
+  ///#if(GL_EXT_vertex_weighting== 1)
   if(r->glEXTlist[187].avaible) {    /// #188  http://www.opengl.org/registry/specs/EXT/vertex_weighting.txt
     GETGLPROCMACRO(glVertexWeightfEXT)
     GETGLPROCMACRO(glVertexWeightfvEXT)
     GETGLPROCMACRO(glVertexWeightPointerEXT)
   }
-  #endif
-  #if(GL_NV_vertex_array_range== 1)
+  ///#if(GL_NV_vertex_array_range== 1)
   if(r->glEXTlist[189].avaible) {    /// #190  http://www.opengl.org/registry/specs/NV/vertex_array_range.txt
     GETGLPROCMACRO(glFlushVertexArrayRangeNV)
     GETGLPROCMACRO(glVertexArrayRangeNV)
   }
-  #endif
-  #if(GL_NV_register_combiners== 1)
+  ///#if(GL_NV_register_combiners== 1)
   if(r->glEXTlist[190].avaible) {    /// #191  http://www.opengl.org/registry/specs/NV/register_combiners.txt
     GETGLPROCMACRO(glCombinerParameterfvNV)
     GETGLPROCMACRO(glCombinerParameterfNV)
@@ -1951,13 +2066,11 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glGetFinalCombinerInputParameterfvNV)
     GETGLPROCMACRO(glGetFinalCombinerInputParameterivNV)
   }
-  #endif
-  #if(GL_MESA_resize_buffers== 1)
+  ///#if(GL_MESA_resize_buffers== 1)
   if(r->glEXTlist[195].avaible) {    /// #196  http://www.opengl.org/registry/specs/MESA/resize_buffers.txt
     GETGLPROCMACRO(glResizeBuffersMESA)
   }
-  #endif
-  #if(GL_MESA_window_pos== 1)
+  ///#if(GL_MESA_window_pos== 1)
   if(r->glEXTlist[196].avaible) {    /// #197  http://www.opengl.org/registry/specs/MESA/window_pos.txt
     GETGLPROCMACRO(glWindowPos2dMESA)
     GETGLPROCMACRO(glWindowPos2dvMESA)
@@ -1984,14 +2097,12 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glWindowPos4sMESA)
     GETGLPROCMACRO(glWindowPos4svMESA)
   }
-  #endif
-  #if(GL_IBM_multimode_draw_arrays== 1)
+  ///#if(GL_IBM_multimode_draw_arrays== 1)
   if(r->glEXTlist[199].avaible) {    /// #200  http://www.opengl.org/registry/specs/IBM/multimode_draw_arrays.txt
     GETGLPROCMACRO(glMultiModeDrawArraysIBM)
     GETGLPROCMACRO(glMultiModeDrawElementsIBM)
   }
-  #endif
-  #if(GL_IBM_vertex_array_lists== 1)
+  ///#if(GL_IBM_vertex_array_lists== 1)
   if(r->glEXTlist[200].avaible) {    /// #201  http://www.opengl.org/registry/specs/IBM/vertex_array_lists.txt
     GETGLPROCMACRO(glColorPointerListIBM)
     GETGLPROCMACRO(glSecondaryColorPointerListIBM)
@@ -2002,44 +2113,38 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glTexCoordPointerListIBM)
     GETGLPROCMACRO(glVertexPointerListIBM)
   }
-  #endif
-  #if(GL_3DFX_tbuffer== 1)
+  ///#if(GL_3DFX_tbuffer== 1)
   if(r->glEXTlist[207].avaible) {    /// #208  http://www.opengl.org/registry/specs/3DFX/tbuffer.txt
     GETGLPROCMACRO(glTbufferMask3DFX)
   }
-  #endif
-  #if(GL_EXT_multisample== 1)
+  ///#if(GL_EXT_multisample== 1)
   if(r->glEXTlist[208].avaible) {    /// #209  WGL_EXT_multisample http://www.opengl.org/registry/specs/EXT/wgl_multisample.txt
     GETGLPROCMACRO(glSampleMaskEXT)
     GETGLPROCMACRO(glSamplePatternEXT)
   }
-  #endif
-  #if(GL_SGIS_texture_color_mask== 1)
+  ///#if(GL_SGIS_texture_color_mask== 1)
   if(r->glEXTlist[213].avaible) {    /// #214  http://www.opengl.org/registry/specs/SGIS/texture_color_mask.txt
     GETGLPROCMACRO(glTextureColorMaskSGIS)
   }
-  #endif
-  #if(GLX_MESA_copy_sub_buffer== 1)
+  #ifdef OS_LINUX
+  ///#if(GLX_MESA_copy_sub_buffer== 1)
   if(r->glEXTlist[214].avaible) {    /// #215  http://www.opengl.org/registry/specs/MESA/copy_sub_buffer.txt
     GETGLPROCMACRO(glXCopySubBufferMESA)
   }
-  #endif
-  #if(GLX_MESA_pixmap_colormap== 1)
+  ///#if(GLX_MESA_pixmap_colormap== 1)
   if(r->glEXTlist[215].avaible) {    /// #216  http://www.opengl.org/registry/specs/MESA/pixmap_colormap.txt
     GETGLPROCMACRO(glXCreateGLXPixmapMESA)
   }
-  #endif
-  #if(GLX_MESA_release_buffers== 1)
+  ///#if(GLX_MESA_release_buffers== 1)
   if(r->glEXTlist[216].avaible) {    /// #217  http://www.opengl.org/registry/specs/MESA/release_buffers.txt
     GETGLPROCMACRO(glXReleaseBuffersMESA)
   }
-  #endif
-  #if(GLX_MESA_set_3dfx_mode== 1)
+  ///#if(GLX_MESA_set_3dfx_mode== 1)
   if(r->glEXTlist[217].avaible) {    /// #218  http://www.opengl.org/registry/specs/MESA/set_3dfx_mode.txt
     GETGLPROCMACRO(glXSet3DfxModeMESA)
   }
-  #endif
-  #if(GL_NV_fence== 1)
+  #endif /// OS_LINUX
+  ///#if(GL_NV_fence== 1)
   if(r->glEXTlist[221].avaible) {    /// #222  http://www.opengl.org/registry/specs/NV/fence.txt
     GETGLPROCMACRO(glDeleteFencesNV)
     GETGLPROCMACRO(glGenFencesNV)
@@ -2049,13 +2154,11 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glFinishFenceNV)
     GETGLPROCMACRO(glSetFenceNV)
   }
-  #endif
-  #if(GL_IBM_static_data== 1)
+  ///#if(GL_IBM_static_data== 1)
   if(r->glEXTlist[222].avaible) {    /// #223  http://www.opengl.org/registry/specs/IBM/static_data.txt
     GETGLPROCMACRO(glFlushStaticDataIBM)
   }
-  #endif
-  #if(GL_NV_evaluators== 1)
+  ///#if(GL_NV_evaluators== 1)
   if(r->glEXTlist[224].avaible) {    /// #225  http://www.opengl.org/registry/specs/NV/evaluators.txt
     GETGLPROCMACRO(glMapControlPointsNV)
     GETGLPROCMACRO(glMapParameterivNV)
@@ -2067,14 +2170,12 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glGetMapAttribParameterfvNV)
     GETGLPROCMACRO(glEvalMapsNV)
   }
-  #endif
-  #if(GL_NV_register_combiners2== 1)
+  ///#if(GL_NV_register_combiners2== 1)
   if(r->glEXTlist[226].avaible) {    /// #227  http://www.opengl.org/registry/specs/NV/register_combiners2.txt
     GETGLPROCMACRO(glCombinerStageParameterfvNV)
     GETGLPROCMACRO(glGetCombinerStageParameterfvNV)
   }
-  #endif
-  #if(GL_NV_vertex_program== 1)
+  ///#if(GL_NV_vertex_program== 1)
   if(r->glEXTlist[232].avaible) {    /// #233  http://www.opengl.org/registry/specs/NV/vertex_program.txt
     GETGLPROCMACRO(glAreProgramsResidentNV)
     GETGLPROCMACRO(glBindProgramNV)
@@ -2141,8 +2242,8 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glVertexAttribs4svNV)
     GETGLPROCMACRO(glVertexAttribs4ubvNV)
   }
-  #endif
-  #if(GLX_OML_sync_control== 1)
+  #ifdef OS_LINUX
+  ///#if(GLX_OML_sync_control== 1)
   if(r->glEXTlist[237].avaible) {    /// #238  http://www.opengl.org/registry/specs/OML/glx_sync_control.txt
     GETGLPROCMACRO(glXGetSyncValuesOML)
     GETGLPROCMACRO(glXGetMscRateOML)
@@ -2150,8 +2251,9 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glXWaitForMscOML)
     GETGLPROCMACRO(glXWaitForSbcOML)
   }
-  #endif
-  #if(WGL_OML_sync_control== 1)
+  #endif /// OS_LINUX
+  #ifdef OS_WIN
+  ///#if(WGL_OML_sync_control== 1)
   if(r->glEXTlist[241].avaible) {    /// #242  http://www.opengl.org/registry/specs/OML/wgl_sync_control.txt
     GETGLPROCMACRO(wglGetSyncValuesOML)
     GETGLPROCMACRO(wglGetMscRateOML)
@@ -2160,16 +2262,15 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(wglWaitForMscOML)
     GETGLPROCMACRO(wglWaitForSbcOML)
   }
-  #endif
-  #if(GL_ATI_envmap_bumpmap== 1)
+  #endif /// OS_WIN
+  ///#if(GL_ATI_envmap_bumpmap== 1)
   if(r->glEXTlist[243].avaible) {    /// #244  http://www.opengl.org/registry/specs/ATI/envmap_bumpmap.txt
     GETGLPROCMACRO(glTexBumpParameterivATI)
     GETGLPROCMACRO(glTexBumpParameterfvATI)
     GETGLPROCMACRO(glGetTexBumpParameterivATI)
     GETGLPROCMACRO(glGetTexBumpParameterfvATI)
   }
-  #endif
-  #if(GL_ATI_fragment_shader== 1)
+  ///#if(GL_ATI_fragment_shader== 1)
   if(r->glEXTlist[244].avaible) {    /// #245  http://www.opengl.org/registry/specs/ATI/fragment_shader.txt
     GETGLPROCMACRO(glGenFragmentShadersATI)
     GETGLPROCMACRO(glBindFragmentShaderATI)
@@ -2186,14 +2287,12 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glAlphaFragmentOp3ATI)
     GETGLPROCMACRO(glSetFragmentShaderConstantATI)
   }
-  #endif
-  #if(GL_ATI_pn_triangles== 1)
+  ///#if(GL_ATI_pn_triangles== 1)
   if(r->glEXTlist[245].avaible) {    /// #246  http://www.opengl.org/registry/specs/ATI/pn_triangles.txt
     GETGLPROCMACRO(glPNTrianglesiATI)
     GETGLPROCMACRO(glPNTrianglesfATI)
   }
-  #endif
-  #if(GL_ATI_vertex_array_object== 1)
+  ///#if(GL_ATI_vertex_array_object== 1)
   if(r->glEXTlist[246].avaible) {    /// #247  http://www.opengl.org/registry/specs/ATI/vertex_array_object.txt
     GETGLPROCMACRO(glNewObjectBufferATI)
     GETGLPROCMACRO(glIsObjectBufferATI)
@@ -2208,8 +2307,7 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glGetVariantArrayObjectfvATI)
     GETGLPROCMACRO(glGetVariantArrayObjectivATI)
   }
-  #endif
-  #if(GL_EXT_vertex_shader== 1)
+  ///#if(GL_EXT_vertex_shader== 1)
   if(r->glEXTlist[247].avaible) {    /// #248  http://www.opengl.org/registry/specs/EXT/vertex_shader.txt
     GETGLPROCMACRO(glBeginVertexShaderEXT)
     GETGLPROCMACRO(glEndVertexShaderEXT)
@@ -2254,8 +2352,7 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glGetLocalConstantIntegervEXT)
     GETGLPROCMACRO(glGetLocalConstantFloatvEXT)
   }
-  #endif
-  #if(GL_ATI_vertex_streams== 1)
+  ///#if(GL_ATI_vertex_streams== 1)
   if(r->glEXTlist[248].avaible) {    /// #249  http://www.opengl.org/registry/specs/ATI/vertex_streams.txt
     GETGLPROCMACRO(glVertexStream1sATI)
     GETGLPROCMACRO(glVertexStream1svATI)
@@ -2303,22 +2400,20 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glVertexBlendEnviATI)
     GETGLPROCMACRO(glVertexBlendEnvfATI)
   }
-  #endif
-  #if(WGL_I3D_digital_video_control== 1)
+  #ifdef OS_WIN
+  ///#if(WGL_I3D_digital_video_control== 1)
   if(r->glEXTlist[249].avaible) {    /// #250  http://www.opengl.org/registry/specs/I3D/wgl_digital_video_control.txt
     GETGLPROCMACRO(wglGetDigitalVideoParametersI3D)
     GETGLPROCMACRO(wglSetDigitalVideoParametersI3D)
   }
-  #endif
-  #if(WGL_I3D_gamma== 1)
+  ///#if(WGL_I3D_gamma== 1)
   if(r->glEXTlist[250].avaible) {    /// #251  http://www.opengl.org/registry/specs/I3D/wgl_gamma.txt
     GETGLPROCMACRO(wglGetGammaTableParametersI3D)
     GETGLPROCMACRO(wglSetGammaTableParametersI3D)
     GETGLPROCMACRO(wglGetGammaTableI3D)
     GETGLPROCMACRO(wglSetGammaTableI3D)
   }
-  #endif
-  #if(WGL_I3D_genlock== 1)
+  ///#if(WGL_I3D_genlock== 1)
   if(r->glEXTlist[251].avaible) {    /// #252  http://www.opengl.org/registry/specs/I3D/wgl_genlock.txt
     GETGLPROCMACRO(wglEnableGenlockI3D)
     GETGLPROCMACRO(wglDisableGenlockI3D)
@@ -2333,44 +2428,39 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(wglGetGenlockSourceDelayI3D)
     GETGLPROCMACRO(wglQueryGenlockMaxSourceDelayI3D)
   }
-  #endif
-  #if(WGL_I3D_image_buffer== 1)
+  ///#if(WGL_I3D_image_buffer== 1)
   if(r->glEXTlist[252].avaible) {    /// #253  http://www.opengl.org/registry/specs/I3D/wgl_image_buffer.txt
     GETGLPROCMACRO(wglCreateImageBufferI3D)
     GETGLPROCMACRO(wglDestroyImageBufferI3D)
     GETGLPROCMACRO(wglAssociateImageBufferEventsI3D)
     GETGLPROCMACRO(wglReleaseImageBufferEventsI3D)
   }
-  #endif
-  #if(WGL_I3D_swap_frame_lock== 1)
+  ///#if(WGL_I3D_swap_frame_lock== 1)
   if(r->glEXTlist[253].avaible) {    /// #254  http://www.opengl.org/registry/specs/I3D/wgl_swap_frame_lock.txt
     GETGLPROCMACRO(wglEnableFrameLockI3D)
     GETGLPROCMACRO(wglDisableFrameLockI3D)
     GETGLPROCMACRO(wglIsEnabledFrameLockI3D)
     GETGLPROCMACRO(wglQueryFrameLockMasterI3D)
   }
-  #endif
-  #if(WGL_I3D_swap_frame_usage== 1)
+  ///#if(WGL_I3D_swap_frame_usage== 1)
   if(r->glEXTlist[254].avaible) {    /// #255  http://www.opengl.org/registry/specs/I3D/wgl_swap_frame_usage.txt
     GETGLPROCMACRO(wglGetFrameUsageI3D)
     GETGLPROCMACRO(wglBeginFrameTrackingI3D)
     GETGLPROCMACRO(wglEndFrameTrackingI3D)
     GETGLPROCMACRO(wglQueryFrameTrackingI3D)
   }
-  #endif
-  #if(GL_ATI_element_array== 1)
+  #endif ///OS_WIN
+  ///#if(GL_ATI_element_array== 1)
   if(r->glEXTlist[255].avaible) {    /// #256  http://www.opengl.org/registry/specs/ATI/element_array.txt
     GETGLPROCMACRO(glElementPointerATI)
     GETGLPROCMACRO(glDrawElementArrayATI)
     GETGLPROCMACRO(glDrawRangeElementArrayATI)
   }
-  #endif
-  #if(GL_SUN_mesh_array== 1)
+  ///#if(GL_SUN_mesh_array== 1)
   if(r->glEXTlist[256].avaible) {    /// #257  http://www.opengl.org/registry/specs/SUN/mesh_array.txt
     GETGLPROCMACRO(glDrawMeshArraysSUN)
   }
-  #endif
-  #if(GL_NV_occlusion_query== 1)
+  ///#if(GL_NV_occlusion_query== 1)
   if(r->glEXTlist[260].avaible) {    /// #261  http://www.opengl.org/registry/specs/NV/occlusion_query.txt
     GETGLPROCMACRO(glGenOcclusionQueriesNV)
     GETGLPROCMACRO(glDeleteOcclusionQueriesNV)
@@ -2380,19 +2470,16 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glGetOcclusionQueryivNV)
     GETGLPROCMACRO(glGetOcclusionQueryuivNV)
   }
-  #endif
-  #if(GL_NV_point_sprite== 1)
+  ///#if(GL_NV_point_sprite== 1)
   if(r->glEXTlist[261].avaible) {    /// #262  http://www.opengl.org/registry/specs/NV/point_sprite.txt
     GETGLPROCMACRO(glPointParameteriNV)
     GETGLPROCMACRO(glPointParameterivNV)
   }
-  #endif
-  #if(GL_EXT_stencil_two_side== 1)
+  ///#if(GL_EXT_stencil_two_side== 1)
   if(r->glEXTlist[267].avaible) {    /// #268  http://www.opengl.org/registry/specs/EXT/stencil_two_side.txt
     GETGLPROCMACRO(glActiveStencilFaceEXT)
   }
-  #endif
-  #if(GL_APPLE_element_array== 1)
+  ///#if(GL_APPLE_element_array== 1)
   if(r->glEXTlist[270].avaible) {    /// #271  http://www.opengl.org/registry/specs/APPLE/element_array.txt
     GETGLPROCMACRO(glElementPointerAPPLE)
     GETGLPROCMACRO(glDrawElementArrayAPPLE)
@@ -2400,8 +2487,7 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glMultiDrawElementArrayAPPLE)
     GETGLPROCMACRO(glMultiDrawRangeElementArrayAPPLE)
   }
-  #endif
-  #if(GL_APPLE_fence== 1)
+  ///#if(GL_APPLE_fence== 1)
   if(r->glEXTlist[271].avaible) {    /// #272  http://www.opengl.org/registry/specs/APPLE/fence.txt
     GETGLPROCMACRO(glGenFencesAPPLE)
     GETGLPROCMACRO(glDeleteFencesAPPLE)
@@ -2412,28 +2498,24 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glTestObjectAPPLE)
     GETGLPROCMACRO(glFinishObjectAPPLE)
   }
-  #endif
-  #if(GL_APPLE_vertex_array_object== 1)
+  ///#if(GL_APPLE_vertex_array_object== 1)
   if(r->glEXTlist[272].avaible) {    /// #273  http://www.opengl.org/registry/specs/APPLE/vertex_array_object.txt
     GETGLPROCMACRO(glBindVertexArrayAPPLE)
     GETGLPROCMACRO(glDeleteVertexArraysAPPLE)
     GETGLPROCMACRO(glGenVertexArraysAPPLE)
     GETGLPROCMACRO(glIsVertexArrayAPPLE)
   }
-  #endif
-  #if(GL_APPLE_vertex_array_range== 1)
+  ///#if(GL_APPLE_vertex_array_range== 1)
   if(r->glEXTlist[273].avaible) {    /// #274  http://www.opengl.org/registry/specs/APPLE/vertex_array_range.txt
     GETGLPROCMACRO(glVertexArrayRangeAPPLE)
     GETGLPROCMACRO(glFlushVertexArrayRangeAPPLE)
     GETGLPROCMACRO(glVertexArrayParameteriAPPLE)
   }
-  #endif
-  #if(GL_ATI_draw_buffers== 1)
+  ///#if(GL_ATI_draw_buffers== 1)
   if(r->glEXTlist[276].avaible) {    /// #277  http://www.opengl.org/registry/specs/ATI/draw_buffers.txt
     GETGLPROCMACRO(glDrawBuffersATI)
   }
-  #endif
-  #if(GL_NV_fragment_program== 1)
+  ///#if(GL_NV_fragment_program== 1)
   if(r->glEXTlist[281].avaible) {    /// #282  http://www.opengl.org/registry/specs/NV/fragment_program.txt
     GETGLPROCMACRO(glProgramNamedParameter4fNV)
     GETGLPROCMACRO(glProgramNamedParameter4fvNV)
@@ -2442,8 +2524,7 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glGetProgramNamedParameterfvNV)
     GETGLPROCMACRO(glGetProgramNamedParameterdvNV)
   }
-  #endif
-  #if(GL_NV_half_float== 1)
+  ///#if(GL_NV_half_float== 1)
   if(r->glEXTlist[282].avaible) {    /// #283  http://www.opengl.org/registry/specs/NV/half_float.txt
     GETGLPROCMACRO(glVertex2hNV)
     GETGLPROCMACRO(glVertex2hvNV)
@@ -2492,39 +2573,33 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glVertexAttribs3hvNV)
     GETGLPROCMACRO(glVertexAttribs4hvNV)
   }
-  #endif
-  #if(GL_NV_pixel_data_range== 1)
+  ///#if(GL_NV_pixel_data_range== 1)
   if(r->glEXTlist[283].avaible) {    /// #284  http://www.opengl.org/registry/specs/NV/pixel_data_range.txt
     GETGLPROCMACRO(glPixelDataRangeNV)
     GETGLPROCMACRO(glFlushPixelDataRangeNV)
   }
-  #endif
-  #if(GL_NV_primitive_restart== 1)
+  ///#if(GL_NV_primitive_restart== 1)
   if(r->glEXTlist[284].avaible) {    /// #285  http://www.opengl.org/registry/specs/NV/primitive_restart.txt
     GETGLPROCMACRO(glPrimitiveRestartNV)
     GETGLPROCMACRO(glPrimitiveRestartIndexNV)
   }
-  #endif
-  #if(GL_ATI_map_object_buffer== 1)
+  ///#if(GL_ATI_map_object_buffer== 1)
   if(r->glEXTlist[287].avaible) {    /// #288  http://www.opengl.org/registry/specs/ATI/map_object_buffer.txt
     GETGLPROCMACRO(glMapObjectBufferATI)
     GETGLPROCMACRO(glUnmapObjectBufferATI)
   }
-  #endif
-  #if(GL_ATI_separate_stencil== 1)
+  ///#if(GL_ATI_separate_stencil== 1)
   if(r->glEXTlist[288].avaible) {    /// #289  http://www.opengl.org/registry/specs/ATI/separate_stencil.txt
     GETGLPROCMACRO(glStencilOpSeparateATI)
     GETGLPROCMACRO(glStencilFuncSeparateATI)
   }
-  #endif
-  #if(GL_ATI_vertex_attrib_array_object== 1)
+  ///#if(GL_ATI_vertex_attrib_array_object== 1)
   if(r->glEXTlist[289].avaible) {    /// #290  http://www.opengl.org/registry/specs/ATI/vertex_attrib_array_object.txt
     GETGLPROCMACRO(glVertexAttribArrayObjectATI)
     GETGLPROCMACRO(glGetVertexAttribArrayObjectfvATI)
     GETGLPROCMACRO(glGetVertexAttribArrayObjectivATI)
   }
-  #endif
-  #if(GL_OES_byte_coordinates== 1)
+  ///#if(GL_OES_byte_coordinates== 1)
   if(r->glEXTlist[290].avaible) {    /// #291  http://www.opengl.org/registry/specs/OES/OES_byte_coordinates.txt
     /* DISABLED UNTIL THEY FIGURE OUT HOW MANY PARAMETERS THEIR FUNCS HAVE
     GETGLPROCMACRO(glMultiTexCoord1bOES)
@@ -2551,8 +2626,7 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glVertex4bvOES)
     */
   }
-  #endif
-  #if(GL_OES_fixed_point== 1)
+  ///#if(GL_OES_fixed_point== 1)
   if(r->glEXTlist[291].avaible) {    /// #292  http://www.opengl.org/registry/specs/OES/OES_fixed_point.txt
     GETGLPROCMACRO(glAlphaFuncxOES)
     GETGLPROCMACRO(glClearColorxOES)
@@ -2659,8 +2733,7 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glVertex4xOES)
     GETGLPROCMACRO(glVertex4xvOES)
   }
-  #endif
-  #if(GL_OES_single_precision== 1)
+  ///#if(GL_OES_single_precision== 1)
   if(r->glEXTlist[292].avaible) {    /// #293  http://www.opengl.org/registry/specs/OES/OES_single_precision.txt
     GETGLPROCMACRO(glClearDepthfOES)
     GETGLPROCMACRO(glClipPlanefOES)
@@ -2669,23 +2742,20 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glGetClipPlanefOES)
     GETGLPROCMACRO(glOrthofOES)
   }
-  #endif
-  #if(GL_OES_query_matrix== 1)
+  ///#if(GL_OES_query_matrix== 1)
   if(r->glEXTlist[295].avaible) {    /// #296  http://www.opengl.org/registry/specs/OES/OES_query_matrix.txt
     GETGLPROCMACRO(glQueryMatrixxOES)
   }
-  #endif
-  #if(GL_EXT_depth_bounds_test== 1)
+  ///#if(GL_EXT_depth_bounds_test== 1)
   if(r->glEXTlist[296].avaible) {    /// #297  http://www.opengl.org/registry/specs/EXT/depth_bounds_test.txt
     GETGLPROCMACRO(glDepthBoundsEXT)
   }
-  #endif
-  #if(GL_EXT_blend_equation_separate== 1)
+  ///#if(GL_EXT_blend_equation_separate== 1)
   if(r->glEXTlist[298].avaible) {    /// #299  http://www.opengl.org/registry/specs/EXT/blend_equation_separate.txt
     GETGLPROCMACRO(glBlendEquationSeparateEXT)
   }
-  #endif
-  #if(GLX_SGIX_hyperpipe== 1)
+  #ifdef OS_LINUX
+  ///#if(GLX_SGIX_hyperpipe== 1)
   if(r->glEXTlist[306].avaible) {    /// #307  http://www.opengl.org/registry/specs/SGIX/hyperpipe_group.txt
     GETGLPROCMACRO(glXQueryHyperpipeNetworkSGIX)
     GETGLPROCMACRO(glXHyperpipeConfigSGIX)
@@ -2696,13 +2766,12 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glXHyperpipeAttribSGIX)
     GETGLPROCMACRO(glXQueryHyperpipeAttribSGIX)
   }
-  #endif
-  #if(GLX_MESA_agp_offset== 1)
+  ///#if(GLX_MESA_agp_offset== 1)
   if(r->glEXTlist[307].avaible) {    /// #308  http://www.opengl.org/registry/specs/MESA/agp_offset.txt
     GETGLPROCMACRO(glXGetAGPOffsetMESA)
   }
-  #endif
-  #if(GL_EXT_framebuffer_object== 1)
+  #endif /// OS_LINUX
+  ///#if(GL_EXT_framebuffer_object== 1)
   if(r->glEXTlist[309].avaible) {    /// #310  http://www.opengl.org/registry/specs/EXT/framebuffer_object.txt
     GETGLPROCMACRO(glIsRenderbufferEXT)
     GETGLPROCMACRO(glBindRenderbufferEXT)
@@ -2722,51 +2791,44 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glGetFramebufferAttachmentParameterivEXT)
     GETGLPROCMACRO(glGenerateMipmapEXT)
   }
-  #endif
-  #if(GL_GREMEDY_string_marker== 1)
+  ///#if(GL_GREMEDY_string_marker== 1)
   if(r->glEXTlist[310].avaible) {    /// #311  http://www.opengl.org/registry/specs/GREMEDY/string_marker.txt
     GETGLPROCMACRO(glStringMarkerGREMEDY)
   }
-  #endif
-  #if(WGL_3DL_stereo_control== 1)
+  #ifdef OS_WIN
+  ///#if(WGL_3DL_stereo_control== 1)
   if(r->glEXTlist[312].avaible) {    /// #313  http://www.opengl.org/registry/specs/3DL/stereo_control.txt
     GETGLPROCMACRO(wglSetStereoEmitterState3DL)
   }
-  #endif
-  #if(GL_EXT_stencil_clear_tag== 1)
+  #endif /// OS_WIN
+  ///#if(GL_EXT_stencil_clear_tag== 1)
   if(r->glEXTlist[313].avaible) {    /// #314  http://www.opengl.org/registry/specs/EXT/stencil_clear_tag.txt
     GETGLPROCMACRO(glStencilClearTagEXT)
   }
-  #endif
-  #if(GL_EXT_framebuffer_blit== 1)
+  ///#if(GL_EXT_framebuffer_blit== 1)
   if(r->glEXTlist[315].avaible) {    /// #316  http://www.opengl.org/registry/specs/EXT/framebuffer_blit.txt
     GETGLPROCMACRO(glBlitFramebufferEXT)
   }
-  #endif
-  #if(GL_EXT_framebuffer_multisample== 1)
+  ///#if(GL_EXT_framebuffer_multisample== 1)
   if(r->glEXTlist[316].avaible) {    /// #317  http://www.opengl.org/registry/specs/EXT/framebuffer_multisample.txt
     GETGLPROCMACRO(glRenderbufferStorageMultisampleEXT)
   }
-  #endif
-  #if(GL_EXT_timer_query== 1)
+  ///#if(GL_EXT_timer_query== 1)
   if(r->glEXTlist[318].avaible) {    /// #319  http://www.opengl.org/registry/specs/EXT/timer_query.txt
     GETGLPROCMACRO(glGetQueryObjecti64vEXT)
     GETGLPROCMACRO(glGetQueryObjectui64vEXT)
   }
-  #endif
-  #if(GL_EXT_gpu_program_parameters== 1)
+  ///#if(GL_EXT_gpu_program_parameters== 1)
   if(r->glEXTlist[319].avaible) {    /// #320  http://www.opengl.org/registry/specs/EXT/gpu_program_parameters.txt
     GETGLPROCMACRO(glProgramEnvParameters4fvEXT)
     GETGLPROCMACRO(glProgramLocalParameters4fvEXT)
   }
-  #endif
-  #if(GL_APPLE_flush_buffer_range== 1)
+  ///#if(GL_APPLE_flush_buffer_range== 1)
   if(r->glEXTlist[320].avaible) {    /// #321  http://www.opengl.org/registry/specs/APPLE/flush_buffer_range.txt
     GETGLPROCMACRO(glBufferParameteriAPPLE)
     GETGLPROCMACRO(glFlushMappedBufferRangeAPPLE)
   }
-  #endif
-  #if(GL_NV_gpu_program4== 1)
+  ///#if(GL_NV_gpu_program4== 1)
   if(r->glEXTlist[321].avaible) {    /// #322  http://www.opengl.org/registry/specs/NV/gpu_program4.txt
     GETGLPROCMACRO(glProgramLocalParameterI4iNV)
     GETGLPROCMACRO(glProgramLocalParameterI4ivNV)
@@ -2785,21 +2847,18 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glGetProgramEnvParameterIivNV)
     GETGLPROCMACRO(glGetProgramEnvParameterIuivNV)
   }
-  #endif
-  #if(GL_NV_geometry_program4== 1)
+  ///#if(GL_NV_geometry_program4== 1)
   if(r->glEXTlist[322].avaible) {    /// #323  http://www.opengl.org/registry/specs/NV/geometry_program4.txt
     GETGLPROCMACRO(glProgramVertexLimitNV)
     GETGLPROCMACRO(glFramebufferTextureEXT)
     GETGLPROCMACRO(glFramebufferTextureLayerEXT)
     GETGLPROCMACRO(glFramebufferTextureFaceEXT)
   }
-  #endif
-  #if(GL_EXT_geometry_shader4== 1)
+  ///#if(GL_EXT_geometry_shader4== 1)
   if(r->glEXTlist[323].avaible) {    /// #324  http://www.opengl.org/registry/specs/EXT/geometry_shader4.txt
     GETGLPROCMACRO(glProgramParameteriEXT)
   }
-  #endif
-  #if(GL_NV_vertex_program4== 1)
+  ///#if(GL_NV_vertex_program4== 1)
   if(r->glEXTlist[324].avaible) {    /// #325  http://www.opengl.org/registry/specs/NV/vertex_program4.txt
     GETGLPROCMACRO(glVertexAttribI1iEXT)
     GETGLPROCMACRO(glVertexAttribI2iEXT)
@@ -2825,8 +2884,7 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glGetVertexAttribIivEXT)
     GETGLPROCMACRO(glGetVertexAttribIuivEXT)
   }
-  #endif
-  #if(GL_EXT_gpu_shader4== 1)
+  ///#if(GL_EXT_gpu_shader4== 1)
   if(r->glEXTlist[325].avaible) {    /// #326  http://www.opengl.org/registry/specs/EXT/gpu_shader4.txt
     GETGLPROCMACRO(glGetUniformuivEXT)
     GETGLPROCMACRO(glBindFragDataLocationEXT)
@@ -2840,43 +2898,36 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glUniform3uivEXT)
     GETGLPROCMACRO(glUniform4uivEXT)
   }
-  #endif
-  #if(GL_EXT_draw_instanced== 1)
+  ///#if(GL_EXT_draw_instanced== 1)
   if(r->glEXTlist[326].avaible) {    /// #327  http://www.opengl.org/registry/specs/EXT/draw_instanced.txt
     GETGLPROCMACRO(glDrawArraysInstancedEXT)
     GETGLPROCMACRO(glDrawElementsInstancedEXT)
   }
-  #endif
-  #if(GL_EXT_texture_buffer_object== 1)
+  ///#if(GL_EXT_texture_buffer_object== 1)
   if(r->glEXTlist[329].avaible) {    /// #330  http://www.opengl.org/registry/specs/EXT/texture_buffer_object.txt
     GETGLPROCMACRO(glTexBufferEXT)
   }
-  #endif
-  #if(GL_NV_depth_buffer_float== 1)
+  ///#if(GL_NV_depth_buffer_float== 1)
   if(r->glEXTlist[333].avaible) {    /// #334  http://www.opengl.org/registry/specs/NV/depth_buffer_float.txt
     GETGLPROCMACRO(glDepthRangedNV)
     GETGLPROCMACRO(glClearDepthdNV)
     GETGLPROCMACRO(glDepthBoundsdNV)
   }
-  #endif
-  #if(GL_NV_framebuffer_multisample_coverage== 1)
+  ///#if(GL_NV_framebuffer_multisample_coverage== 1)
   if(r->glEXTlist[335].avaible) {    /// #336  http://www.opengl.org/registry/specs/NV/framebuffer_multisample_coverage.txt
     GETGLPROCMACRO(glRenderbufferStorageMultisampleCoverageNV)
   }
-  #endif
-  #if(GL_NV_parameter_buffer_object== 1)
+  ///#if(GL_NV_parameter_buffer_object== 1)
   if(r->glEXTlist[338].avaible) {    /// #339  http://www.opengl.org/registry/specs/NV/parameter_buffer_object.txt
     GETGLPROCMACRO(glProgramBufferParametersfvNV)
     GETGLPROCMACRO(glProgramBufferParametersIivNV)
     GETGLPROCMACRO(glProgramBufferParametersIuivNV)
   }
-  #endif
-  #if(GL_EXT_draw_buffers2== 1)
+  ///#if(GL_EXT_draw_buffers2== 1)
   if(r->glEXTlist[339].avaible) {    /// #340  http://www.opengl.org/registry/specs/EXT/draw_buffers2.txt
     GETGLPROCMACRO(glColorMaskIndexedEXT)
   }
-  #endif
-  #if(GL_NV_transform_feedback== 1)
+  ///#if(GL_NV_transform_feedback== 1)
   if(r->glEXTlist[340].avaible) {    /// #341  http://www.opengl.org/registry/specs/NV/transform_feedback.txt
     GETGLPROCMACRO(glBeginTransformFeedbackNV)
     GETGLPROCMACRO(glEndTransformFeedbackNV)
@@ -2891,15 +2942,13 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glGetTransformFeedbackVaryingNV)
     GETGLPROCMACRO(glTransformFeedbackStreamAttribsNV)
   }
-  #endif
-  #if(GL_EXT_bindable_uniform== 1)
+  ///#if(GL_EXT_bindable_uniform== 1)
   if(r->glEXTlist[341].avaible) {    /// #342  http://www.opengl.org/registry/specs/EXT/bindable_uniform.txt
     GETGLPROCMACRO(glUniformBufferEXT)
     GETGLPROCMACRO(glGetUniformBufferSizeEXT)
     GETGLPROCMACRO(glGetUniformOffsetEXT)
   }
-  #endif
-  #if(GL_EXT_texture_integer== 1)
+  ///#if(GL_EXT_texture_integer== 1)
   if(r->glEXTlist[342].avaible) {    /// #343  http://www.opengl.org/registry/specs/EXT/texture_integer.txt
     GETGLPROCMACRO(glTexParameterIivEXT)
     GETGLPROCMACRO(glTexParameterIuivEXT)
@@ -2908,25 +2957,23 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glClearColorIiEXT)
     GETGLPROCMACRO(glClearColorIuiEXT)
   }
-  #endif
-  #if(GLX_EXT_texture_from_pixmap== 1)
+  #ifdef OS_LINUX
+  ///#if(GLX_EXT_texture_from_pixmap== 1)
   if(r->glEXTlist[343].avaible) {    /// #344  http://www.opengl.org/registry/specs/EXT/texture_from_pixmap.txt
     GETGLPROCMACRO(glXBindTexImageEXT)
     GETGLPROCMACRO(glXReleaseTexImageEXT)
   }
-  #endif
-  #if(GL_GREMEDY_frame_terminator== 1)
+  #endif /// OS_LINUX
+  ///#if(GL_GREMEDY_frame_terminator== 1)
   if(r->glEXTlist[344].avaible) {    /// #345  http://www.opengl.org/registry/specs/GREMEDY/frame_terminator.txt
     GETGLPROCMACRO(glFrameTerminatorGREMEDY)
   }
-  #endif
-  #if(GL_NV_conditional_render== 1)
+  ///#if(GL_NV_conditional_render== 1)
   if(r->glEXTlist[345].avaible) {    /// #346  http://www.opengl.org/registry/specs/NV/conditional_render.txt
     GETGLPROCMACRO(glBeginConditionalRenderNV)
     GETGLPROCMACRO(glEndConditionalRenderNV)
   }
-  #endif
-  #if(GL_NV_present_video== 1)
+  ///#if(GL_NV_present_video== 1)
   if(r->glEXTlist[346].avaible) {    /// #347  GLX_NV_present_video WGL_NV_present_video http://www.opengl.org/registry/specs/NV/present_video.txt
     GETGLPROCMACRO(glPresentFrameKeyedNV)
     GETGLPROCMACRO(glPresentFrameDualFillNV)
@@ -2944,8 +2991,8 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(wglQueryCurrentContextNV)
     #endif /// OS_WIN
   }
-  #endif
-  #if(GLX_NV_video_out== 1)
+  #ifdef OS_LINUX
+  ///#if(GLX_NV_video_out== 1)
   if(r->glEXTlist[347].avaible) {    /// #348  http://www.opengl.org/registry/specs/NV/glx_video_output.txt
     GETGLPROCMACRO(glXGetVideoDeviceNV)
     GETGLPROCMACRO(glXReleaseVideoDeviceNV)
@@ -2954,8 +3001,9 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glXSendPbufferToVideoNV)
     GETGLPROCMACRO(glXGetVideoInfoNV)
   }
-  #endif
-  #if(WGL_NV_video_output== 1)
+  #endif /// OS_LINUX
+  #ifdef OS_WIN
+  ///#if(WGL_NV_video_output== 1)
   if(r->glEXTlist[348].avaible) {    /// #349  http://www.opengl.org/registry/specs/NV/wgl_video_output.txt
     GETGLPROCMACRO(wglGetVideoDeviceNV)
     GETGLPROCMACRO(wglReleaseVideoDeviceNV)
@@ -2964,8 +3012,9 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(wglSendPbufferToVideoNV)
     GETGLPROCMACRO(wglGetVideoInfoNV)
   }
-  #endif
-  #if(GLX_NV_swap_group== 1)
+  #endif /// OS_WIN
+  #ifdef OS_LINUX
+  ///#if(GLX_NV_swap_group== 1)
   if(r->glEXTlist[349].avaible) {    /// #350  http://www.opengl.org/registry/specs/NV/glx_swap_group.txt
     GETGLPROCMACRO(glXJoinSwapGroupNV)
     GETGLPROCMACRO(glXBindSwapBarrierNV)
@@ -2974,8 +3023,9 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glXQueryFrameCountNV)
     GETGLPROCMACRO(glXResetFrameCountNV)
   }
-  #endif
-  #if(WGL_NV_swap_group== 1)
+  #endif /// OS_LINUX
+  #ifdef OS_WIN
+  ///#if(WGL_NV_swap_group== 1)
   if(r->glEXTlist[350].avaible) {    /// #351  http://www.opengl.org/registry/specs/NV/wgl_swap_group.txt
     GETGLPROCMACRO(wglJoinSwapGroupNV)
     GETGLPROCMACRO(wglBindSwapBarrierNV)
@@ -2984,8 +3034,8 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(wglQueryFrameCountNV)
     GETGLPROCMACRO(wglResetFrameCountNV)
   }
-  #endif
-  #if(GL_EXT_transform_feedback== 1)
+  #endif /// OS_WIN
+  ///#if(GL_EXT_transform_feedback== 1)
   if(r->glEXTlist[351].avaible) {    /// #352  http://www.opengl.org/registry/specs/EXT/transform_feedback.txt
     GETGLPROCMACRO(glBeginTransformFeedbackEXT)
     GETGLPROCMACRO(glEndTransformFeedbackEXT)
@@ -2995,8 +3045,7 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glTransformFeedbackVaryingsEXT)
     GETGLPROCMACRO(glGetTransformFeedbackVaryingEXT)
   }
-  #endif
-  #if(GL_EXT_direct_state_access== 1)
+  ///#if(GL_EXT_direct_state_access== 1)
   if(r->glEXTlist[352].avaible) {    /// #353  http://www.opengl.org/registry/specs/EXT/direct_state_access.txt
     GETGLPROCMACRO(glMatrixLoadfEXT)
     GETGLPROCMACRO(glMatrixLoaddEXT)
@@ -3254,8 +3303,8 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glTexturePageCommitmentEXT)
     GETGLPROCMACRO(glVertexArrayVertexAttribDivisorEXT)
   }
-  #endif
-  #if(WGL_NV_gpu_affinity== 1)
+  #ifdef OS_WIN
+  ///#if(WGL_NV_gpu_affinity== 1)
   if(r->glEXTlist[354].avaible) {    /// #355  http://www.opengl.org/registry/specs/NV/gpu_affinity.txt
     GETGLPROCMACRO(wglEnumGpusNV)
     GETGLPROCMACRO(wglEnumGpuDevicesNV)
@@ -3263,15 +3312,14 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(wglEnumGpusFromAffinityDCNV)
     GETGLPROCMACRO(wglDeleteDCNV)
   }
-  #endif
-  #if(GL_NV_explicit_multisample== 1)
+  #endif /// OS_WIN
+  ///#if(GL_NV_explicit_multisample== 1)
   if(r->glEXTlist[356].avaible) {    /// #357  http://www.opengl.org/registry/specs/NV/explicit_multisample.txt
     GETGLPROCMACRO(glGetMultisamplefvNV)
     GETGLPROCMACRO(glSampleMaskIndexedNV)
     GETGLPROCMACRO(glTexRenderbufferNV)
   }
-  #endif
-  #if(GL_NV_transform_feedback2== 1)
+  ///#if(GL_NV_transform_feedback2== 1)
   if(r->glEXTlist[357].avaible) {    /// #358  http://www.opengl.org/registry/specs/NV/transform_feedback2.txt
     GETGLPROCMACRO(glBindTransformFeedbackNV)
     GETGLPROCMACRO(glDeleteTransformFeedbacksNV)
@@ -3281,8 +3329,7 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glResumeTransformFeedbackNV)
     GETGLPROCMACRO(glDrawTransformFeedbackNV)
   }
-  #endif
-  #if(GL_AMD_performance_monitor== 1)
+  ///#if(GL_AMD_performance_monitor== 1)
   if(r->glEXTlist[359].avaible) {    /// #360  http://www.opengl.org/registry/specs/AMD/performance_monitor.txt
     GETGLPROCMACRO(glGetPerfMonitorGroupsAMD)
     GETGLPROCMACRO(glGetPerfMonitorCountersAMD)
@@ -3296,8 +3343,8 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glEndPerfMonitorAMD)
     GETGLPROCMACRO(glGetPerfMonitorCounterDataAMD)
   }
-  #endif
-  #if(WGL_AMD_gpu_association== 1)
+  #ifdef OS_WIN
+  ///#if(WGL_AMD_gpu_association== 1)
   if(r->glEXTlist[360].avaible) {    /// #361  http://www.opengl.org/registry/specs/AMD/wgl_gpu_association.txt
     GETGLPROCMACRO(wglGetGPUIDsAMD)
     GETGLPROCMACRO(wglGetGPUInfoAMD)
@@ -3309,33 +3356,29 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(wglGetCurrentAssociatedContextAMD)
     GETGLPROCMACRO(wglBlitContextFramebufferAMD)
   }
-  #endif
-  #if(GL_AMD_vertex_shader_tessellator== 1)
+  #endif /// OS_WIN
+  ///#if(GL_AMD_vertex_shader_tessellator== 1)
   if(r->glEXTlist[362].avaible) {    /// #363  http://www.opengl.org/registry/specs/AMD/vertex_shader_tessellator.txt
     GETGLPROCMACRO(glTessellationFactorAMD)
     GETGLPROCMACRO(glTessellationModeAMD)
   }
-  #endif
-  #if(GL_EXT_provoking_vertex== 1)
+  ///#if(GL_EXT_provoking_vertex== 1)
   if(r->glEXTlist[363].avaible) {    /// #364  http://www.opengl.org/registry/specs/EXT/provoking_vertex.txt
     GETGLPROCMACRO(glProvokingVertexEXT)
   }
-  #endif
-  #if(GL_AMD_draw_buffers_blend== 1)
+  ///#if(GL_AMD_draw_buffers_blend== 1)
   if(r->glEXTlist[365].avaible) {    /// #366  http://www.opengl.org/registry/specs/AMD/draw_buffers_blend.txt
     GETGLPROCMACRO(glBlendFuncIndexedAMD)
     GETGLPROCMACRO(glBlendFuncSeparateIndexedAMD)
     GETGLPROCMACRO(glBlendEquationIndexedAMD)
     GETGLPROCMACRO(glBlendEquationSeparateIndexedAMD)
   }
-  #endif
-  #if(GL_APPLE_texture_range== 1)
+  ///#if(GL_APPLE_texture_range== 1)
   if(r->glEXTlist[366].avaible) {    /// #367  http://www.opengl.org/registry/specs/APPLE/texture_range.txt
     GETGLPROCMACRO(glTextureRangeAPPLE)
     GETGLPROCMACRO(glGetTexParameterPointervAPPLE)
   }
-  #endif
-  #if(GL_APPLE_vertex_program_evaluators== 1)
+  ///#if(GL_APPLE_vertex_program_evaluators== 1)
   if(r->glEXTlist[368].avaible) {    /// #369  http://www.opengl.org/registry/specs/APPLE/vertex_program_evaluators.txt
     GETGLPROCMACRO(glEnableVertexAttribAPPLE)
     GETGLPROCMACRO(glDisableVertexAttribAPPLE)
@@ -3345,15 +3388,13 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glMapVertexAttrib2dAPPLE)
     GETGLPROCMACRO(glMapVertexAttrib2fAPPLE)
   }
-  #endif
-  #if(GL_APPLE_object_purgeable== 1)
+  ///#if(GL_APPLE_object_purgeable== 1)
   if(r->glEXTlist[370].avaible) {    /// #371  http://www.opengl.org/registry/specs/APPLE/object_purgeable.txt
     GETGLPROCMACRO(glObjectPurgeableAPPLE)
     GETGLPROCMACRO(glObjectUnpurgeableAPPLE)
     GETGLPROCMACRO(glGetObjectParameterivAPPLE)
   }
-  #endif
-  #if(GL_NV_video_capture== 1)
+  ///#if(GL_NV_video_capture== 1)
   if(r->glEXTlist[373].avaible) {    /// #374  GLX_NV_video_capture WGL_NV_video_capture http://www.opengl.org/registry/specs/NV/video_capture.txt
     GETGLPROCMACRO(glBeginVideoCaptureNV)
     GETGLPROCMACRO(glBindVideoCaptureStreamBufferNV)
@@ -3382,13 +3423,13 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(wglReleaseVideoCaptureDeviceNV)
     #endif
   }
-  #endif
-  #if(GLX_EXT_swap_control== 1)
+  #ifdef OS_LINUX
+  ///#if(GLX_EXT_swap_control== 1)
   if(r->glEXTlist[374].avaible) {    /// #375  http://www.opengl.org/registry/specs/EXT/swap_control.txt
     GETGLPROCMACRO(glXSwapIntervalEXT)
   }
-  #endif
-  #if(GL_NV_copy_image== 1)
+  #endif /// OS_LINUX
+  ///#if(GL_NV_copy_image== 1)
   if(r->glEXTlist[375].avaible) {    /// #376  WGL_NV_copy_image GLX_NV_copy_image http://www.opengl.org/registry/specs/NV/copy_image.txt
     GETGLPROCMACRO(glCopyImageSubDataNV)
     #ifdef OS_LINUX
@@ -3398,15 +3439,13 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(wglCopyImageSubDataNV)
     #endif
   }
-  #endif
-  #if(GL_EXT_separate_shader_objects== 1)
+  ///#if(GL_EXT_separate_shader_objects== 1)
   if(r->glEXTlist[376].avaible) {    /// #377  http://www.opengl.org/registry/specs/EXT/separate_shader_objects.txt
     GETGLPROCMACRO(glUseShaderProgramEXT)
     GETGLPROCMACRO(glActiveProgramEXT)
     GETGLPROCMACRO(glCreateShaderProgramEXT)
   }
-  #endif
-  #if(GL_NV_shader_buffer_load== 1)
+  ///#if(GL_NV_shader_buffer_load== 1)
   if(r->glEXTlist[378].avaible) {    /// #379  http://www.opengl.org/registry/specs/NV/shader_buffer_load.txt
     GETGLPROCMACRO(glMakeBufferResidentNV)
     GETGLPROCMACRO(glMakeBufferNonResidentNV)
@@ -3422,8 +3461,7 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glProgramUniformui64NV)
     GETGLPROCMACRO(glProgramUniformui64vNV)
   }
-  #endif
-  #if(GL_NV_vertex_buffer_unified_memory== 1)
+  ///#if(GL_NV_vertex_buffer_unified_memory== 1)
   if(r->glEXTlist[379].avaible) {    /// #380  http://www.opengl.org/registry/specs/NV/vertex_buffer_unified_memory.txt
     GETGLPROCMACRO(glBufferAddressRangeNV)
     GETGLPROCMACRO(glVertexFormatNV)
@@ -3438,19 +3476,16 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glVertexAttribIFormatNV)
     GETGLPROCMACRO(glGetIntegerui64i_vNV)
   }
-  #endif
-  #if(GL_NV_texture_barrier== 1)
+  ///#if(GL_NV_texture_barrier== 1)
   if(r->glEXTlist[380].avaible) {    /// #381  http://www.opengl.org/registry/specs/NV/texture_barrier.txt
     GETGLPROCMACRO(glTextureBarrierNV)
   }
-  #endif
-  #if(GL_EXT_shader_image_load_store== 1)
+  ///#if(GL_EXT_shader_image_load_store== 1)
   if(r->glEXTlist[385].avaible) {    /// #386  http://www.opengl.org/registry/specs/EXT/shader_image_load_store.txt
     GETGLPROCMACRO(glBindImageTextureEXT)
     GETGLPROCMACRO(glMemoryBarrierEXT)
   }
-  #endif
-  #if(GL_EXT_vertex_attrib_64bit== 1)
+  ///#if(GL_EXT_vertex_attrib_64bit== 1)
   if(r->glEXTlist[386].avaible) {    /// #387  http://www.opengl.org/registry/specs/EXT/vertex_attrib_64bit.txt
     GETGLPROCMACRO(glVertexAttribL1dEXT)
     GETGLPROCMACRO(glVertexAttribL2dEXT)
@@ -3463,14 +3498,12 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glVertexAttribLPointerEXT)
     GETGLPROCMACRO(glGetVertexAttribLdvEXT)
   }
-  #endif
-  #if(GL_NV_gpu_program5== 1)
+  ///#if(GL_NV_gpu_program5== 1)
   if(r->glEXTlist[387].avaible) {    /// #388  GL_NV_gpu_program_fp64 http://www.opengl.org/registry/specs/NV/gpu_program5.txt
     GETGLPROCMACRO(glProgramSubroutineParametersuivNV)
     GETGLPROCMACRO(glGetProgramSubroutineParameteruivNV)
   }
-  #endif
-  #if(GL_NV_vertex_attrib_integer_64bit== 1)
+  ///#if(GL_NV_vertex_attrib_integer_64bit== 1)
   if(r->glEXTlist[391].avaible) {    /// #392  http://www.opengl.org/registry/specs/NV/vertex_attrib_integer_64bit.txt
     GETGLPROCMACRO(glVertexAttribL1i64NV)
     GETGLPROCMACRO(glVertexAttribL2i64NV)
@@ -3492,23 +3525,20 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glGetVertexAttribLui64vNV)
     GETGLPROCMACRO(glVertexAttribLFormatNV)
   }
-  #endif
-  #if(GL_AMD_name_gen_delete== 1)
+  ///#if(GL_AMD_name_gen_delete== 1)
   if(r->glEXTlist[393].avaible) {    /// #394  http://www.opengl.org/registry/specs/AMD/name_gen_delete.txt
     GETGLPROCMACRO(glGenNamesAMD)
     GETGLPROCMACRO(glDeleteNamesAMD)
     GETGLPROCMACRO(glIsNameAMD)
   }
-  #endif
-  #if(GL_AMD_debug_output== 1)
+  ///#if(GL_AMD_debug_output== 1)
   if(r->glEXTlist[394].avaible) {    /// #395  http://www.opengl.org/registry/specs/AMD/debug_output.txt
     GETGLPROCMACRO(glDebugMessageEnableAMD)
     GETGLPROCMACRO(glDebugMessageInsertAMD)
     GETGLPROCMACRO(glDebugMessageCallbackAMD)
     GETGLPROCMACRO(glGetDebugMessageLogAMD)
   }
-  #endif
-  #if(GL_NV_vdpau_interop== 1)
+  ///#if(GL_NV_vdpau_interop== 1)
   if(r->glEXTlist[395].avaible) {    /// #396  http://www.opengl.org/registry/specs/NV/vdpau_interop.txt
     GETGLPROCMACRO(glVDPAUInitNV)
     GETGLPROCMACRO(glVDPAUFiniNV)
@@ -3521,8 +3551,7 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glVDPAUMapSurfacesNV)
     GETGLPROCMACRO(glVDPAUUnmapSurfacesNV)
   }
-  #endif
-  #if(GL_NV_texture_multisample== 1)
+  ///#if(GL_NV_texture_multisample== 1)
   if(r->glEXTlist[402].avaible) {    /// #403  GL_ missing in registry, asuming mistake http://www.opengl.org/registry/specs/NV/texture_multisample.txt
     GETGLPROCMACRO(glTexImage2DMultisampleCoverageNV)
     GETGLPROCMACRO(glTexImage3DMultisampleCoverageNV)
@@ -3531,18 +3560,16 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glTextureImage2DMultisampleCoverageNV)
     GETGLPROCMACRO(glTextureImage3DMultisampleCoverageNV)
   }
-  #endif
-  #if(GL_AMD_sample_positions== 1)
+  ///#if(GL_AMD_sample_positions== 1)
   if(r->glEXTlist[404].avaible) {    /// #405  http://www.opengl.org/registry/specs/AMD/sample_positions.txt
     GETGLPROCMACRO(glSetMultisamplefvAMD)
   }
-  #endif
-  #if(GL_EXT_x11_sync_object== 1)
+  ///#if(GL_EXT_x11_sync_object== 1)
   if(r->glEXTlist[405].avaible) {    /// #406  http://www.opengl.org/registry/specs/EXT/x11_sync_object.txt
     GETGLPROCMACRO(glImportSyncEXT)
   }
-  #endif
-  #if(WGL_NV_DX_interop== 1)
+  #ifdef OS_WIN
+  ///#if(WGL_NV_DX_interop== 1)
   if(r->glEXTlist[406].avaible) {    /// #407  http://www.opengl.org/registry/specs/NV/DX_interop.txt
     GETGLPROCMACRO(wglDXSetResourceShareHandleNV)
     GETGLPROCMACRO(wglDXOpenDeviceNV)
@@ -3553,14 +3580,13 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(wglDXLockObjectsNV)
     GETGLPROCMACRO(wglDXUnlockObjectsNV)
   }
-  #endif
-  #if(GL_AMD_multi_draw_indirect== 1)
+  #endif /// OS_WIN
+  ///#if(GL_AMD_multi_draw_indirect== 1)
   if(r->glEXTlist[407].avaible) {    /// #408  http://www.opengl.org/registry/specs/AMD/multi_draw_indirect.txt
     GETGLPROCMACRO(glMultiDrawArraysIndirectAMD)
     GETGLPROCMACRO(glMultiDrawElementsIndirectAMD)
   }
-  #endif
-  #if(GL_NV_path_rendering== 1)
+  ///#if(GL_NV_path_rendering== 1)
   if(r->glEXTlist[409].avaible) {    /// #410  http://www.opengl.org/registry/specs/NV/path_rendering.txt
     GETGLPROCMACRO(glGenPathsNV)
     GETGLPROCMACRO(glDeletePathsNV)
@@ -3612,13 +3638,11 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glGetPathLengthNV)
     GETGLPROCMACRO(glPointAlongPathNV)
   }
-  #endif
-  #if(GL_AMD_stencil_operation_extended== 1)
+  ///#if(GL_AMD_stencil_operation_extended== 1)
   if(r->glEXTlist[412].avaible) {    /// #413  http://www.opengl.org/registry/specs/AMD/stencil_operation_extended.txt
     GETGLPROCMACRO(glStencilOpValueAMD)
   }
-  #endif
-  #if(GL_NV_bindless_texture== 1)
+  ///#if(GL_NV_bindless_texture== 1)
   if(r->glEXTlist[417].avaible) {    /// #418  http://www.opengl.org/registry/specs/NV/bindless_texture.txt
     GETGLPROCMACRO(glGetTextureHandleNV)
     GETGLPROCMACRO(glGetTextureSamplerHandleNV)
@@ -3634,72 +3658,62 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glIsTextureHandleResidentNV)
     GETGLPROCMACRO(glIsImageHandleResidentNV)
   }
-  #endif
-  #if(GL_NVX_conditional_render== 1)
+  ///#if(GL_NVX_conditional_render== 1)
   if(r->glEXTlist[424].avaible) {    /// #425  http://www.opengl.org/registry/specs/NVX/nvx_conditional_render.txt
     GETGLPROCMACRO(glBeginConditionalRenderNVX)
     GETGLPROCMACRO(glEndConditionalRenderNVX)
   }
-  #endif
-  #if(GL_AMD_sparse_texture== 1)
+  ///#if(GL_AMD_sparse_texture== 1)
   if(r->glEXTlist[425].avaible) {    /// #426  http://www.opengl.org/registry/specs/AMD/sparse_texture.txt
     GETGLPROCMACRO(glTexStorageSparseAMD)
     GETGLPROCMACRO(glTextureStorageSparseAMD)
   }
-  #endif
-  #if(GL_INTEL_map_texture== 1)
+  ///#if(GL_INTEL_map_texture== 1)
   if(r->glEXTlist[428].avaible) {    /// #429  http://www.opengl.org/registry/specs/INTEL/map_texture.txt
     GETGLPROCMACRO(glSyncTextureINTEL)
     GETGLPROCMACRO(glUnmapTexture2DINTEL)
     GETGLPROCMACRO(glMapTexture2DINTEL)
   }
-  #endif
-  #if(GL_NV_draw_texture== 1)
+  ///#if(GL_NV_draw_texture== 1)
   if(r->glEXTlist[429].avaible) {    /// #430  http://www.opengl.org/registry/specs/NV/draw_texture.txt
     GETGLPROCMACRO(glDrawTextureNV)
   }
-  #endif
-  #if(GL_AMD_interleaved_elements== 1)
+  ///#if(GL_AMD_interleaved_elements== 1)
   if(r->glEXTlist[430].avaible) {    /// #431  http://www.opengl.org/registry/specs/AMD/interleaved_elements.txt
     GETGLPROCMACRO(glVertexAttribParameteriAMD)
   }
-  #endif
-  #if(GL_NV_bindless_multi_draw_indirect== 1)
+  ///#if(GL_NV_bindless_multi_draw_indirect== 1)
   if(r->glEXTlist[431].avaible) {    /// #432  http://www.opengl.org/registry/specs/NV/bindless_multi_draw_indirect.txt
     GETGLPROCMACRO(glMultiDrawArraysIndirectBindlessNV)
     GETGLPROCMACRO(glMultiDrawElementsIndirectBindlessNV)
   }
-  #endif
-  #if(GL_NV_blend_equation_advanced== 1)
+  ///#if(GL_NV_blend_equation_advanced== 1)
   if(r->glEXTlist[432].avaible) {    /// #433  GL_NV_blend_equation_advanced_coherent http://www.opengl.org/registry/specs/NV/blend_equation_advanced.txt
     GETGLPROCMACRO(glBlendParameteriNV)
     GETGLPROCMACRO(glBlendBarrierNV)
   }
-  #endif
-  #if(WGL_NV_delay_before_swap== 1)
+  #ifdef OS_WIN
+  ///#if(WGL_NV_delay_before_swap== 1)
   if(r->glEXTlist[435].avaible) {    /// #436  http://www.opengl.org/registry/specs/NV/wgl_delay_before_swap.txt
     GETGLPROCMACRO(wglDelayBeforeSwapNV)
   }
-  #endif
-  #if(GL_EXT_debug_label== 1)
+  #endif /// OS_WIN
+  ///#if(GL_EXT_debug_label== 1)
   if(r->glEXTlist[438].avaible) {    /// #439  http://www.opengl.org/registry/specs/EXT/EXT_debug_label.txt
     GETGLPROCMACRO(glLabelObjectEXT)
     GETGLPROCMACRO(glGetObjectLabelEXT)
   }
-  #endif
-  #if(GL_EXT_debug_marker== 1)
+  ///#if(GL_EXT_debug_marker== 1)
   if(r->glEXTlist[439].avaible) {    /// #440  http://www.opengl.org/registry/specs/EXT/EXT_debug_marker.txt
     GETGLPROCMACRO(glInsertEventMarkerEXT)
     GETGLPROCMACRO(glPushGroupMarkerEXT)
     GETGLPROCMACRO(glPopGroupMarkerEXT)
   }
-  #endif
-  #if(GL_AMD_occlusion_query_event== 1)
+  ///#if(GL_AMD_occlusion_query_event== 1)
   if(r->glEXTlist[441].avaible) {    /// #442  http://www.opengl.org/registry/specs/AMD/occlusion_query_event.txt
     GETGLPROCMACRO(glQueryObjectParameteruiAMD)
   }
-  #endif
-  #if(GL_INTEL_performance_query== 1)
+  ///#if(GL_INTEL_performance_query== 1)
   if(r->glEXTlist[442].avaible) {    /// #443  http://www.opengl.org/registry/specs/INTEL/performance_query.txt
     /* DISABLED
     GETGLPROCMACRO(glBeginPerfQueryINTEL)
@@ -3714,8 +3728,7 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glGetPerfQueryInfoINTEL)
     */
   }
-  #endif
-  #if(GL_AMD_gpu_shader_int64== 1)
+  ///#if(GL_AMD_gpu_shader_int64== 1)
   if(r->glEXTlist[450].avaible) {    /// #451  http://www.opengl.org/registry/specs/AMD/gpu_shader_int64.txt
     GETGLPROCMACRO(glUniform1i64NV)
     GETGLPROCMACRO(glUniform2i64NV)
@@ -3752,10 +3765,10 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glProgramUniform3ui64vNV)
     GETGLPROCMACRO(glProgramUniform4ui64vNV)
   }
-  #endif
 
   #endif /// OS_MAC ignore
 }
+
 
 
 

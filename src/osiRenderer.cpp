@@ -1,4 +1,5 @@
-﻿#include "osinteraction.h"
+//#define OSI_USE_OPENGL_LEGACY
+#include "osinteraction.h"
 #include "util/typeShortcuts.h"
         
 using namespace Str;
@@ -40,7 +41,7 @@ osiRenderer *osinteraction::assignRenderer(osiWindow *w) {
   //   "PIXEL FORMATS CAN BE SET ONLY ONCE ON A WINDOW."
   //   there's a RedrawWindow or updateWindow, if stuff don't work
 
-
+  
 
   // make shure w and w's monitor are not null
   if(!w) return null;
@@ -92,7 +93,7 @@ osiRenderer *osinteraction::assignRenderer(osiWindow *w) {
   }
   //else if(settings.renderer.noAutocreateRenderer)     // do not create any renderer
     //; // do nothing
-
+  
   #ifdef OS_WIN
   /// create a front buffer for the window
   if(!_createFrontBuffer(w, r)) { error.simple("Cannot create a front buffer for the window"); goto Failed; }
@@ -229,7 +230,7 @@ void osinteraction::delRenderer(osiRenderer *r) {
 /// big stack for arguments, to avoid memory corruption - hopefully no function has more than 24* sizeof(void *) argument size...
 void *glExtNULL(void *a, void *b, void *c, void *d, void *e, void *f, void *g, void *h, void *i, void *j, void *k, void *l, void *m, void *n, void *o, void *p, void *q, void *r, void *s, void *t, void *u, void *v, void *x, void *y, void *z) {     /// it has a big stack for arguments
   // this can be further customized to pop an error, or mark an error somewhere
-  printf("glExtNULL func called!!! - a oGL func that the system could not aquire a pointer too, was called\n");
+  printf("glExtNULL func called!!! - a oGL func that the system could not aquire a pointer to, was called\n");
   return null;
 }
 
@@ -245,20 +246,23 @@ template<class T> void setGlProcNULL(T& address) {
 
 
 
-#ifdef OS_WIN
+
 osiWindow *_createTmpWin(osiMonitor *m) {
+  osiWindow *w= new osiWindow;
+  w->x0= m->y0+ 10;
+  w->y0= m->y0+ 10;
+  w->dx= 50;
+  w->dy= 50;
+  w->name= "_glTmpWindow";
+  w->mode= 1;
+  w->monitor= m;
+  
+  #ifdef OS_WIN
   GLuint PixelFormat;   // Holds The Results After Searching For A Match
   WNDCLASS wc;          // Windows Class Structure
   DWORD dwExStyle;      // Window Extended Style
   DWORD dwStyle;        // Window Style
   RECT rect;            // Grabs Rectangle Upper Left / Lower Right Values
-
-  osiWindow *w= new osiWindow;
-  w->x0= m->y0;
-  w->y0= m->y0;
-  w->dx= 50;
-  w->dy= 50;
-  w->name= "_glTmpWindow";
 
   rect.left=   w->x0;
   rect.right=  w->x0+ 50;
@@ -349,6 +353,95 @@ osiWindow *_createTmpWin(osiMonitor *m) {
   w->glr= r;
 
   return w;
+  #endif /// OS_WIN
+
+  
+  #ifdef OS_LINUX
+  Colormap cmap;
+  XSetWindowAttributes swa;
+  
+  w->_root= m->_root;                                        // 'desktop window'
+  w->_dis= osi._dis;                                        // XServer connection
+
+  
+  GLXFBConfig *fbc= null;   // window front buffer  
+  int nfbc;                 // nr of compatible front buffers returned
+
+  int attr[]= {
+    GLX_RENDER_TYPE,   GLX_RGBA_BIT,
+    GLX_X_VISUAL_TYPE, GLX_TRUE_COLOR,
+    GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT,
+    GLX_RED_SIZE,      8,
+    GLX_GREEN_SIZE,    8,
+    GLX_BLUE_SIZE,     8,
+    GLX_ALPHA_SIZE,    8,
+    GLX_DEPTH_SIZE,    16,
+    GLX_STENCIL_SIZE,  8,
+    0  /// terminator
+  };
+  
+  fbc= glXChooseFBConfig(osi._dis, w->monitor->_screen, attr, &nfbc);
+  if(!fbc || !nfbc) { error.simple("Failed to retrieve any framebuffer configs with current settings"); delete w; return null; }
+
+  if(w->_vi) XFree(w->_vi);
+  w->_vi= null;
+  w->_fbID= 0;
+
+  /// find a FB that can have a visual - not all can have visuals
+  for(int a= 0; a< nfbc; a++) {
+    w->_vi= glXGetVisualFromFBConfig(osi._dis, fbc[a]);
+    if(!w->_vi) continue;
+    w->_fbID= fbc[a];
+    break;
+  }
+  XFree(fbc);
+
+  if((!w->_vi)|| (!w->_fbID)) { error.simple("No visual/front buffer config found with current settings"); delete w; return null; }
+  
+  /// color map (not shure what's this doing anymore)
+  cmap= XCreateColormap(w->_dis, w->_root, w->_vi->visual, AllocNone);
+  swa.colormap= cmap;
+  
+  swa.event_mask= ExposureMask|                       // redraw events
+                  StructureNotifyMask;                // probly the default, a parent must have this I THINK
+                  //EnterWindowMask| LeaveWindowMask|   // mouse enters window &other stuff like this
+                  //FocusChangeMask|                    // gain/lose focus
+                  //KeyPressMask| KeyReleaseMask|       // keyboard
+                  //ButtonPressMask| ButtonReleaseMask| // mouse buttons
+                  //PointerMotionMask;                  // mouse motion
+    
+  w->_win= XCreateWindow(w->_dis, w->_root,
+                         w->x0, osi.display.vdy- osi.display.vy0- (w->y0+ w->dy), w->dx, w->dy,     // position & size (coord unification fixed)
+                         0,                              // border size
+                         w->_vi->depth,                  // depth can be CopyFromParent
+                         InputOutput,                    // InputOnly/ InputOutput/ CopyFromParent
+                         w->_vi->visual,                 // can be CopyFromParent
+                         CWColormap| CWEventMask,        // tied with &swa
+                         &swa);                          //
+
+
+  w->_setWMstate(1, "_NET_WM_STATE_SKIP_TASKBAR");
+  XStoreName(w->_dis, w->_win, w->name);         /// window name (top bar description/name)
+
+  w->isCreated= true;
+  
+  /// create a temporary legacy context that will be used to aquire the func pointers
+  osiRenderer *r= new osiRenderer;
+  r->glContext= glXCreateContext(w->_dis, w->_vi, null, True);
+  #endif ///OS_LINUX
+
+  #ifndef OS_MAC
+  if(!r->glContext) {
+    error.simple("tmpWindow: Can't create temporary context");
+    delete r;
+    delete w;
+    return null;
+  }
+  w->glr= r;
+
+  return w;
+  #endif
+  return null;    /// macs will return null
 }
 
 
@@ -366,7 +459,10 @@ void osiRenderer::_copyContextFuncs(osiRenderer *r) {
   #endif
 }
 */
-#endif /// OS_WIN
+
+
+
+
 
 
 bool _getContextFuncs(osiMonitor *m, osiRenderer *r) {
@@ -374,25 +470,55 @@ bool _getContextFuncs(osiMonitor *m, osiRenderer *r) {
   // maybe some kind of querry...
   return true;
   #else // OS_WIN + OS_LINUX
-
+  
   if(!r) return false;
+
+  bool ret= true;     /// the return value, this will be used for various checks
 
   int major, minor;
 
   uint8 buf[128];
   cuint8 *ext;
   cuint8 *p= null;
+
+  // set the current renderer to r, and get crucial functions - these funcs MUST be avaible
+  _glr= r;
+
   
-  #ifdef OS_WIN
+  
+
   if(!m) return false;
   /// under windows, a temporary window must be created
   osiWindow *t= _createTmpWin(m);
   osi.glMakeCurrent(t->glr, t);
-  getGlProc("wglGetExtensionsStringARB", (void **)&r->glExt.wglGetExtensionsStringARB);      /// make shure this func is avaible
-  #endif
 
-  osi.glGetVersion(&major, &minor);
+  /// get crucial funcs for the temporary context of the window
+  ret= getGlProc("glGetString", (void **)&t->glr->glExt.glGetString);
+  if(!ret) { error.simple("_getContextFuncs(): Cannot get glGetString"); return false; }
+  ret= getGlProc("glGetIntegerv", (void **)&t->glr->glExt.glGetIntegerv);
+  if(!ret) { error.simple("_getContextFuncs(): Cannot get glGetIntegerv"); return false; }
+  ret= getGlProc("glGetError", (void **)&t->glr->glExt.glGetError);
+  if(!ret) { error.simple("_getContextFuncs(): Cannot get glGetError"); return false; }
+
+  /// get the same critical funcs for the r renderer - t and r are on the same monitor, they share the same gr card contexts, same pointers
+  ret= getGlProc("glGetString", (void **)&r->glExt.glGetString);
+  if(!ret) { error.simple("_getContextFuncs(): Cannot get glGetString"); return false; }
+  ret= getGlProc("glGetIntegerv", (void **)&r->glExt.glGetIntegerv);
+  if(!ret) { error.simple("_getContextFuncs(): Cannot get glGetIntegerv"); return false; }
+  ret= getGlProc("glGetError", (void **)&r->glExt.glGetError);
+  if(!ret) { error.simple("_getContextFuncs(): Cannot get glGetError"); return false; }
+
   
+  
+  
+  
+  #ifdef OS_WIN
+  getGlProc("wglGetExtensionsStringARB", (void **)&r->glExt.wglGetExtensionsStringARB);      /// make shure this func is avaible
+  #endif /// OS_WIN
+
+  
+  osi.glGetVersion(&major, &minor);
+
   /// 2 ways to get extensions, 1 for ogl less than 3, another for ogl 3 and bigger
   // ogl <3 ===---
   if(major< 3) {
@@ -401,7 +527,7 @@ bool _getContextFuncs(osiMonitor *m, osiRenderer *r) {
 
     while(p) {
       /// parse 1 extension at a time
-      for(short a= 0; a< 128; a++) {
+      for(int a= 0; a< 128; a++) {
         if(*p== ' ' || *p== '\0') {                 /// extension delimiter or end of string
           buf[a]= 0;
           break;
@@ -428,13 +554,23 @@ bool _getContextFuncs(osiMonitor *m, osiRenderer *r) {
 
   // ogl 3> ===---
   } else {
-    getGlProc("glGetStringi", (void**)&r->glExt.glGetStringi);      /// make shure this func is avaible
+    
+    ret= getGlProc("glGetStringi", (void**)&r->glExt.glGetStringi);      /// make shure this func is avaible
+    if(!ret) { error.simple("_getContextFuncs(): Cannot get glGetStringi"); return false; }
+    
+    GLenum error;
 
     int max;
     glGetIntegerv(GL_NUM_EXTENSIONS, &max);
     
-    for(short a= 0; a< max; a++) {
-      ext= (cuint8 *)r->glExt.glGetStringi(GL_EXTENSIONS, a);
+    error = glGetError();
+    if (error != GL_NO_ERROR) printf("OpenGL Error: %d\n", error);
+ 
+    
+    for(int a= 0; a< max; a++) {
+      ext= (cuint8 *)(((PFNGLGETSTRINGIPROC)r->glExt.glGetStringi)(GL_EXTENSIONS, a));
+      error = glGetError();
+      if (error != GL_NO_ERROR) printf("OpenGL Error: %d\n", error);
 
       /// WGL_ARB_create_context / WGL_ARB_create_context_profile http://www.opengl.org/registry/specs/ARB/wgl_create_context.txt
       if(!strcmp8(ext, r->glARBlist[54].desc) || !strcmp8(ext, "WGL_ARB_create_context_profile"))
@@ -454,7 +590,7 @@ bool _getContextFuncs(osiMonitor *m, osiRenderer *r) {
 
   #ifdef OS_WIN
   if(r->glExt.wglGetExtensionsStringARB)
-    ext= (cuint8 *)r->glExt.wglGetExtensionsStringARB(wglGetCurrentDC());
+    ext= (cuint8 *)((PFNWGLGETEXTENSIONSSTRINGARBPROC)r->glExt.wglGetExtensionsStringARB)(wglGetCurrentDC());
   #endif
 
   #ifdef OS_LINUX
@@ -508,10 +644,8 @@ bool _getContextFuncs(osiMonitor *m, osiRenderer *r) {
     getGlProc("glXCreateContextAttribsARB", (void **)&r->glExt.glXCreateContextAttribsARB);
   #endif /// OS_LINUX
 
-  #ifdef OS_WIN
   osi.glMakeCurrent(null, null);
   _delTmpWin(t);
-  #endif /// OS_WIN
 
   #endif  /// OS_WIN + OS_LINUX
   return true;
@@ -598,7 +732,7 @@ bool _createFrontBuffer(osiWindow *w, osiRenderer *r) {
   int pfID= 0;
   UINT retNrFormats;
   
-  if(!r->glExt.wglChoosePixelFormatARB(w->_hDC, pfAtr, null, 1, &pfID, &retNrFormats)) {
+  if(!((PFNWGLCHOOSEPIXELFORMATARBPROC)r->glExt.wglChoosePixelFormatARB)(w->_hDC, pfAtr, null, 1, &pfID, &retNrFormats)) {
     // try WinGDI ChoosePixelFormat can be done here - this func calls wglChoosePixelFormatARB, nowadays
     /*    
     if (!(PixelFormat= ChoosePixelFormat(w->_hDC, &pfd))) {  /// lots of checks, don't think any needed
@@ -725,7 +859,7 @@ bool _createContext(osiWindow *w, osiRenderer *r) {
       attr[n++]= WGL_CONTEXT_FLAGS_ARB; attr[n++]= WGL_CONTEXT_DEBUG_BIT_ARB; }
     attr[n]= 0;
         
-    r->glContext= r->glExt.wglCreateContextAttribsARB(w->_hDC, (osi.settings.renderer.shareGroup? osi.settings.renderer.shareGroup->glContext: NULL), attr);
+    r->glContext= ((PFNWGLCREATECONTEXTATTRIBSARBPROC)r->glExt.wglCreateContextAttribsARB)(w->_hDC, (osi.settings.renderer.shareGroup? osi.settings.renderer.shareGroup->glContext: NULL), attr);
     if(!r->glContext) return false;
   }
   #endif /// OS_WIN
@@ -756,7 +890,7 @@ bool _createContext(osiWindow *w, osiRenderer *r) {
     }
     attr[n]= 0;
 
-    r->glContext= r->glExt.glXCreateContextAttribsARB(osi._dis, w->_fbID, (osi.settings.renderer.shareGroup? osi.settings.renderer.shareGroup->glContext: NULL), True, attr);
+    r->glContext= ((PFNGLXCREATECONTEXTATTRIBSARBPROC)r->glExt.glXCreateContextAttribsARB)(osi._dis, w->_fbID, (osi.settings.renderer.shareGroup? osi.settings.renderer.shareGroup->glContext: NULL), True, attr);
   }
   #endif /// OS_LINUX
 
@@ -852,7 +986,7 @@ osiRenderer::osiRenderer()
 
   #ifndef OS_MAC // OS_WIN + OS_LINUX
   /// set all glExt funcs to point to the glExtNULL func (defined in osiGlExt.cpp)
-  void **p= (void **)&glExt.glDrawRangeElements;      // glDrawRangeElements must be the first func in the structure
+  void **p= (void **)&glExt._start;      // _start must be the first func in the structure
   for(int a= 0; a< ((sizeof(glExt)- sizeof(int8))/ sizeof(void *)); a++) {
     *p= (void*)&glExtNULL;
     p++;
@@ -922,7 +1056,7 @@ void osiRenderer::checkExt() {
   
   cuint8 *ext= null;
 
-
+  
   /// basic renderer characteristics
   glVendor= (cuint8 *)glGetString(GL_VENDOR);                    /// graphics card vendor string
   glRenderer= (cuint8 *)glGetString(GL_RENDERER);                /// oGL 'renderer' string
@@ -933,7 +1067,10 @@ void osiRenderer::checkExt() {
   glGetIntegerv(GL_MAJOR_VERSION, &glVerMajor);                 /// oGL major version
   glGetIntegerv(GL_MINOR_VERSION, &glVerMinor);                 /// oGL minor version
   #endif 
-  glGetIntegerv(GL_MAX_TEXTURE_UNITS_ARB, &maxTexelUnits);      /// maximum texel units
+  
+  // deprecated glGetIntegerv(GL_MAX_TEXTURE_UNITS_ARB, &maxTexelUnits);      /// maximum texel units
+  glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &maxTexelUnits);      /// maximum texel units
+  
   glGetIntegerv(GL_MAX_3D_TEXTURE_SIZE, &max3Dtexture);     /// maximum 3D texture size
 
   if(chatty) printf("context[%lld]\n", (long long)(this->glContext));
@@ -960,7 +1097,7 @@ void osiRenderer::checkExt() {
     glGetIntegerv(GL_NUM_EXTENSIONS, &max);
 
     for(short a= 0; a< max; a++) {
-      ext= (cuint8 *)glGetStringi(GL_EXTENSIONS, a);
+      ext= (cuint8 *)((PFNGLGETSTRINGIPROC)glExt.glGetStringi)(GL_EXTENSIONS, a);
       _parseExtString(this, (cchar *)ext);
     } /// pass thru all extension strings
     #endif /// linux + win
@@ -972,7 +1109,7 @@ void osiRenderer::checkExt() {
   getGlProc("wglGetExtensionsStringARB", (void **)&glExt.wglGetExtensionsStringARB);      /// make shure this func is avaible
 
   if(glExt.wglGetExtensionsStringARB) {
-    ext= (cuint8 *)glExt.wglGetExtensionsStringARB(wglGetCurrentDC());
+    ext= (cuint8 *)((PFNWGLGETEXTENSIONSSTRINGARBPROC)glExt.wglGetExtensionsStringARB)(wglGetCurrentDC());
     _parseBigExtString(this, (cchar *)ext);
   }
   #endif /// OS_WIN
@@ -1051,7 +1188,7 @@ void _parseBigExtString(osiRenderer *r, cchar *ext) {
 void osiRenderer::getExtFuncs() {
   if(glExt.initialized) return;             /// if functions already aquired, just return
   
-  getVERfuncs(this, glVerMajor, glVerMinor);/// gl1.2 to current
+  getVERfuncs(this, glVerMajor, glVerMinor);/// gl1.0 to current
   getARBfuncs(this);                        /// all ARB or KHR funcs
   getEXTfuncs(this);                        /// all EXT and vendor funcs
   getOTHERfuncs(this);                      /// all funcs not in ARB or EXT

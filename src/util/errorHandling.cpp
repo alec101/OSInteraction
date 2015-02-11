@@ -62,6 +62,11 @@ void ErrorHandling::delData() {
 }
 
 
+#ifdef USING_OPENGL
+void ErrorHandling::glFlushErrors() { glGetError(); }
+#endif
+
+
 void ErrorHandling::simple(cchar *txt, bool exit, void (*exitFunc)(void)) {
 
 // print to ConsoleClass

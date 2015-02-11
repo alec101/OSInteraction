@@ -6,15 +6,15 @@
 
 # Macros
 TOP=`pwd`
-CND_PLATFORM=clang-Linux-x86
+CND_PLATFORM=GNU-Linux-x86
 CND_CONF=linux32R
 CND_DISTDIR=dist
 CND_BUILDDIR=build
 CND_DLIB_EXT=so
 NBTMPDIR=${CND_BUILDDIR}/${CND_CONF}/${CND_PLATFORM}/tmp-packaging
 TMPDIRNAME=tmp-packaging
-OUTPUT_PATH=../lib/osi32linux.so
-OUTPUT_BASENAME=osi32linux.so
+OUTPUT_PATH=../lib/osi32lin.so
+OUTPUT_BASENAME=osi32lin.so
 PACKAGE_TOP_DIR=nbeans/
 
 # Functions

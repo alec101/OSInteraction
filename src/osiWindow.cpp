@@ -374,11 +374,11 @@ void osiWindow::move(int x, int y) {
   x0= x; y0= y;
   //if(mode!= 1) return;
   #ifdef OS_WIN
-  MoveWindow(_hWnd, x0, osi.display.vdy- y0, dx, dy, false);
+  MoveWindow(_hWnd, x0, osi.display.vdy- (y0+ dy), dx, dy, false);
   #endif /// OS_WIN
   
   #ifdef OS_LINUX
-  XMoveWindow(_dis, _win, x0, osi.display.vdy- y0);
+  XMoveWindow(_dis, _win, x0, osi.display.vdy- (y0+ dy));
   #endif /// OS_LINUX
   
   #ifdef OS_MAC

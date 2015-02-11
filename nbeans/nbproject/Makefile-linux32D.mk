@@ -14,14 +14,14 @@ GREP=grep
 NM=nm
 CCADMIN=CCadmin
 RANLIB=ranlib
-CC=clang
-CCC=clang++
-CXX=clang++
+CC=gcc
+CCC=clang++-3.5
+CXX=clang++-3.5
 FC=gfortran
 AS=as
 
 # Macros
-CND_PLATFORM=clang-Linux-x86
+CND_PLATFORM=GNU-Linux-x86
 CND_DLIB_EXT=so
 CND_CONF=linux32D
 CND_DISTDIR=dist
@@ -72,13 +72,13 @@ LDLIBSOPTIONS=
 
 # Build Targets
 .build-conf: ${BUILD_SUBPROJECTS}
-	"${MAKE}"  -f nbproject/Makefile-${CND_CONF}.mk ../lib/osi32linux_dbg.so
+	"${MAKE}"  -f nbproject/Makefile-${CND_CONF}.mk ../lib/osi32lin-dbg.so
 
-../lib/osi32linux_dbg.so: ${OBJECTFILES}
+../lib/osi32lin-dbg.so: ${OBJECTFILES}
 	${MKDIR} -p ../lib
-	${RM} ../lib/osi32linux_dbg.so
-	${AR} -rv ../lib/osi32linux_dbg.so ${OBJECTFILES} 
-	$(RANLIB) ../lib/osi32linux_dbg.so
+	${RM} ../lib/osi32lin-dbg.so
+	${AR} -rv ../lib/osi32lin-dbg.so ${OBJECTFILES} 
+	$(RANLIB) ../lib/osi32lin-dbg.so
 
 ${OBJECTDIR}/_ext/1360937237/osiChar.o: ../src/osiChar.cpp 
 	${MKDIR} -p ${OBJECTDIR}/_ext/1360937237
@@ -171,7 +171,7 @@ ${OBJECTDIR}/_ext/1018862404/strCommon.o: ../src/util/strCommon.cpp
 # Clean Targets
 .clean-conf: ${CLEAN_SUBPROJECTS}
 	${RM} -r ${CND_BUILDDIR}/${CND_CONF}
-	${RM} ../lib/osi32linux_dbg.so
+	${RM} ../lib/osi32lin-dbg.so
 
 # Subprojects
 .clean-subprojects:

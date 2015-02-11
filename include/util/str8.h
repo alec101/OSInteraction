@@ -108,7 +108,7 @@ public:
   str8 &operator+=(const uint32_t *);         /// adds an utf-32 array string
   str8 &operator+=(const uint32_t);           /// adds a (unicode) character
   str8 &operator+=(const uint16_t *);         /// adds a windows 16bit wide character
-  str8 &operator+=(const char *s) { return *this= (const uint8_t *)s; }  /// asume [char *] points to an utf-8 encoded string
+  str8 &operator+=(const char *s) { return *this+= (const uint8_t *)s; }  /// asume [char *] points to an utf-8 encoded string
 
   str8 &operator-=(const int n);       /// clears n char(s) from string
   str8 operator-(int n) const;         /// returns a temp string that has n less chars

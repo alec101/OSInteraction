@@ -113,6 +113,7 @@ void *Str::getUnicode8(cvoid *s, int32 n) {
 
 /// returns utf-8 string length in BYTES
 int32 Str::strlen8(cvoid *s) {
+  if(!s) return 0;
   cuint8 *p= (cuint8 *)s;
   while(*p++);
   return (int32)(p- (cuint8 *)s- 1);

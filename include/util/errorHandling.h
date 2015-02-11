@@ -44,7 +44,7 @@ public:
   #endif
   
   #ifdef USING_OPENGL
-  inline void glFlushErrors() { glGetError(); }
+  void glFlushErrors();
   int glError(const char *text= NULL);     /// returns the error nr or 0, and prints with simple() func the error, IF there is one; text is used for additional text to print
   #endif /// OPENGL
 

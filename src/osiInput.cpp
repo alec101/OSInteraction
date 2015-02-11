@@ -1,7 +1,10 @@
 #include "osinteraction.h"
 #include "util/typeShortcuts.h"
+#include <math.h>
 
 #ifdef OS_LINUX
+#include <unistd.h>
+#include <X11/XKBlib.h>
 //#include <linux/joystick.h>   // it's not x stuff... lots of crap added, keyboard/mouse, that is not needed. IT'S POSSIBLE TO AVOID THIS HEADER, only some function definitions are needed.
 #include <fcntl.h>
 #include <sys/ioctl.h>

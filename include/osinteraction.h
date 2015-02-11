@@ -1,11 +1,15 @@
 #pragma once
 // osinteraction wiki https://github.com/alec101/OSInteraction/wiki
 
+// you can define OSI_USE_OPENGL_LEGACY before including this file, to signal osi to use all the deprecated / legacy / extensions in OpenGL (the old way)
+// you can define OSI_USE_OPENGL_EXOTIC_EXT before including this file, to signal osi to use exotic extensions when in core ARB mode (the default mode)
+
 // !!!
 // any comment starting with '<<<' marks a setting that can / SHOULD be changed for your project
 // keep glext.h wglext.h, glxext.h updated from https://www.opengl.org/registry/ , to be able to access the latest OpenGL extensions
 // !!!
 
+// if you want OpenGL legacy stuff, define OSI_USE_OPENGL_LEGACY before including osinteraction.h <<<
 
 ///===================///
 // COMPILING / LINKING //
@@ -68,7 +72,7 @@
 // sudo apt-get install libc6-dev-i386     the 32-bit C libraries (only 64bit libs are in linux64)
 // sudo apt-get install xxxxxxxxxxxx       the 64-bit C libraries (only 32bit libs are in linux32)
 // sudo apt-get install libxinerama-dev    Xinerama header files, used to identify monitors
-
+// sudo apt-get install gcc-4.8-multilib g++-4.8-multilib     - or whatever your gcc version is, if you get [fatal error: 'bits/c++config.h' file not found]
 
 
 
@@ -151,8 +155,6 @@ main() {
 #define WINVER 0x0501
 #include <SDKDDKVer.h>
 #include <Windows.h>
-#include <process.h>
-#include <mmsystem.h>
 
 #ifdef USING_DIRECTINPUT
   #define DIRECTINPUT_VERSION 0x0800
@@ -177,77 +179,102 @@ main() {
 #endif /// OS_WIN
 
 
-
+// standard libs includes
 #include <stdio.h>
 #include <stdint.h>
-#include <stdarg.h>
-#include <math.h>
 #include <mutex>  // using std mutex for locking critical data - some objects will have the mutex object to protect critical data if using osi from different threads
 
 
-// OpenGL headers
+
+///===============----------------------------///
+// OpenGL headers =================----------- //
+///===============----------------------------///
+
+// if you want OpenGL legacy stuff, define OSI_USE_OPENGL_LEGACY before including osinteraction.h <<<
+
+//#define OSI_USE_OPENGL_LEGACY 1 // you could just set this here, but it is encouraged to define this before including this header
+//#define OSI_USE_OPENGL_EXOTIC_EXT 1 // enabling this, will include exotic extensions in the coreARB mode - define this before #include "osinteraction.h"
 
 #include "osiGlDisable.h"   // either modify this file to enable/disable extensions or include a custom one, before including osinteraction.h
 
 #ifdef OS_WIN
-//#include <GL/gl.h>
-#include <GL/GL.h>
-#pragma comment(lib, "opengl32")  /// if this pragma does not work, the library must be manually included
-#pragma comment(lib, "glu32")     /// if this pragma does not work, the library must be manually included
 
-//#define WGL_WGLEXT_PROTOTYPES 1
-#include "../extlib/oGL/include/wglext.h"            // <<< provided wglext.h - should be updated when a new version appears (and it can change monthly)
+#ifdef OSI_USE_OPENGL_LEGACY                    // legacy / compatibility / old deprecated stuff are loaded
+#include <gl/GL.h>
+#include <gl/GLU.h>
+#else                                           // core ARB mode - the way they want OpenGL to function - deprecated stuff is out
+#include "../extlib/oGL/include/glcorearb.h"
+#endif
+
+#include "../extlib/oGL/include/wglext.h"       // <<< provided wglext.h - should be updated when a new version appears (and it can change monthly)
+
+#pragma comment(lib, "opengl32")               /// if this pragma does not work, the library must be manually included
+#pragma comment(lib, "glu32")                  /// if this pragma does not work, the library must be manually included
 #endif /// OS_WIN
 
 #ifdef OS_LINUX
-//#define GL_GLEXT_LEGACY 1
-//#define GLX_GLXEXT_LEGACY 1
 
-//#define GLX_GLXEXT_PROTOTYPES 1
-#include <GL/gl.h>
+#ifdef OSI_USE_OPENGL_LEGACY 
+#include <GL/gl.h>                             // this file, on some linux systems, includes glext.h too. This causes problems and a default gl.h might be added in osi 
+#include <GL/glu.h>
+//#include <GL/glext.h>                        // <<< the default glext.h on the system, comment this and the osi one will be loaded
+#else
+#include "../extlib/oGL/include/glcorearb.h"
+
+#ifndef __gl_h_                               /// asure gl.h is not being loaded - glx.h has the terrible idea to load gl.h
+#define __gl_h_ 1
+#endif
+ 
+#ifndef OSI_USE_OPENGL_EXOTIC_EXT             /// asure glext.h is not being loaded (you never know)
+#ifndef __glext_h_
+#define __glext_h_ 1
+#endif
+#endif
+
+#endif /// legacy / core
+
 #include <GL/glx.h>
-#include <GL/glxext.h>
-#include <GL/glext.h>
-//#include "../extlib/oGL/include/glxext.h"           // <<< provided glxext.h - should be updated when new a version appears (and it can change monthly)
+#include <GL/glxext.h>                         // <<< default glxext.h on the system
+//#include "../extlib/oGL/include/glxext.h"      // <<< provided glxext.h - should be updated when new a version appears (and it can change monthly)
 #endif /// OS_LINUX
 
 #ifdef OS_MAC
-#include <OpenGL/gl.h>            // legacy
+#ifdef OSI_USE_OPENGL_LEGACY
+#define GL_DO_NOT_WARN_IF_MULTI_GL_VERSION_HEADERS_INCLUDED 1
+#include <OpenGL/gl.h>                         // legacy
+#include <OpenGL/gl3.h>
+#include <OpenGL/glext.h>
+#include <OpenGL/glu.h>
+#else
+#include <OpenGL/gl3.h> /// at the moment, it seems macs use the old gl3.h header, not the new glcorearb.h header
+#endif
+
 #include <OpenGL/OpenGL.h>
-// there's a corearb header, too NEEDS CHECKING
 #endif /// OS_MAC
 
-//#define GL_GLEXT_PROTOTYPES 1
-#ifndef OS_MAC
+/// at the moment, they say not to include glext.h if you use glcorearb ... but screw conformists
+/// when in default, coreARB mode, you can define OSI_USE_OPENGL_EXOTIC_EXT to include all non-ARB extensions
+/// you can disable/enable each of them with osiGlDisable.h
+#if((defined(OSI_USE_OPENGL_LEGACY) || defined(OSI_USE_OPENGL_EXOTIC_EXT)) && (!defined(OS_MAC)))
 #include "../extlib/oGL/include/glext.h"            // <<< OpenGL extensions header file (OS independant ones) - should be updated when a new version appears (and it can change monthly)
+#endif
+#if(defined(OS_MAC) && defined(OSI_USE_OPENGL_EXOTIC_EXT))
+#include <OpenGL/glext.h>
 #endif
 
 // os specific
 
 #ifdef OS_LINUX
-#include <unistd.h>
-#include <errno.h>
-#include <time.h>
-#include <X11/X.h>
-#include <X11/Xlib.h>
-#include <X11/XKBlib.h>
-#include <X11/keysym.h>
-#include <X11/keysymdef.h>
 #include <X11/extensions/Xrandr.h>
-#include <X11/extensions/Xinerama.h>
-#include <pthread.h>
 //#include <locale.h> printf won't work without locale, to print unicode chars...
 #endif /// OS_LINUX
 
 #ifdef OS_MAC
-//#include <unistd.h>
-//#include <mach/mach.h>                  // high resolution clock funcs
-//#include <mach/mach_time.h>             // high resolution clock funcs
-
+// includes moved to each cpp file
 #endif /// OS_MAC
 
 // utility classes
-//#include "util/typeShortcuts.h"
+//#include "util/typeShortcuts.h" // no point to clog other ppl's app with more custom C types - if they want it, they include it
 #include "util/str32.h"
 #include "util/str8.h"
 #include "util/errorHandling.h"
@@ -265,7 +292,6 @@ main() {
 #include "osiInput.h"
 #include "osiCocoa.h"
 #include "osiWindow.h"
-
 
 // WIP vvv - works, but i don't like this
 // You can start the program with this macro; starting with main() in windows signals to create a console
