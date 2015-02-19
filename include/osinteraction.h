@@ -2,7 +2,7 @@
 // osinteraction wiki https://github.com/alec101/OSInteraction/wiki
 
 // you can define OSI_USE_OPENGL_LEGACY before including this file, to signal osi to use all the deprecated / legacy / extensions in OpenGL (the old way)
-// you can define OSI_USE_OPENGL_EXOTIC_EXT before including this file, to signal osi to use exotic extensions when in core ARB mode (the default mode)
+// you can define OSI_USE_OPENGL_EXOTIC_EXT before including this file, to signal osi to use exotic extensions when in core ARB mode
 
 // !!!
 // any comment starting with '<<<' marks a setting that can / SHOULD be changed for your project

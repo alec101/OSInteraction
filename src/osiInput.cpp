@@ -1733,7 +1733,7 @@ void osiJoystick::delData() {
 /// handles pads/wheels too. might be a good ideea to call this func if others are called, dunno (or just remove update() from gp/gw)
 
 void osiJoystick::update() {
-  bool chatty= true;
+  bool chatty= false;
 
   if(!_bActive) return;                           /// a stick/pad/wheel must be marked as active, for updating to take place
                                                   /// this must be used, as updating same device with mutiple drives, will create a bad mess

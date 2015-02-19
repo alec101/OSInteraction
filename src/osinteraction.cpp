@@ -1375,7 +1375,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
   // there is no resize/move for windows, the close button won't work either, i think
   ///===================================================
   bool onlyHandled= true; /// used with chatty
-  bool chatty= true;
+  bool chatty= false;
   bool timeFunc= false;   /// measure the time this func takes to finish
   uint64 start, end;      /// used with timeFunc
   osiWindow *w;           /// window that received the message
@@ -1836,7 +1836,7 @@ ret:
 
 #ifdef OS_LINUX
 bool osinteraction::_processMSG()  {
-  bool chatty= true;
+  bool chatty= false;
   bool ret= false;                        /// return value. initially false - if a message is processed, ret= true;
   XEvent event;
   osiWindow *w= null;

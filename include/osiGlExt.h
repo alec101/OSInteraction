@@ -18,8 +18,8 @@
 
 /// each oGL extension will have one of these structs (there is an array with all of them)
 struct GlExt {
-  const char *desc;      /// extension string, case sensitive, exact match!
-  bool avaible;     /// if this extension is avaible or not;
+  const char *desc;       /// extension string, case sensitive, exact match!
+  bool avaible;           /// if this extension is avaible or not;
   GlExt() { desc= NULL; avaible= false; }
   GlExt(const char *s, bool b): desc(s), avaible(b) {}
 };
@@ -9739,7 +9739,7 @@ inline GLAPI void APIENTRY glReplacementCodeuiTexCoord2fColor4fNormal3fVertex3fv
 
 
 /// OpenGL 1.2 funcs =================------------------------------
-#define glDrawRangeElements _glr->glExt.glDrawRangeElements
+#define glDrawRangeElements ((PFNGLDRAWRANGEELEMENTSPROC)_glr->glExt.glDrawRangeElements)
 #define glTexImage3D _glr->glExt.glTexImage3D
 #define glTexSubImage3D _glr->glExt.glTexSubImage3D
 #define glCopyTexSubImage3D _glr->glExt.glCopyTexSubImage3D

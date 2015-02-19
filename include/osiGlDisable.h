@@ -17,9 +17,7 @@ How to use this file:
    This feature was suggested by reddit user /u/jringstad
 
 TODO:
-* incomplete extensions should be disabled, i think
 * check out if anything can be done under mac, to disable stuff
-
 */
 
 
@@ -43,6 +41,7 @@ TODO:
 //#define GL_VERSION_4_2 0 /// disable OpenGL 4.2 funcs & everything
 //#define GL_VERSION_4_3 0 /// disable OpenGL 4.3 funcs & everything
 //#define GL_VERSION_4_4 0 /// disable OpenGL 4.4 funcs & everything
+//#define GL_VERSION_4_5 0 /// disable OpenGL 4.5 funcs & everything
 
 
 ///=============================================================================///
@@ -57,6 +56,11 @@ TODO:
 //#define GL_SGIS_point_parameters 0
 //#define GL_SGIX_igloo_interface 0
 //#define WGL_NV_vertex_array_range 0
+
+
+///===============================================///
+// ARB extensions -------------------------------- //
+///===============================================///
 
 //#define GL_ARB_multitexture             0 // 001 [] http://www.opengl.org/registry/specs/ARB/multitexture.txt
 //#define GLX_ARB_get_proc_address        0 // 002 [returns the addr of GLX and GL ext funcs] http://www.opengl.org/registry/specs/ARB/get_proc_address.txt

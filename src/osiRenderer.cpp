@@ -47,7 +47,7 @@ osiRenderer *osinteraction::assignRenderer(osiWindow *w) {
   if(!w) return null;
   if(!w->monitor) return null;
 
-  bool chatty= true;
+  bool chatty= false;
   bool rendererAllocated= false;
 
   osiRenderer *r= null;      /// the returned renderer;
@@ -829,7 +829,7 @@ bool _createFrontBuffer(osiWindow *w, osiRenderer *r) {
 
 /// [internal] create configured context - after renderer is allocated / context funcs are got / front buffer is created
 bool _createContext(osiWindow *w, osiRenderer *r) {
-  bool chatty= true;
+  bool chatty= false;
   
   #ifdef OS_WIN
 
@@ -1047,7 +1047,7 @@ void _parseBigExtString(osiRenderer *, cchar *);  /// used for next func
 void _parseExtString(osiRenderer *, cchar *);     /// used for next func
 
 void osiRenderer::checkExt() {
-  bool chatty= true;
+  bool chatty= false;
     
   bool thisIsMac= false;
   #ifdef OS_MAC
@@ -1123,7 +1123,7 @@ void osiRenderer::checkExt() {
 
 
 void _parseExtString(osiRenderer *r, cchar *ext) {
-  bool chatty= true;
+  bool chatty= false;
 
   /// search the ARB list
   int i= searchARB(r, ext);
@@ -1152,7 +1152,7 @@ void _parseExtString(osiRenderer *r, cchar *ext) {
 
 void _parseBigExtString(osiRenderer *r, cchar *ext) {
   if(!ext) return;
-  bool chatty= true;
+  bool chatty= false;
   uint8 buf[128];      /// hopefully extension names won't be bigger than 128... 
   uint8 *p= (uint8 *)ext;
 

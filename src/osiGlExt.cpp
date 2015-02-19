@@ -102,7 +102,7 @@ GlExtFuncs glExt;
 
 
 bool getGlProc(const char *name, void **addr) {
-  //bool chatty= true;
+  //bool chatty= false;
   if(!addr) return false;
   void *tmp= null;
 

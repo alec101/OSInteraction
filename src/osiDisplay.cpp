@@ -281,7 +281,7 @@ bool osiDisplay::changePrimary(int32 dx, int32 dy, int16 freq) {      // change 
 bool doChange(osiMonitor *m, osiResolution *r, int16 freq);
 
 bool osiDisplay::changeRes(osiMonitor *m, int32 dx, int32 dy, int16 freq) {
-  bool chatty= true;
+  bool chatty= false;
   if(!bResCanBeChanged) return false;   /// there can be reasons that res change is not possible. check bResCanBeChangedReason text
   
   // THERE HAS TO BE ALL THE CHECKS IN HERE, cuz changing 10 times the resolution
@@ -465,7 +465,7 @@ void osiDisplay::restoreAllRes() {
 ///----------------------------------------------------------------------///
 
 void osiDisplay::restoreRes(osiMonitor *m) {
-  bool chatty= true;
+  bool chatty= false;
   if(!bResCanBeChanged) return;
   
   if(m->inOriginal)
@@ -570,7 +570,7 @@ void osiDisplay::restoreRes(osiMonitor *m) {
 ///-----------------------------------------------------------------------------///
 
 bool doChange(osiMonitor *m, osiResolution *r, int16 freq) {
-  bool chatty= true;
+  bool chatty= false;
   #ifdef OS_WIN
   DEVMODE dm;
   for(short a= 0; a< sizeof(DEVMODE); a++) ((int8 *)&dm)[a]= 0;
@@ -883,7 +883,7 @@ bool doChange(osiMonitor *m, osiResolution *r, int16 freq) {
 void _populateGrCards(osiDisplay *);
 
 void osiDisplay::populate() {
-  bool chatty= true;
+  bool chatty= false;
   osi.mutex.lock();
   delData();
   
@@ -1456,18 +1456,18 @@ void osiDisplay::populate() {
   // IT'S OVERRRRR ... 
   
   // OLD CODE FROM HERE
-/*
+  /*
   // Display should be on the osiMonitor struct
   // and they must be 'found', i think. further research needed
 
 
-/// determine the number of monitors attached
+  /// determine the number of monitors attached
   nrMonitors= XScreenCount(t->primWin->display);
   printf("test %d\n", (XScreenOfDisplay(t->primWin->display, 1))->width);
   
   if(chatty) printf("found %d monitors\n", nrMonitors);
   
-/// populate monitors structure
+  /// populate monitors structure
   monitor= new osiMonitor[nrMonitors];
 
   for(short a= 0; a< nrMonitors; a++) {             // for each monitor (screen)
@@ -1491,7 +1491,7 @@ void osiDisplay::populate() {
 
     
 
-/// populate resolutions structure for each monitor
+    /// populate resolutions structure for each monitor
     monitor[a].res= new osiResolution[monitor[a].nrRes];
 
     p= monitor[a].res;
@@ -1504,7 +1504,7 @@ void osiDisplay::populate() {
       
       
       
-/// populate frequencies for each resolution
+      /// populate frequencies for each resolution
       short *rates;
       rates= XRRRates(t->primWin->display, a, b, &p[b].nrFreq);
 
@@ -1515,7 +1515,7 @@ void osiDisplay::populate() {
         p[b].freq[c]= rates[c];
     } /// resolution loop
 
-/// store original monitor configuration
+    /// store original monitor configuration
     monitor[a].conf= XRRGetScreenInfo(t->primWin->display, monitor[a].root);
     monitor[a].original.id= XRRConfigCurrentConfiguration(monitor[a].conf, &monitor[a].original.rotation); /// store size id+ rotation (i think it has to store the rotation, it has no sense else)
     monitor[a].original.dx= monitor[a].res[monitor[a].original.id].dx;
@@ -1525,11 +1525,11 @@ void osiDisplay::populate() {
 
   } /// monitor loop
 
-/// defaul monitor
+  /// defaul monitor
   int m= XDefaultScreen(t->primWin->display);
   primary= &monitor[m];
   monitor[m].primary= true;
- */
+  */
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
@@ -1837,7 +1837,7 @@ void osiDisplay::populate() {
 
 
 void _populateGrCards(osiDisplay *display) {
-  bool chatty= true;
+  bool chatty= false;
   
   #ifdef OS_WIN
 
@@ -2396,7 +2396,7 @@ bool _TMP_WINDOW::createWindow(osiMonitor *m) {
 template<class T> extern bool getGlProc(cchar *, T&);   /// defined in osiGlExt.cpp
 
 void _populateGrCards(osiDisplay *display) {
-  bool chatty= true;
+  bool chatty= false;
 
   #ifdef OS_WIN
   

@@ -655,7 +655,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 // -------------------->>> PROCESS MSGS <<<------------------------- //
 ///=================================================================///
 bool _processMSG(void) {
-  bool chatty= true;    /// debug texts
+  bool chatty= false;    /// debug texts
   
   bool ret= false;      /// return value - true if a message was processed, false if no message was in queue
 
