@@ -295,6 +295,8 @@ osinteraction::osinteraction() {
   _parseCmdLine(this);                /// creates argc & argv
   getNanosecs(&present);              /// start with updated present time variable
   display.populate();                 /// populate monitors / grcards info
+  if(!display.bGPUinfoAvaible)
+    settings.renderer.setOneRendererPerMonitor();
 }
 
 
