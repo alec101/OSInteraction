@@ -946,3 +946,987 @@ uint32 Str::toupper(uint32 c) {
 
 
 
+
+#include "mlib.hpp"
+using namespace mlib;
+
+// UTF8 to number =====-----
+
+int64_t Str::utf8toInt64(const void *s) {
+  uint8 *p= (uint8 *)s;
+  int64 ret= 0;               /// return value
+  bool sign= false;           /// sign tmp var
+  
+  /// search for number start
+  for(; *p; p++)
+    if((*p>= '0' && *p<= '9') || (*p== '-'))
+      break;
+
+  /// number sign check
+  if(*p== '-') {
+    sign= true;
+    p++;
+    // ANOTHER LOOP TILL A NUMBER IS FOUND CAN BE DONE HERE
+    if(!*p) return 0;         /// end of string check
+  }
+
+  // check for a base number notation - [0x hexa] [0nr octa] [0b bynary]
+  if(*p== '0') {
+    if(!*(++p)) return 0;     /// end of string check
+
+    uint8 a, max;
+    if(*p== 'b' || *p== 'B')      a= 1, max= '1', p++; /// binary number
+    else if(*p== 'x' || *p== 'X') a= 4, max= '9', p++; /// hexazecimal number
+    else                          a= 3, max= '7';      /// octal number
+
+    for(; *p; p++)
+      if(*p>= '0' && *p<= max)
+        ret<<= a, ret+= (*p- '0');
+      else if(a== 4) {
+        if(*p>= 'a' && *p<= 'f')
+          ret<<= a, ret+= (0xA+ (*p- 'a'));
+        else if(*p>= 'A' && *p<= 'F')
+          ret<<= a, ret+= (0xA+ (*p- 'A'));
+        else break;
+      } else break;
+
+  /// zecimal number if not starting with [0b 0x 0nr]
+  } else 
+    for(; *p; p++)
+      if(*p>= '0' && *p<= '9')
+        ret= (ret* 10)+ (*p- '0');
+      else break;
+  
+  /// number sign
+  if(sign)
+    ret= -ret;
+
+  return ret;
+}
+
+
+uint64_t Str::utf8toUint64(const void *s) {
+  uint8 *p= (uint8 *)s;
+  uint64 ret= 0;              /// return value
+
+  /// search for number start
+  for(; *p; p++)
+    if(*p>= '0' && *p<= '9')
+      break;
+
+  // check for a base number notation - [0x hexa] [0nr octa] [0b bynary]
+  if(*p== '0') {
+    if(!*(++p)) return 0;     /// end of string check
+
+    uint8 a, max;
+    if(*p== 'b' || *p== 'B')      a= 1, max= '1', p++; /// binary number
+    else if(*p== 'x' || *p== 'X') a= 4, max= '9', p++; /// hexazecimal number
+    else                          a= 3, max= '7';      /// octal number
+
+    for(; *p; p++)
+      if(*p>= '0' && *p<= max)
+        ret<<= a, ret+= (*p- '0');
+      else if(a== 4) {
+        if(*p>= 'a' && *p<= 'f')
+          ret<<= a, ret+= (0xA+ (*p- 'a'));
+        else if(*p>= 'A' && *p<= 'F')
+          ret<<= a, ret+= (0xA+ (*p- 'A'));
+        else break;
+      } else break;
+    
+  /// zecimal number if not starting with [0b 0x 0nr]
+  } else 
+    for(; *p; p++)
+      if(*p>= '0' && *p<= '9')
+        ret= (ret* 10)+ (*p- '0');
+      else
+        break;
+  
+  return ret;
+}
+
+
+float Str::utf8toFloat(const void *s) {
+  uint8 *p= (uint8 *)s;       /// p will walk s
+  float ret= 0.0f;            /// return value
+  int64 i1= 0, i2= 0;         /// integer part and fractional part
+  int n= 38;                  /// used with powtenf[] - 38 is 1e0
+  bool sign= false;           /// tmp used for number sign
+  
+  /// search for number start
+  for(; *p; p++)
+    if((*p>= '0' && *p<= '9') || (*p== '-') || (*p== '.'))
+      break;
+
+  /// number sign check
+  if(*p== '-') {
+    sign= true;
+    p++;
+    // ANOTHER LOOP TILL A NUMBER IS FOUND CAN BE DONE HERE
+  }
+
+  for(; *p; p++)
+    if(*p>= '0' && *p<= '9')
+      i1= (i1* 10)+ (*p- '0');
+    else
+      break;
+
+  ret= (float)i1;                  // integer part
+
+  if(*p== '.') {
+    for(p++; *p; p++)
+      if(*p>= '0' && *p<= '9') {
+        i2= (i2* 10)+ (*p- '0');
+        n--;
+      } else
+        break;
+
+    if(n< 0) n= 0;
+    ret/= pow10f[n];
+    ret+= (float)i2;
+    ret*= pow10f[n];               // floatant part
+  }
+
+  if(*p== 'e' || *p== 'E') {
+    p++;
+    bool sign2= false;
+    if(*p== '-') {
+      sign2= true;
+      p++;
+    }
+    if(*p== '+') p++;
+
+    int i= 0;
+    for(; *p; p++)
+      i= (i* 10)+ (*p- '0');
+    if(i> 38) i= 38;
+
+    if(sign2) i= -i;
+
+    ret*= pow10f[38+ i];
+  }
+
+  if(sign) ret= -ret;
+
+  return ret;
+}
+
+
+double Str::utf8toDouble(const void *s) {
+  uint8 *p= (uint8 *)s;       /// p will walk s
+  double ret= 0.0;            /// return value
+  int64 i1= 0, i2= 0;         /// integer part and fractional part
+  int n= 308;                 /// used with powten[] ->  308 is 1e0
+  bool sign= false;           /// tmp used for number sign
+  
+  /// search for number start
+  for(; *p; p++)
+    if((*p>= '0' && *p<= '9') || (*p== '-') || (*p== '.'))
+      break;
+
+  /// number sign check
+  if(*p== '-') {
+    sign= true;
+    p++;
+    // ANOTHER LOOP TILL A NUMBER IS FOUND CAN BE DONE HERE
+  }
+
+  for(; *p; p++)
+    if(*p>= '0' && *p<= '9')
+      i1= (i1* 10)+ (*p- '0');
+    else
+      break;
+
+  ret= (double)i1;               // integer part
+
+  if(*p== '.') {
+    for(p++; *p; p++)
+      if(*p>= '0' && *p<= '9') {
+        i2= (i2* 10)+ (*p- '0');
+        n--;
+      } else
+        break;
+
+    if(n< 0) n= 0;
+
+    ret/= pow10[n];
+    ret+= (double)i2;
+    ret*= pow10[n];             // floatant part
+  }
+
+  if(*p== 'e' || *p== 'E') {
+    p++;
+    bool sign2= false;
+    if(*p== '-') {
+      sign2= true;
+      p++;
+    }
+    if(*p== '+') p++;
+
+    int i= 0;
+    for(; *p; p++)
+      i= (i* 10)+ (*p- '0');
+    if(i> 308) i= 308;
+
+    if(sign2) i= -i;
+
+    ret*= pow10[308+ i];
+  }
+
+  if(sign) ret= -ret;
+
+  return ret;
+}
+
+// UTF32 to number =====-----
+
+int64_t Str::utf32toInt64(const void *s) {
+  uint32 *p= (uint32 *)s;
+  int64 ret= 0;               /// return value
+  bool sign= false;           /// sign tmp var
+  
+  /// search for number start
+  for(; *p; p++)
+    if((*p>= '0' && *p<= '9') || (*p== '-'))
+      break;
+
+  /// number sign check
+  if(*p== '-') {
+    sign= true;
+    p++;
+    // ANOTHER LOOP TILL A NUMBER IS FOUND CAN BE DONE HERE
+    if(!*p) return 0;         /// end of string check
+  }
+
+  // check for a base number notation - [0x hexa] [0nr octa] [0b bynary]
+  if(*p== '0') {
+    if(!*(++p)) return 0;     /// end of string check
+
+    uint32 a, max;
+    if(*p== 'b' || *p== 'B')      a= 1, max= '1', p++; /// binary number
+    else if(*p== 'x' || *p== 'X') a= 4, max= '9', p++; /// hexazecimal number
+    else                          a= 3, max= '7';      /// octal number
+
+    for(; *p; p++)
+      if(*p>= '0' && *p<= max)
+        ret<<= a, ret+= (*p- '0');
+      else if(a== 4) {
+        if(*p>= 'a' && *p<= 'f')
+          ret<<= a, ret+= (0xA+ (*p- 'a'));
+        else if(*p>= 'A' && *p<= 'F')
+          ret<<= a, ret+= (0xA+ (*p- 'A'));
+        else break;
+      } else break;
+
+  /// zecimal number if not starting with [0b 0x 0nr]
+  } else 
+    for(; *p; p++)
+      if(*p>= '0' && *p<= '9')
+        ret= (ret* 10)+ (*p- '0');
+      else break;
+  
+  /// number sign
+  if(sign)
+    ret= -ret;
+
+  return ret;
+}
+
+
+uint64_t Str::utf32toUint64(const void *s) {
+  uint32 *p= (uint32 *)s;
+  uint64 ret= 0;              /// return value
+
+  /// search for number start
+  for(; *p; p++)
+    if(*p>= '0' && *p<= '9')
+      break;
+
+  // check for a base number notation - [0x hexa] [0nr octa] [0b bynary]
+  if(*p== '0') {
+    if(!*(++p)) return 0;     /// end of string check
+
+    uint32 a, max;
+    if(*p== 'b' || *p== 'B')      a= 1, max= '1', p++; /// binary number
+    else if(*p== 'x' || *p== 'X') a= 4, max= '9', p++; /// hexazecimal number
+    else                          a= 3, max= '7';      /// octal number
+
+    for(; *p; p++)
+      if(*p>= '0' && *p<= max)
+        ret<<= a, ret+= (*p- '0');
+      else if(a== 4) {
+        if(*p>= 'a' && *p<= 'f')
+          ret<<= a, ret+= (0xA+ (*p- 'a'));
+        else if(*p>= 'A' && *p<= 'F')
+          ret<<= a, ret+= (0xA+ (*p- 'A'));
+        else break;
+      } else break;
+    
+  /// zecimal number if not starting with [0b 0x 0nr]
+  } else 
+    for(; *p; p++)
+      if(*p>= '0' && *p<= '9')
+        ret= (ret* 10)+ (*p- '0');
+      else
+        break;
+  
+  return ret;
+}
+
+
+float Str::utf32toFloat(const void *s) {
+  uint32 *p= (uint32 *)s;     /// p will walk s
+  float ret= 0.0f;            /// return value
+  int64 i1= 0, i2= 0;         /// integer part and fractional part
+  int n= 38;                  /// used with pow10f[] - 38 is 1e0
+  bool sign= false;           /// tmp used for number sign
+  
+  /// search for number start
+  for(; *p; p++)
+    if((*p>= '0' && *p<= '9') || (*p== '-') || (*p== '.'))
+      break;
+
+  /// number sign check
+  if(*p== '-') {
+    sign= true;
+    p++;
+    // ANOTHER LOOP TILL A NUMBER IS FOUND CAN BE DONE HERE
+  }
+
+  for(; *p; p++)
+    if(*p>= '0' && *p<= '9')
+      i1= (i1* 10)+ (*p- '0');
+    else
+      break;
+
+  ret= (float)i1;                  // integer part
+
+  if(*p== '.') {
+    for(p++; *p; p++)
+      if(*p>= '0' && *p<= '9') {
+        i2= (i2* 10)+ (*p- '0');
+        n--;
+      } else
+        break;
+
+    if(n< 0) n= 0;
+    ret/= pow10f[n];
+    ret+= (float)i2;
+    ret*= pow10f[n];               // floatant part
+  }
+
+  if(*p== 'e' || *p== 'E') {
+    p++;
+    bool sign2= false;
+    if(*p== '-') {
+      sign2= true;
+      p++;
+    }
+    if(*p== '+') p++;
+
+    int i= 0;
+    for(; *p; p++)
+      i= (i* 10)+ (*p- '0');
+    if(i> 38) i= 38;
+
+    if(sign2) i= -i;
+
+    ret*= pow10f[38+ i];
+  }
+
+  if(sign) ret= -ret;
+
+  return ret;
+}
+
+
+double Str::utf32toDouble(const void *s) {
+  uint32 *p= (uint32 *)s;     /// p will walk s
+  double ret= 0.0;            /// return value
+  int64 i1= 0, i2= 0;         /// integer part and fractional part
+  int n= 308;                 /// used with pow10[] ->  308 is 1e0
+  bool sign= false;           /// tmp used for number sign
+  
+  /// search for number start
+  for(; *p; p++)
+    if((*p>= '0' && *p<= '9') || (*p== '-') || (*p== '.'))
+      break;
+
+  /// number sign check
+  if(*p== '-') {
+    sign= true;
+    p++;
+    // ANOTHER LOOP TILL A NUMBER IS FOUND CAN BE DONE HERE
+  }
+
+  for(; *p; p++)
+    if(*p>= '0' && *p<= '9')
+      i1= (i1* 10)+ (*p- '0');
+    else
+      break;
+
+  ret= (double)i1;               // integer part
+
+  if(*p== '.') {
+    for(p++; *p; p++)
+      if(*p>= '0' && *p<= '9') {
+        i2= (i2* 10)+ (*p- '0');
+        n--;
+      } else
+        break;
+
+    if(n< 0) n= 0;
+
+    ret/= pow10[n];
+    ret+= (double)i2;
+    ret*= pow10[n];             // floatant part
+  }
+
+  if(*p== 'e' || *p== 'E') {
+    p++;
+    bool sign2= false;
+    if(*p== '-') {
+      sign2= true;
+      p++;
+    }
+    if(*p== '+') p++;
+
+    int i= 0;
+    for(; *p; p++)
+      i= (i* 10)+ (*p- '0');
+    if(i> 308) i= 308;
+
+    if(sign2) i= -i;
+
+    ret*= pow10[308+ i];
+  }
+
+  if(sign) ret= -ret;
+
+  return ret;
+}
+
+// number to UTF8 =====-----
+
+int Str::int64toUtf8(int64 n, void *buf, int8 base, bool uppercase) {
+  if(base!= 10 && base!= 2 && base!= 8 && base!= 16) base= 10; // safety
+  uint8 *p= (uint8 *)buf;       /// p will walk buf, backwards
+  if(n== 0) { *p= '0'; *(p+ 1)= 0; return 1; }  /// special case
+
+  /// number sign
+  int8 sign= (n< 0? -1: 1);
+
+  /// check the number length in characters
+  int len= 0;                   /// len is also return value - the number of characters in the string
+  int64 t= n;                   /// t is used only in the next few lines
+  if(t< 0) len++;
+  while(t)
+    t/= base, len++;
+
+  // start to populate the string
+  p+= len+ 1;                   /// space for terminator, and 1 because of the algorithm (*--p)
+  *--p= 0;                      /// string terminator
+  
+  /// zecimal number
+  if(base== 10)
+    while(n)
+      *--p= '0'+ (uint8)(sign* (n% 10)),
+      n/= 10;
+
+  /// binary/ octal/ hexa number
+  else {
+    uint8 c= uppercase? 'A': 'a';
+    while(n) {
+      int8 a= (int8)(sign* (n% base));
+      if(a> 9)
+        *--p= c+ a- 10;
+      else
+        *--p= '0'+ a;
+      n/= base;
+    }
+  }
+
+  if(sign< 0) *--p= '-';        /// negative number sign
+
+  return len;
+}
+
+
+int Str::uint64toUtf8(uint64 n, void *buf, int8 base, bool uppercase) {
+  if(base!= 10 && base!= 2 && base!= 8 && base!= 16) base= 10; // safety
+  uint8 *p= (uint8 *)buf;       /// p will walk buf, backwards
+  if(n== 0) { *p= '0'; *(p+ 1)= 0; return 1; }  /// special case
+
+  /// check the number length in characters
+  int len= 0;                   /// len is also return value - the number of characters in the string
+  uint64 t= n;                  /// t is used only in the next few lines
+  if(t< 0) len++;
+  while(t)
+    t/= base, len++;
+
+  // start to populate the string
+  p+= len+ 1;                   /// space for terminator, and 1 because of the algorithm (*--p)
+  *--p= 0;                      /// string terminator
+  
+  /// zecimal number
+  if(base== 10)
+    while(n)
+      *--p= '0'+ (uint8)(n% 10),
+      n/= 10;
+
+  /// binary/ octal/ hexa number
+  else {
+    uint8 c= uppercase? 'A': 'a';
+    while(n) {
+      uint8 a= (uint8)(n% base);
+      if(a> 9)
+        *--p= c+ a- 10;
+      else
+        *--p= '0'+ a;
+      n/= base;
+    }
+  }
+
+  return len;
+}
+
+
+int Str::floatToUtf8(float n, void *buf, int precision, bool useE) {
+  uint8 *p= (uint8 *)buf;     /// p will populate the string, backwards
+  int len= 0;                 /// return value - number of characters in string
+
+  /// NaN check
+  if(n!= n) {
+    p[0]= 'N'; p[1]= 'a'; p[2]= 'N'; p[3]= 0;
+    return 3;
+  }
+
+  /// INFINITY check
+  if((n- n) != 0.0f) {
+    if(n > 0.0f) p[0]= '+';
+    else         p[0]= '-';
+    p[1]= 'I'; p[2]= 'N'; p[3]= 'F'; p[4]= 0;
+    return 4;
+  }
+
+  /// negative numbers will be switched to positive and the sign remembered
+  bool sign;
+  if(n< 0.0f) {
+    sign= true;
+    n= -n;
+    len++;
+  } else
+    sign= false;
+
+  /// scientific exponent
+  int e= 0;
+  if(useE)
+    if(n< 1.0f&& n> 0.0f)
+      while(n< 1.0f)
+        n*= 10.0f, e--;
+    else
+      while(n> 10.0f)
+        n/= 10.0f, e++;
+
+  int64 n1= (int64)n;           /// n1 can be printed as is
+  int64 n2= (int64)((n- (int64)n)* pow10i[20+ precision]);
+
+  /// compute number length in string chars
+  int64 t= n1;            /// integer part length
+  if(t== 0) len++;
+  while(t)
+    t/= 10, len++;
+  if(precision)           /// float part length
+    len+= precision+ 1;
+  if(e) {                 /// exponent length
+    t= e;
+    while(t)
+      t/= 10, len++;
+    len+= 2;
+  }
+
+  // buf will be filled backwards by p
+  p+= len+ 1;                 /// 2= space for terminator+ the way the algorithm works (*--p)
+  *--p= 0;                    /// string terminator
+
+  /// scientific exponent
+  if(e) {
+    uint8 s= (e>= 0? '+': '-');
+    if(e< 0) e= -e;
+    while(e)
+      *--p= '0'+ e% 10, e/= 10;
+    *--p= s;
+    *--p= 'e';
+  }
+
+  /// print fractionary part only if precision > 0
+  if(precision) {
+    for(int a= 0; a< precision; a++)
+      *--p= '0'+ n2% 10, n2/= 10;
+    *--p= '.';
+  }
+
+  /// integer part
+  if(n1== 0) *--p= '0';         /// n1 is 0 - special case
+  else 
+    while(n1)                   /// n1 to text
+      *--p= '0'+ n1% 10, n1/= 10;
+
+  if(sign)
+    *--p= '-';
+
+  return len;
+}
+
+
+int Str::doubleToUtf8(double n, void *buf, int precision, bool useE) {
+  uint8 *p= (uint8 *)buf;     /// p will populate the string, backwards
+  int len= 0;                 /// return value - number of characters in string
+  /// NaN check
+  if(n!= n) {
+    p[0]= 'N', p[1]= 'a', p[2]= 'N', p[3]= 0;
+    return 3;
+  }
+
+  /// INFINITY check
+  if((n- n) != 0.0) {
+    if(n > 0.0) p[0]= '+';
+    else        p[0]= '-';
+    p[1]= 'I', p[2]= 'N', p[3]= 'F', p[4]= 0;
+    return 4;
+  }
+
+  /// negative numbers will be switched to positive and the sign remembered
+  bool sign;
+  if(n< 0.0) {
+    sign= true;
+    n= -n;
+    len++;
+  } else
+    sign= false;
+
+  /// scientific exponent
+  int e= 0;
+  if(useE)
+    if(n< 1.0)
+      while(n< 1.0&& n> 0.0)
+        n*= 10.0, e--;
+    else
+      while(n> 10.0)
+        n/= 10.0, e++;
+
+  int64 n1= (int64)n;           /// n1 can be printed as is
+  int64 n2= (int64)((n- (int64)n)* pow10i[20+ precision]);
+
+  /// compute number length in string chars
+  int64 t= n1;            /// integer part length
+  if(t== 0) len++;
+  while(t)
+    t/= 10, len++;
+  if(precision)           /// float part length
+    len+= precision+ 1;
+  if(e) {                 /// exponent length
+    t= e;
+    while(t)
+      t/= 10, len++;
+    len+= 2;
+  }
+
+  // buf will be filled backwards by p
+  p+= len+ 1;                 /// 2= space for terminator+ the way the algorithm works (*--p)
+  *--p= 0;                    /// string terminator
+
+  /// scientific exponent
+  if(e) {
+    uint8 s= (e>= 0? '+': '-');
+    if(e< 0) e= -e;
+    while(e)
+      *--p= '0'+ e% 10, e/= 10;
+    *--p= s;
+    *--p= 'e';
+  }
+
+  /// print fractionary part only if precision > 0
+  if(precision) {
+    for(int a= 0; a< precision; a++)
+      *--p= '0'+ n2% 10, n2/= 10;
+    *--p= '.';
+  }
+
+  /// integer part
+  if(n1== 0) *--p= '0';         /// n1 is 0 - special case
+  else 
+    while(n1)                   /// n1 to text
+      *--p= '0'+ n1% 10, n1/= 10;
+
+  if(sign)
+    *--p= '-';
+
+  return len;
+}
+
+// number to UTF32 ========-----------------
+
+int Str::int64toUtf32(int64 n, void *buf, int8 base, bool uppercase) {
+  if(base!= 10 && base!= 2 && base!= 8 && base!= 16) base= 10; // safety
+  uint32 *p= (uint32 *)buf;     /// p will walk buf, backwards
+  if(n== 0) { *p= '0'; *(p+ 1)= 0; return 1; }  /// special case
+
+  /// number sign
+  int8 sign= (n< 0? -1: 1);
+
+  /// check the number length in characters
+  int len= 0;                   /// len is also return value - the number of characters in the string
+  int64 t= n;                   /// t is used only in the next few lines
+  if(t< 0) len++;
+  while(t)
+    t/= base, len++;
+
+  // start to populate the string
+  p+= len+ 1;                   /// space for terminator, and 1 because of the algorithm (*--p)
+  *--p= 0;                      /// string terminator
+  
+  /// zecimal number
+  if(base== 10)
+    while(n)
+      *--p= '0'+ sign* (n% 10), n/= 10;
+  
+  /// binary/ octal/ hexa number
+  else {
+    uint32 c= uppercase? 'A': 'a';
+    while(n) {
+      int8 a= sign* (n% base);
+      if(a> 9)
+        *--p= c+ a- 10;
+      else
+        *--p= '0'+ a;
+      n/= base;
+    }
+  }
+
+  if(sign< 0) *--p= '-';        /// negative number sign
+
+  return len;
+}
+
+
+int Str::uint64toUtf32(uint64 n, void *buf, int8 base, bool uppercase) {
+  if(base!= 10 && base!= 2 && base!= 8 && base!= 16) base= 10; // safety
+  uint32 *p= (uint32 *)buf;     /// p will walk buf, backwards
+  if(n== 0) { *p= '0'; *(p+ 1)= 0; return 1; }  /// special case
+
+  /// check the number length in characters
+  int len= 0;                   /// len is also return value - the number of characters in the string
+  uint64 t= n;                  /// t is used only in the next few lines
+  if(t< 0) len++;
+  while(t)
+    t/= base, len++;
+
+  // start to populate the string
+  p+= len+ 1;                   /// space for terminator, and 1 because of the algorithm (*--p)
+  *--p= 0;                      /// string terminator
+  
+  /// zecimal number
+  if(base== 10)
+    while(n)
+      *--p= '0'+ (n% 10),
+      n/= 10;
+
+  /// binary/ octal/ hexa number
+  else {
+    uint32 c= uppercase? 'A': 'a';
+    while(n) {
+      uint32 a= (uint32)(n% base);
+      if(a> 9)
+        *--p= c+ a- 10;
+      else
+        *--p= '0'+ a;
+      n/= base;
+    }
+  }
+
+  return len;
+}
+
+
+int Str::floatToUtf32(float n, void *buf, int precision, bool useE) {
+  uint32 *p= (uint32 *)buf;   /// p will populate the string, backwards
+  int len= 0;                 /// return value - number of characters in string
+
+  /// NaN check
+  if(n!= n) {
+    p[0]= 'N'; p[1]= 'a'; p[2]= 'N'; p[3]= 0;
+    return 3;
+  }
+
+  /// INFINITY check
+  if((n- n) != 0.0f) {
+    if(n > 0.0f) p[0]= '+';
+    else         p[0]= '-';
+    p[1]= 'I'; p[2]= 'N'; p[3]= 'F'; p[4]= 0;
+    return 4;
+  }
+
+  /// negative numbers will be switched to positive and the sign remembered
+  bool sign;
+  if(n< 0.0f) {
+    sign= true;
+    n= -n;
+    len++;
+  } else
+    sign= false;
+
+  /// scientific exponent
+  int e= 0;
+  if(useE)
+    if(n< 1.0f && n> 0.0f)
+      while(n< 1.0f)
+        n*= 10.0f, e--;
+    else
+      while(n> 10.0f)
+        n/= 10.0f, e++;
+
+  int64 n1= (int64)n;           /// n1 can be printed as is
+  int64 n2= (int64)((n- (int64)n)* pow10i[20+ precision]);
+
+  /// compute number length in string chars
+  int64 t= n1;            /// integer part length
+  if(t== 0) len++;
+  while(t)
+    t/= 10, len++;
+  if(precision)           /// float part length
+    len+= precision+ 1;
+  if(e) {                 /// exponent length
+    t= e;
+    while(t)
+      t/= 10, len++;
+    len+= 2;
+  }
+
+  // buf will be filled backwards by p
+  p+= len+ 1;                 /// 2= space for terminator+ the way the algorithm works (*--p)
+  *--p= 0;                    /// string terminator
+
+  /// scientific exponent
+  if(e) {
+    uint32 s= (e>= 0? '+': '-');
+    if(e< 0) e= -e;
+    while(e)
+      *--p= '0'+ e% 10, e/= 10;
+    *--p= s;
+    *--p= 'e';
+  }
+
+  /// print fractionary part only if precision > 0
+  if(precision) {
+    for(int a= 0; a< precision; a++)
+      *--p= '0'+ n2% 10, n2/= 10;
+    *--p= '.';
+  }
+
+  /// integer part
+  if(n1== 0) *--p= '0';         /// n1 is 0 - special case
+  else 
+    while(n1)                   /// n1 to text
+      *--p= '0'+ n1% 10, n1/= 10;
+
+  if(sign)
+    *--p= '-';
+
+  return len;
+}
+
+
+int Str::doubleToUtf32(double n, void *buf, int precision, bool useE) {
+  uint32 *p= (uint32 *)buf;   /// p will populate the string, backwards
+  int len= 0;                 /// return value - number of characters in string
+  /// NaN check
+  if(n!= n) {
+    p[0]= 'N', p[1]= 'a', p[2]= 'N', p[3]= 0;
+    return 3;
+  }
+
+  /// INFINITY check
+  if((n- n) != 0.0) {
+    if(n > 0.0) p[0]= '+';
+    else        p[0]= '-';
+    p[1]= 'I', p[2]= 'N', p[3]= 'F', p[4]= 0;
+    return 4;
+  }
+
+  /// negative numbers will be switched to positive and the sign remembered
+  bool sign;
+  if(n< 0.0) {
+    sign= true;
+    n= -n;
+    len++;
+  } else
+    sign= false;
+
+  /// scientific exponent
+  int e= 0;
+  if(useE)
+    if(n< 1.0)
+      while(n< 1.0&& n> 0.0)
+        n*= 10.0, e--;
+    else
+      while(n> 10.0)
+        n/= 10.0, e++;
+
+  int64 n1= (int64)n;           /// n1 can be printed as is
+  int64 n2= (int64)((n- (int64)n)* pow10i[20+ precision]);
+
+  /// compute number length in string chars
+  int64 t= n1;            /// integer part length
+  if(t== 0) len++;
+  while(t)
+    t/= 10, len++;
+  if(precision)           /// float part length
+    len+= precision+ 1;
+  if(e) {                 /// exponent length
+    t= e;
+    while(t)
+      t/= 10, len++;
+    len+= 2;
+  }
+
+  // buf will be filled backwards by p
+  p+= len+ 1;                 /// 2= space for terminator+ the way the algorithm works (*--p)
+  *--p= 0;                    /// string terminator
+
+  /// scientific exponent
+  if(e) {
+    uint32 s= (e>= 0? '+': '-');
+    if(e< 0) e= -e;
+    while(e)
+      *--p= '0'+ e% 10, e/= 10;
+    *--p= s;
+    *--p= 'e';
+  }
+
+  /// print fractionary part only if precision > 0
+  if(precision) {
+    for(int a= 0; a< precision; a++)
+      *--p= '0'+ n2% 10, n2/= 10;
+    *--p= '.';
+  }
+
+  /// integer part
+  if(n1== 0) *--p= '0';         /// n1 is 0 - special case
+  else 
+    while(n1)                   /// n1 to text
+      *--p= '0'+ n1% 10, n1/= 10;
+
+  if(sign)
+    *--p= '-';
+
+  return len;
+}
+
+
+
+
+
+
+
+

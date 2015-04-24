@@ -23,6 +23,7 @@ public:
   str8 glRenderer;            /// this can be used for various checks, as it never changes
   int max3Dtexture;           /// maximum 3D texture size this renderer can operate
   GLint maxTexelUnits;        /// maximum texel units this renderer can operate
+  int maxTextureAnisotropy;   /// maximum texture anisotropy (if extension is present)
 
   // OpenGL extensions - these are defined in osiGlExt.cpp - by default, all extensions are auto-checked and aquired
   

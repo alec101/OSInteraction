@@ -151,6 +151,15 @@ public:
   str8 &operator+=(const str32 &s)      { return *this+= s.d; }
   #endif
 
+  int64_t toInt()   const { return Str::utf8toInt64(d); }
+  uint64_t toUint() const { return Str::utf8toUint64(d); }
+  float toFloat()   const { return Str::utf8toFloat(d); }
+  double toDouble() const { return Str::utf8toDouble(d); }
+
+  str8 &fromInt(int64_t n, int8_t base= 10, bool uppercase= true)   { if(len< 66) { if(d) delete[] d; d= new uint8_t[66]; len= 66; } nrChars= Str::int64toUtf8(n, d, base, uppercase);  nrCombs= 0; return *this; }
+  str8 &fromUint(uint64_t n, int8_t base= 10, bool uppercase= true) { if(len< 66) { if(d) delete[] d; d= new uint8_t[66]; len= 66; } nrChars= Str::uint64toUtf8(n, d, base, uppercase); nrCombs= 0; return *this; }
+  str8 &fromFloat(float n, int precision= 2, bool useE= false)      { if(len< 66) { if(d) delete[] d; d= new uint8_t[66]; len= 66; } nrChars= Str::floatToUtf8(n, d, precision, useE);  nrCombs= 0; return *this; }
+  str8 &fromDouble(double n, int precision= 2, bool useE= false)    { if(len< 66) { if(d) delete[] d; d= new uint8_t[66]; len= 66; } nrChars= Str::doubleToUtf8(n, d, precision, useE); nrCombs= 0; return *this; }
 };
 
 //str8 operator+(const uint8_t *s1, const str8 &s2);

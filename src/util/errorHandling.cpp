@@ -27,10 +27,8 @@
 #ifdef USING_OPENGL
 #ifdef __APPLE__
 #include <OpenGL/gl.h>
-#include <OpenGL/glu.h>
 #else /// OS_WIN + OS_LINUX
 #include <GL/gl.h>
-#include <GL/glu.h>
 #endif 
 #endif
 
@@ -312,18 +310,24 @@ int ErrorHandling::glError(cchar *text) {
   int ret= glGetError();
   if(!ret) return 0;        // fast return if no error
 
+  str8 s;
+  if(text) { s+= text; s+= " "; }
+  s+= "OpenGL ERROR: ";
+
   if(ret== GL_INVALID_ENUM)
-    simple(text? str8(text)+ " GL ERROR: GL_INVALID_ENUM": "OpenGL ERROR: GL_INVALID_ENUM");
+    simple((s+= "GL_INVALID_ENUM"));
   else if(ret== GL_INVALID_VALUE)
-    simple(text? str8(text)+ " GL ERROR: GL_INVALID_VALUE": "OpenGL ERROR: GL_INVALID_VALUE");
+    simple((s+= "GL_INVALID_VALUE"));
   else if(ret== GL_INVALID_OPERATION)
-    simple(text? str8(text)+ " GL ERROR: GL_INVALID_OPERATION": "OpenGL ERROR: GL_INVALID_OPERATION");
+    simple((s+= "GL_INVALID_OPERATION"));
   else if(ret== GL_OUT_OF_MEMORY)
-    simple(text? str8(text)+ " GL ERROR: GL_OUT_OF_MEMORY": "OpenGL ERROR: GL_OUT_OF_MEMORY");
+    simple((s+= "GL_OUT_OF_MEMORY"));
   else if(ret== GL_STACK_UNDERFLOW)
-    simple(text? str8(text)+ " GL ERROR: GL_STACK_UNDERFLOW": "OpenGL ERROR: GL_STACK_UNDERFLOW");
+    simple((s+= "GL_STACK_UNDERFLOW"));
   else if(ret== GL_STACK_OVERFLOW)
-    simple(text? str8(text)+ " GL ERROR: GL_STACK_OVERFLOW": "OpenGL ERROR: GL_STACK_OVERFLOW");
+    simple((s+= "GL_STACK_OVERFLOW"));
+  else
+    simple((s.f("%s Unknown [%d]", s.d, ret)));
 
   return ret;  
 }

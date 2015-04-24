@@ -52,25 +52,25 @@ class PNG {
 public:
   
   void *bitmap;         /// raw data
-  int32_t dx, dy;        /// image size
-  int8_t bpp, bpc;       /// bits per pixel / bits per channel
+  int32_t dx, dy;       /// image size
+  int8_t bpp, bpc;      /// bits per pixel / bits per channel
   ImageType type;       /// image type - check ImageType enum
 
-  uint8_t *cmap;          /// color map palette
-  int8_t cmapBpp;        /// color palette bits per color (16 / 24 / 32)
+  uint8_t *cmap;        /// color map palette
+  int8_t cmapBpp;       /// color palette bits per color (16 / 24 / 32)
 
   bool hasTrnCol;       /// indicates that the image uses the transparent (trnCol);
   struct { uint16_t r, g, b; } trnCol;  /// the transparent color, can be used in RGB / GREY image types
 
   // saving / loading
 
-  bool load(const char *);   /// loads a PNG, about any kind
-  bool save(const char *);   /// saves a PNG, fill in dx/dy/type/bpp, bitmap should hold raw data before saving
+  bool load(const char *);  /// loads a PNG, about any kind
+  bool save(const char *);  /// saves a PNG, fill in dx/dy/type/bpp, bitmap should hold raw data before saving
   
   // error handling
 
-  uint16_t err;           /// error number - 0= no errors
-  const char *getError();    /// returns error as text
+  uint16_t err;             /// error number - 0= no errors
+  const char *getError();   /// returns error as text
 
   // constructor / destructor
 

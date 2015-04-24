@@ -1,4 +1,7 @@
-//#define OSI_USE_OPENGL_LEGACY
+// not part of coreARB exts that are used in this file:
+//  - GL_EXT_texture_filter_anisotropic
+#define OSI_USE_OPENGL_EXOTIC_EXT 1
+
 #include "osinteraction.h"
 #include "util/typeShortcuts.h"
         
@@ -954,7 +957,8 @@ osiRenderer::osiRenderer()
   maxTexelUnits= 0;
   max3Dtexture= 0;
   monitor= null;
-  
+  maxTextureAnisotropy= 0;
+
   #ifdef OS_WIN
   _bContextFuncsGot= false;
   #else /// OS_MAC & OS_LINUX
@@ -1066,8 +1070,12 @@ void osiRenderer::checkExt() {
   #else 
   glGetIntegerv(GL_MAJOR_VERSION, &glVerMajor);                 /// oGL major version
   glGetIntegerv(GL_MINOR_VERSION, &glVerMinor);                 /// oGL minor version
-  #endif 
+  #endif
   
+  #if(GL_EXT_texture_filter_anisotropic== 1)
+  glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &maxTextureAnisotropy); /// maximum texture anisotropy
+  #endif
+
   // deprecated glGetIntegerv(GL_MAX_TEXTURE_UNITS_ARB, &maxTexelUnits);      /// maximum texel units
   glGetIntegerv(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &maxTexelUnits);      /// maximum texel units
   
@@ -1129,7 +1137,7 @@ void _parseExtString(osiRenderer *r, cchar *ext) {
   int i= searchARB(r, ext);
   if(i != -1) {
     r->glARBlist[i].avaible= true;           /// found it in ARB
-
+    
   /// search EXT list
   } else {
     i= searchEXT(r, ext);

@@ -1,5 +1,8 @@
 #include "osinteraction.h"
 #include "util/typeShortcuts.h"
+#include "util/filePNG.h"
+#include "util/fileTGA.h"
+
 #ifdef OS_MAC
 
 /// cocoa uses these, unfortunately...

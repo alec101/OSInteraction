@@ -91,14 +91,18 @@ void str32::clean() {
 ///---------///
 str32 &str32::operator=(const str32 &s) {
   modifWin= modif8= true;
-  len=     s.len;
+
+  int32 n= s.nrChars+ s.nrCombs;
+  if(len!= s.len) {
+    len= s.len;
+    if(d) delete[] d;
+    d= new uint32[n+ 1];
+  }
+
   nrChars= s.nrChars;
   nrCombs= s.nrCombs;
 
   /// copy
-  if(d) delete[] d;
-  int32 n= nrChars+ nrCombs;
-  d= new uint32[n+ 1];
   for(int32 a= 0; a<= n; a++)
     d[a]= s.d[a];
 
@@ -109,17 +113,21 @@ str32 &str32::operator=(const str32 &s) {
 str32 &str32::operator=(cuint32 *s) {
   delData();
   modif8= modifWin= true;
-
+  
   /// string [s] length in unicode values
   cuint32 *p= s;
   while(*p++);
-  int32 n= (int32)(p- s- 1);
-  len= n* 4;
+  int32 n= (int32)(p- s);
+
+  if(len!= n* 4) {
+    len= n* 4;
+    if(d) delete[] d;
+    d= new uint32[n];
+  }
   nrChars= nrCombs= 0;
+
   /// copy
-  if(d) delete[] d;
-  d= new uint32[n+ 1];
-  for(int32 a= 0; a<= n; a++) {
+  for(int32 a= 0; a< n; a++) {
     d[a]= s[a];
     if(isComb(d[a])) nrCombs++;
     else             nrChars++;
@@ -136,14 +144,16 @@ str32 &str32::operator=(cuint16 *s) {
   /// string [s] length in unicode values (16bit tho, windows can't do anymore than that... it's handicapped... let's not take on the disabled ppl that did it)
   cuint16 *p= s;
   while(*p++);
-  int32 n= (int32)(p- s- 1);
+  int32 n= (int32)(p- s);
 
-  len= n* 4;
+  if(len!= n* 4) {
+    len= n* 4;
+    if(d) delete[] d;
+    d= new uint32[n];
+  }
 
   /// copy
-  if(d) delete[] d;
-  d= new uint32[n+ 1];
-  for(int32 a= 0; a<= n; a++) {
+  for(int32 a= 0; a< n; a++) {
     d[a]= s[a];
     if(isComb(d[a])) nrCombs++;
     else             nrChars++;
@@ -164,14 +174,18 @@ str32 &str32::operator=(cuint8 *s) {
   while(*p++)
     if((*p& 0xc0)!= 0x80)   /// 0xc0= 11000000, first two bits  0x80= 10000000, test for 10xxxxxx the last 6 bits wont matter, as they are not tested so test to 10000000
       n++;
+  n++;
 
-  len= n* 4;
+  if(len!= n* 4) {
+    len= n* 4;
+    if(d) delete[] d;
+    d= new uint32[n];
+  }
 
   // copy
-  d= new uint32[n+ 1];
   p= s;
 
-  for(int32 a= 0; a<= n; a++) {  /// for each character
+  for(int32 a= 0; a< n; a++) {  /// for each character
     /// character is ascii 0-127
     if(*p < 128) {
       d[a]= *p++;
@@ -230,15 +244,17 @@ str32 &str32::operator=(uint32 c) {
       return *this;
     }
 
-  if(d)
-    delete[] d;
-  d= new uint32[2];
+  if(len!= 8) {
+    len= 8;
+    if(d) delete[] d;
+    d= new uint32[2];
+  }
+
   d[0]= c;
   d[1]= 0;
 
   if(isComb(d[0])) nrCombs++;
   else             nrChars++;
-  len= 4;
 
   modif8= modifWin= true;
 
@@ -270,7 +286,7 @@ str32 &str32::operator+=(const str32 &s) {
   for(a= 0, n= s.nrChars+ s.nrCombs; a<= n; a++)    /// +1= terminator
     p[a]= s.d[a];
 
-  len+= s.len;
+  len+= s.len- 4;
   nrChars+= s.nrChars;
   nrCombs+= s.nrCombs;
 
@@ -420,6 +436,7 @@ uint16 *str32::convertWin() {
 
 // whole string conversion to lowercase
 void str32::lower() {
+  modif8= modifWin= true;
   for(int32 a= 0, n= nrChars+ nrCombs; a< n; a++)
     d[a]= tolower(d[a]);      /// lowercase each character
 }
@@ -427,6 +444,7 @@ void str32::lower() {
 
 // whole string conversion to uppercase
 void str32::upper() {
+  modif8= modifWin= true;
   for(int32 a= 0, n= nrChars+ nrCombs; a< n; a++)
     d[a]= toupper(d[a]);      /// lowercase each character
 }
@@ -561,7 +579,7 @@ void str32::clearComb() {
   
   /// new internal vals
   nrCombs= 0;
-  len= nrChars* 4;
+  len= (nrChars+ 1)* 4;
   delete[] d;
   d= t;
 }
@@ -589,7 +607,7 @@ void str32::updateLen() {
     if(isComb(*p)) nrCombs++;
     else           nrChars++;
 
-  len= (nrChars+ nrCombs)* 4;
+  len= (nrChars+ nrCombs+ 1)* 4;
 }
 
 
@@ -620,10 +638,11 @@ str32 &str32::secureUTF8(cvoid *s) {
     else if((*p& 0xfc) == 0xf8) n++;    /// header for 5 bytes  marked as bad
     else if((*p& 0xfe) == 0xfc) n++;    /// header for 6 bytes  marked as bad
   }
+  n++;
   len= n* 4;
 
   // copy
-  d= new uint32[n+ 1];
+  d= new uint32[n];
   p= (uint8 *)s;
   int32 a= 0;
   while(a< n) {                         /// for each (valid) unicode value
@@ -763,7 +782,7 @@ str32 &str32::secureUTF8(cvoid *s) {
     a++;
   }	/// for each character
 
-  d[a]= 0;                              /// terminator
+  //d[a]= 0;                              /// terminator
 
   return *this;
 }

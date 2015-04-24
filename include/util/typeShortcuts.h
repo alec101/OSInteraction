@@ -65,9 +65,22 @@
 //#define string string8        // ?????????? stringClass
 #define cstring const string8   // ?????????? stringClass
 
+#define cfloat const float
+#define cdouble const double
+
 #ifndef NULL
 #define NULL 0
 #endif
+
+#if defined(_MSC_VER)
+#define ALIGNED(x) __declspec(align(x))
+#else
+//#if defined(__GNUC__)
+#define ALIGNED(x) __attribute__ ((aligned(x)))
+//#endif
+#endif
+
+
 
 #define null NULL               /// i just like the null without the yelling (don't think anyone would use smallcase null for anything else)
 

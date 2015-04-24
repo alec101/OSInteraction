@@ -61,7 +61,7 @@ public:
   void updateLen();           /// updates string length vars, in case you want to mess with the string internal data (d/d8/etc). [WARNING: see start of this header file]
 
   void *convert8();           /// UTF-32 to UTF-8 conversion
-  uint16_t *convertWin();       /// UTF-32 to windows 16bit wide character format
+  uint16_t *convertWin();     /// UTF-32 to windows 16bit wide character format
   void lower();               /// converts whole string to lowercase (special cases that 1 character transforms into multiple characters ARE NOT HANDLED)
   void upper();               /// converts whole string to uppercase (special cases that 1 character transforms into multiple characters ARE NOT HANDLED)
   
@@ -163,6 +163,16 @@ public:
   str32 operator+(const str8 &s) const { return str32(*this)+= s.d; }
   str32 &operator+=(const str8 &s) { return *this+= s.d; }
   #endif /// STR8CLASSINCLUDED
+
+  inline int64_t toInt()   const { return Str::utf32toInt64(d); }
+  inline uint64_t toUint() const { return Str::utf32toUint64(d); }
+  inline float toFloat()   const { return Str::utf32toFloat(d); }
+  inline double toDouble() const { return Str::utf32toDouble(d); }
+
+  str32 &fromInt(int64_t n, int8_t base= 10, bool uppercase= true)   { if(len< 264) { if(d) delete[] d; d= new uint32_t[66]; len= 264; } nrChars= Str::int64toUtf32(n, d, base, uppercase);  nrCombs= 0; modif8= modifWin= true; return *this; }
+  str32 &fromUint(uint64_t n, int8_t base= 10, bool uppercase= true) { if(len< 264) { if(d) delete[] d; d= new uint32_t[66]; len= 264; } nrChars= Str::uint64toUtf32(n, d, base, uppercase); nrCombs= 0; modif8= modifWin= true; return *this; }
+  str32 &fromFloat(float n, int precision= 2, bool useE= false)      { if(len< 264) { if(d) delete[] d; d= new uint32_t[66]; len= 264; } nrChars= Str::floatToUtf32(n, d, precision, useE);  nrCombs= 0; modif8= modifWin= true; return *this; }
+  str32 &fromDouble(double n, int precision= 2, bool useE= false)    { if(len< 264) { if(d) delete[] d; d= new uint32_t[66]; len= 264; } nrChars= Str::doubleToUtf32(n, d, precision, useE); nrCombs= 0; modif8= modifWin= true; return *this; }
 };
 
 

@@ -8,6 +8,9 @@
 
 // SEGLIST CREATION: segList( 'segment size', sizeof('segData derived class'));
 
+//  constructors that use segLists, that start before any thread starts, should set ignoreLocking to true, because the std::mutex is not working in these situations
+
+
 /// Memory alloc is automatic, everything you need to think about is the segment size (number of chainList nodes that are allocated per segment);
 ///   it must be right, so not too many allocs happen
 
@@ -25,7 +28,6 @@
 
 class segList;
 class _segment;
-
 
 // DERIVE classes from this one & DEFINE what vars are in the chain (node/blabla)
 class segData {
@@ -54,7 +56,7 @@ class segList {
   int segSize;                  /// segment size
   chainList seg;                /// chainlist with all segments of memory allocated / memory alloc is automatic, nothing to bother
   inline void addSegment();     /// memory allocation
-  inline void removeSegment();  /// memory deallocation
+  //inline void removeSegment();  /// memory deallocation
 
 public:
   segData *first, *last;     // last is important for add(), else there has to be a loop that passes thru all the list (if the list has 100k nodes... goodbye speed)
@@ -80,12 +82,13 @@ public:
 
   // funcs that will work for _ALL_ created segments; (there is a hidden chainList with all created segments)
 
-  static void checkIdleALL();       // [VERY SLOW] this is like checkIdle, but for ALL segments that were created; 
-  static void delEmptySegmentsALL();// [VERY SLOW] same as delEmptySegments() but for ALL segLists that were created; basically a garbage collector
+  // THESE TWO FUNCTIONS ARE _NOT THREAD SAFE_. USE THEM ONLY WHEN USING SEGLISTS IN A SINGLE THREAD, ELSE CHECK EACH LIST IN IT'S THREAD
+  static void checkIdleALL();       // [VERY SLOW NOT THREAD SAFE] this is like checkIdle, but for ALL segments that were created; 
+  static void delEmptySegmentsALL();// [VERY SLOW NOT THREAD SAFE] same as delEmptySegments() but for ALL segLists that were created; basically a garbage collector
 
   // constructor / destructor
 
-  segList(int segmentSize, int uSize, int idleTime= 300000);  // initialize by providing a segment size, and a sizeof(derived segData)
+  segList(int segmentSize, int uSize, bool ignoreLocking= false, int idleTime= 300000);  // initialize by providing a segment size, and a sizeof(derived segData) ignoreLocking is used to tell segList not to lock it's internal mutex - used on constructors when no thread actually started
   ~segList();
   void delData();           /// teh real destructor (tm) - can be called at any time to dealloc everything (removes EVERYTHING tho)
 };
@@ -113,7 +116,5 @@ friend class segList;
   _segment();
   ~_segment();
 };
-
-
 
 

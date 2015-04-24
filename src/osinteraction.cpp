@@ -1,5 +1,7 @@
 #include "osinteraction.h"
 #include "util/typeShortcuts.h"
+#include "util/filePNG.h"
+#include "util/fileTGA.h"
 
 #ifdef OS_LINUX
 #include <unistd.h>

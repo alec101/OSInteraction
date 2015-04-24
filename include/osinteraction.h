@@ -280,8 +280,8 @@ main() {
 #include "util/errorHandling.h"
 #include "util/chainList.h"
 #include "util/segList.h"
-#include "util/filePNG.h"
-#include "util/fileTGA.h"
+//#include "util/filePNG.h"
+//#include "util/fileTGA.h"
 
 // osi headers
 
@@ -310,8 +310,8 @@ class osiRenderer;
 
 struct osiSettings {
   struct {
-    int minVerMajor;                /// [default= 3]
-    int minVerMinor;                /// [default= 2]
+    int minVerMajor;                /// [default= 0]
+    int minVerMinor;                /// [default= 0]
     bool oneRendererPerGPU;         /// [default] - autocreates a renderer - if a renderer is already created on window's GPU, it uses that renderer
     bool oneRendererPerMonitor;     /// if no info on GPU's, this is the fallback - autocreates a renderer - one renderer per monitor and assigns it to the next created window
     bool oneRendererPerWin;         /// set this to create one renderer per each next created windows
@@ -459,7 +459,7 @@ private:
   //void sendWMProp(int wmID, int wmProp, bool activate); /// documentation is @ end of osinteraction.h
   bool _processMSG();                  // linux MESSAGE HANDLER variant -don't call it, use OS independent checkMSG()
 public:
-  static Display *_dis;               /// display 'handle'. nowadays there is only 1 display, and 1 big (virtual) screen.
+  Display *_dis;                      /// display 'handle'. nowadays there is only 1 display, and 1 big (virtual) screen.
 private:
   #endif /// OS_LINUX
 

@@ -1242,8 +1242,8 @@ void osiMouse::resetButtons() {
 // ========================================================================
 
 osiKeyboard::osiKeyboard():
-charTyped(40, sizeof(chTyped)),
-manipTyped(40, sizeof(chTyped)) {
+charTyped(40, sizeof(chTyped), true),
+manipTyped(40, sizeof(chTyped), true) {
   mode= 1;
   _bActive= _bGrabbed= false;
   delData();

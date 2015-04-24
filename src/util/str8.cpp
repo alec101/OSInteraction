@@ -124,14 +124,17 @@ str8 &str8::f(cvoid *format, ...) {
 str8 &str8::operator=(const str8 &s) {
   if(!s.len) { delData(); return *this; }
 
-  len= s.len;
+  if(len!= s.len) {
+    len= s.len;
+    if(d) delete[] d;
+    d= new uint8[len];
+  }
+
   nrChars= s.nrChars;
   nrCombs= s.nrCombs;
   
   /// copy
-  if(d) delete[] d;
-  d= new uint8[len+ 1];
-  for(int a= 0; a< len+ 1; a++)
+  for(int a= 0; a< len; a++)
     d[a]= s.d[a];
 
   return *this;
@@ -150,10 +153,10 @@ str8 &str8::operator=(cuint8 *s) {
       else                      nrChars++;
     }
   }
+  len++;
 
   /// alloc+ copy
-  d= new uint8[len+ 1];
-  d[len]= 0;                    /// terminator
+  d= new uint8[len];
 
   int32 l= len;
   while(l) {
@@ -180,9 +183,10 @@ str8 &str8::operator=(cuint32 *s) {
     else if(s[a]<= 0x03FFFFFF) len+= 5; /// 5 bytes U-00200000�U-03FFFFFF:  111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 
     else if(s[a]<= 0x7FFFFFFF) len+= 6; /// 6 bytes U-04000000�U-7FFFFFFF:  1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
   }
+  len++;              /// terminator;
 
   /// create d
-  d= new uint8[len+ 1];
+  d= new uint8[len];
   uint8 *p= d;                      /// p will walk d
 
   for(int32 a= 0; a< n; a++) {      // for each char/comb in s
@@ -246,8 +250,10 @@ str8 &str8::operator=(cuint16 *s) {
     else if(s[a]<= 0x07FF) len+= 2; /// 2 bytes U-00000080�U-000007FF:  110xxxxx 10xxxxxx 
     else if(s[a]<= 0xFFFF) len+= 3; /// 3 bytes U-00000800�U-0000FFFF:  1110xxxx 10xxxxxx 10xxxxxx 
                                      // windows wide char fits in max 3 bytes
+  len++;                    /// terminator;
+
   /// create d
-  d= new uint8[len+ 1];
+  d= new uint8[len];
   uint8 *p= d;
 
   for(int32 a= 0; a< n; a++) {    // for each character in s
@@ -288,20 +294,20 @@ str8 &str8::operator+=(const str8 &s) {
   
   /// copy string 1 to new string
   int a= 0;
-  for(a= 0; a< len; a++)
+  for(a= 0; a< len- 1; a++)             /// -1, to skip the terminator
     p[a]= d[a];
 
   delete[] d;
   d= p;
   /// copy string 2 to new string
   p+= a;
-  for(a= 0; a< s.len+ 1; a++)           /// +1= terminator
+  for(a= 0; a< s.len; a++)
     *p++= s.d[a];
 
   /// string sizes 
   nrChars+= s.nrChars;
   nrCombs+= s.nrCombs;
-  len+= s.len;
+  len+= s.len- 1;                     /// minus one of the terminators
 
   return *this;
 }
@@ -530,9 +536,10 @@ str8 str8::operator-(int n) const {
 ///-----------///
 
 bool str8::operator==(const str8 &s) const {
-  if(s.len!= len) return false;
+  if(s.nrChars!= nrChars) return false;
+  if(s.nrCombs!= nrCombs) return false;
 
-  for(int32 a= 0; a< len; a++)
+  for(int32 a= 0, n= nrChars+ nrCombs; a< n; a++)
     if(d[a]!=s.d[a])
       return false;
 
@@ -545,10 +552,14 @@ bool str8::operator==(cuint8 *s) const {
     if(!len)  return true;
     else      return false;
   }
+  cuint8 *p1= d;
+  cuint8 *p2= s;
 
-  for(int32 a= 0; a< len; a++)
-    if(d[a]!= s[a])
+  while(*p1)
+    if((!*p2) || (*p1++!= *p2++)) // if string 2 ends || characters differ (increment pointers too)
       return false;
+
+  if(*p2) return false;           // there are still chars in string 2 when string 1 ended ?
 
   return true;
 } /// checks if strings are identical (utf-8)
@@ -559,13 +570,14 @@ bool str8::operator==(cuint32 *s) const {
     if(!d)  return true;
     else    return false;
   }
+
   str8 t(s);
   return (*this).operator==(t);
 }
 
 
 bool str8::operator==(cuint32 c) const {
-  if(nrChars!= 1) return false;
+  if(nrChars+ nrCombs!= 1) return false;
   return (utf8to32(d) == c);
 }
 
@@ -616,6 +628,7 @@ void str8::updateLen() {
       else                      nrChars++;
     }
   }
+  len++;
 }
 
 
