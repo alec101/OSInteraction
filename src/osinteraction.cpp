@@ -275,7 +275,7 @@ osinteraction::osinteraction() {
     
     str8 utf8(buf);
     /// if string length is less than 2 chars, there's a problem (not a utf8 string, probly ... hopefully)
-    if(utf8.len<= 2) {
+    if(utf8.len<= 3) {
       
       /// if the string length is divided by 4, it can be utf-32. if actually is not utf-32... well, shit happens i guess
       if(!(l% 4)) 
@@ -419,8 +419,8 @@ void _parseCmdLine(osinteraction *o) {
 
       /// convert from s2(utf-32) to argv[n] (utf-8)
       utf8conv= s2;
-      o->argv[n]= new char[utf8conv.len+ 1];
-      for(int d= 0; d< utf8conv.len+ 1; d++)
+      o->argv[n]= new char[utf8conv.len];
+      for(int d= 0; d< utf8conv.len; d++)
         (o->argv[n])[d]= utf8conv.d[d];
 
       n++;                            /// n is argv array index

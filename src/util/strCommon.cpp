@@ -1084,7 +1084,7 @@ float Str::utf8toFloat(const void *s) {
     if(n< 0) n= 0;
     ret/= pow10f[n];
     ret+= (float)i2;
-    ret*= pow10f[n];               // floatant part
+    ret*= pow10f[n];               // frac part
   }
 
   if(*p== 'e' || *p== 'E') {
@@ -1151,7 +1151,7 @@ double Str::utf8toDouble(const void *s) {
 
     ret/= pow10[n];
     ret+= (double)i2;
-    ret*= pow10[n];             // floatant part
+    ret*= pow10[n];             // frac part
   }
 
   if(*p== 'e' || *p== 'E') {
@@ -1312,7 +1312,7 @@ float Str::utf32toFloat(const void *s) {
     if(n< 0) n= 0;
     ret/= pow10f[n];
     ret+= (float)i2;
-    ret*= pow10f[n];               // floatant part
+    ret*= pow10f[n];               // frac part
   }
 
   if(*p== 'e' || *p== 'E') {
@@ -1379,7 +1379,7 @@ double Str::utf32toDouble(const void *s) {
 
     ret/= pow10[n];
     ret+= (double)i2;
-    ret*= pow10[n];             // floatant part
+    ret*= pow10[n];             // frac part
   }
 
   if(*p== 'e' || *p== 'E') {
@@ -1528,7 +1528,7 @@ int Str::floatToUtf8(float n, void *buf, int precision, bool useE) {
       while(n> 10.0f)
         n/= 10.0f, e++;
 
-  int64 n1= (int64)n;           /// n1 can be printed as is
+  int64 n1= (int64)n;
   int64 n2= (int64)((n- (int64)n)* pow10i[20+ precision]);
 
   /// compute number length in string chars
@@ -1559,7 +1559,7 @@ int Str::floatToUtf8(float n, void *buf, int precision, bool useE) {
     *--p= 'e';
   }
 
-  /// print fractionary part only if precision > 0
+  /// fractionary part only if precision > 0
   if(precision) {
     for(int a= 0; a< precision; a++)
       *--p= '0'+ n2% 10, n2/= 10;
@@ -1609,13 +1609,13 @@ int Str::doubleToUtf8(double n, void *buf, int precision, bool useE) {
   int e= 0;
   if(useE)
     if(n< 1.0)
-      while(n< 1.0&& n> 0.0)
+      while(n> 0.0 && n< 1.0)
         n*= 10.0, e--;
     else
       while(n> 10.0)
         n/= 10.0, e++;
 
-  int64 n1= (int64)n;           /// n1 can be printed as is
+  int64 n1= (int64)n;
   int64 n2= (int64)((n- (int64)n)* pow10i[20+ precision]);
 
   /// compute number length in string chars
@@ -1646,7 +1646,7 @@ int Str::doubleToUtf8(double n, void *buf, int precision, bool useE) {
     *--p= 'e';
   }
 
-  /// print fractionary part only if precision > 0
+  /// fractionary part only if precision > 0
   if(precision) {
     for(int a= 0; a< precision; a++)
       *--p= '0'+ n2% 10, n2/= 10;
@@ -1786,7 +1786,7 @@ int Str::floatToUtf32(float n, void *buf, int precision, bool useE) {
       while(n> 10.0f)
         n/= 10.0f, e++;
 
-  int64 n1= (int64)n;           /// n1 can be printed as is
+  int64 n1= (int64)n;
   int64 n2= (int64)((n- (int64)n)* pow10i[20+ precision]);
 
   /// compute number length in string chars
@@ -1817,7 +1817,7 @@ int Str::floatToUtf32(float n, void *buf, int precision, bool useE) {
     *--p= 'e';
   }
 
-  /// print fractionary part only if precision > 0
+  /// fractionary part only if precision > 0
   if(precision) {
     for(int a= 0; a< precision; a++)
       *--p= '0'+ n2% 10, n2/= 10;
@@ -1873,7 +1873,7 @@ int Str::doubleToUtf32(double n, void *buf, int precision, bool useE) {
       while(n> 10.0)
         n/= 10.0, e++;
 
-  int64 n1= (int64)n;           /// n1 can be printed as is
+  int64 n1= (int64)n;
   int64 n2= (int64)((n- (int64)n)* pow10i[20+ precision]);
 
   /// compute number length in string chars
@@ -1891,7 +1891,7 @@ int Str::doubleToUtf32(double n, void *buf, int precision, bool useE) {
   }
 
   // buf will be filled backwards by p
-  p+= len+ 1;                 /// 2= space for terminator+ the way the algorithm works (*--p)
+  p+= len+ 1;                 /// 1= space for terminator+ the way the algorithm works (*--p)
   *--p= 0;                    /// string terminator
 
   /// scientific exponent
@@ -1904,7 +1904,7 @@ int Str::doubleToUtf32(double n, void *buf, int precision, bool useE) {
     *--p= 'e';
   }
 
-  /// print fractionary part only if precision > 0
+  /// fractionary part only if precision > 0
   if(precision) {
     for(int a= 0; a< precision; a++)
       *--p= '0'+ n2% 10, n2/= 10;

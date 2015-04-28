@@ -290,7 +290,7 @@ str8 &str8::operator+=(const str8 &s) {
   if(!s.len) return *this;              /// other str8 empty -> return *this
   if(!len) return *this= s;             /// current str8 empty -> just copy other str8
   
-  uint8 *p= new uint8[len+ s.len+ 1];   /// new str8 allocation
+  uint8 *p= new uint8[len+ s.len- 1];   /// new str8 allocation
   
   /// copy string 1 to new string
   int a= 0;
