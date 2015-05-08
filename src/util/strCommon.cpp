@@ -1080,11 +1080,11 @@ float Str::utf8toFloat(const void *s) {
         n--;
       } else
         break;
-
+    
     if(n< 0) n= 0;
-    ret/= pow10f[n];
+    ret/= mlib::pow10f[n];
     ret+= (float)i2;
-    ret*= pow10f[n];               // frac part
+    ret*= mlib::pow10f[n];               // frac part
   }
 
   if(*p== 'e' || *p== 'E') {
@@ -1103,7 +1103,7 @@ float Str::utf8toFloat(const void *s) {
 
     if(sign2) i= -i;
 
-    ret*= pow10f[38+ i];
+    ret*= mlib::pow10f[38+ i];
   }
 
   if(sign) ret= -ret;
@@ -1149,9 +1149,9 @@ double Str::utf8toDouble(const void *s) {
 
     if(n< 0) n= 0;
 
-    ret/= pow10[n];
+    ret/= mlib::pow10d[n];
     ret+= (double)i2;
-    ret*= pow10[n];             // frac part
+    ret*= mlib::pow10d[n];             // frac part
   }
 
   if(*p== 'e' || *p== 'E') {
@@ -1170,7 +1170,7 @@ double Str::utf8toDouble(const void *s) {
 
     if(sign2) i= -i;
 
-    ret*= pow10[308+ i];
+    ret*= mlib::pow10d[308+ i];
   }
 
   if(sign) ret= -ret;
@@ -1310,9 +1310,9 @@ float Str::utf32toFloat(const void *s) {
         break;
 
     if(n< 0) n= 0;
-    ret/= pow10f[n];
+    ret/= mlib::pow10f[n];
     ret+= (float)i2;
-    ret*= pow10f[n];               // frac part
+    ret*= mlib::pow10f[n];               // frac part
   }
 
   if(*p== 'e' || *p== 'E') {
@@ -1331,7 +1331,7 @@ float Str::utf32toFloat(const void *s) {
 
     if(sign2) i= -i;
 
-    ret*= pow10f[38+ i];
+    ret*= mlib::pow10f[38+ i];
   }
 
   if(sign) ret= -ret;
@@ -1377,9 +1377,9 @@ double Str::utf32toDouble(const void *s) {
 
     if(n< 0) n= 0;
 
-    ret/= pow10[n];
+    ret/= mlib::pow10d[n];
     ret+= (double)i2;
-    ret*= pow10[n];             // frac part
+    ret*= mlib::pow10d[n];             // frac part
   }
 
   if(*p== 'e' || *p== 'E') {
@@ -1398,7 +1398,7 @@ double Str::utf32toDouble(const void *s) {
 
     if(sign2) i= -i;
 
-    ret*= pow10[308+ i];
+    ret*= mlib::pow10d[308+ i];
   }
 
   if(sign) ret= -ret;
@@ -1460,7 +1460,7 @@ int Str::uint64toUtf8(uint64 n, void *buf, int8 base, bool uppercase) {
   /// check the number length in characters
   int len= 0;                   /// len is also return value - the number of characters in the string
   uint64 t= n;                  /// t is used only in the next few lines
-  if(t< 0) len++;
+
   while(t)
     t/= base, len++;
 
@@ -1520,14 +1520,15 @@ int Str::floatToUtf8(float n, void *buf, int precision, bool useE) {
 
   /// scientific exponent
   int e= 0;
-  if(useE)
+  if(useE) {
     if(n< 1.0f&& n> 0.0f)
       while(n< 1.0f)
         n*= 10.0f, e--;
     else
       while(n> 10.0f)
         n/= 10.0f, e++;
-
+  }
+  
   int64 n1= (int64)n;
   int64 n2= (int64)((n- (int64)n)* pow10i[20+ precision]);
 
@@ -1607,14 +1608,15 @@ int Str::doubleToUtf8(double n, void *buf, int precision, bool useE) {
 
   /// scientific exponent
   int e= 0;
-  if(useE)
+  if(useE) {
     if(n< 1.0)
       while(n> 0.0 && n< 1.0)
         n*= 10.0, e--;
     else
       while(n> 10.0)
         n/= 10.0, e++;
-
+  }
+  
   int64 n1= (int64)n;
   int64 n2= (int64)((n- (int64)n)* pow10i[20+ precision]);
 
@@ -1718,7 +1720,7 @@ int Str::uint64toUtf32(uint64 n, void *buf, int8 base, bool uppercase) {
   /// check the number length in characters
   int len= 0;                   /// len is also return value - the number of characters in the string
   uint64 t= n;                  /// t is used only in the next few lines
-  if(t< 0) len++;
+  
   while(t)
     t/= base, len++;
 
@@ -1778,14 +1780,15 @@ int Str::floatToUtf32(float n, void *buf, int precision, bool useE) {
 
   /// scientific exponent
   int e= 0;
-  if(useE)
+  if(useE) {
     if(n< 1.0f && n> 0.0f)
       while(n< 1.0f)
         n*= 10.0f, e--;
     else
       while(n> 10.0f)
         n/= 10.0f, e++;
-
+  }
+  
   int64 n1= (int64)n;
   int64 n2= (int64)((n- (int64)n)* pow10i[20+ precision]);
 
@@ -1865,14 +1868,15 @@ int Str::doubleToUtf32(double n, void *buf, int precision, bool useE) {
 
   /// scientific exponent
   int e= 0;
-  if(useE)
+  if(useE) {
     if(n< 1.0)
       while(n< 1.0&& n> 0.0)
         n*= 10.0, e--;
     else
       while(n> 10.0)
         n/= 10.0, e++;
-
+  }
+  
   int64 n1= (int64)n;
   int64 n2= (int64)((n- (int64)n)* pow10i[20+ precision]);
 

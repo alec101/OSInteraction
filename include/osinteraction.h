@@ -371,6 +371,7 @@ public:
   osiDisplay display;                 /// display class, handles monitors, resolutions
   osiWindow win[MAX_WINDOWS];         /// all windows
   osiWindow *primWin;                 /// primary window - splash windows will not be marked as primary windows
+  
   uint64_t present;                   /// present time, updated in checkMSG(), wich should be the first func in a main loop. present MUST BE UPDATED MANUALLY, each frame, if checkMSG() is not called
   uint64_t eventTime;                 /// each event/msg timestamp/ used internally, to timestamp different messages
 
@@ -437,6 +438,7 @@ public:
 
   chainList glRenderers;
   osiRenderer *glr;                             /// this will allways point to the current active glRenderer;
+  osiWindow *glrWin;                            /// the window that the currently active glRenderer(osi.glr) draws into
   osiRenderer *assignRenderer(osiWindow *w);    /// create or assign a renderer to selected window, using settings.renderer; returns pointer to the renderer or null if failed, somehow
   osiRenderer *createRendererMon(osiMonitor *m);/// create a custom renderer, that will surely work on selected monitor
   osiRenderer *createRendererWin(osiWindow *w); // WIP create a custom renderer, that will be asigned to specified window WIP

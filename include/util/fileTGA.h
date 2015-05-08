@@ -55,6 +55,9 @@ enum ImageType {      // notice first 4, most important img types also have the 
   IMG_GREY_ALPHA32= 14,   /// 32bit GREY + ALPHA, 16bits per channel / 2 channels
   IMG_GREY_ALPHA_1616= 14 /// 32bit GREY + ALPHA, 16bits per channel / 2 channels
 };
+struct Adam7 {
+  int8 x0, y0, xnext, ynext;
+};
 #endif /// IMG_TYPE_DEFINED
 
 

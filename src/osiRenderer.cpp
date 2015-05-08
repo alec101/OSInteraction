@@ -33,7 +33,7 @@ osiWindow *_createTmpWin(osiMonitor *m);
 
 
 
-
+// OSI RENDERER CLASS
 
 /// create or assign a renderer to selected window; returns pointer to the renderer or null if failed, somehow
 osiRenderer *osinteraction::assignRenderer(osiWindow *w) {
@@ -1304,6 +1304,248 @@ int searchOTHER(osiRenderer *r, cchar *s) {
 
   return -1;                                          /// not found (if reached this point)
 }
+
+
+
+
+
+
+
+
+
+
+// VAO helper class functions ==========--------------
+
+int _VAOnrenderers= 0;
+int _VAOrenderer= 0;
+
+
+void _countRenderers() {
+  _VAOnrenderers= 0;
+  osiRenderer *p= (osiRenderer *)osi.glRenderers.first;
+  while(p) {
+    _VAOnrenderers++;
+    p= (osiRenderer *)p->next;
+  }
+}
+
+void glVAO::genArray() {
+  /// count the number of renderers at current time
+  if(!_VAOnrenderers) {
+    _countRenderers();
+    if(!_VAOnrenderers)   /// if no renderer is created, return
+      return;
+  }
+  id= new uint[_VAOnrenderers];
+  if(!id) { error.simple("Memory allocation failed"); return; }
+
+  /// pass thru all renderers and create a VAO on each
+  osiRenderer *p= (osiRenderer *)osi.glRenderers.first,   *currentR= osi.glr;
+  osiWindow *w= null,                                     *currentW= osi.glrWin;
+
+  for(int a= 0; a< _VAOnrenderers; a++) {
+    /// search for the window that has this renderer
+    for(int b= 0; b< MAX_WINDOWS; b++)
+      if(osi.win[b].glr== p) {
+        w= &osi.win[b];
+        break;
+      }
+
+    /// generate the VAO for this renderer
+    if(w) {
+      if((osi.glr!= p) || (osi.glrWin!= w))
+        osi.glMakeCurrent(p, w);
+      glGenVertexArrays(1, id+ a);
+      p= (osiRenderer *)p->next;
+    }
+  } /// for each renderer
+
+  /// return to the previous active renderer & window if any changed
+  if((osi.glr!= currentR) || (osi.glrWin!= currentW))
+    osi.glMakeCurrent(currentR, currentW);
+}
+
+
+void glVAO::delArray() {
+  /// pass thru all renderers and create a VAO on each
+  osiRenderer *p= (osiRenderer *)osi.glRenderers.first,   *currentR= osi.glr;
+  osiWindow *w= null,                                     *currentW= osi.glrWin;
+
+  for(int a= 0; a< _VAOnrenderers; a++) {
+    /// search for the window that has this renderer
+    for(int b= 0; b< MAX_WINDOWS; b++)
+      if(osi.win[b].glr== p) {
+        w= &osi.win[b];
+        break;
+      }
+
+    /// generate the VAO for this renderer
+    if(w) {
+      if((osi.glr!= p) || (osi.glrWin!= w))
+        osi.glMakeCurrent(p, w);
+      glDeleteVertexArrays(1, id+ a);
+      p= (osiRenderer *)p->next;
+    }
+  } /// for each renderer
+
+  /// return to the previous active renderer & window if any changed
+  if((osi.glr!= currentR) || (osi.glrWin!= currentW))
+    osi.glMakeCurrent(currentR, currentW);
+  delData();
+}
+
+
+void glVAO::bindAndVertexAttribIPointer(GLuint index, GLint size, GLenum type, GLsizei stride, const void *pointer) {
+  /// pass thru all renderers and create a VAO on each
+  osiRenderer *p= (osiRenderer *)osi.glRenderers.first,   *currentR= osi.glr;
+  osiWindow *w= null,                                     *currentW= osi.glrWin;
+
+  for(int a= 0; a< _VAOnrenderers; a++) {
+    /// search for the window that has this renderer
+    for(int b= 0; b< MAX_WINDOWS; b++)
+      if(osi.win[b].glr== p) {
+        w= &osi.win[b];
+        break;
+      }
+
+    /// generate the VAO for this renderer
+    if(w) {
+      if((osi.glr!= p) || (osi.glrWin!= w))
+        osi.glMakeCurrent(p, w);
+      glBindVertexArray(id[a]);
+      glVertexAttribIPointer(index, size, type, stride, pointer);
+      p= (osiRenderer *)p->next;
+    }
+  } /// for each renderer
+
+  /// return to the previous active renderer & window if any changed
+  if((osi.glr!= currentR) || (osi.glrWin!= currentW))
+    osi.glMakeCurrent(currentR, currentW);
+}
+
+
+void glVAO::bindAndVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer) {
+  /// pass thru all renderers and create a VAO on each
+  osiRenderer *p= (osiRenderer *)osi.glRenderers.first,   *currentR= osi.glr;
+  osiWindow *w= null,                                     *currentW= osi.glrWin;
+
+  for(int a= 0; a< _VAOnrenderers; a++) {
+    /// search for the window that has this renderer
+    for(int b= 0; b< MAX_WINDOWS; b++)
+      if(osi.win[b].glr== p) {
+        w= &osi.win[b];
+        break;
+      }
+
+    /// generate the VAO for this renderer
+    if(w) {
+      if((osi.glr!= p) || (osi.glrWin!= w))
+        osi.glMakeCurrent(p, w);
+      glBindVertexArray(id[a]);
+      glVertexAttribPointer(index, size, type, normalized, stride, pointer);
+      p= (osiRenderer *)p->next;
+    }
+  } /// for each renderer
+
+  /// return to the previous active renderer & window if any changed
+  if((osi.glr!= currentR) || (osi.glrWin!= currentW))
+    osi.glMakeCurrent(currentR, currentW);
+}
+
+void glVAO::enableVertexAttribArray(GLuint n) {
+  /// pass thru all renderers and create a VAO on each
+  osiRenderer *p= (osiRenderer *)osi.glRenderers.first,   *currentR= osi.glr;
+  osiWindow *w= null,                                     *currentW= osi.glrWin;
+
+  for(int a= 0; a< _VAOnrenderers; a++) {
+    /// search for the window that has this renderer
+    for(int b= 0; b< MAX_WINDOWS; b++)
+      if(osi.win[b].glr== p) {
+        w= &osi.win[b];
+        break;
+      }
+
+    /// generate the VAO for this renderer
+    if(w) {
+      if((osi.glr!= p) || (osi.glrWin!= w))
+        osi.glMakeCurrent(p, w);
+      glBindVertexArray(id[a]);
+      glEnableVertexAttribArray(n);
+      p= (osiRenderer *)p->next;
+    }
+  } /// for each renderer
+
+  /// return to the previous active renderer & window if any changed
+  if((osi.glr!= currentR) || (osi.glrWin!= currentW))
+    osi.glMakeCurrent(currentR, currentW);
+}
+
+
+void glVAO::disableVertexAttribArray(GLuint n) {
+  /// pass thru all renderers and create a VAO on each
+  osiRenderer *p= (osiRenderer *)osi.glRenderers.first,   *currentR= osi.glr;
+  osiWindow *w= null,                                     *currentW= osi.glrWin;
+
+  for(int a= 0; a< _VAOnrenderers; a++) {
+    /// search for the window that has this renderer
+    for(int b= 0; b< MAX_WINDOWS; b++)
+      if(osi.win[b].glr== p) {
+        w= &osi.win[b];
+        break;
+      }
+
+    /// generate the VAO for this renderer
+    if(w) {
+      if((osi.glr!= p) || (osi.glrWin!= w))
+        osi.glMakeCurrent(p, w);
+      glBindVertexArray(id[a]);
+      glDisableVertexAttribArray(n);
+      p= (osiRenderer *)p->next;
+    }
+  } /// for each renderer
+
+  /// return to the previous active renderer & window if any changed
+  if((osi.glr!= currentR) || (osi.glrWin!= currentW))
+    osi.glMakeCurrent(currentR, currentW);
+}
+
+
+/* might be needed, but not sure
+void glVAO::bindBuffer(GLenum target, GLuint buffer) {
+  /// pass thru all renderers and create a VAO on each
+  osiRenderer *p= (osiRenderer *)osi.glRenderers.first,   *currentR= osi.glr;
+  osiWindow *w= null,                                     *currentW= osi.glrWin;
+
+  for(int a= 0; a< _VAOnrenderers; a++) {
+    /// search for the window that has this renderer
+    for(int b= 0; b< MAX_WINDOWS; b++)
+      if(osi.win[b].glr== p) {
+        w= &osi.win[b];
+        break;
+      }
+
+    /// generate the VAO for this renderer
+    if(w) {
+      if((osi.glr!= p) || (osi.glrWin!= w))
+        osi.glMakeCurrent(p, w);
+      glBindVertexArray(id[a]);
+      glBindBuffer(target, buffer);
+      p= (osiRenderer *)p->next;
+    }
+  } /// for each renderer
+
+  /// return to the previous active renderer & window if any changed
+  if((osi.glr!= currentR) || (osi.glrWin!= currentW))
+    osi.glMakeCurrent(currentR, currentW);
+}
+*/
+
+
+
+
+
+
+
 
 
 

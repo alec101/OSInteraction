@@ -65,15 +65,13 @@ void PNG::delData() {
 }
 
 
-struct Adam7 {
-  int8 x0, y0, xnext, ynext;
-} adam7[7]= { {0, 0, 8, 8},   /// lev 0
-              {4, 0, 8, 8},   /// lev 1
-              {0, 4, 4, 8},   /// lev 2
-              {2, 0, 4, 4},   /// lev 3
-              {0, 2, 2, 4},   /// lev 4
-              {1, 0, 2, 2},   /// lev 5
-              {0, 1, 1, 2} }; /// lev 6
+Adam7 adam7img[7]= { {0, 0, 8, 8},   /// lev 0
+                  {4, 0, 8, 8},   /// lev 1
+                  {0, 4, 4, 8},   /// lev 2
+                  {2, 0, 4, 4},   /// lev 3
+                  {0, 2, 2, 4},   /// lev 4
+                  {1, 0, 2, 2},   /// lev 5
+                  {0, 1, 1, 2} }; /// lev 6
 
 struct IDATdata {
   uint8 *bitmap;    /// bitmap that will hold the PNG
@@ -307,7 +305,7 @@ bool PNG::load(cchar *fname) {
 
             if((++d.pixByte)>= d.depth) {
               d.pixByte= 0;
-              if(interlace) d.xpos+= adam7[d.ilevel].xnext; /// advance xpos
+              if(interlace) d.xpos+= adam7img[d.ilevel].xnext; /// advance xpos
               else          d.xpos++;
 
               d.p= linePos+ (d.xpos* bpp)/ 8;               /// update p
@@ -443,11 +441,11 @@ inline int8 _filter(int8 interlace, IDATdata *d) {
       yprev=   (d->ypos?             *(d->p- d->lineSize):           0);
       xyprev= ((d->ypos && d->xpos)? *(d->p- d->lineSize- d->depth): 0);
     } else {
-      bool xOK= ((d->xpos- adam7[d->ilevel].xnext>= 0) ? true: false);
-      bool yOK= ((d->ypos- adam7[d->ilevel].ynext>= 0) ? true: false);
-      xprev=  (xOK?         *(d->p- adam7[d->ilevel].xnext* d->depth):                                      0);
-      yprev=  (yOK?         *(d->p- adam7[d->ilevel].ynext* d->lineSize):                                   0);
-      xyprev=((xOK && yOK)? *(d->p- adam7[d->ilevel].xnext* d->depth- adam7[d->ilevel].ynext* d->lineSize): 0);
+      bool xOK= ((d->xpos- adam7img[d->ilevel].xnext>= 0) ? true: false);
+      bool yOK= ((d->ypos- adam7img[d->ilevel].ynext>= 0) ? true: false);
+      xprev=  (xOK?         *(d->p- adam7img[d->ilevel].xnext* d->depth):                                      0);
+      yprev=  (yOK?         *(d->p- adam7img[d->ilevel].ynext* d->lineSize):                                   0);
+      xyprev=((xOK && yOK)? *(d->p- adam7img[d->ilevel].xnext* d->depth- adam7img[d->ilevel].ynext* d->lineSize): 0);
     }
 
   // less than 8bpp PNGs - tons of computations
@@ -459,8 +457,8 @@ inline int8 _filter(int8 interlace, IDATdata *d) {
       yprev=   (yOK?         *(d->p- d->lineSize):    0);
       xyprev= ((xOK && yOK)? *(d->p- d->lineSize- 1): 0);
     } else {
-      bool xOK= (((d->xpos- adam7[d->ilevel].xnext)>= 0) ? true: false);
-      bool yOK= (((d->ypos- adam7[d->ilevel].ynext)>= 0) ? true: false);
+      bool xOK= (((d->xpos- adam7img[d->ilevel].xnext)>= 0) ? true: false);
+      bool yOK= (((d->ypos- adam7img[d->ilevel].ynext)>= 0) ? true: false);
       xprev=   (xOK?         *(d->linePos- 1):                            0);
       yprev=   (yOK?         *(d->linePrev+ (d->linePos- d->lineCur)):    0);
       xyprev= ((xOK && yOK)? *(d->linePrev+ (d->linePos- d->lineCur- 1)): 0);
@@ -496,13 +494,13 @@ inline int8 _filter(int8 interlace, IDATdata *d) {
 inline bool _findGoodXY(int8 &ilevel, int32 &xpos, int32 &ypos, const int32 dx, const int32 dy) {
   CheckAgain:
   if(xpos>= dx) {
-    xpos= adam7[ilevel].x0;
-    ypos+= adam7[ilevel].ynext;
+    xpos= adam7img[ilevel].x0;
+    ypos+= adam7img[ilevel].ynext;
     if(xpos>= dx) {
       ilevel++;
       if(ilevel> 6) return false;
-      xpos= adam7[ilevel].x0;
-      ypos= adam7[ilevel].y0;
+      xpos= adam7img[ilevel].x0;
+      ypos= adam7img[ilevel].y0;
       goto CheckAgain;
     }
   }
@@ -510,8 +508,8 @@ inline bool _findGoodXY(int8 &ilevel, int32 &xpos, int32 &ypos, const int32 dx, 
   if(ypos>= dy) {
     ilevel++;
     if(ilevel> 6) return false;
-    xpos= adam7[ilevel].x0;
-    ypos= adam7[ilevel].y0;
+    xpos= adam7img[ilevel].x0;
+    ypos= adam7img[ilevel].y0;
     goto CheckAgain;
   }
   return true;

@@ -219,6 +219,7 @@ osinteraction::osinteraction() {
   primWin= null;
   
   glr= null;
+  glrWin= null;
   argv= null;
   argc= 0;
 
@@ -2581,16 +2582,28 @@ void osinteraction::swapBuffers(osiWindow *w) {
 } // osinteraction::swapBuffers
 
 
-
 bool osinteraction::glMakeCurrent(osiRenderer *r, osiWindow *w) {
   if(glr) glr->isActive= false;     /// set not active flag for current renderer
   if(_glr) _glr->isActive= false;   /// set not active flag for current renderer
 
   if(r && w) {
     glr= _glr= r;
+    glrWin= w;
     glr->isActive= _glr->isActive= true;      /// set active flag of new renderer
-  } else 
+
+    /// set the VAO current renderer variable
+    _VAOrenderer= 0;
+    for(osiRenderer *p= (osiRenderer *)glRenderers.first; p; p= (osiRenderer *)p->next)
+      if(p== r)
+        break;
+      else
+        _VAOrenderer++;
+
+  } else {
     glr= _glr= null;  
+    glrWin= null;
+  }
+  
 
   #ifdef OS_WIN
   if(w) {

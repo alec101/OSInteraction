@@ -13,7 +13,7 @@ MSG osiWindow::_msg= {0};
 #endif
 
 #ifdef OS_LINUX
-Display *osinteraction::_dis= null;
+//Display *osinteraction::_dis= null;
 Display *osiWindow::_dis= null;
 #endif
 

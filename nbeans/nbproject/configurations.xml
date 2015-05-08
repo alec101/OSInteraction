@@ -15,6 +15,7 @@
         <itemPath>../include/util/errorHandling.h</itemPath>
         <itemPath>../include/util/filePNG.h</itemPath>
         <itemPath>../include/util/fileTGA.h</itemPath>
+        <itemPath>../../osi/include/util/mlib.hpp</itemPath>
         <itemPath>../include/util/mzPacker.h</itemPath>
         <itemPath>../include/util/segList.h</itemPath>
         <itemPath>../include/util/str32.h</itemPath>
@@ -105,6 +106,8 @@
           <output>../lib/osi64lin-dbg.so</output>
         </archiverTool>
       </compileType>
+      <item path="../../osi/include/util/mlib.hpp" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="../extlib/oGL/include/glcorearb.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../include/oGL/glext.h" ex="false" tool="3" flavor2="0">
@@ -220,6 +223,8 @@
           <output>../lib/osi64lin.so</output>
         </archiverTool>
       </compileType>
+      <item path="../../osi/include/util/mlib.hpp" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="../extlib/oGL/include/glcorearb.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../include/oGL/glext.h" ex="false" tool="3" flavor2="0">
@@ -331,6 +336,8 @@
           <output>../lib/osi32lin-dbg.so</output>
         </archiverTool>
       </compileType>
+      <item path="../../osi/include/util/mlib.hpp" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="../extlib/oGL/include/glcorearb.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../include/oGL/glext.h" ex="false" tool="3" flavor2="0">
@@ -446,6 +453,8 @@
           <output>../lib/osi32lin.so</output>
         </archiverTool>
       </compileType>
+      <item path="../../osi/include/util/mlib.hpp" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="../extlib/oGL/include/glcorearb.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../include/oGL/glext.h" ex="false" tool="3" flavor2="0">
@@ -556,6 +565,8 @@
           <output>../lib/osi64mac-dbg.so</output>
         </archiverTool>
       </compileType>
+      <item path="../../osi/include/util/mlib.hpp" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="../extlib/oGL/include/glcorearb.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../include/oGL/glext.h" ex="false" tool="3" flavor2="0">
@@ -670,6 +681,8 @@
           <output>../lib/osi64mac.so</output>
         </archiverTool>
       </compileType>
+      <item path="../../osi/include/util/mlib.hpp" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="../extlib/oGL/include/glcorearb.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../include/oGL/glext.h" ex="false" tool="3" flavor2="0">
@@ -780,6 +793,8 @@
           <output>../lib/osi32mac-dbg.so</output>
         </archiverTool>
       </compileType>
+      <item path="../../osi/include/util/mlib.hpp" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="../extlib/oGL/include/glcorearb.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../include/oGL/glext.h" ex="false" tool="3" flavor2="0">
@@ -894,6 +909,8 @@
           <output>../lib/osi32mac.so</output>
         </archiverTool>
       </compileType>
+      <item path="../../osi/include/util/mlib.hpp" ex="false" tool="3" flavor2="0">
+      </item>
       <item path="../extlib/oGL/include/glcorearb.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="../include/oGL/glext.h" ex="false" tool="3" flavor2="0">

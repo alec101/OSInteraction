@@ -70,6 +70,38 @@ private:
   #endif
 };
 
+
+// VERTEX ARRAY OBJECT CLASS that creates vertex arrays on all renderers - VAOs are not context shared
+///===================================================================================================///
+// this class is very slow to initialize the VAOs, but it's ok when binding the VAOs,
+// therefore, if the VAO is constant/static/nothing is changing in it's attribs (enable/disable of vertex arrays, pointers, etc),
+// this class is ok to use and it _handles multiple contexts_
+
+extern int _VAOrenderer;
+inline GLAPI void APIENTRY glBindVertexArray (GLuint array);
+
+class glVAO {
+public:
+  unsigned int *id;
+
+  void genArray();           /// same as glGenVertexArrays(..) but for one array only - VERY SLOW - switches contexts if there is more than one renderer active but returns to curent context
+  void delArray();           /// same as glDeleteVertexArrays(..) but deletes all arrays in this object - VERY SLOW - switches contexts if there is more than one renderer active but returns to curent context
+
+  void bindAndVertexAttribIPointer(GLuint index, GLint size, GLenum type, GLsizei stride, const void *pointer);  /// VERY SLOW - switches contexts if there is more than one renderer active but returns to curent context
+  void bindAndVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer); /// VERY SLOW - switches contexts if there is more than one renderer active but returns to curent context
+  void enableVertexAttribArray(GLuint index);   // VERY SLOW - same as glEnableVertexAttribArray but it enables on all the contexts
+  void disableVertexAttribArray(GLuint index);  // VERY SLOW - avoid using - use only the enabler on init - if you keep enabling/disabling the speed decrease is very big on multiple contexts
+  //void bindBuffer(GLenum target, GLuint buffer);  // VERY SLOW - use this on VAO init, to bind the buffers on all contexts (for the VAO)
+  
+  // this is the func that is important:
+  inline void bind() { glBindVertexArray(id[_VAOrenderer]); }                // fast func - binds VAO, depending on current renderer
+
+  glVAO() { id= NULL; }
+  ~glVAO() { delData(); }
+  void delData() { if(id) delete[] id; id= NULL; }
+};
+
+
 extern osiRenderer *_glr; // CURRENTLY ACTIVE RENDERER - same as [osi.glr]
 
 #include "osiGlExt.h"

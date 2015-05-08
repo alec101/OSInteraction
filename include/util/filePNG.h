@@ -42,6 +42,10 @@ enum ImageType {      // notice first 4, most important img types also have the 
   IMG_CMAP4= 17,          /// 4bit cmap palette 16 max colors in cmap / 1 channel
   IMG_CMAP_4= 17          /// 4bit cmap palette 16 max colors in cmap / 1 channel
 };
+
+struct Adam7 {
+  int8 x0, y0, xnext, ynext;
+};
 #endif /// IMG_TYPE_DEFINED
 
 #include "mzPacker.h"
