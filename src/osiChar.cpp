@@ -1348,7 +1348,7 @@ void _Kv::populate() {
   #ifdef OS_WIN
 
   
-  if(in.k.mode== 2) {
+  if(in.k.mode== 1 || in.k.mode== 2) {
     esc=        VK_ESCAPE;
     enter=      VK_RETURN;
     kpenter=    VK_RETURN;             // no difference
@@ -1455,7 +1455,7 @@ void _Kv::populate() {
     lOS=        0x5B;          // left win
     rOS=        0x5C;          // right win
     menu=       0x5D;          // menu/propr
-
+    
   /// direct input uses normal key codes
   } else {
     esc=        0x01; /// DIK_ESCAPE;

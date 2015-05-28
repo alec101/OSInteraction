@@ -1425,7 +1425,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         goto ret;
 
       } else if(m== WM_LBUTTONDOWN) {                                       /// left mouse button
-        osi.getMillisecs(&in.m.but[0].timeStart);
+        in.m.but[0].timeStart= osi.eventTime;
         in.m.but[0].down= true;
 
         //if(chatty) printf("mouse: l button pressed\n");
@@ -1433,7 +1433,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 
       } else if(m== WM_LBUTTONUP) {
         in.m.but[0].lastTimeStart= in.m.but[0].timeStart;
-        osi.getMillisecs(&in.m.but[0].lastTimeEnded);
+        in.m.but[0].lastTimeEnded= osi.eventTime;
         in.m.but[0].lastDT= in.m.but[0].lastTimeEnded- in.m.but[0].lastTimeStart;
         in.m.but[0].down= false;
 
@@ -1441,7 +1441,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         goto ret; //return 0;
 
       } else if(m== WM_RBUTTONDOWN) {                                       /// right mouse button
-        osi.getMillisecs(&in.m.but[1].timeStart);
+        in.m.but[1].timeStart= osi.eventTime;
         in.m.but[1].down= true;
 
         //if(chatty) printf("mouse: r button pressed\n");
@@ -1449,7 +1449,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 
       } else if(m== WM_RBUTTONUP) {
         in.m.but[1].lastTimeStart= in.m.but[1].timeStart;
-        osi.getMillisecs(&in.m.but[1].lastTimeEnded);
+        in.m.but[1].lastTimeEnded= osi.eventTime;
         in.m.but[1].lastDT= in.m.but[1].lastTimeEnded- in.m.but[1].lastTimeStart;
         in.m.but[1].down= false;
 
@@ -1457,7 +1457,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         goto ret; //return 0;
 
       } else if(m== WM_MBUTTONDOWN) {                                       /// middle mouse button
-        osi.getMillisecs(&in.m.but[2].timeStart);
+        in.m.but[2].timeStart= osi.eventTime;
         in.m.but[2].down= true;
 
         //if(chatty) printf("mouse: m button pressed\n");
@@ -1465,7 +1465,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 
       } else if(m== WM_MBUTTONUP) {
         in.m.but[2].lastTimeStart= in.m.but[2].timeStart;
-        osi.getMillisecs(&in.m.but[2].lastTimeEnded);
+        in.m.but[2].lastTimeEnded= osi.eventTime;
         in.m.but[2].lastDT= in.m.but[2].lastTimeEnded- in.m.but[2].lastTimeStart;
         in.m.but[2].down= false;
 
@@ -1480,14 +1480,14 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 
       } else if(m== WM_XBUTTONDOWN) {
         if(GET_XBUTTON_WPARAM(wParam)== XBUTTON1) {                         /// button 4 press
-          osi.getMillisecs(&in.m.but[3].timeStart);
+          in.m.but[3].timeStart= osi.eventTime;
           in.m.but[3].down= true;
 
           //if(chatty) printf("mouse: button 4 pressed\n");
           goto ret; //return 0;
         } 
         if(GET_XBUTTON_WPARAM(wParam)== XBUTTON2) {                         /// button 5 press
-          osi.getMillisecs(&in.m.but[4].timeStart);
+          in.m.but[4].timeStart= osi.eventTime;
           in.m.but[4].down= true;
 
           //if(chatty) printf("mouse: button 5 pressed\n");
@@ -1497,14 +1497,13 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         if(GET_XBUTTON_WPARAM(wParam)== XBUTTON1) {                         /// button 4 release
           in.m.but[3].lastTimeStart= in.m.but[3].timeStart;
           in.m.but[3].lastTimeEnded= osi.eventTime;
-          osi.getMillisecs(&in.m.but[3].lastTimeEnded);
           in.m.but[3].down= false;
           //if(chatty) printf("mouse: button 4 released\n");
           goto ret; //return 0;
 
         } else if(GET_XBUTTON_WPARAM(wParam)== XBUTTON2) {                  /// button 5 release
           in.m.but[4].lastTimeStart= in.m.but[4].timeStart;
-          osi.getMillisecs(&in.m.but[4].lastTimeEnded);
+          in.m.but[4].lastTimeEnded= osi.eventTime;
           in.m.but[4].lastDT= in.m.but[4].lastTimeEnded- in.m.but[4].lastTimeStart;
           in.m.but[4].down= false;
           //if(chatty) printf("mouse: button 5 released\n");
@@ -1523,12 +1522,12 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
     switch(m) {
       case WM_KEYDOWN:                                          // ***key PRESS***
       case WM_SYSKEYDOWN: {
-        osi.getMillisecs(&osi.eventTime);     /// using getTIMEXXX() funcs: can't rely on event time sent from system
         in.k.updateLocks();
         osi.flags.keyPress= true;
 
-        int code= GETBYTE2UINT32(lParam);
-        uint vcode= (uint)wParam;
+        //int code= GETBYTE2UINT32(lParam);
+        uint code= (uint)wParam;
+
         osiKeyboard::osiKeyLog k;
 
         /// left/ right ALT/CONTROL/SHIFT distingush
@@ -1577,10 +1576,9 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         in.k.updateLocks();
         osi.flags.keyPress= false;
 
-        osi.getMillisecs(&osi.eventTime);        /// using getTIMEXXX() funcs: can't rely on event time sent from system
+        //int code= GETBYTE2UINT32(lParam);        /// key code
+        uint code= (uint)wParam;                /// windows virtual key code
 
-        int code= GETBYTE2UINT32(lParam);        /// key code
-        uint vcode= (uint)wParam;                /// windows virtual key code
         if(wParam== VK_SHIFT)   code= in.k.key[in.Kv.rshift]? in.Kv.rshift: in.Kv.lshift;
         if(wParam== VK_CONTROL) code= in.k.key[in.Kv.rctrl]?  in.Kv.rctrl:  in.Kv.lctrl;
         if(wParam== VK_MENU)    code= in.k.key[in.Kv.ralt]?		in.Kv.ralt:   in.Kv.lalt;
@@ -1720,14 +1718,12 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 
     case WM_CHAR:
       if(chatty) printf("WM_CHAR %s %lc\n", osi._getWinName(hWnd), wParam);
-      osi.getMillisecs(&osi.eventTime);
       in.k._addChar((uint32)wParam, &osi.eventTime);
       return 0;
 
     case WM_UNICHAR:
       error.console("WM_UNICHAR not tested");
       if(chatty) printf("WM_UNICHAR %s %lc\n", osi._getWinName(hWnd), wParam);
-      osi.getMillisecs(&osi.eventTime);
       in.k._addChar((uint32)wParam, &osi.eventTime);
       return 0;
 
@@ -2300,7 +2296,14 @@ bool osinteraction::_processMSG()  {
 bool osinteraction::checkMSG() {
   if(!primWin) return false;    /// if no primary window was created, no messages will be processed
   mutex.lock();                 /// lock osinteraction
+
+  uint64 prevPresent= present, prevEventTime= eventTime;
   getNanosecs(&present);         // current time, or 'present' variable updated here <<<
+  eventTime= present/ 1000000;
+  /// safety - you never know, and in the future this could be true with some uber fast / strange cpu
+  if(eventTime< prevEventTime) eventTime= prevEventTime;
+  if(present< prevPresent) present= prevPresent;
+
   bool ret= false;              /// return value, start false, if any msg is processed, ret= true
 
   #ifdef OS_WIN

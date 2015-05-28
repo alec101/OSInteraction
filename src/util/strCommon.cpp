@@ -59,6 +59,51 @@ bool Str::isComb(cuint32 c) {
 }
 
 
+int Str::utf8nrBytes(uint32_t n) {
+  if(n<=      0x0000007F) return 1; /// 1 byte  U-00000000-> U-0000007F:  0xxxxxxx 
+  else if(n<= 0x000007FF) return 2; /// 2 bytes U-00000080-> U-000007FF:  110xxxxx 10xxxxxx 
+  else if(n<= 0x0000FFFF) return 3; /// 3 bytes U-00000800-> U-0000FFFF:  1110xxxx 10xxxxxx 10xxxxxx 
+  else if(n<= 0x001FFFFF) return 4; /// 4 bytes U-00010000-> U-001FFFFF:  11110xxx 10xxxxxx 10xxxxxx 10xxxxxx 
+  else if(n<= 0x03FFFFFF) return 5; /// 5 bytes U-00200000-> U-03FFFFFF:  111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 
+  else if(n<= 0x7FFFFFFF) return 6;
+  else return 0;
+}
+
+
+void Str::utf32to8(uint32_t n, uint8_t *dst) {
+  /// compress unicode value into utf-8
+  if(n<= 0x0000007F) {          //  1 byte   U-00000000->U-0000007F:  0xxxxxxx 
+    *dst++= (uint8) n;
+  } else if(n<= 0x000007FF) {   //  2 bytes  U-00000080->U-000007FF:  110xxxxx 10xxxxxx 
+    *dst++= (uint8) (n>> 6)        | 0xC0;    /// [BYTE 1]       >> 6= 000xxxxx 00000000  then header | c0 (11000000)
+    *dst++= (uint8) (n&       0x3f)| 0x80;    /// [BYTE 2]         3f= 00000000 00xxxxxx  then header | 80 (10000000)
+  } else if(n<= 0x0000FFFF) {   //  3 bytes  U-00000800->U-0000FFFF:  1110xxxx 10xxxxxx 10xxxxxx 
+    *dst++= (uint8) (n>> 12)       | 0xE0;    /// [BYTE 1]      >> 12= 0000xxxx 00000000 00000000  then header | e0 (11100000)
+    *dst++= (uint8)((n>> 6)&  0x3F)| 0x80;    /// [BYTE 2]  >> 6 & 3f= 00000000 00xxxxxx 00000000  then header | 80 (10000000)
+    *dst++= (uint8) (n&       0x3F)| 0x80;    /// [BYTE 3]       & 3f= 00000000 00000000 00xxxxxx  then header | 80 (10000000)
+  } else if(n<= 0x001FFFFF) {   // 4 bytes U-00010000->U-001FFFFF:    11110xxx 10xxxxxx 10xxxxxx 10xxxxxx 
+    *dst++= (uint8) (n>> 18)       | 0xF0;    /// [BYTE 1]      >> 18= 00000xxx 00000000 00000000 00000000  then header | f0 (11110000)
+    *dst++= (uint8)((n>> 12)& 0x3F)| 0x80;    /// [BYTE 2] >> 12 & 3f= 00000000 00xxxxxx 00000000 00000000  then header | 80 (10000000)
+    *dst++= (uint8)((n>>  6)& 0x3F)| 0x80;    /// [BYTE 3] >>  6 & 3f= 00000000 00000000 00xxxxxx 00000000  then header | 80 (10000000)
+    *dst++= (uint8) (n&       0x3F)| 0x80;    /// [BYTE 4]       & 3f= 00000000 00000000 00000000 00xxxxxx  then header | 80 (10000000)
+
+  // last 2 bytes, UNUSED by utf ATM, but there be the code
+  } else if(n<= 0x03FFFFFF) {   //  5 bytes U-00200000->U-03FFFFFF:   111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 
+    *dst++= (uint8) (n>> 24)       | 0xF8;    /// [BYTE 1]      >> 24= 000000xx 00000000 00000000 00000000 00000000  then header | f8 (11111000)
+    *dst++= (uint8)((n>> 18)& 0x3f)| 0x80;    /// [BYTE 2] >> 18 & 3f= 00000000 00xxxxxx 00000000 00000000 00000000  then header | 80 (10000000)
+    *dst++= (uint8)((n>> 12)& 0x3f)| 0x80;    /// [BYTE 3] >> 12 & 3f= 00000000 00000000 00xxxxxx 00000000 00000000  then header | 80 (10000000)
+    *dst++= (uint8)((n>>  6)& 0x3f)| 0x80;    /// [BYTE 4] >>  6 & 3f= 00000000 00000000 00000000 00xxxxxx 00000000  then header | 80 (10000000)
+    *dst++= (uint8) (n&       0x3f)| 0x80;    /// [BYTE 5]       & 3f= 00000000 00000000 00000000 00000000 00xxxxxx  then header | 80 (10000000)
+  } else if(n<= 0x7FFFFFFF) {   //  6 bytes U-04000000->U-7FFFFFFF:   1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
+    *dst++= (uint8) (n>> 30)       | 0xFC;    /// [BYTE 1]      >> 30= 0000000x 00000000 00000000 00000000 00000000 00000000  then header | fc (11111100)
+    *dst++= (uint8)((n>> 24)& 0x3f)| 0x80;    /// [BYTE 2] >> 24 & 3f= 00000000 00xxxxxx 00000000 00000000 00000000 00000000  then header | 80 (10000000)
+    *dst++= (uint8)((n>> 18)& 0x3f)| 0x80;    /// [BYTE 3] >> 18 & 3f= 00000000 00000000 00xxxxxx 00000000 00000000 00000000  then header | 80 (10000000)
+    *dst++= (uint8)((n>> 12)& 0x3f)| 0x80;    /// [BYTE 4] >> 12 & 3f= 00000000 00000000 00000000 00xxxxxx 00000000 00000000  then header | 80 (10000000)
+    *dst++= (uint8)((n>>  6)& 0x3f)| 0x80;    /// [BYTE 5] >>  6 & 3f= 00000000 00000000 00000000 00000000 00xxxxxx 00000000  then header | 80 (10000000)
+    *dst++= (uint8) (n&       0x3f)| 0x80;    /// [BYTE 6]         3f= 00000000 00000000 00000000 00000000 00000000 00xxxxxx  then header | 80 (10000000)
+  }
+}
+
 
 
 ///====================================================================///
@@ -121,6 +166,7 @@ int32 Str::strlen8(cvoid *s) {
 
 /// returns utf-32 string length in BYTES
 int32 Str::strlen32(cuint32 *s) {
+  if(!s) return 0;
   cuint32 *p= s;
   while(*p++);
   return (int32)((cuint8 *)p- (cuint8 *)s- 1);
@@ -128,6 +174,7 @@ int32 Str::strlen32(cuint32 *s) {
 
 /// returns windows 16bit wide character string length in BYTES
 int32 Str::strlenWin(cuint16 *s) {
+  if(!s) return 0;
   cuint16 *p= s;
   while(*p++);
   return (int32)((cuint8 *)p- (cuint8 *)s- 1);

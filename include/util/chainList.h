@@ -6,7 +6,7 @@
 class chainData {
 public:
   chainData *next, *prev;
-
+  
   /// don't create a constructor, it won't be called by derived class... big source of errors
   virtual ~chainData();       /// being virtual, it seems delete[] knows to dealloc the derived parts... it never crashed/ no garbage remains in memory
 };

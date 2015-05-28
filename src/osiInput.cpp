@@ -1547,6 +1547,7 @@ uint32 osiKeyboard::getChar() {
     else                                                    /// the rest of chars couldn't have stayed in buffer longer than 1 sec if the last char didn't
       break;
 
+  if(!charTyped.last) return 0;
   /// return the last character in buffer (usually there is only 1... maybe in cases of low framerate, loading stuff while typeing... etc)
   uint32 ret= ((chTyped*)(charTyped.last))->c;
   charTyped.del(charTyped.last);                            /// del character from buffer
@@ -1568,6 +1569,7 @@ uint32 osiKeyboard::getManip() {
     else                                                    /// the rest of chars couldn't have stayed in buffer longer than 1 sec if the last char didn't
       break;
 
+  if(!manipTyped.last) return 0;
   /// return the last character in buffer (usually there is only 1... maybe in cases of low framerate, loading stuff while typeing... etc)
   uint32 ret= ((chTyped*)(manipTyped.last))->c;
   manipTyped.del(manipTyped.last);                          /// del character from buffer

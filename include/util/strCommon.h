@@ -31,6 +31,8 @@ namespace Str {
 
   uint32_t utf8to32(const void *);         /// returns unicode value as UTF-32 (or direct unicode number)
   uint32_t utf8to32n(const void *, int);   /// returns n-th unicode value as UTF-32 (or direct unicode number)
+  void utf32to8(uint32_t n, uint8_t *dst); /// packs unicode value to utf8 (utf32 to utf8) dst must be at least 4 bytes long
+  int utf8nrBytes(uint32_t n);             /// returns the number of bytes that the unicode will be packed into
 
   int32_t strcmp8(const void *, const void *);       /// UTF-8 str: compares two strings, returns 0 if identical or <0 if str1 is less than str2, and viceversa
   int32_t strcmp32(const uint32_t *, const uint32_t *);  /// UTF-32 str: compares two strings, returns 0 if identical or <0 if str1 is less than str2, and viceversa
@@ -42,6 +44,9 @@ namespace Str {
   void *getUnicode8(const void *s, int32_t n);      /// UTF-8 str: returns the [n] unicode value in string (does not care if it's a normal character or diacritical)
   uint32_t *getChar32(const uint32_t *s, int32_t n);    /// UTF-32 str: returns [n]-th char in string (diacriticals are considered part of a character)
   inline uint32_t getUnicode32(const uint32_t *s, int32_t n) { return s[n]; } /// UTF-32 str: returns the [n] unicode value in string (does not care if it's a normal character or diacritical)
+
+  
+  
 
   bool isComb(uint32_t n);           /// checks specified unicode value to see if this is a combining diacritical (if u dont know what they are, you can use clearComb() to remove them all from a string, and avoid headaches)
 

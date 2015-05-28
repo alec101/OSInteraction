@@ -56,7 +56,13 @@ inline float radians(float degrees) { return degrees* DEG2RAD; }
 inline int64 abs64(int64 n) { return (n< 0? -n: n); }
 inline double absd(double n) { return (n< 0? -n: n); }
 inline float absf(float n) { return (n< 0? -n: n); }
-#define max(a, b) (((a)< (b))? (b): (a))
+
+#ifndef max
+#define max(a, b)   (((a)< (b))? (b): (a))
+#endif
+#ifndef min
+#define min(a, b)   (((a)< (b))? (a): (b))
+#endif
 
 
 

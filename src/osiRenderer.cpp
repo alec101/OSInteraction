@@ -330,6 +330,7 @@ osiWindow *_createTmpWin(osiMonitor *m) {
 
   /// obtain a detailed description of that pixel format  
   DescribePixelFormat(w->_hDC, pixelf, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
+
   pfd.dwFlags= pfd.dwFlags| PFD_DRAW_TO_WINDOW| PFD_DRAW_TO_BITMAP| PFD_SUPPORT_OPENGL| PFD_STEREO_DONTCARE| PFD_DOUBLEBUFFER; //| PFD_SWAP_EXCHANGE;//| PFD_NEED_PALETTE;
 
   if (!(PixelFormat= ChoosePixelFormat(w->_hDC, &pfd))) {  /// lots of checks, don't think any needed
@@ -493,7 +494,7 @@ bool _getContextFuncs(osiMonitor *m, osiRenderer *r) {
   if(!m) return false;
   /// under windows, a temporary window must be created
   osiWindow *t= _createTmpWin(m);
-  osi.glMakeCurrent(t->glr, t);
+  if(!osi.glMakeCurrent(t->glr, t)) error.simple("test1");
 
   /// get crucial funcs for the temporary context of the window
   ret= getGlProc("glGetString", (void **)&t->glr->glExt.glGetString);
@@ -516,7 +517,8 @@ bool _getContextFuncs(osiMonitor *m, osiRenderer *r) {
   
   
   #ifdef OS_WIN
-  getGlProc("wglGetExtensionsStringARB", (void **)&r->glExt.wglGetExtensionsStringARB);      /// make shure this func is avaible
+  ret= getGlProc("wglGetExtensionsStringARB", (void **)&r->glExt.wglGetExtensionsStringARB);      /// make shure this func is avaible
+  //if(!ret) { error.simple("_getContextFuncs(): Cannot get wglGetExtensionsStringARB"); return false; }
   #endif /// OS_WIN
 
   
