@@ -361,19 +361,19 @@ class osinteraction {
   str8 _iconFile;
 public:
   
-  osiSettings settings;               /// [atm only renderer options] osinteraction settings. usually change this and the next action/function will use these settings
-  str8 path;                          /// program path
-  str8 cmdLine;                       /// command line
-  int argc;                           /// command line nr of arguments, same as the main(int argc..)
-  char **argv;                        /// command line arguments list, same as the main(.. , char *argv[])
-  std::mutex mutex;                   /// lock the object when reading from 100 threads... reading from osi should be done from 1 thread, tho, but critical data is locked in case you do read from 100 sources
+  osiSettings settings;                // [atm only renderer options] osinteraction settings. usually change this and the next action/function will use these settings
+  str8 path;                           // program path
+  str8 cmdLine;                        // command line
+  int argc;                            // command line nr of arguments, same as the main(int argc..)
+  char **argv;                         // command line arguments list, same as the main(.. , char *argv[])
+  std::mutex mutex;                    // lock the object when reading from 100 threads... reading from osi should be done from 1 thread, tho, but critical data is locked in case you do read from 100 sources
 
-  osiDisplay display;                 /// display class, handles monitors, resolutions
-  osiWindow win[MAX_WINDOWS];         /// all windows
-  osiWindow *primWin;                 /// primary window - splash windows will not be marked as primary windows
+  osiDisplay display;                  // display class, handles monitors, resolutions
+  osiWindow win[MAX_WINDOWS];          // all windows
+  osiWindow *primWin;                  // primary window - splash windows will not be marked as primary windows
   
-  uint64_t present;                   /// present time, updated in checkMSG(), wich should be the first func in a main loop. present MUST BE UPDATED MANUALLY, each frame, if checkMSG() is not called
-  uint64_t eventTime;                 /// each event/msg timestamp/ used internally, to timestamp different messages
+  uint64_t present;                    // present time, updated in checkMSG(), wich should be the first func in a main loop. present MUST BE UPDATED MANUALLY, each frame, if checkMSG() is not called
+  uint64_t eventTime;                  // each event/msg timestamp/ used internally, to timestamp different messages
 
   // main flags - check these frequently (mainly after a call to checkMSG() )
   struct osiFlags {
@@ -389,13 +389,13 @@ public:
   } flags;
 
   
-  osinteraction();                    /// lots of inits go here. check cpp file
+  osinteraction();                     // lots of inits go here. check cpp file
   ~osinteraction();
-  void delData();                     /// called by destructor
+  void delData();                      // called by destructor
 
   // SYSTEM EVENTS HANDLER: call this in MAIN PROGRAM LOOP
   
-  bool checkMSG();                    /// checks for OS messages, should be INCLUDED in the MAIN LOOP. returns true if any msg was processed - locks osi.mutex
+  bool checkMSG();                     // checks for OS messages, should be INCLUDED in the MAIN LOOP. returns true if any msg was processed - locks osi.mutex
 
   //void startThread(void (void *));   std::threads!!! /// start / create a new thread
   //void endThread(int status= 0);     std::threads!!! /// call it within the thread to end the thread
@@ -405,44 +405,47 @@ public:
   // createGLWindow is the main function to use
   // [mode1]: windowed, using size, center screen [mode2] fullscreen [mode3] fullscreen window [mode4] full Virtual Screen window, on all monitors
   bool createGLWindow(osiWindow *w, osiMonitor *m, const char *name, int dx, int dy, int8_t mode, short freq= 0, const char *iconFile= NULL);
-  bool killGLWindow(osiWindow *w);    /// destroys a specific opengl window
+  bool killGLWindow(osiWindow *w);     // destroys a specific opengl window
   
   // next funcs call createGLWindow / killGLWindow; they might make life easier, but nothing more - osi.mutex is locked
   
   bool primaryGLWindow(const char *name, int dx, int dy, int8_t mode, int16_t freq= 0); // mode: 1= windowed, 2= fullscreen, 3= fullscreeen window(must research this one), 4= fullscreen virtual desktop (every monitor)
-  bool primaryGLWindow();             /// creates a basic window, fullscreen
-  bool killPrimaryGLWindow();         /// calls restoreResolution, if in fullscreen
+  bool primaryGLWindow();              // creates a basic window, fullscreen
+  bool killPrimaryGLWindow();          // calls restoreResolution, if in fullscreen
   void setProgramIcon(const char *fileName);/// sets program icon - CALL BEFORE ANY WINDOW CREATION, or pass icon file to each window
   bool createSplashWindow(osiWindow *w, osiMonitor *m, const char *file);
 
   // very useful functions that will work on all OSes
   
-  void getNanosecs(uint64_t *out);      /// performance timer in nanoseconds
-  void getMicrosecs(uint64_t *out);     /// performance timer in microseconds
-  void getMillisecs(uint64_t *out);     /// performance timer in miliseconds
-  void sleep(uint64_t millisecs);       /// sleeps for specified milliseconds
-  void exit(int retVal= 0);           /// restores all monitor resolutions & exits. call this instead of _exit() or exit() func
+  void getNanosecs(uint64_t *out);     // performance timer in nanoseconds
+  void getMicrosecs(uint64_t *out);    // performance timer in microseconds
+  void getMillisecs(uint64_t *out);    // performance timer in miliseconds
+  void sleep(uint64_t millisecs);      // sleeps for specified milliseconds
+  void exit(int retVal= 0);            // restores all monitor resolutions & exits. call this instead of _exit() or exit() func
   
-  void getClocks(uint64_t *out);        /// WIP performance timer in raw clocks     N/A LINUX... trying to make it work
-  void clocks2nanosecs(uint64_t *out);  /// WIP convert raw clocks to nanoseconds   N/A LINUX... trying to make it work
-  void clocks2microsecs(uint64_t *out); /// WIP convert raw clocks to microseconds  N/A LINUX... trying to make it work
-  void clocks2millisecs(uint64_t *out); /// WIP convert raw clocks to milliseconds  N/A LINUX... trying to make it work
+  void getClocks(uint64_t *out);        // WIP performance timer in raw clocks     N/A LINUX... trying to make it work
+  void clocks2nanosecs(uint64_t *out);  // WIP convert raw clocks to nanoseconds   N/A LINUX... trying to make it work
+  void clocks2microsecs(uint64_t *out); // WIP convert raw clocks to microseconds  N/A LINUX... trying to make it work
+  void clocks2millisecs(uint64_t *out); // WIP convert raw clocks to milliseconds  N/A LINUX... trying to make it work
   
+  void setClipboard(const char *in_text);   // sends text to the clipboard/pasteboard - used for copy/paste operations between programs
+  bool getClipboard(const char **out_text); // gets text (if any) from the clipbard/pasteboard - used for copy/paste operations between programs (returned text is null if nothing is there)
+
   // opengl funcs
 
-  void swapBuffers(osiWindow *w);     /// swap buffers of specific window
-  void swapPrimaryBuffers();          /// calls swapBuffers, but for primary window (this makes life a little easier)
-  bool glMakeCurrent(osiRenderer *, osiWindow *w);   /// OS independant variant. Pass null, to unmake current
+  void swapBuffers(osiWindow *w);                  // swap buffers of specific window
+  void swapPrimaryBuffers();                       // calls swapBuffers, but for primary window (this makes life a little easier)
+  bool glMakeCurrent(osiRenderer *, osiWindow *w); // OS independant variant. Pass null, to unmake current
 
   void glGetVersion(int *outMajor= NULL, int *outMinor= NULL); /// returns opengl version. only one of the outputs can be present
 
   chainList glRenderers;
-  osiRenderer *glr;                             /// this will allways point to the current active glRenderer;
-  osiWindow *glrWin;                            /// the window that the currently active glRenderer(osi.glr) draws into
-  osiRenderer *assignRenderer(osiWindow *w);    /// create or assign a renderer to selected window, using settings.renderer; returns pointer to the renderer or null if failed, somehow
-  osiRenderer *createRendererMon(osiMonitor *m);/// create a custom renderer, that will surely work on selected monitor
-  osiRenderer *createRendererWin(osiWindow *w); // WIP create a custom renderer, that will be asigned to specified window WIP
-  void delRenderer(osiRenderer *);              /// deletes the specified renderer and makes shure that windows and monitors that used it, know about it
+  osiRenderer *glr;                              // this will allways point to the current active glRenderer;
+  osiWindow *glrWin;                             // the window that the currently active glRenderer(osi.glr) draws into
+  osiRenderer *assignRenderer(osiWindow *w);     // create or assign a renderer to selected window, using settings.renderer; returns pointer to the renderer or null if failed, somehow
+  osiRenderer *createRendererMon(osiMonitor *m); // create a custom renderer, that will surely work on selected monitor
+  osiRenderer *createRendererWin(osiWindow *w);  // WIP create a custom renderer, that will be asigned to specified window WIP
+  void delRenderer(osiRenderer *);               // deletes the specified renderer and makes shure that windows and monitors that used it, know about it
 
   // internals from here on; nothing to bother
 private:
@@ -451,24 +454,24 @@ private:
   LARGE_INTEGER _timerFreq;
 
   char *_getWinName(HWND h);
-  osiWindow *_getWin(HWND h);          /// [internal] returns the osiWindow that has the specified HWND
+  osiWindow *_getWin(HWND h);           // [internal] returns the osiWindow that has the specified HWND
   friend LRESULT CALLBACK _processMSG(HWND, UINT, WPARAM, LPARAM);  /// windows processMSG() is outside class
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
-  osiWindow *_getWin(Window *w);      /// [internal] returns the osiWindow that has the specified X11 Window *
+  osiWindow *_getWin(Window *w);       // [internal] returns the osiWindow that has the specified X11 Window *
   //void setFullScreen(osiWindow *w, bool fullScreen);  /// sets _NET_WM_STATE_FULLSCREEN attribute for selected window
   //void sendWMProp(int wmID, int wmProp, bool activate); /// documentation is @ end of osinteraction.h
   bool _processMSG();                  // linux MESSAGE HANDLER variant -don't call it, use OS independent checkMSG()
 public:
-  Display *_dis;                      /// display 'handle'. nowadays there is only 1 display, and 1 big (virtual) screen.
+  Display *_dis;                       // display 'handle'. nowadays there is only 1 display, and 1 big (virtual) screen.
 private:
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
   
 public:
-  osiWindow *_getWin(void *w);         /// [internal] returns the osiWindow that has the specified NSWindow *
+  osiWindow *_getWin(void *w);         // [internal] returns the osiWindow that has the specified NSWindow *
 private:
   #endif /// OS_MAC
 

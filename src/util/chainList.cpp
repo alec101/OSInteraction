@@ -95,6 +95,7 @@ void chainList::deli(int nr) {
   chainData *p= first;
   for(int a= 0; a< nr; a++)       // <<< SLOW PART >>>
     p= p->next;
+  if(!p) return;
 
   /// make the next/prev links
   if(p->prev) p->prev->next= p->next;

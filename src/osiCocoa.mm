@@ -1616,6 +1616,39 @@ bool osiCocoa::displayGPU(uint32 id, str8 *out) {
 }
 
 
+/// pastebin=clipboard - copy/paste operations
+void osiCocoa::setPastebin(uint8_t *in_text) {
+  NSAutoreleasePool *pool= [[NSAutoreleasePool alloc] init];
+
+  NSString *string= [initWithUTF8String:in_text];
+  NSPasteboard *pasteBoard = [NSPasteboard generalPasteboard];
+  
+  // MIGHT BE NEEDED, NOT SURE [pasteBoard declareTypes:[NSArray arrayWithObjects:NSStringPboardType, nil] owner:nil];
+  [pasteBoard clearContents];
+  [pasteBoard setString:string forType:NSStringPboardType];
+
+
+  [pasteBoard setString:stringToWrite forType:NSStringPboardType]
+
+  [pool release];
+}
+
+
+/// pastebin=clipboard - copy/paste operations
+void osiCocoa::getPastebin(uint8_t **out_text) {
+  NSAutoreleasePool *pool= [[NSAutoreleasePool alloc] init];
+  *out_text= null;
+
+  NSPasteboard *pasteBoard = [NSPasteboard generalPasteboard];
+  cchar *buf= [[pasteBoard stringForType:NSStringPboardType] UTF8String];
+  
+  if(buf) {
+    *out_text= new uint8[Str::strlen8(buf)+ 1];
+    Str::strcpy(*out_text, buf);
+  }
+
+  [pool release];
+}
 
 
 

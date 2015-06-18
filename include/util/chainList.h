@@ -11,6 +11,7 @@ public:
   virtual ~chainData();       /// being virtual, it seems delete[] knows to dealloc the derived parts... it never crashed/ no garbage remains in memory
 };
 
+
 /// manipulator class, no derives necesary, just make a var from this one
 class chainList {
 public:

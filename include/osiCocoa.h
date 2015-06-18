@@ -20,6 +20,8 @@ public:
   str8 getCmdLine();
   void sleep(int ms);                 /// cocoa sleep function (in miliseconds)
   int passedTime(void);               /// this might be scraped
+  void setPastebin(uint8_t *in_text);   /// pastebin=clipboard - copy/paste operations
+  void getPastebin(uint8_t **out_text); /// pastebin=clipboard - copy/paste operations
 
   void getWindowSize(osiWindow *w, int32_t *dx, int32_t *dy);
   void setWindowSize(osiWindow *w, int dx, int dy);

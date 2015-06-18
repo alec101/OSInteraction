@@ -114,8 +114,8 @@ void Str::utf32to8(uint32_t n, uint8_t *dst) {
 void *Str::getChar8(cvoid *s, int32 n) {
   uint8* p= (uint8 *)s;
 
-  for(int32 a= 0; a< n; p++)
-    if((*p& 0xc0)!= 0x80)    /// 0xc0= 11000000, first two bits  0x80= 10000000, test for 10xxxxxx the last 6 bits wont matter, as they are not tested so test to 10000000
+  for(int32 a= 0; a< n;)
+    if((*++p& 0xc0)!= 0x80)    /// 0xc0= 11000000, first two bits  0x80= 10000000, test for 10xxxxxx the last 6 bits wont matter, as they are not tested so test to 10000000
       if(!isComb(utf8to32(p)))
         a++;
 
@@ -136,8 +136,8 @@ uint32 *Str::getChar32(cuint32 *s, int32 n) {
 void *Str::getUnicode8(cvoid *s, int32 n) {
   uint8* p= (uint8 *)s;
 
-  for(int32 a= 0; a< n; p++)
-    if((*p& 0xc0)!= 0x80)   /// 0xc0= 11000000, first two bits  0x80= 10000000, test for 10xxxxxx the last 6 bits wont matter, as they are not tested so test to 10000000
+  for(int32 a= 0; a< n;)
+    if((*++p& 0xc0)!= 0x80)   /// 0xc0= 11000000, first two bits  0x80= 10000000, test for 10xxxxxx the last 6 bits wont matter, as they are not tested so test to 10000000
       a++;
 
   return p;
@@ -191,7 +191,7 @@ int32 Str::strlenWin(cuint16 *s) {
 void Str::strcpy8(void *dst, cvoid *src) {
   uint8 *p1= (uint8 *)dst, *p2= (uint8 *)src;
 
-  for(int32 a= 0, n= strlen8(src); a< n; a++)
+  for(int32 a= 0, n= strlen8(src); a<= n; a++)
     *p1++= *p2++;
 }
 
@@ -232,6 +232,7 @@ void Str::strncpy8_unicodes(void *dst, cvoid *src, int32 n) {
 void Str::strcpy32(uint32 *dst, cuint32 *src) {
   while(*src++)
     *dst++= *src;
+  *dst= 0;  /// terminator
 }
 
 
@@ -339,17 +340,17 @@ uint32 Str::utf8to32(cvoid *s) {
   if(*p < 128) {
     ret= *p++;
   } else if((*p& 0xe0) == 0xc0) {/// character has 2 bytes
-    ret=  *p++ & 0x1f; ret<<=6;
-    ret+= *p++ & 0x3f;
+    ret=  *p++ & 0x1f;
+    ret<<=6; ret+= *p++ & 0x3f;
   } else if((*p& 0xf0) == 0xe0) {/// character has 3 bytes
-    ret=  *p++ & 0x0f; ret<<= 6;
-    ret+= *p++ & 0x3f; ret<<= 6;
-    ret+= *p++ & 0x3f;
+    ret=  *p++ & 0x0f;
+    ret<<= 6; ret+= *p++ & 0x3f;
+    ret<<= 6; ret+= *p++ & 0x3f;
   } else if((*p& 0xf8) == 0xf0) {/// character has 4 bytes
-    ret=  *p++ & 0x07; ret<<= 6;
-    ret+= *p++ & 0x3f; ret<<= 6;
-    ret+= *p++ & 0x3f; ret<<= 6;
-    ret+= *p++ & 0x3f;
+    ret=  *p++ & 0x07;
+    ret<<= 6; ret+= *p++ & 0x3f;
+    ret<<= 6; ret+= *p++ & 0x3f;
+    ret<<= 6; ret+= *p++ & 0x3f;
   // the last 2 bytes are not used, but avaible if in the future unicode will expand
   } else if((*p& 0xfc) == 0xf8) {/// character has 5 bytes
     ret=  *p++ & 0x03;

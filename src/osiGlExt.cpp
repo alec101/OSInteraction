@@ -112,7 +112,8 @@ bool getGlProc(const char *name, void **addr) {
   // wgl can fail for old funcs, and GetProcAddress must be used instead https://www.opengl.org/wiki/Load_OpenGL_Functions
   if(tmp== 0 || (tmp== (void*)0x1) || (tmp== (void*)0x2) || (tmp== (void*)0x3) || (tmp== (void*)-1)) {
     HMODULE module= LoadLibraryA("opengl32.dll");
-    tmp= (void *)GetProcAddress(module, name);
+    if(module!= null)
+      tmp= (void *)GetProcAddress(module, name);
   }
   #endif /// OS_WIN
   

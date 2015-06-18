@@ -649,6 +649,7 @@ str8 &str8::secureUTF8(cvoid *s) {
   /// length in unicode vals
   int32 n= 0;
   cuint8 *p= (cuint8 *)s;
+  bool bad;
 
   // can't assume that every character is ok, there can be garbage @ every level
   while(*p++) {
@@ -702,13 +703,16 @@ str8 &str8::secureUTF8(cvoid *s) {
       u[a]= *p++& 0x0f;                 /// byte seems ok - copy from it (0x0f= 00001111)
 
       // [BYTE 2-3]
+      bad= false;
       for(short b= 0; b< 2; b++) {
         if((*p& 0xc0)!= 0x80) {         /// bytes 2-3 have to be continuation bytes (start with 10xxxxxx)
           u[a++]= 0xFFFD;
-          continue;                     /// don't increase p
+          bad= true;
+          break;                     /// don't increase p
         }
         u[a]<<= 6; u[a]+= *p++& 0x3f;   /// byte seems ok - copy from it (0x3f= 00111111)
       }
+      if(bad) continue;
 
     /// character has 4 bytes
     } else if((*p& 0xf8) == 0xf0) {     /// header for 4 bytes ? (0xf8= 11111000)
@@ -723,13 +727,16 @@ str8 &str8::secureUTF8(cvoid *s) {
       u[a]= *p++& 0x07;                 /// byte seems ok - copy from it (0x07= 00000111)
 
       // [BYTE 2-4]
+      bad= false;
       for(short b= 0; b< 3; b++) {
         if((*p& 0xc0)!= 0x80) {         /// bytes 2-4 have to be continuation bytes (start with 10xxxxxx)
           u[a++]= 0xFFFD;
-          continue;                     /// don't increase p
+          bad= true;                    /// don't increase p
+          break;
         }
         u[a]<<= 6; u[a]+= *p++ & 0x3f;  /// byte seems ok - copy from it (0x3f= 00111111)
       }
+      if(bad) continue;
 
     // the last 2 bytes are not used, but avaible if in the future unicode will expand
     /// character has 5 bytes

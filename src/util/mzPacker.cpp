@@ -1809,14 +1809,15 @@ bool mzPacker::compress(const void *src, int64 srcLen, void *out, int64 outLen) 
   flags|= TDEFL_WRITE_ZLIB_HEADER;
 
   /// miniz compression struct init
-  tdefl_compressor comp;
-  comp.init(out, flags);
+  tdefl_compressor *comp= new tdefl_compressor;
+  if(!comp) { err= 1; return false; }
+  comp->init(out, flags);
 
   // compression is done here ============-------------
   size_t l1= (size_t)srcLen;    /// l1 will hold the length of the source data to be compressed; will decrease when the data is compressed, indicating how much data was compressed
   size_t l2= (size_t)outLen;    /// l2 will hold the length of the output buffer that holds the compressed data; it will decrease after compression, indicating how much of the buffer size is left
 
-  tdefl_status r= tdefl_compress(&comp, src, &l1, out, &l2, TDEFL_FINISH); // COMPRESSION func call <<<
+  tdefl_status r= tdefl_compress(comp, src, &l1, out, &l2, TDEFL_FINISH); // COMPRESSION func call <<<
   
 
   /// abort check
@@ -1835,7 +1836,7 @@ bool mzPacker::compress(const void *src, int64 srcLen, void *out, int64 outLen) 
   results.outIsFull= (results.outRemaining? false: true);
   results.outTotalFilled+= l2;
 
-
+  delete comp;
   if(err) return false;
   return true;
 }

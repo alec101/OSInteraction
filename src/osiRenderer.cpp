@@ -847,7 +847,7 @@ bool _createContext(osiWindow *w, osiRenderer *r) {
   // requested version > 3.0
   } else {
     // https://www.opengl.org/registry/specs/ARB/wgl_create_context.txt
-    int attr[10]; int n= 0;
+    int attr[20]; int n= 0;
     if(osi.settings.renderer.minVerMajor && osi.settings.renderer.minVerMinor) {
       attr[n++]= WGL_CONTEXT_MAJOR_VERSION_ARB; attr[n++]= osi.settings.renderer.minVerMajor;
       attr[n++]= WGL_CONTEXT_MINOR_VERSION_ARB; attr[n++]= osi.settings.renderer.minVerMinor;

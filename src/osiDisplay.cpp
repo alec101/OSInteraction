@@ -962,7 +962,7 @@ void osiDisplay::populate() {
     
     for(a= 0; EnumDisplayDevices(monitor[id]._id, a, &dd, null); a++) {
       if(chatty) printf("found %d ID[%s]\nName[%s]\nString[%s]\n", a, dd.DeviceID, dd.DeviceName, dd.DeviceString);
-      if(!dd.StateFlags& DISPLAY_DEVICE_ATTACHED_TO_DESKTOP) printf("!!not attached!!\n");
+      if(!(dd.StateFlags& DISPLAY_DEVICE_ATTACHED_TO_DESKTOP)) printf("!!not attached!!\n");
 
     }
 
@@ -1088,7 +1088,7 @@ void osiDisplay::populate() {
 
     if(chatty)
       for(a= 0; a< n; a++) {
-        printf("%dx%d ", p[a].dx, monitor[id].res[a].dy , monitor[id].res[a].nrFreq);
+        printf("%dx%d %d", p[a].dx, monitor[id].res[a].dy , monitor[id].res[a].nrFreq);
         for(b= 0; b< p[a].nrFreq; b++)
           printf("%d ", p[a].freq[b]);
         printf("\n");

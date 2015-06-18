@@ -514,8 +514,8 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
           
 //  GLuint PixelFormat;   // Holds The Results After Searching For A Match
   WNDCLASS wc;          // Windows Class Structure
-  DWORD dwExStyle;      // Window Extended Style
-  DWORD dwStyle;        // Window Style
+  DWORD dwExStyle= 0;   // Window Extended Style
+  DWORD dwStyle= 0;     // Window Style
   RECT rect;            // Grabs Rectangle Upper Left / Lower Right Values
 
   /// fullscreen resolution change
@@ -997,7 +997,7 @@ bool osinteraction::createSplashWindow(osiWindow *w, osiMonitor *m, cchar *file)
     bitmap= (uint8 *)tga.bitmap;
     bpc= tga.bpc;
     bpp= tga.bpp;
-  }
+  } else { mutex.unlock(); return false; }
   
   /// window attributes
   w->dx= dx+ 20;
@@ -1063,6 +1063,7 @@ bool osinteraction::createSplashWindow(osiWindow *w, osiMonitor *m, cchar *file)
   uint8 *p= null;                         /// this will point to the bitmap's internal data
 
   w->_imgBM= CreateDIBSection(w->_imgDC, &b, DIB_RGB_COLORS, (void **)&p, null, 0); /// CreateDIBitmap failed for me, unfortunately, probly there's a way
+  if(p== null) { error.window("osi::createSplashWindow: CreateDIBSection failed"); goto Fail; }
   if(!SelectObject(w->_imgDC, w->_imgBM))     { error.window("osi::createSplashWindow: SelectObject() failed"); goto Fail; }
 
   /// RGBA top to bottom-> BGRA bottom to top
@@ -1697,7 +1698,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 
       } /// switch gain/lose focus
 
-      if(chatty) printf("WM_ACTIVATEAPP %s 0x%x %d %d\n", osi._getWinName(hWnd), m, wParam, lParam);
+      if(chatty) printf("WM_ACTIVATEAPP %s 0x%x %d %u\n", osi._getWinName(hWnd), m, wParam, lParam);
       goto ret;
     case WM_POWERBROADCAST:
 
@@ -1712,7 +1713,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       goto ret;
 
     case WM_CLOSE:
-      if(chatty) printf("WM_CLOSE %s 0x%x %d %d\n", osi._getWinName(hWnd), m, wParam, lParam);
+      if(chatty) printf("WM_CLOSE %s 0x%x %d %u\n", osi._getWinName(hWnd), m, wParam, lParam);
       osi.flags.exit= true;     /// main exit flag
       return 0;
 
@@ -1758,18 +1759,18 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
     case WM_SETFOCUS:         /// focus gained to a window
       if(w= osi._getWin(hWnd)) w->hasFocus= true;
 
-      if(chatty) printf("WM_SETFOCUS %s 0x%x %d %d\n", osi._getWinName(hWnd), m, wParam, lParam);
+      if(chatty) printf("WM_SETFOCUS %s 0x%x %d %u\n", osi._getWinName(hWnd), m, wParam, lParam);
       goto ret;
 
     case WM_KILLFOCUS:        /// window lost focus
       if(w= osi._getWin(hWnd)) w->hasFocus= false;
 
-      if(chatty) printf("WM_KILLFOCUS %s 0x%x %d %d\n", osi._getWinName(hWnd), m, wParam, lParam);
+      if(chatty) printf("WM_KILLFOCUS %s 0x%x %d %u\n", osi._getWinName(hWnd), m, wParam, lParam);
       goto ret;
 
     // system commands
     case WM_SYSCOMMAND:
-      if(chatty) printf("WM_SYSCOMMAND %s 0x%x %d %d\n", osi._getWinName(hWnd), m, wParam, lParam);
+      if(chatty) printf("WM_SYSCOMMAND %s 0x%x %d %u\n", osi._getWinName(hWnd), m, wParam, lParam);
 
       switch (wParam)	{
         case SC_SCREENSAVE:
@@ -1780,7 +1781,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
           
 				  // return 0;                         /// prevent these from happening by not calling DefWinProc
         case SC_CLOSE: 
-          if(chatty) printf("  SC_CLOSE %s 0x%x %d %d\n", osi._getWinName(hWnd), m, wParam, lParam);
+          if(chatty) printf("  SC_CLOSE %s 0x%x %d %u\n", osi._getWinName(hWnd), m, wParam, lParam);
           osi.flags.exit= true;
           return 0;
       } /// switch the type of WM_SYSCOMMAND
@@ -1805,7 +1806,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
     //case WM_PAINT:      // TEST
     //  return 0;
   } /// switch message
-
+  
   /// unhandled frequent windows messages
   if(chatty&& !onlyHandled)
     switch(m) {
@@ -2545,6 +2546,118 @@ void osinteraction::setProgramIcon(cchar *fileName) {
 }
 
 
+// sends text to the clipboard/pasteboard - used for copy/paste operations between programs
+void osinteraction::setClipboard(cchar *in_text) {
+  #ifdef OS_WIN
+  str8 s(in_text);
+
+  if(OpenClipboard(NULL)) { // setting the handle, causes problems: CF_UNICODE stopped working, only CF_TEXT worked. just set NULL
+    EmptyClipboard();
+
+    int len= (s.nrChars+ s.nrCombs+ 1)* 2;
+    HGLOBAL hg= GlobalAlloc(GMEM_MOVEABLE, len);
+    if(hg) {
+      void *p= GlobalLock(hg);
+      if(p) {
+        memcpy(p, s.convertWin(), len);
+        GlobalUnlock(hg);
+        SetClipboardData(CF_UNICODETEXT, hg);   // set the text (hopefully)
+      }
+    }
+
+    CloseClipboard();
+    if(hg) GlobalFree(hg);
+  }
+  #endif /// OS_WIN
+
+  #ifdef OS_LINUX
+  if(!primWin) return;
+  XStoreBytes(primWin->_dis, in_text, Str::strlen8(in_text)+ 1);
+  #endif /// OS_LINUX
+
+  #ifdef OS_MAC
+  cocoa.setPastebin(in_text);
+  #endif /// OS_MAC
+}
+
+
+// gets text (if any) from the clipbard/pasteboard - used for copy/paste operations between programs (returned text is null if nothing is there)
+bool osinteraction::getClipboard(cchar **out_text) {
+  #ifdef OS_WIN
+  *out_text= null;
+  if(OpenClipboard(NULL)) { // setting the handle, causes problems, CF_UNICODE stopped working, only CF_TEXT worked. just set NULL
+    /// try to get CF_UNICODETEXT
+    HANDLE hdata= GetClipboardData(CF_UNICODETEXT);
+
+    if(hdata) {
+      uint16 *pchData= (uint16 *)GlobalLock(hdata);
+      if(pchData) {
+        str8 s(pchData);
+        *out_text= (cchar *)new uint8[s.len];
+        Str::strcpy8((void *)*out_text, s.d);
+        GlobalUnlock(hdata);
+      }
+    }
+    /* this uses codepages and other crap, if CS_UNICODE doesn't work, just forget it.
+    /// try to get CF_TEXT
+    if(!(*out_text)) {
+      hdata= GetClipboardData(CF_TEXT);
+      if(hdata) {
+        uint8 *pchData= (uint8 *)GlobalLock(hdata);
+        if(pchData) {
+          str8 s(pchData);
+          *out_text= (cchar *)new uint8[s.len];
+          Str::strcpy8((void *)*out_text, s.d);
+          GlobalUnlock(hdata);
+        }
+      }
+    }
+    */
+    CloseClipboard();
+  }
+  return *out_text? true: false;
+  #endif /// OS_WIN
+
+  #ifdef OS_LINUX
+  *out_text= null;
+  if(!primWin) return;
+  int len= 0
+  char *xdata= XFetchBytes(primWin->_dis, &len);
+  if(len) {
+    uint8 *buf= new uint8[len+ 4];
+    buf[len]= 0; buf[len+ 1]= 0; buf[len+ 2]= 0; buf[len+ 3]= 0;  // utf32 terminator - 4 bytes
+
+    Str::strncpy[buf, xdata, len);
+
+    str8 s8;
+    s8.secureUTF8(buf);
+
+    if((s8.nrChars< 1) && (s8.nrCombs< 1)) {
+
+      /// this is a utf32 string, only if it's length is divisible by 4 (int32's)
+      if(!(len%4)) {
+        str32 s32((uint32*)s8.d);
+        str8 ret(s32.convert8());
+        *out_text= new char[ret.len];
+        Str::strcpy8(*out_text, ret.d);
+      }
+
+    /// this seems to be a utf8 string
+    } else {
+      *out_text= new char[s8.len];
+      Str::strcpy8(*out_len, s8.d);
+    }
+    XFree(xdata);
+  }
+  return *out_text? true: false;
+  #endif /// OS_LINUX
+
+  #ifdef OS_MAC
+  cocoa.getPastebin(out_text);
+  return *out_text? true: false;
+  #endif /// OS_MAC
+}
+  
 
 
 
@@ -2609,7 +2722,7 @@ bool osinteraction::glMakeCurrent(osiRenderer *r, osiWindow *w) {
   
 
   #ifdef OS_WIN
-  if(w) {
+  if(r && w) {
     return wglMakeCurrent(w->_hDC, r->glContext)? true: false;
   } else
     return wglMakeCurrent(null, null)? true: false;

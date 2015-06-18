@@ -338,6 +338,7 @@ bool PNG::load(cchar *fname) {
 
     // tRNS - transparency 
     } else if(!strcmp8(cname, "tRNS")&& !tRNSloaded) {
+      if(!bitmapSize) { err= 10; goto ReadError; }  /// if IHDR is not first, nothing is initialized
       tRNSloaded= true;
       if(colType== 0) {
         hasTrnCol= true;

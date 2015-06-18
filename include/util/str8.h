@@ -1,5 +1,6 @@
 #pragma once
 #define STR8CLASSINCLUDED 1
+#include <stdio.h>
 
 // WARNING:
 // -if you manually mess with d (internal data), use updateLen(), to update

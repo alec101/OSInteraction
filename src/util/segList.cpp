@@ -269,6 +269,7 @@ void segList::deli(int nr) {
   //if(!p) return;                /// failsafe -NOPE if(nr> nrNodes) does the same
   #endif
 
+  if(!p) return;
   /// set the next-prev link
   if(p->prev) p->prev->next= p->next;
   if(p->next) p->next->prev= p->prev;
@@ -320,10 +321,10 @@ void segList::checkIdle() {
     return;
   
   /// getting the present time
-  uint present;
+  uint64 present;
   
   #ifdef OS_WIN
-  present= GetTickCount();
+  present= GetTickCount64();
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
@@ -333,13 +334,11 @@ void segList::checkIdle() {
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
-  uint64_t time;
   static mach_timebase_info_data_t machInfo;
   if(machInfo.denom== 0)
     mach_timebase_info(&machInfo);
 
-  time= (mach_absolute_time()* machInfo.numer/ machInfo.denom)/ 1000000;
-  present= (uint)time;
+  present= (mach_absolute_time()* machInfo.numer/ machInfo.denom)/ 1000000;
   #endif /// OS_MAC
   
   _segment *p= null, *t;
