@@ -50,17 +50,16 @@ void chainList::add(chainData *p2) {
 }
 
 void chainList::addFirst(chainData *p2) {
-  chainData *p= first;
-
-  if(p) {                 // list has members
-    p->prev= p2;
-    p2->next= p;
+  if(first) {                 // list has members
+    first->prev= p2;
+    p2->next= first;
     first= p2;
   } else {                // list is empty
     first= last= p2;
     p2->next= null;       /// do not depend on the constructor! it wont be called in the derived class! ...nice source of errors
     p2->prev= null;       /// this is the place to initialize these vars
   }
+
 
   nrNodes++;
 }
@@ -108,7 +107,55 @@ void chainList::deli(int nr) {
   nrNodes--;
 }
 
+// [FAST] releases object from the chainList, doesn't delete the object from memory - NO searches involved
+void chainList::release(chainData *p) {
+  #ifdef CHAINLIST_SAFECHECKS
+  if((!nrNodes) || (!p)) {
+    //AfxMessageBox("strange error in chainList::delNode(chainData *)");
+    return;
+  }
+  #endif
 
+  /// make the links next/prev
+  if(p->prev) p->prev->next= p->next;
+  if(p->next) p->next->prev= p->prev;
+  if(p== first) first= p->next;
+  if(p== last) last= p->prev;
+
+  /// p belongs to no list from now on
+  p->next= null;
+  p->prev= null;
+
+  /// update nr nodes
+  nrNodes--;
+}
+
+// [SLOW] releases object from the chainList, doesn't delete the object from memory - NO searches involved
+void chainList::releasei(int nr) {
+  #ifdef CHAINLIST_SAFECHECKS
+  if(!nrNodes) return;
+  if(nr> nrNodes) return;
+  #endif
+  
+  /// find the item to be deleted
+  chainData *p= first;
+  for(int a= 0; a< nr; a++)       // <<< SLOW PART >>>
+    p= p->next;
+  if(!p) return;
+
+  /// make the next/prev links
+  if(p->prev) p->prev->next= p->next;
+  if(p->next) p->next->prev= p->prev;
+  if(p== first) first= p->next;
+  if(p== last) last= p->prev;
+
+  /// p belongs to no list from now on
+  p->next= null;
+  p->prev= null;
+
+  /// update number of nodes in the list
+  nrNodes--;
+}
 ///---------------------------------------------------------------///
 // GET - SEARCH list funcs - not to be used regulary or in a cycle //
 ///---------------------------------------------------------------///

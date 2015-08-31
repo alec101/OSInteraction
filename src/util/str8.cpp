@@ -552,9 +552,11 @@ bool str8::operator==(cuint8 *s) const {
     if(!len)  return true;
     else      return false;
   }
+  if(!len) return false;
+
   cuint8 *p1= d;
   cuint8 *p2= s;
-
+  
   while(*p1)
     if((!*p2) || (*p1++!= *p2++)) // if string 2 ends || characters differ (increment pointers too)
       return false;
