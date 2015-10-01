@@ -925,6 +925,10 @@ bool _processMSG(void) {
         in.k.key[code]= 128;
         in.k.keyTime[code]= osi.eventTime;
         //in.k.repeat[code]= 1;                  /// a new key press, sets repeat to 1  // MIGHT BE DELETED
+
+        /// insert lock handling
+        if(code== in.Kv.insert)
+          in.k.insertLock= (in.k.insertLock? false: true);
       }
   
       in.k._doManip();     /// check if pressed keys form a manip char. if they do, manipChar is added to manip stream

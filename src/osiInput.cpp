@@ -1270,6 +1270,7 @@ void osiKeyboard::delData() {
   key= _buffer1;
   lastCheck= _buffer2;
   capsLock= scrollLock= numLock= false;       /// the 3 toggle locks
+  insertLock= false;
 
   /// clear buffers
   for(short a= 0; a< MAX_KEYBOARD_KEYS; a++) {
@@ -1449,6 +1450,11 @@ void osiKeyboard::update() {
       k.timeDT= 0;
 
       _log(k);
+
+      /// insert lock manage
+      if(a== in.Kv.insert)
+        in.k.insertLock= (in.k.insertLock? false: true);
+
     }
     else if((lastCheck[a]& 0x80)&& !(key[a]& 0x80)) {     // key depressed
       bool found= false;

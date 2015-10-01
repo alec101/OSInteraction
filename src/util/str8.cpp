@@ -934,6 +934,52 @@ void str8::readLineUTF8(FILE *f) {
 
 
 
+///--------------------------------------------------------///
+// character / string insertion deletion at specific points //
+///--------------------------------------------------------///
+
+
+// -1 = ignore;
+// in_nUnicode - insert after n'th unicode;
+// in_nChar - insert after n'th character (that can have combining diacriticals);
+// if both are ignored, unicode is inserted at the end of the string;
+void str8::insert(uint32 in_unicode, int32 in_nUnicode, int32 in_nChar) {
+  Str::insert8((void**)&d, in_unicode, in_nUnicode, in_nChar);
+  updateLen();
+}
+
+
+// -1 = ignore;
+// in_nUnicode - insert after n'th unicode;
+// in_nChar - insert after n'th character (that can have combining diacriticals);
+// if both are ignored, unicode is inserted at the end of the string;
+void str8::insertStr(cvoid *in_str, int32 in_nUnicode, int32 in_nChar) {
+  Str::insertStr8((void **)&d, in_str, in_nUnicode, in_nChar);
+  updateLen();
+}
+
+
+// -1 = ignore;
+// in_nUnicodesToDel / in_nCharsToDel - number of unicodes or chars to del from string;
+// in_nUnicode - delete n'th unicode (first if multiple); in_nChar - delete n'th character (first if multiple);
+// if both are -1, the last unicode is deleted;
+void str8::del(int32 in_nUnicodesToDel, int32 in_nCharsToDel, int32 in_nUnicode, int32 in_nChar) {
+  Str::del8((void **)&d, in_nUnicodesToDel, in_nCharsToDel, in_nUnicode, in_nChar);
+  updateLen();
+}
+
+
+
+///----------------------///
+// search in string funcs //
+///----------------------///
+
+void *str8::search(void *in_search, bool in_caseSensitive) {
+  return Str::search8(d, in_search, in_caseSensitive);
+}
+
+
+
 
 
 

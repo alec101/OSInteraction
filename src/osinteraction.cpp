@@ -1523,13 +1523,16 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
     switch(m) {
       case WM_KEYDOWN:                                          // ***key PRESS***
       case WM_SYSKEYDOWN: {
-        in.k.updateLocks();
-        osi.flags.keyPress= true;
-
         //int code= GETBYTE2UINT32(lParam);
         uint code= (uint)wParam;
-
         osiKeyboard::osiKeyLog k;
+        osi.flags.keyPress= true;
+
+        /// manage key locks
+        in.k.updateLocks();                     /// caps/num/scroll
+        if(code== in.Kv.insert ||               /// insert
+          (code== in.Kv.kp0 && !in.k.numLock))
+          in.k.insertLock= (in.k.insertLock? false: true);
 
         /// left/ right ALT/CONTROL/SHIFT distingush
         if(wParam== VK_SHIFT)   code= (GetKeyState(VK_RSHIFT)& 0x80)?   in.Kv.rshift: in.Kv.lshift;
@@ -1567,7 +1570,9 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         in.k.key[code]= 128;
         in.k.keyTime[code]= osi.eventTime;
         //in.k.repeat[code]= 1;                  /// a new key press, sets repeat to 1  // MIGHT BE DELETED
-        
+
+
+
         in.k._doManip();                          /// check if current pressed keys form a manip char
         //if(chatty) printf("key PRESS code[0x%X] vcode[0x%X]\n", code, vcode);
         goto ret; //return 0;
@@ -1583,6 +1588,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         if(wParam== VK_SHIFT)   code= in.k.key[in.Kv.rshift]? in.Kv.rshift: in.Kv.lshift;
         if(wParam== VK_CONTROL) code= in.k.key[in.Kv.rctrl]?  in.Kv.rctrl:  in.Kv.lctrl;
         if(wParam== VK_MENU)    code= in.k.key[in.Kv.ralt]?		in.Kv.ralt:   in.Kv.lalt;
+        
         //if(wParam== VK_RETURN)  code= in.k.key[VK_RETURN]?    in.Kv.enter:  in.Kv.kpenter;       // makes no difference (win's fault)
 
         //if(chatty) printf("key RELEASE code[0x%X] vcode[0x%X]\n", code, vcode);
@@ -1974,7 +1980,14 @@ bool osinteraction::_processMSG()  {
         // in.k.repeat[code]= 128;        /// a new key press, sets repeat to 128  // MIGHT BE DELETED
       } /// if it's not a repeat
       
-      in.k.updateLocks();                 /// update keyboard leds (repeat or not)
+      in.k.updateLocks();                     /// update keyboard leds (repeat or not)
+      if(code== in.Kv.insert ||               /// insert
+        (code== in.Kv.kp0 && !in.k.numLock))
+        if(!repeat)
+          in.k.insertLock= (in.k.insertLock? false: true);
+
+        
+
       in.k._doManip();                     /// check & handle if pressed keys form a manip char
       
       continue;
