@@ -54,6 +54,7 @@ inline float radians(float degrees) { return degrees* DEG2RAD; }
 
 #define cInt(x) ((x)> 0? (((x)- int(x)< 0.5)? int(x): int(x)+ 1) : ((int(x)- (x)< 0.5)? int(x): int(x)- 1))
 inline int64 abs64(int64 n) { return (n< 0? -n: n); }
+inline int32 abs32(int32 n) { return (n< 0? -n: n); }
 inline double absd(double n) { return (n< 0? -n: n); }
 inline float absf(float n) { return (n< 0? -n: n); }
 

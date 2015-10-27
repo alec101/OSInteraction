@@ -210,7 +210,9 @@ struct osiButLog {
 
 
 
-
+#ifdef OS_MAC
+#include <mutex>
+#endif
 
 
 
@@ -501,7 +503,6 @@ BOOL CALLBACK _diDevCallback(LPCDIDEVICEINSTANCE, LPVOID); // no, i did not crea
 class osiInput {
 public:
 
-  std::mutex mutex;               // when reading from different threads, this is the locking mutex that will lock every class that osiInput handles
   osiMouse m;                     // more than 1 mouse?
   osiKeyboard k;                  // more than 1 keyboard?
   osiJoystick j[MAX_JOYSTICKS];   //  j[0-7]= OS driver;  j[8-15] XINPUT;  j[16-19] DIRECT INPUT
@@ -542,9 +543,9 @@ public:
 
   // functions
   
-  bool init(int mMode= 1, int kMode= 1);        // must be called after a main window is created (see 'mode' variable for mouse & keyboard for more customization) - locks in.mutex
-  void populate(bool scanMouseKeyboard= false); // searches for joysticks / other HIDs - locks in.mutex
-  void update();                                // update everything (mouse& keyboard& sticks& pads& wheels) - locks in.mutex
+  bool init(int mMode= 1, int kMode= 1);        // must be called after a main window is created (see 'mode' variable for mouse & keyboard for more customization)
+  void populate(bool scanMouseKeyboard= false); // searches for joysticks / other HIDs
+  void update();                                // update everything (mouse& keyboard& sticks& pads& wheels)
   void resetPressedButtons();                   // in case of ALT-TAB, all buttons/timers must be reset, to avoid bugs!!!
   void resetAxis();                             // resets all HID axis (sticks/pads/wheels)
 

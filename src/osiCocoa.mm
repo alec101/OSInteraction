@@ -285,15 +285,15 @@ bool _osiCocoaSetTheIcon;
 */
 
 -(void) drawRect: (NSRect) bounds {
-  printf("%s\n", __FUNCTION__);
+  // printf("%s\n", __FUNCTION__);
 }
 
 -(void) prepareOpenGL {
-  printf("%s\n", __FUNCTION__);
+  // printf("%s\n", __FUNCTION__);
 }
 
 -(NSMenu *)menuForEvent: (NSEvent *)theEvent {
-  printf("%s\n", __FUNCTION__);
+  // printf("%s\n", __FUNCTION__);
   return [NSView defaultMenu];
 }
 
@@ -1607,7 +1607,7 @@ bool osiCocoa::displayGPU(uint32 id, str8 *out) {
   /// wipe the last 2 items in the location info, hopefully the remaining info is grcard info
   int n= 2;
   while(n) {
-    if(Str::utf8to32(out->getChar(out->nrChars- 1))== '/')
+    if(Str::utf8to32(out->pointUnicode(out->nrUnicodes- 1))== '/')
       n--;
     
     out->operator-=(1);
@@ -1624,15 +1624,12 @@ bool osiCocoa::displayGPU(uint32 id, str8 *out) {
 void osiCocoa::setPastebin(uint8_t *in_text) {
   NSAutoreleasePool *pool= [[NSAutoreleasePool alloc] init];
 
-  NSString *string= [initWithUTF8String:in_text];
+  NSString *nss= [NSString stringWithUTF8String:(const char *)in_text];
   NSPasteboard *pasteBoard = [NSPasteboard generalPasteboard];
   
   // MIGHT BE NEEDED, NOT SURE [pasteBoard declareTypes:[NSArray arrayWithObjects:NSStringPboardType, nil] owner:nil];
   [pasteBoard clearContents];
-  [pasteBoard setString:string forType:NSStringPboardType];
-
-
-  [pasteBoard setString:stringToWrite forType:NSStringPboardType]
+  [pasteBoard setString:nss forType:NSStringPboardType];
 
   [pool release];
 }
@@ -1641,14 +1638,14 @@ void osiCocoa::setPastebin(uint8_t *in_text) {
 /// pastebin=clipboard - copy/paste operations
 void osiCocoa::getPastebin(uint8_t **out_text) {
   NSAutoreleasePool *pool= [[NSAutoreleasePool alloc] init];
-  *out_text= null;
+  *out_text= nil;
 
   NSPasteboard *pasteBoard = [NSPasteboard generalPasteboard];
   cchar *buf= [[pasteBoard stringForType:NSStringPboardType] UTF8String];
   
   if(buf) {
-    *out_text= new uint8[Str::strlen8(buf)+ 1];
-    Str::strcpy(*out_text, buf);
+    *out_text= new uint8[Str::strlen8(buf)];
+    Str::strcpy8(*out_text, buf);
   }
 
   [pool release];

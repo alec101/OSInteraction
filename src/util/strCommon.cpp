@@ -1,6 +1,15 @@
 #include "util/typeShortcuts.h"
 #include "util/strCommon.h"
 
+// **WARNING**
+// strncpy16 strchars16, strcombs16
+//  ^^^ are based on the fact that currently, diacriticals are not packed into surrogates, if this changes, funcs need an update
+
+
+//TODO:
+/*
+ * think about operator==: when comparing a null pointer to a wrapped no unicode inside string? too much? maybe
+*/
 using namespace Str;
 
 /// character case change helper structs (initialized at the back of the file)
@@ -18,7 +27,7 @@ void _parseUTF8(cuint8 *str, int32 *outChars= null, int32 *outCombs= null, int32
 
   *punicodes= *pchars= *pcombs= 0;
 
-  while(*str++)
+  for(; *str; str++)
     if((*str& 0xc0)!= 0x80) {   /// 0xc0= 11000000, first two bits  0x80= 10000000, test for 10xxxxxx the last 6 bits wont matter, as they are not tested so test to 10000000
 
       (*punicodes)++;
@@ -28,6 +37,30 @@ void _parseUTF8(cuint8 *str, int32 *outChars= null, int32 *outCombs= null, int32
     }
 }      
 
+void _parseUTF16(cuint16 *str, int32 *outChars= null, int32 *outCombs= null, int32 *outUnicodes= null, bool *hasSurrogates= null) {
+  int32 chars, combs, unicodes;
+  bool surrogates;
+  int32 *pchars= (outChars? outChars: &chars);
+  int32 *pcombs= (outCombs? outCombs: &combs);
+  int32 *punicodes= (outUnicodes? outUnicodes: &unicodes);
+  bool *psurrogates= (hasSurrogates? hasSurrogates: &surrogates);
+
+  *punicodes= *pchars= *pcombs= 0;
+  *psurrogates= false;
+
+  for(; *str; str++)
+    if(!isLowSurrogate(*str)) {
+      (*punicodes)++;
+      if(isComb(utf16to32(str)))
+        (*pcombs)++;
+      else
+        (*pchars)++;
+
+      if(isSurrogate(*str))
+        *psurrogates= true;
+    }
+}
+
 void _parseUTF32(cuint32 *str, int32 *outChars= null, int32 *outCombs= null, int32 *outUnicodes= null) {
   int32 chars, combs, unicodes;
   int32 *pchars= (outChars? outChars: &chars);
@@ -36,13 +69,45 @@ void _parseUTF32(cuint32 *str, int32 *outChars= null, int32 *outCombs= null, int
 
   *punicodes= *pchars= *pcombs= 0;
 
-  while(*str++) {
+  for(; *str; str++) {
     (*punicodes)++;
     if(isComb(*str)) (*pcombs)++;
     else             (*pchars)++;
   }
 }
 
+
+// func that is used to check the validity of a UTF-32 unicode value
+uint32 _secure32check(uint32 u) {
+  if(Str::isSurrogate(u)) return 0xFFFD; // [security check] surrogates are marked as bad (0xFFFD) - no place for them in a UTF-32 str
+  else if(u>  0x10FFFF)   return 0xFFFD; // [security check] limit of Unicode <--------------------- (maybe this changes in the future)
+  else return u;
+}
+
+
+// internal func that is used for secureUTF16
+uint32 _secure16to32advance(cuint16 **in_str) {
+  uint32 c= 0;
+  cuint16 *p= *in_str;
+  if(isHighSurrogate(*p)) {
+    if(!*(p+ 1)) return 0xFFFD;                       // [security check] next byte must be avaible
+    if(!Str::isLowSurrogate(*(p+ 1))) return 0xFFFD;  // [security check] next byte must be a surrogate
+
+    c= (*p<< 10)+ *(p+ 1)+ Str::UTF16_SURROGATE_OFFSET;
+    (*in_str)+= 2;
+      
+  } else if(isLowSurrogate(*p))                       // [security check] a low surrogate before a high surrogate causes a bad character
+    c= 0xFFFD,
+    (*in_str)++;
+
+  else 
+    c= *p,
+    (*in_str)++;
+
+  if(Str::isSurrogate(c)) c= 0xFFFD;                  // [security check] the surrogates unpacked into another surrogate
+  if(c> 0x10FFFF)         c= 0xFFFD;                  // [security check] limit of unicode <-----------------------
+  return c;
+}
 
 
 
@@ -70,7 +135,7 @@ int Str::utf8nrBytes(uint32_t n) {
 }
 
 // returns the number of bytes that the specified utf8 header byte reports it has
-inline int utf8headerBytes(uint8_t b) {
+inline int Str::utf8headerBytes(uint8_t b) {
   if(b < 128)                 return 1;
   else if((b& 0xe0) == 0xc0)  return 2;
   else if((b& 0xf0) == 0xe0)  return 3;
@@ -82,39 +147,154 @@ inline int utf8headerBytes(uint8_t b) {
   return 0;
 }
 
-void Str::utf32to8(uint32_t n, uint8_t *dst) {
+
+
+///=======================================///
+// utf8-utf16-utf32 in-between conversions //
+///=======================================///
+
+/// UTF-8 to UTF-16 conversion
+void Str::utf8to16(cvoid *in_str, uint16 *out_str, int32 *out_utf8bytes, int32 *out_utf16ints) {
+  int32 utf8, utf16;
+  utf16= utf32to16(Str::utf8to32(in_str, &utf8), out_str);
+  if(out_utf8bytes) *out_utf8bytes= utf8;
+  if(out_utf16ints) *out_utf16ints= utf16;
+}
+
+
+/// converts UTF-8 unicode value to UTF-32
+uint32 Str::utf8to32(cvoid *s, int32 *out_bytes) {
+  cuint8 *p= (cuint8 *)s;
+  uint32 ret= 0;
+
+  /// check how many chars this utf8 pack has
+  int32 n= 0;
+
+  if(*p < 128)                n= 1, ret= *p++;
+  else if((*p& 0xe0) == 0xc0) n= 2, ret= (*p++)& 0x1f;
+  else if((*p& 0xf0) == 0xe0) n= 3, ret= (*p++)& 0x0f;
+  else if((*p& 0xf8) == 0xf0) n= 4, ret= (*p++)& 0x07;
+  // the last 2 bytes are not used in unicode ATM
+  //else if((*p& 0xfc) == 0xf8) n= 5, ret= (*p++)& 0x03;
+  //else if((*p& 0xfe) == 0xfc) n= 6, ret= (*p++)& 0x01;
+  else { if(out_bytes) *out_bytes= 1; return 0xFFFD; }
+
+  /// optional number of bytes return value
+  if(out_bytes)
+    *out_bytes= n;
+
+  /// unpack the utf8
+  while(--n> 0)
+    ret<<= 6, ret+= *p++ & 0x3f;
+
+  return ret;
+}
+
+
+
+void Str::utf16to8(cuint16 *in_str, void *out_str) {
+  utf32to8(Str::utf16to32(in_str), (uint8 *)out_str);
+}
+
+
+uint32 Str::utf16to32(cuint16 *in_str, int32 *out_nInt16) {
+  if(isHighSurrogate(*in_str)) {
+    if(out_nInt16) *out_nInt16= 2;
+    return (*in_str<< 10)+ *(in_str+ 1)+ UTF16_SURROGATE_OFFSET;
+  } 
+  if(out_nInt16) *out_nInt16= 1;
+  return *in_str;
+}
+
+
+
+int32 Str::utf32to8(uint32_t n, uint8_t *dst) {
   /// compress unicode value into utf-8
   if(n<= 0x0000007F) {          //  1 byte   U-00000000->U-0000007F:  0xxxxxxx 
     *dst++= (uint8) n;
+    return 1;
   } else if(n<= 0x000007FF) {   //  2 bytes  U-00000080->U-000007FF:  110xxxxx 10xxxxxx 
-    *dst++= (uint8) (n>> 6)        | 0xC0;    /// [BYTE 1]       >> 6= 000xxxxx 00000000  then header | c0 (11000000)
-    *dst++= (uint8) (n&       0x3f)| 0x80;    /// [BYTE 2]         3f= 00000000 00xxxxxx  then header | 80 (10000000)
+    *dst++= (uint8) (n>> 6)        | 0xC0;   /// [BYTE 1]       >> 6= 000xxxxx 00000000  then header | c0 (11000000)
+    *dst++= (uint8) (n&       0x3f)| 0x80;   /// [BYTE 2]         3f= 00000000 00xxxxxx  then header | 80 (10000000)
+    return 2;
   } else if(n<= 0x0000FFFF) {   //  3 bytes  U-00000800->U-0000FFFF:  1110xxxx 10xxxxxx 10xxxxxx 
-    *dst++= (uint8) (n>> 12)       | 0xE0;    /// [BYTE 1]      >> 12= 0000xxxx 00000000 00000000  then header | e0 (11100000)
-    *dst++= (uint8)((n>> 6)&  0x3F)| 0x80;    /// [BYTE 2]  >> 6 & 3f= 00000000 00xxxxxx 00000000  then header | 80 (10000000)
-    *dst++= (uint8) (n&       0x3F)| 0x80;    /// [BYTE 3]       & 3f= 00000000 00000000 00xxxxxx  then header | 80 (10000000)
+    *dst++= (uint8) (n>> 12)       | 0xE0;   /// [BYTE 1]      >> 12= 0000xxxx 00000000 00000000  then header | e0 (11100000)
+    *dst++= (uint8)((n>> 6)&  0x3F)| 0x80;   /// [BYTE 2]  >> 6 & 3f= 00000000 00xxxxxx 00000000  then header | 80 (10000000)
+    *dst++= (uint8) (n&       0x3F)| 0x80;   /// [BYTE 3]       & 3f= 00000000 00000000 00xxxxxx  then header | 80 (10000000)
+    return 3;
   } else if(n<= 0x001FFFFF) {   // 4 bytes U-00010000->U-001FFFFF:    11110xxx 10xxxxxx 10xxxxxx 10xxxxxx 
-    *dst++= (uint8) (n>> 18)       | 0xF0;    /// [BYTE 1]      >> 18= 00000xxx 00000000 00000000 00000000  then header | f0 (11110000)
-    *dst++= (uint8)((n>> 12)& 0x3F)| 0x80;    /// [BYTE 2] >> 12 & 3f= 00000000 00xxxxxx 00000000 00000000  then header | 80 (10000000)
-    *dst++= (uint8)((n>>  6)& 0x3F)| 0x80;    /// [BYTE 3] >>  6 & 3f= 00000000 00000000 00xxxxxx 00000000  then header | 80 (10000000)
-    *dst++= (uint8) (n&       0x3F)| 0x80;    /// [BYTE 4]       & 3f= 00000000 00000000 00000000 00xxxxxx  then header | 80 (10000000)
-
+    *dst++= (uint8) (n>> 18)       | 0xF0;   /// [BYTE 1]      >> 18= 00000xxx 00000000 00000000 00000000  then header | f0 (11110000)
+    *dst++= (uint8)((n>> 12)& 0x3F)| 0x80;   /// [BYTE 2] >> 12 & 3f= 00000000 00xxxxxx 00000000 00000000  then header | 80 (10000000)
+    *dst++= (uint8)((n>>  6)& 0x3F)| 0x80;   /// [BYTE 3] >>  6 & 3f= 00000000 00000000 00xxxxxx 00000000  then header | 80 (10000000)
+    *dst++= (uint8) (n&       0x3F)| 0x80;   /// [BYTE 4]       & 3f= 00000000 00000000 00000000 00xxxxxx  then header | 80 (10000000)
+    return 4;
   // last 2 bytes, UNUSED by utf ATM, but there be the code
   } else if(n<= 0x03FFFFFF) {   //  5 bytes U-00200000->U-03FFFFFF:   111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 
-    *dst++= (uint8) (n>> 24)       | 0xF8;    /// [BYTE 1]      >> 24= 000000xx 00000000 00000000 00000000 00000000  then header | f8 (11111000)
-    *dst++= (uint8)((n>> 18)& 0x3f)| 0x80;    /// [BYTE 2] >> 18 & 3f= 00000000 00xxxxxx 00000000 00000000 00000000  then header | 80 (10000000)
-    *dst++= (uint8)((n>> 12)& 0x3f)| 0x80;    /// [BYTE 3] >> 12 & 3f= 00000000 00000000 00xxxxxx 00000000 00000000  then header | 80 (10000000)
-    *dst++= (uint8)((n>>  6)& 0x3f)| 0x80;    /// [BYTE 4] >>  6 & 3f= 00000000 00000000 00000000 00xxxxxx 00000000  then header | 80 (10000000)
-    *dst++= (uint8) (n&       0x3f)| 0x80;    /// [BYTE 5]       & 3f= 00000000 00000000 00000000 00000000 00xxxxxx  then header | 80 (10000000)
+    *dst++= (uint8) (n>> 24)       | 0xF8;   /// [BYTE 1]      >> 24= 000000xx 00000000 00000000 00000000 00000000  then header | f8 (11111000)
+    *dst++= (uint8)((n>> 18)& 0x3f)| 0x80;   /// [BYTE 2] >> 18 & 3f= 00000000 00xxxxxx 00000000 00000000 00000000  then header | 80 (10000000)
+    *dst++= (uint8)((n>> 12)& 0x3f)| 0x80;   /// [BYTE 3] >> 12 & 3f= 00000000 00000000 00xxxxxx 00000000 00000000  then header | 80 (10000000)
+    *dst++= (uint8)((n>>  6)& 0x3f)| 0x80;   /// [BYTE 4] >>  6 & 3f= 00000000 00000000 00000000 00xxxxxx 00000000  then header | 80 (10000000)
+    *dst++= (uint8) (n&       0x3f)| 0x80;   /// [BYTE 5]       & 3f= 00000000 00000000 00000000 00000000 00xxxxxx  then header | 80 (10000000)
+    return 5;
   } else if(n<= 0x7FFFFFFF) {   //  6 bytes U-04000000->U-7FFFFFFF:   1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
-    *dst++= (uint8) (n>> 30)       | 0xFC;    /// [BYTE 1]      >> 30= 0000000x 00000000 00000000 00000000 00000000 00000000  then header | fc (11111100)
-    *dst++= (uint8)((n>> 24)& 0x3f)| 0x80;    /// [BYTE 2] >> 24 & 3f= 00000000 00xxxxxx 00000000 00000000 00000000 00000000  then header | 80 (10000000)
-    *dst++= (uint8)((n>> 18)& 0x3f)| 0x80;    /// [BYTE 3] >> 18 & 3f= 00000000 00000000 00xxxxxx 00000000 00000000 00000000  then header | 80 (10000000)
-    *dst++= (uint8)((n>> 12)& 0x3f)| 0x80;    /// [BYTE 4] >> 12 & 3f= 00000000 00000000 00000000 00xxxxxx 00000000 00000000  then header | 80 (10000000)
-    *dst++= (uint8)((n>>  6)& 0x3f)| 0x80;    /// [BYTE 5] >>  6 & 3f= 00000000 00000000 00000000 00000000 00xxxxxx 00000000  then header | 80 (10000000)
-    *dst++= (uint8) (n&       0x3f)| 0x80;    /// [BYTE 6]         3f= 00000000 00000000 00000000 00000000 00000000 00xxxxxx  then header | 80 (10000000)
+    *dst++= (uint8) (n>> 30)       | 0xFC;   /// [BYTE 1]      >> 30= 0000000x 00000000 00000000 00000000 00000000 00000000  then header | fc (11111100)
+    *dst++= (uint8)((n>> 24)& 0x3f)| 0x80;   /// [BYTE 2] >> 24 & 3f= 00000000 00xxxxxx 00000000 00000000 00000000 00000000  then header | 80 (10000000)
+    *dst++= (uint8)((n>> 18)& 0x3f)| 0x80;   /// [BYTE 3] >> 18 & 3f= 00000000 00000000 00xxxxxx 00000000 00000000 00000000  then header | 80 (10000000)
+    *dst++= (uint8)((n>> 12)& 0x3f)| 0x80;   /// [BYTE 4] >> 12 & 3f= 00000000 00000000 00000000 00xxxxxx 00000000 00000000  then header | 80 (10000000)
+    *dst++= (uint8)((n>>  6)& 0x3f)| 0x80;   /// [BYTE 5] >>  6 & 3f= 00000000 00000000 00000000 00000000 00xxxxxx 00000000  then header | 80 (10000000)
+    *dst++= (uint8) (n&       0x3f)| 0x80;   /// [BYTE 6]         3f= 00000000 00000000 00000000 00000000 00000000 00xxxxxx  then header | 80 (10000000)
+    return 6;
+  }
+  return 0;
+  
+
+  /* short version
+  int32 a= -1, ret;
+  /// compress unicode value into utf-8
+  if(n<= 0x0000007F) {          //  1 byte   U-00000000->U-0000007F:  0xxxxxxx 
+    *dst++= (uint8) n;
+    return 1;
+  }
+  else if(n<= 0x000007FF) *dst++= (uint8) (n>> 6) | 0xC0, a= 0, ret= 2;   // 2 bytes  U-00000080->U-000007FF:  110xxxxx 10xxxxxx 
+  else if(n<= 0x0000FFFF) *dst++= (uint8) (n>> 12)| 0xE0, a= 6, ret= 3;   // 3 bytes  U-00000800->U-0000FFFF:  1110xxxx 10xxxxxx 10xxxxxx 
+  else if(n<= 0x001FFFFF) *dst++= (uint8) (n>> 18)| 0xF0, a= 12, ret= 4;  // 4 bytes  U-00010000->U-001FFFFF:  11110xxx 10xxxxxx 10xxxxxx 10xxxxxx 
+  // last 2 bytes, UNUSED by utf ATM, but there be the code
+  else if(n<= 0x03FFFFFF) *dst++= (uint8) (n>> 24)| 0xF8, a= 18, ret= 5;  // 5 bytes  U-00200000->U-03FFFFFF:   111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 
+  else if(n<= 0x7FFFFFFF) *dst++= (uint8) (n>> 30)| 0xFC, a= 24, ret= 6;  // 6 bytes  U-04000000->U-7FFFFFFF:   1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
+
+  while(a>= 0)
+    *dst++= (uint8)((n>>  a)& 0x3f)| 0x80, a-= 6;
+
+  return ret;
+  */
+}
+
+
+int32 Str::utf32to16(uint32 unicode, uint16 *out_str) {
+  if(unicode>= 0x10000) {
+    *out_str=      UTF16_LEAD_OFFSET+ (unicode>> 10);
+    *(out_str+ 1)= 0xDC00+ (unicode& 0x3FF);
+    return 2;
+  } else {
+    *out_str= (uint16)unicode;
+    return 1;
   }
 }
+
+
+/// returns unicode value [n] in UTF-8 string as UTF-32 (direct unicode value)
+uint32 Str::utf8to32n(cvoid *s, int n) {
+  cuint8 *p= (cuint8 *)s;
+  /// pass thru all characters, till n is reached
+  while(n> 0)
+    if((*p++ & 0xc0)!= 0x80)
+      n--;
+
+  return utf8to32(p- 1);
+}
+
+
+
 
 
 
@@ -122,46 +302,70 @@ void Str::utf32to8(uint32_t n, uint8_t *dst) {
 // getChar funcs - get a specific character / unicode value in a string //
 ///====================================================================///
 
-/// return [n]'th character (WARNING: a character can be made of multiple diacriticals)
-void *Str::getChar8(cvoid *s, int32 n) {
-  uint8* p= (uint8 *)s;
-
-  for(int32 a= 0; (a< n) && *p;)
-    if((*++p& 0xc0)!= 0x80)     /// count only utf8 header bytes
-      if(!isComb(utf8to32(p)))  /// count also only non-diacriticals
-        a++;
-
-  return p;
-}
-
-
-uint32 *Str::getChar32(cuint32 *s, int32 n) {
-  uint32 *p= (uint32 *)s;
-  for(int32 a= 0; (a< n) && *p; )
-    if(!isComb(*p++))
-      a++;
-
-  return p;
-}
-
 
 /// returns [n]'th unicode value in the string - it can be a character or a diacritical
-void *Str::getUnicode8(cvoid *s, int32 n) {
+uint8 *Str::getUnicode8(cvoid *s, int32 n) {
   uint8* p= (uint8 *)s;
 
-  for(int32 a= 0; (a< n) && *p; )
+  while((n> 0) && *p)
     if((*++p& 0xc0)!= 0x80)   /// count only utf8 header bytes
-      a++;
+      n--;
 
   return p;
+}
+
+// UTF-16 str: returns the [n] unicode value in string (does not care if it's a normal character or diacritical) 
+uint16_t *Str::getUnicode16(const uint16_t *s, int32_t n) {
+  while((n> 0) && *s)
+    if(!isLowSurrogate(*++s))
+      n--;
+
+  return (uint16 *)s;
 }
 
 
 uint32 *Str::getUnicode32(cuint32 *s, int32 n) {
-  for(int32 a= 0; (a< n) && *s; )
-    a++, s++;
+  while((n> 0) && *s)
+    n--, s++;
   return (uint32 *)s;
 }
+
+
+
+/// return [n]'th character (WARNING: a character can be made of multiple diacriticals)
+uint8 *Str::getChar8(cvoid *s, int32 n) {
+  uint8* p= (uint8 *)s;
+
+  while((n> 0) && *p) {
+    int32 nbytes;
+    if(!isComb(utf8to32(p, &nbytes)))
+      n--;
+    p+= nbytes;
+  }
+
+  return p;
+}
+
+// UTF-16 str: returns the [n] char in string (diacriticals are considered part of a character)
+uint16_t *Str::getChar16(const uint16_t *s, int32_t n) {
+  while((n> 0) && *s) {
+    if(!isComb(utf16to32(s++)))
+      n--;
+    if(isLowSurrogate(*s))
+      s++;
+  }
+
+  return (uint16 *)s;
+}
+
+
+uint32 *Str::getChar32(cuint32 *s, int32 n) {
+  while((n> 0) && *s)
+    if(!isComb(*s++))
+      n--;
+  return (uint32 *)s;
+}
+
 
 
 
@@ -171,120 +375,119 @@ uint32 *Str::getUnicode32(cuint32 *s, int32 n) {
 // strlen funcs - string length in bytes //
 ///=====================================///
 
-/// returns utf-8 string length in BYTES
+/// returns utf-8 string length in BYTES (includes str terminator)
 int32 Str::strlen8(cvoid *s) {
   if(!s) return 0;
   cuint8 *p= (cuint8 *)s;
   while(*p++);
-  return (int32)(p- (cuint8 *)s- 1);
+  return (int32)(p- (cuint8 *)s);
 }
 
-/// returns utf-32 string length in BYTES
+/// returns utf-16 string length in BYTES (includes str terminator)
+int32 Str::strlen16(cuint16 *s) {
+  if(!s) return 0;
+  cuint16 *p= s;
+  while(*p++);
+  return (int32)((cuint8 *)p- (cuint8 *)s);
+}
+
+/// returns utf-32 string length in BYTES (includes str terminator)
 int32 Str::strlen32(cuint32 *s) {
   if(!s) return 0;
   cuint32 *p= s;
   while(*p++);
-  return (int32)((cuint8 *)p- (cuint8 *)s- 1);
+  return (int32)((cuint8 *)p- (cuint8 *)s);
 }
 
-/// returns windows 16bit wide character string length in BYTES
-int32 Str::strlenWin(cuint16 *s) {
-  if(!s) return 0;
-  cuint16 *p= s;
-  while(*p++);
-  return (int32)((cuint8 *)p- (cuint8 *)s- 1);
-}
+
 
 
 
 ///====================================///
 // strcpy / strncpy - string copy funcs //
 ///====================================///
-// NOTE: a character can have multiple unicode values (more diacriticals)
+
 
 /// copies src to dest (both utf-8 array strings
-void Str::strcpy8(void *dst, cvoid *src) {
+void Str::strcpy8(void *dst, cvoid *src, bool terminator) {
   uint8 *p1= (uint8 *)dst, *p2= (uint8 *)src;
 
-  for(int32 a= 0, n= strlen8(src); a<= n; a++)
+  while(*p2)
     *p1++= *p2++;
+
+  if(terminator) *p1= 0;
 }
 
-/// copies n characters from src to dst (number of bytes can vary, carefull; this is not memcpy)
-void Str::strncpy8(void *dst, cvoid *src, int32 n) {
-  uint8 *p1= (uint8 *)dst, *p2= (uint8 *)src, *p= p2;
 
-  /// pass thru n+ 1 characters - p will point to 1 char over what is needed
-  for(int32 a= 0; *p;) {
-    if((*p & 0xc0)!= 0x80)
-      if(!isComb(utf8to32(p)))
-        a++;
-    if(a> n) break;
-    p++;
+/// copies n unicode values from src to dst
+void Str::strncpy8(void *dst, cvoid *src, int32 n, bool terminator) {
+  uint8 *p1= (uint8 *)dst, *p2= (uint8 *)src;
+  while(n--> 0) {
+    int32 nbytes= utf8headerBytes(*p2);
+
+    while(nbytes--)
+      *p1++= *p2++;
   }
-
-
-
-  int32 len= (int32)(p- p2);  /// p- p2= exactly the number of bytes needed to be copied
-
-  for(int32 a= 0; a< len; a++, p1++, p2++)
-    *p1= *p2;
-  *p1= 0;                     /// string terminator
-}
-
-/// copies n unicode values from src to dst - doesn't care if the unicode is a character or diacritical
-void Str::strncpy8_unicodes(void *dst, cvoid *src, int32 n) {
-  uint8 *p1= (uint8 *)dst, *p2= (uint8 *)src, *p= p2;
-
-  /// pass thru n+ 1 unicodes - p will point to 1 char over what is needed
-  for(int32 a= 0; *p;) {
-    if((*p & 0xc0)!= 0x80)
-      a++;
-    if(a> n) break;
-    p++;
-  }
-
-  int32 len= (int32)(p- p2);  /// p- p2= exactly the number of bytes needed to be copied
-
-  for(int32 a= 0; a< len; a++, p1++, p2++)
-    *p1= *p2;
-  *p1= 0;                     /// string terminator
+  if(terminator) *p1= 0;
 }
 
 
-void Str::strcpy32(uint32 *dst, cuint32 *src) {
-  while(*src++)
-    *dst++= *src;
-  *dst= 0;  /// terminator
-}
-
-
-void Str::strncpy32(uint32 *dst, cuint32 *src, int32 n) {
-  for(int32 a= 0; a< n;) {
-    if(!isComb(*src)) a++;
+void Str::strcpy16(uint16 *dst, cuint16 *src, bool terminator) {
+  while(*src)
     *dst++= *src++;
-  }
+  if(terminator) *dst= 0;  /// terminator
 }
 
 
-void Str::strncpy32_unicodes(uint32 *dst, cuint32 *src, int32 n) {
-  for(int32 a= 0; a< n; a++)
+void Str::strncpy16(uint16 *dst, cuint16 *src, int32 n, bool terminator) {
+  while(n--> 0) {
     *dst++= *src++;
+    if(isLowSurrogate(*src))
+      *dst++= *src++;
+  }
+
+  if(terminator) *dst= 0;
 }
+
+
+void Str::strcpy32(uint32 *dst, cuint32 *src, bool terminator) {
+  while(*src)
+    *dst++= *src++;
+  if(terminator) *dst= 0;  /// terminator
+}
+
+
+void Str::strncpy32(uint32 *dst, cuint32 *src, int32 n, bool terminator) {
+  while(n--> 0)
+    *dst++= *src++;
+  if(terminator) *dst= 0;
+}
+
+
 
 
 ///================================///
 // string various characters COUNTS //
 ///================================///
 
+/// returns number of unicode values in a string
+int32 Str::strunicodes8(cvoid *s) {
+  if(!s) return 0;
+  int32 ret= 0;
+
+  for(cuint8 *p= (cuint8 *)s; *p; p++)
+    if((*p& 0xc0)!= 0x80)   /// 0xc0= 11000000, first two bits  0x80= 10000000, test for 10xxxxxx the last 6 bits wont matter, as they are not tested so test to 10000000
+      ret++;
+
+  return ret;
+}
 
 /// nr characters in UTF-8 array string (comb diacriticals are considered part of a character, so those unicode values are not counted)
 int32 Str::strchars8(cvoid *s) {
   if(!s) return 0;
-  cuint8 *p= (cuint8 *)s;
-  int32 l= 0;
 
-  while(*p++)
+  int32 l= 0;
+  for(cuint8 *p= (cuint8 *)s; *p; p++)
     if((*p& 0xc0)!= 0x80)   /// 0xc0= 11000000, first two bits  0x80= 10000000, test for 10xxxxxx the last 6 bits wont matter, as they are not tested so test to 10000000
       if(!isComb(utf8to32(p)))
         l++;
@@ -295,10 +498,9 @@ int32 Str::strchars8(cvoid *s) {
 /// counts the number of comb diacriticalsin UTF-8 array string
 int32 Str::strcombs8(cvoid *s) {
   if(!s) return 0;
-  int32 ret= 0;
-  cuint8 *p= (cuint8 *)s;
 
-  while(*p++)
+  int32 ret= 0;
+  for(cuint8 *p= (cuint8 *)s; *p; p++)
     if((*p& 0xc0)!= 0x80)   /// 0xc0= 11000000, first two bits  0x80= 10000000, test for 10xxxxxx the last 6 bits wont matter, as they are not tested so test to 10000000
       if(isComb(utf8to32(p)))
         ret++;
@@ -306,25 +508,56 @@ int32 Str::strcombs8(cvoid *s) {
   return ret;
 }
 
-/// returns number of unicode values in a string - both characters and diacriticals (does not parse anything)
-int32 Str::strunicodes8(cvoid *s) {
+/// counts the number of unicode values in a UTF-16 str
+int32 Str::strunicodes16(cuint16 *s) {
   if(!s) return 0;
-  int32 ret= 0;
-  cuint8 *p= (cuint8 *)s;
 
-  while(*p++)
-    if((*p& 0xc0)!= 0x80)   /// 0xc0= 11000000, first two bits  0x80= 10000000, test for 10xxxxxx the last 6 bits wont matter, as they are not tested so test to 10000000
+  int32 ret= 0;
+  for(; *s; s++)
+     if(!isLowSurrogate(*s))
       ret++;
 
   return ret;
 }
 
+/// nr characters in UTF-16 array string (comb diacriticals are considered part of a character, so those unicode values are not counted)
+int32 Str::strchars16(cuint16 *s) {
+  if(!s) return 0;
+  
+  int32 ret= 0;
+  for(; *s; s++)
+    if(!isLowSurrogate(*s))
+      if(!isComb(*s))
+        ret++;
+
+  return ret;
+}
+
+/// counts the number of comb diacriticals in UTF-16 array string
+int32 Str::strcombs16(cuint16 *s) {
+  if(!s) return 0;
+
+  int32 ret= 0;
+  for(; *s; s++)
+    if(isComb(*s)) ret++;     // ATM COMBS CAN'T BE INSIDE SURROGATES
+
+  return ret;
+}
+
+/// counts the number of unicode values in a string
+int32 Str::strunicodes32(cuint32 *s) {
+  if(!s) return 0;
+  cuint32 *p= s;
+  for(; *p; p++);
+  return (int32)(p- s);
+}
+
 /// nr characters in UTF-32 array string (comb diacriticals are considered part of a character, so those unicode values are not counted)
 int32 Str::strchars32(cuint32 *s) {
   if(!s) return 0;
-  int32 ret= 0;
 
-   while(*s++)
+  int32 ret= 0;
+  for(; *s; s++)
     if(!isComb(*s)) ret++;
 
   return ret;
@@ -333,62 +566,15 @@ int32 Str::strchars32(cuint32 *s) {
 /// counts the number of comb diacriticals in UTF-32 array string
 int32 Str::strcombs32(cuint32 *s) {
   if(!s) return 0;
-  int32 ret= 0;
 
-   while(*s++)
+  int32 ret= 0;
+  for(; *s; s++)
     if(isComb(*s)) ret++;
 
   return ret;
 }
 
-/// counts the number of unicode values in a string
-int32 Str::strunicodes32(cuint32 *s) {
-  if(!s) return 0;
-  int32 ret= 0;
 
-   while(*s++)
-     ret++;
-
-  return ret;
-}
-
-
-
-/// converts UTF-8 unicode value to UTF-32
-uint32 Str::utf8to32(cvoid *s) {
-  cuint8 *p= (cuint8 *)s;
-  uint32 ret= 0;
-
-  /// check how many chars this utf8 pack has
-  int n= 0;
-
-  if(*p < 128)                n= 1;
-  else if((*p& 0xe0) == 0xc0) n= 2;
-  else if((*p& 0xf0) == 0xe0) n= 3;
-  else if((*p& 0xf8) == 0xf0) n= 4;
-  // the last 2 bytes are not used, but avaible if in the future unicode will expand
-  else if((*p& 0xfc) == 0xf8) n= 5;
-  else if((*p& 0xfe) == 0xfc) n= 6;
-  
-  /// unpack the utf8
-  if(n== 1) ret= *p;
-  else for(int16 a= 0; a< n; a++)
-         ret<<= 6, ret+= *p++ & 0x3f;
-
-  return ret;
-}
-
-
-/// returns unicode value [n] in UTF-8 string as UTF-32 (direct unicode value)
-uint32 Str::utf8to32n(cvoid *s, int n) {
-  cuint8 *p= (cuint8 *)s;
-  /// pass thru all characters, till n is reached
-  for(int a= 0; a< n;)
-    if((*p++ & 0xc0)!= 0x80)
-      a++;
-
-  return utf8to32(p- 1);
-}
 
 
 
@@ -398,37 +584,67 @@ uint32 Str::utf8to32n(cvoid *s, int n) {
 ///=================///
 
 int32 Str::strcmp8(cvoid *s1, cvoid *s2) {
-  int32 l1= strlen8(s1);
-  int32 l2= strlen8(s2);
+  /// if both are null, then there's no difference
+  if(s2== null) {
+    if(s1== null) return 0;
+    else          return 1;
+  }
+  if(s1== null) return -1;
 
-  /// if sizes are the same, proceed to test each character
-  if(l1== l2) {
-    uint8 *p1= (uint8 *)s1, *p2= (uint8 *)s2;
-    for(int32 a= 0; a< l1; a++, p1++, p2++)
-      if((*p1)!= *p2)
-        return -1;
+  cuint8 *p1= (cuint8 *)s1, *p2= (cuint8 *)s2;
 
-    return 0;
-  } else
-    /// sizes differ, return difference (if l1< l2, ret will be negative, and viceversa)
-    return l1- l2;
+  /// pass thru each character to check for differences
+  while(*p1 && *p2)
+    if(*p1 != *p2)
+      return -1;
+    else p1++, p2++;
+
+  if(*p1) return 1;   /// still stuff in str1, strings not the same
+  if(*p2) return -1;  /// still stuff in str2, strings not the same
+
+  return 0;           // reached this point, there is no difference
+}
+
+
+int32 Str::strcmp16(cuint16 *s1, cuint16 *s2) {
+  /// if both are null, then there's no difference
+  if(s2== null) {
+    if(s1== null) return 0;
+    else          return 1;
+  }
+  if(s1== null) return -1;
+
+  /// pass thru each character to check for differences
+  while(*s1 && *s2)
+    if(*s1 != *s2)
+      return -1;
+    else s1++, s2++;
+
+  if(*s1) return 1;   /// still stuff in str1, strings not the same
+  if(*s2) return -1;  /// still stuff in str2, strings not the same
+
+  return 0;           // reached this point, there is no difference
 }
 
 
 int32 Str::strcmp32(cuint32 *s1, cuint32 *s2) {
-  int32 l1= strlen32(s1);
-  int32 l2= strlen32(s2);
+  /// if both are null, then there's no difference
+  if(s2== null) {
+    if(s1== null) return 0;
+    else          return 1;
+  }
+  if(s1== null) return -1;
 
-  /// if sizes are the same, proceed to test each character
-  if(l1== l2) {
-    for(int32 a= 0; a< l1; a++, s1++, s2++)
-      if((*s1)!= *s2)
-        return -1;
+  /// pass thru each character to check for differences
+  while(*s1 && *s2)
+    if(*s1 != *s2)
+      return -1;
+    else s1++, s2++;
 
-    return 0;
-  } else
-    /// sizes differ, return difference (if l1< l2, ret will be negative, and viceversa)
-    return l1- l2;
+  if(*s1) return 1;   /// still stuff in str1, strings not the same
+  if(*s2) return -1;  /// still stuff in str2, strings not the same
+
+  return 0;           // reached this point, there is no difference
 }
 
 
@@ -968,7 +1184,7 @@ uint32 Str::tolower(uint32 c) {
   int mid;
 
   /// binary search in table; mid search method - 10 passes max for a list of 1024
-  while (max >= min) {
+  while(max >= min) {
     mid = (min+ max)/ 2;
     if(_cu2l[mid].u < c)
 	    min= mid+ 1;
@@ -993,7 +1209,7 @@ uint32 Str::toupper(uint32 c) {
   int mid;
 
   /// binary search in table; mid search method - 10 passes max for a list of 1024
-  while (max >= min) {
+  while(max >= min) {
     mid = (min+ max)/ 2;
     if(_cl2u[mid].l < c)
 	    min= mid+ 1;
@@ -1012,9 +1228,19 @@ uint32 Str::toupper(uint32 c) {
 #include "util/mlib.hpp"
 using namespace mlib;
 
-// UTF8 to number =====-----
 
-int64_t Str::utf8toInt64(const void *s) {
+///-------------------------///
+// UTF8 to number =====----- //
+///-------------------------///
+
+// number base:
+//   0x or 0X starting numbers are condidered hexazecimal
+//   0 (zero starting) numbers are considered octal
+//   0b or 0B starting numbers are considered binary
+
+// <s>: string to covert to number;
+// <zecimal>: forces to read from a zecimal number (you can read numbers like 000987 and not confuse them with octal)
+int64_t Str::utf8toInt64(const void *s, bool zecimal) {
   uint8 *p= (uint8 *)s;
   int64 ret= 0;               /// return value
   bool sign= false;           /// sign tmp var
@@ -1033,7 +1259,7 @@ int64_t Str::utf8toInt64(const void *s) {
   }
 
   // check for a base number notation - [0x hexa] [0nr octa] [0b bynary]
-  if(*p== '0') {
+  if(*p== '0' && !zecimal) {
     if(!*(++p)) return 0;     /// end of string check
 
     uint8 a, max;
@@ -1066,8 +1292,9 @@ int64_t Str::utf8toInt64(const void *s) {
   return ret;
 }
 
-
-uint64_t Str::utf8toUint64(const void *s) {
+// <s>: string to convert
+// <zecimal>: forces to read from a zecimal number (you can read numbers like 000987 and not confuse them with octal)
+uint64_t Str::utf8toUint64(const void *s, bool zecimal) {
   uint8 *p= (uint8 *)s;
   uint64 ret= 0;              /// return value
 
@@ -1077,7 +1304,7 @@ uint64_t Str::utf8toUint64(const void *s) {
       break;
 
   // check for a base number notation - [0x hexa] [0nr octa] [0b bynary]
-  if(*p== '0') {
+  if(*p== '0' && !zecimal) {
     if(!*(++p)) return 0;     /// end of string check
 
     uint8 a, max;
@@ -1240,10 +1467,14 @@ double Str::utf8toDouble(const void *s) {
   return ret;
 }
 
-// UTF32 to number =====-----
 
-int64_t Str::utf32toInt64(const void *s) {
-  uint32 *p= (uint32 *)s;
+///--------------------------///
+// UTF16 to number =====----- //
+///--------------------------///
+
+// <zecimal>: forces to read from a zecimal number (you can read numbers like 000987 and not confuse them with octal)
+int64_t Str::utf16toInt64(const void *s, bool zecimal) {
+  uint16 *p= (uint16 *)s;
   int64 ret= 0;               /// return value
   bool sign= false;           /// sign tmp var
   
@@ -1261,7 +1492,7 @@ int64_t Str::utf32toInt64(const void *s) {
   }
 
   // check for a base number notation - [0x hexa] [0nr octa] [0b bynary]
-  if(*p== '0') {
+  if(*p== '0' && !zecimal) {
     if(!*(++p)) return 0;     /// end of string check
 
     uint32 a, max;
@@ -1294,8 +1525,240 @@ int64_t Str::utf32toInt64(const void *s) {
   return ret;
 }
 
+// <zecimal>: forces to read from a zecimal number (you can read numbers like 000987 and not confuse them with octal)
+uint64_t Str::utf16toUint64(const void *s, bool zecimal) {
+  uint16 *p= (uint16 *)s;
+  uint64 ret= 0;              /// return value
 
-uint64_t Str::utf32toUint64(const void *s) {
+  /// search for number start
+  for(; *p; p++)
+    if(*p>= '0' && *p<= '9')
+      break;
+
+  // check for a base number notation - [0x hexa] [0nr octa] [0b bynary]
+  if(*p== '0' && !zecimal) {
+    if(!*(++p)) return 0;     /// end of string check
+
+    uint32 a, max;
+    if(*p== 'b' || *p== 'B')      a= 1, max= '1', p++; /// binary number
+    else if(*p== 'x' || *p== 'X') a= 4, max= '9', p++; /// hexazecimal number
+    else                          a= 3, max= '7';      /// octal number
+
+    for(; *p; p++)
+      if(*p>= '0' && *p<= max)
+        ret<<= a, ret+= (*p- '0');
+      else if(a== 4) {
+        if(*p>= 'a' && *p<= 'f')
+          ret<<= a, ret+= (0xA+ (*p- 'a'));
+        else if(*p>= 'A' && *p<= 'F')
+          ret<<= a, ret+= (0xA+ (*p- 'A'));
+        else break;
+      } else break;
+    
+  /// zecimal number if not starting with [0b 0x 0nr]
+  } else 
+    for(; *p; p++)
+      if(*p>= '0' && *p<= '9')
+        ret= (ret* 10)+ (*p- '0');
+      else
+        break;
+  
+  return ret;
+}
+
+
+float Str::utf16toFloat(const void *s) {
+  uint16 *p= (uint16 *)s;     /// p will walk s
+  float ret= 0.0f;            /// return value
+  int64 i1= 0, i2= 0;         /// integer part and fractional part
+  int n= 38;                  /// used with pow10f[] - 38 is 1e0
+  bool sign= false;           /// tmp used for number sign
+  
+  /// search for number start
+  for(; *p; p++)
+    if((*p>= '0' && *p<= '9') || (*p== '-') || (*p== '.'))
+      break;
+
+  /// number sign check
+  if(*p== '-') {
+    sign= true;
+    p++;
+    // ANOTHER LOOP TILL A NUMBER IS FOUND CAN BE DONE HERE
+  }
+
+  for(; *p; p++)
+    if(*p>= '0' && *p<= '9')
+      i1= (i1* 10)+ (*p- '0');
+    else
+      break;
+
+  ret= (float)i1;                  // integer part
+
+  if(*p== '.') {
+    for(p++; *p; p++)
+      if(*p>= '0' && *p<= '9') {
+        i2= (i2* 10)+ (*p- '0');
+        n--;
+      } else
+        break;
+
+    if(n< 0) n= 0;
+    ret/= mlib::pow10f[n];
+    ret+= (float)i2;
+    ret*= mlib::pow10f[n];               // frac part
+  }
+
+  if(*p== 'e' || *p== 'E') {
+    p++;
+    bool sign2= false;
+    if(*p== '-') {
+      sign2= true;
+      p++;
+    }
+    if(*p== '+') p++;
+
+    int i= 0;
+    for(; *p; p++)
+      i= (i* 10)+ (*p- '0');
+    if(i> 38) i= 38;
+
+    if(sign2) i= -i;
+
+    ret*= mlib::pow10f[38+ i];
+  }
+
+  if(sign) ret= -ret;
+
+  return ret;
+}
+
+
+double Str::utf16toDouble(const void *s) {
+  uint16 *p= (uint16 *)s;     /// p will walk s
+  double ret= 0.0;            /// return value
+  int64 i1= 0, i2= 0;         /// integer part and fractional part
+  int n= 308;                 /// used with pow10[] ->  308 is 1e0
+  bool sign= false;           /// tmp used for number sign
+  
+  /// search for number start
+  for(; *p; p++)
+    if((*p>= '0' && *p<= '9') || (*p== '-') || (*p== '.'))
+      break;
+
+  /// number sign check
+  if(*p== '-') {
+    sign= true;
+    p++;
+    // ANOTHER LOOP TILL A NUMBER IS FOUND CAN BE DONE HERE
+  }
+
+  for(; *p; p++)
+    if(*p>= '0' && *p<= '9')
+      i1= (i1* 10)+ (*p- '0');
+    else
+      break;
+
+  ret= (double)i1;               // integer part
+
+  if(*p== '.') {
+    for(p++; *p; p++)
+      if(*p>= '0' && *p<= '9') {
+        i2= (i2* 10)+ (*p- '0');
+        n--;
+      } else
+        break;
+
+    if(n< 0) n= 0;
+
+    ret/= mlib::pow10d[n];
+    ret+= (double)i2;
+    ret*= mlib::pow10d[n];             // frac part
+  }
+
+  if(*p== 'e' || *p== 'E') {
+    p++;
+    bool sign2= false;
+    if(*p== '-') {
+      sign2= true;
+      p++;
+    }
+    if(*p== '+') p++;
+
+    int i= 0;
+    for(; *p; p++)
+      i= (i* 10)+ (*p- '0');
+    if(i> 308) i= 308;
+
+    if(sign2) i= -i;
+
+    ret*= mlib::pow10d[308+ i];
+  }
+
+  if(sign) ret= -ret;
+
+  return ret;
+}
+
+
+///--------------------------///
+// UTF32 to number =====----- //
+///--------------------------///
+
+// <zecimal>: forces to read from a zecimal number (you can read numbers like 000987 and not confuse them with octal)
+int64_t Str::utf32toInt64(const void *s, bool zecimal) {
+  uint32 *p= (uint32 *)s;
+  int64 ret= 0;               /// return value
+  bool sign= false;           /// sign tmp var
+  
+  /// search for number start
+  for(; *p; p++)
+    if((*p>= '0' && *p<= '9') || (*p== '-'))
+      break;
+
+  /// number sign check
+  if(*p== '-') {
+    sign= true;
+    p++;
+    // ANOTHER LOOP TILL A NUMBER IS FOUND CAN BE DONE HERE
+    if(!*p) return 0;         /// end of string check
+  }
+
+  // check for a base number notation - [0x hexa] [0nr octa] [0b bynary]
+  if(*p== '0' && !zecimal) {
+    if(!*(++p)) return 0;     /// end of string check
+
+    uint32 a, max;
+    if(*p== 'b' || *p== 'B')      a= 1, max= '1', p++; /// binary number
+    else if(*p== 'x' || *p== 'X') a= 4, max= '9', p++; /// hexazecimal number
+    else                          a= 3, max= '7';      /// octal number
+
+    for(; *p; p++)
+      if(*p>= '0' && *p<= max)
+        ret<<= a, ret+= (*p- '0');
+      else if(a== 4) {
+        if(*p>= 'a' && *p<= 'f')
+          ret<<= a, ret+= (0xA+ (*p- 'a'));
+        else if(*p>= 'A' && *p<= 'F')
+          ret<<= a, ret+= (0xA+ (*p- 'A'));
+        else break;
+      } else break;
+
+  /// zecimal number if not starting with [0b 0x 0nr]
+  } else 
+    for(; *p; p++)
+      if(*p>= '0' && *p<= '9')
+        ret= (ret* 10)+ (*p- '0');
+      else break;
+  
+  /// number sign
+  if(sign)
+    ret= -ret;
+
+  return ret;
+}
+
+// <zecimal>: forces to read from a zecimal number (you can read numbers like 000987 and not confuse them with octal)
+uint64_t Str::utf32toUint64(const void *s, bool zecimal) {
   uint32 *p= (uint32 *)s;
   uint64 ret= 0;              /// return value
 
@@ -1305,7 +1768,7 @@ uint64_t Str::utf32toUint64(const void *s) {
       break;
 
   // check for a base number notation - [0x hexa] [0nr octa] [0b bynary]
-  if(*p== '0') {
+  if(*p== '0' && !zecimal) {
     if(!*(++p)) return 0;     /// end of string check
 
     uint32 a, max;
@@ -1468,7 +1931,10 @@ double Str::utf32toDouble(const void *s) {
   return ret;
 }
 
-// number to UTF8 =====-----
+
+///-------------------------///
+// number to UTF8 =====----- //
+///-------------------------///
 
 int Str::int64toUtf8(int64 n, void *buf, int8 base, bool uppercase) {
   if(base!= 10 && base!= 2 && base!= 8 && base!= 16) base= 10; // safety
@@ -1729,7 +2195,273 @@ int Str::doubleToUtf8(double n, void *buf, int precision, bool useE) {
   return len;
 }
 
-// number to UTF32 ========-----------------
+
+///-----------------------------------------///
+// number to UTF16 ========----------------- //
+///-----------------------------------------///
+
+int Str::int64toUtf16(int64 n, void *buf, int8 base, bool uppercase) {
+  if(base!= 10 && base!= 2 && base!= 8 && base!= 16) base= 10; // safety
+  uint16 *p= (uint16 *)buf;     /// p will walk buf, backwards
+  if(n== 0) { *p= '0'; *(p+ 1)= 0; return 1; }  /// special case
+
+  /// number sign
+  int8 sign= (n< 0? -1: 1);
+
+  /// check the number length in characters
+  int len= 0;                   /// len is also return value - the number of characters in the string
+  int64 t= n;                   /// t is used only in the next few lines
+  if(t< 0) len++;
+  while(t)
+    t/= base, len++;
+
+  // start to populate the string
+  p+= len+ 1;                   /// space for terminator, and 1 because of the algorithm (*--p)
+  *--p= 0;                      /// string terminator
+  
+  /// zecimal number
+  if(base== 10)
+    while(n)
+      *--p= '0'+ sign* (n% 10), n/= 10;
+  
+  /// binary/ octal/ hexa number
+  else {
+    uint32 c= uppercase? 'A': 'a';
+    while(n) {
+      int8 a= sign* (n% base);
+      if(a> 9)
+        *--p= c+ a- 10;
+      else
+        *--p= '0'+ a;
+      n/= base;
+    }
+  }
+
+  if(sign< 0) *--p= '-';        /// negative number sign
+
+  return len;
+}
+
+
+int Str::uint64toUtf16(uint64 n, void *buf, int8 base, bool uppercase) {
+  if(base!= 10 && base!= 2 && base!= 8 && base!= 16) base= 10; // safety
+  uint16 *p= (uint16 *)buf;     /// p will walk buf, backwards
+  if(n== 0) { *p= '0'; *(p+ 1)= 0; return 1; }  /// special case
+
+  /// check the number length in characters
+  int len= 0;                   /// len is also return value - the number of characters in the string
+  uint64 t= n;                  /// t is used only in the next few lines
+  
+  while(t)
+    t/= base, len++;
+
+  // start to populate the string
+  p+= len+ 1;                   /// space for terminator, and 1 because of the algorithm (*--p)
+  *--p= 0;                      /// string terminator
+  
+  /// zecimal number
+  if(base== 10)
+    while(n)
+      *--p= '0'+ (n% 10),
+      n/= 10;
+
+  /// binary/ octal/ hexa number
+  else {
+    uint32 c= uppercase? 'A': 'a';
+    while(n) {
+      uint32 a= (uint32)(n% base);
+      if(a> 9)
+        *--p= c+ a- 10;
+      else
+        *--p= '0'+ a;
+      n/= base;
+    }
+  }
+
+  return len;
+}
+
+
+int Str::floatToUtf16(float n, void *buf, int precision, bool useE) {
+  uint16 *p= (uint16 *)buf;   /// p will populate the string, backwards
+  int len= 0;                 /// return value - number of characters in string
+
+  /// NaN check
+  if(n!= n) {
+    p[0]= 'N'; p[1]= 'a'; p[2]= 'N'; p[3]= 0;
+    return 3;
+  }
+
+  /// INFINITY check
+  if((n- n) != 0.0f) {
+    if(n > 0.0f) p[0]= '+';
+    else         p[0]= '-';
+    p[1]= 'I'; p[2]= 'N'; p[3]= 'F'; p[4]= 0;
+    return 4;
+  }
+
+  /// negative numbers will be switched to positive and the sign remembered
+  bool sign;
+  if(n< 0.0f) {
+    sign= true;
+    n= -n;
+    len++;
+  } else
+    sign= false;
+
+  /// scientific exponent
+  int e= 0;
+  if(useE) {
+    if(n< 1.0f && n> 0.0f)
+      while(n< 1.0f)
+        n*= 10.0f, e--;
+    else
+      while(n> 10.0f)
+        n/= 10.0f, e++;
+  }
+  
+  int64 n1= (int64)n;
+  int64 n2= (int64)((n- (int64)n)* pow10i[20+ precision]);
+
+  /// compute number length in string chars
+  int64 t= n1;            /// integer part length
+  if(t== 0) len++;
+  while(t)
+    t/= 10, len++;
+  if(precision)           /// float part length
+    len+= precision+ 1;
+  if(e) {                 /// exponent length
+    t= e;
+    while(t)
+      t/= 10, len++;
+    len+= 2;
+  }
+
+  // buf will be filled backwards by p
+  p+= len+ 1;                 /// 2= space for terminator+ the way the algorithm works (*--p)
+  *--p= 0;                    /// string terminator
+
+  /// scientific exponent
+  if(e) {
+    uint32 s= (e>= 0? '+': '-');
+    if(e< 0) e= -e;
+    while(e)
+      *--p= '0'+ e% 10, e/= 10;
+    *--p= s;
+    *--p= 'e';
+  }
+
+  /// fractionary part only if precision > 0
+  if(precision) {
+    for(int a= 0; a< precision; a++)
+      *--p= '0'+ n2% 10, n2/= 10;
+    *--p= '.';
+  }
+
+  /// integer part
+  if(n1== 0) *--p= '0';         /// n1 is 0 - special case
+  else 
+    while(n1)                   /// n1 to text
+      *--p= '0'+ n1% 10, n1/= 10;
+
+  if(sign)
+    *--p= '-';
+
+  return len;
+}
+
+
+int Str::doubleToUtf16(double n, void *buf, int precision, bool useE) {
+  uint16 *p= (uint16 *)buf;   /// p will populate the string, backwards
+  int len= 0;                 /// return value - number of characters in string
+  /// NaN check
+  if(n!= n) {
+    p[0]= 'N', p[1]= 'a', p[2]= 'N', p[3]= 0;
+    return 3;
+  }
+
+  /// INFINITY check
+  if((n- n) != 0.0) {
+    if(n > 0.0) p[0]= '+';
+    else        p[0]= '-';
+    p[1]= 'I', p[2]= 'N', p[3]= 'F', p[4]= 0;
+    return 4;
+  }
+
+  /// negative numbers will be switched to positive and the sign remembered
+  bool sign;
+  if(n< 0.0) {
+    sign= true;
+    n= -n;
+    len++;
+  } else
+    sign= false;
+
+  /// scientific exponent
+  int e= 0;
+  if(useE) {
+    if(n< 1.0)
+      while(n< 1.0 && n> 0.0)
+        n*= 10.0, e--;
+    else
+      while(n> 10.0)
+        n/= 10.0, e++;
+  }
+  
+  int64 n1= (int64)n;
+  int64 n2= (int64)((n- (int64)n)* pow10i[20+ precision]);
+
+  /// compute number length in string chars
+  int64 t= n1;            /// integer part length
+  if(t== 0) len++;
+  while(t)
+    t/= 10, len++;
+  if(precision)           /// float part length
+    len+= precision+ 1;
+  if(e) {                 /// exponent length
+    t= e;
+    while(t)
+      t/= 10, len++;
+    len+= 2;
+  }
+
+  // buf will be filled backwards by p
+  p+= len+ 1;                 /// 1= space for terminator+ the way the algorithm works (*--p)
+  *--p= 0;                    /// string terminator
+
+  /// scientific exponent
+  if(e) {
+    uint32 s= (e>= 0? '+': '-');
+    if(e< 0) e= -e;
+    while(e)
+      *--p= '0'+ e% 10, e/= 10;
+    *--p= s;
+    *--p= 'e';
+  }
+
+  /// fractionary part only if precision > 0
+  if(precision) {
+    for(int a= 0; a< precision; a++)
+      *--p= '0'+ n2% 10, n2/= 10;
+    *--p= '.';
+  }
+
+  /// integer part
+  if(n1== 0) *--p= '0';         /// n1 is 0 - special case
+  else 
+    while(n1)                   /// n1 to text
+      *--p= '0'+ n1% 10, n1/= 10;
+
+  if(sign)
+    *--p= '-';
+
+  return len;
+}
+
+
+///-----------------------------------------///
+// number to UTF32 ========----------------- //
+///-----------------------------------------///
 
 int Str::int64toUtf32(int64 n, void *buf, int8 base, bool uppercase) {
   if(base!= 10 && base!= 2 && base!= 8 && base!= 16) base= 10; // safety
@@ -1932,7 +2664,7 @@ int Str::doubleToUtf32(double n, void *buf, int precision, bool useE) {
   int e= 0;
   if(useE) {
     if(n< 1.0)
-      while(n< 1.0&& n> 0.0)
+      while(n< 1.0 && n> 0.0)
         n*= 10.0, e--;
     else
       while(n> 10.0)
@@ -1999,46 +2731,33 @@ int Str::doubleToUtf32(double n, void *buf, int precision, bool useE) {
 
 
 
-///========================================================///
-// character / string insert delete ----------------------- //
-///========================================================///
+///============================================================///
+// character / string   insert / delete ----------------------- //
+///============================================================///
 
 
-// -1 = ignore;
-// in_nUnicode - insert after n'th unicode;
-// in_nChar - insert after n'th character (that can have combining diacriticals);
-// if both in_nUnicode and in_nChar are ignored or both are used (only one should be used), unicode is inserted at the end of the string
-// returns resulting string length in bytes (without terminator)
-int32 insert8(void **out_str, uint32 in_unicode, int32 in_nUnicode, int32 in_nChar) {
+// <out_str>- output (resulting) string; the pointer will be mem-alocated (that's why there's the need for pointer to pointer)
+// <in_unicode>- unicode value to insert
+// <in_pos>- insert position (selected unicode value at position is moved to the right);
+//           if left -1, unicode is inserted at the end of the string;
+// <returns>- resulting string length in bytes (including str terminator)
+int32 Str::insert8(void **out_str, uint32 in_unicode, int32 in_pos) {
   int32 n1= strlen8(*out_str);      /// current string size
   int32 n2= utf8nrBytes(in_unicode);/// unicode addition size
 
-  uint8 *buf= new uint8[n1+ n2+ 1]; /// will hold the resulting string
+  uint8 *buf= new uint8[n1+ n2];    /// will hold the resulting string
   uint8 *p1= (uint8 *)*out_str;     /// will walk source string
   uint8 *p2= buf;                   /// will walk resulting string
 
-  // skip either unicodes or chars, until insertion point
-
+  // skip unicodes until insertion point
   /// skip unicodes & copy from old string to new one, what is skipped
-  if((in_nUnicode>= 0) && (in_nChar< 0)) {
+  if(in_pos>= 0) {
     while(*p1) {
       if((*p1 & 0xc0)!= 0x80)       /// if this is not a continuation byte, it's a start of a character
-        in_nUnicode--;
-      if(in_nUnicode< 0) break;      // loop break condition
+        in_pos--;
+      if(in_pos< 0) break;           // loop break condition
 
       *p2= *p1, p1++, p2++;         /// copy & advance pointers
-    }
-  }
-
-  /// skip characters & copy from old string to new one, what is skipped
-  else if((in_nChar>= 0) && (in_nUnicode< 0)) {
-    while(*p1) {
-      if((*p1 & 0xc0)!= 0x80)       /// if this is not a continuation byte, it's a start of a character
-        if(!isComb(utf8to32(p1)))
-          in_nChar--;
-      if(in_nChar< 0) break;         // loop break condition
-
-      *p2= *p1, p1++, p2++;         /// copy and advance pointers
     }
   }
 
@@ -2053,114 +2772,119 @@ int32 insert8(void **out_str, uint32 in_unicode, int32 in_nUnicode, int32 in_nCh
   p2+= n2;
 
   /// copy the rest of the string from the source, if there is any left
-  while(*p1) 
-    *p2= *p1, p2++, p1++;
-  *p2= 0;                           /// string terminator
+  while((*p2++= *p1++));
 
   // resulting string ('return value')
   if(*out_str)
-    delete[] *out_str;
+    delete[] (char *)(*out_str);
   *out_str= buf;
 
   return n1+ n2;
 }
 
 
+// <out_str>- output (resulting) string; the pointer will be mem-alocated (that's why there's the need for pointer to pointer)
+// <in_unicode>- unicode value to insert
+// <in_pos>- insert position (selected unicode value at position is moved to the right);
+//           if left -1, unicode is inserted at the end of the string;
+// <returns>- resulting string length in bytes (including str terminator)
+int32 Str::insert16(uint16 **out_str, uint32 in_unicode, int32 in_pos) {
+  int32 n1= strlen16(*out_str);           /// current string size
+  int32 n2= Str::utf16nrBytes(in_unicode);
+  void *buf= new uint8[n1+ n2];           /// will hold the resulting string
+  uint16 *p1= (uint16 *)*out_str;         /// will walk source string
+  uint16 *p2= (uint16 *)buf;              /// will walk resulting string
 
-// -1 = ignore;
-// in_nUnicode - insert after n'th unicode;
-// in_nChar - insert after n'th character (that can have combining diacriticals);
-// if both in_nUnicode and in_nChar are ignored or both are used (only one should be used), unicode is inserted at the end of the string
-// returns resulting string length in bytes (without terminator)
-int32 insert32(void **out_str, uint32 in_unicode, int32 in_nUnicode= -1, int32 in_nChar= -1) {
-  int32 n1= strlen32((cuint32*)*out_str); /// current string size
-  void *buf= new uint8[n1+ 8];            /// will hold the resulting string
-  uint32 *p1= (uint32 *)*out_str;         /// will walk source string
-  uint32 *p2= (uint32 *)buf;              /// will walk resulting string
-
-  // skip either unicodes or chars, until insertion point
-
+  // skip unicodes until insertion point
   /// skip unicodes & copy from old string to new one, what is skipped
-  if((in_nUnicode>= 0) && (in_nChar< 0)) {
-    while(*p1) {
-      in_nUnicode--;
-      if(in_nUnicode< 0) break;      // loop break condition
-
-      *p2= *p1, p1++, p2++;         /// copy & advance pointers
+  if(in_pos>= 0)
+    while(in_pos-- && *p1) {
+      *p2++= *p1++;
+      if(Str::isLowSurrogate(*p1))      /// copy next int16 too, if this is a (low) surrogate
+        *p2++= *p1++;
     }
-  }
-
-  /// skip characters & copy from old string to new one, what is skipped
-  else if((in_nChar>= 0) && (in_nUnicode< 0)) {
-
-    while(*p1) {
-      if(!isComb(*p1))              /// combining diacriticals are copied, but they don't count to the character count to be skipped
-        in_nChar--;
-      if(in_nChar< 0) break;         // loop break condition
-
-      *p2= *p1, p1++, p2++;         /// copy & advance pointers
-    }
-  }
 
   /// skip to the end & copy from old string to new one, what is skipped
   else
     while(*p1)
-      *p2= *p1, p2++, p1++;
+      *p2++= *p1++;
 
+  
+  // insert the new unicode value
+  Str::utf32to16(in_unicode, p2);
+  p2+= ((in_unicode>= 0x10000)? 2: 1);
+
+  /// copy the rest of the string from the source, if there is any left
+  while((*p2++= *p1++));
+
+  // resulting string ('return value')
+  if(*out_str)
+    delete[] *out_str;
+  *out_str= (uint16 *)buf;
+
+  return n1+ n2;
+}
+
+
+// <out_str>- output (resulting) string; the pointer will be mem-alocated (that's why there's the need for pointer to pointer)
+// <in_unicode>- unicode value to insert
+// <in_pos>- insert position (selected unicode value at position is moved to the right);
+//           if left -1, unicode is inserted at the end of the string;
+// <returns>- resulting string length in bytes (including str terminator)
+int32 Str::insert32(uint32 **out_str, uint32 in_unicode, int32 in_pos) {
+  int32 n1= strlen32(*out_str);           /// current string size
+  void *buf= new uint8[n1+ 4];            /// will hold the resulting string
+  uint32 *p1= (uint32 *)*out_str;         /// will walk source string
+  uint32 *p2= (uint32 *)buf;              /// will walk resulting string
+
+  // skip unicodes until insertion point
+  /// skip unicodes & copy from old string to new one, what is skipped
+  if(in_pos>= 0)
+    while(in_pos && *p1)
+      *p2++= *p1++, in_pos--;
+
+  /// skip to the end & copy from old string to new one, what is skipped
+  else
+    while(*p1)
+      *p2++= *p1++;
   
   // insert the new unicode value
   *p2++= in_unicode;
 
   /// copy the rest of the string from the source, if there is any left
-  while(*p1) 
-    *p2= *p1, p2++, p1++;
-
-  *p2= 0;                           /// string terminator
+  while((*p2++= *p1++));
 
   // resulting string ('return value')
   if(*out_str)
     delete[] *out_str;
-  *out_str= buf;
+  *out_str= (uint32 *)buf;
 
   return n1+ 4;
 }
 
 
-// -1 = ignore;
-// in_nUnicode - insert after n'th unicode;
-// in_nChar - insert after n'th character (that can have combining diacriticals);
-// if both are ignored or both are used (this should not happen), insert string is inserted at the end of the output string
-// returns resulting string length in bytes (without terminator)
-int32 insertStr8(void **out_str, const void *in_str, int32 in_nUnicode= -1, int32 in_nChar= -1) {
+// <out_str>- output (resulting) string; the pointer will be mem-alocated (that's why there's the need for pointer to pointer)
+// <in_str>- string to insert (UTF8)
+// <in_pos>- insert position (selected unicode value at position is moved to the right);
+//           if left -1, unicode is inserted at the end of the string;
+// <returns>- resulting string length in bytes (including str terminator)
+int32 Str::insertStr8(void **out_str, const void *in_str, int32 in_pos) {
   int32 n1= strlen8(*out_str);      /// current string size
-  int32 n2= strlen8(in_str);        /// insert string size
+  int32 n2= strlen8(in_str)- 1;     /// insert string size
 
-  uint8 *buf= new uint8[n1+ n2+ 1]; /// will hold the resulting string
+  uint8 *buf= new uint8[n1+ n2];    /// will hold the resulting string
   uint8 *p1= (uint8 *)*out_str;     /// will walk source string
   uint8 *p2= buf;                   /// will walk resulting string
 
-  // skip either unicodes or chars, until insertion point
-
+  // skip unicodes until insertion point
   /// skip unicodes & copy from old string to new one, what is skipped
-  if((in_nUnicode>= 0) && (in_nChar< 0)) {
+  if(in_pos>= 0) {
     while(*p1) {
       if((*p1 & 0xc0)!= 0x80)       /// if this is not a continuation byte, it's a start of a character
-        in_nUnicode--;
-      if(in_nUnicode< 0) break;      // loop break condition
+        in_pos--;
+      if(in_pos< 0) break;           // loop break condition
 
       *p2= *p1, p1++, p2++;         /// copy & advance pointers
-    }
-  }
-
-  /// skip characters & copy from old string to new one, what is skipped
-  else if((in_nChar>= 0) && (in_nUnicode< 0)) {
-    while(*p1) {
-      if((*p1 & 0xc0)!= 0x80)       /// if this is not a continuation byte, it's a start of a character
-        if(!isComb(utf8to32(p1)))
-          in_nChar--;
-      if(in_nChar< 0) break;         // loop break condition
-
-      *p2= *p1, p1++, p2++;         /// copy and advance pointers
     }
   }
 
@@ -2169,110 +2893,124 @@ int32 insertStr8(void **out_str, const void *in_str, int32 in_nUnicode= -1, int3
     while(*p1)
       *p2= *p1, p2++, p1++;
 
-  
-  // insert the new unicode value
+  // insert the new string
   Str::memcpy(p2, p1, n2);
   p2+= n2;
 
   /// copy the rest of the string from the source, if there is any left
-  while(*p1) 
-    *p2= *p1, p2++, p1++;
-  *p2= 0;                           /// string terminator
+  while((*p2++= *p1++));
 
   // resulting string ('return value')
   if(*out_str)
-    delete[] *out_str;
+    delete[] (uint8 *)(*out_str);
   *out_str= buf;
 
   return n1+ n2;
 }
 
 
-// -1 = ignore;
-// in_nUnicode - insert after n'th unicode;
-// in_nChar - insert after n'th character (that can have combining diacriticals);
-// if both are ignored or both are used (this should not happen), insert string is inserted at the end of the output string
-// returns resulting string length in bytes (without terminator)
-int32 insertStr32(void **out_str, const void *in_str, int32 in_nUnicode= -1, int32 in_nChar= -1) {
-  int32 n1= strlen32((cuint32 *)*out_str);  /// current string size
-  int32 n2= strlen32((cuint32 *)in_str);    /// insert string size
-  void *buf= new uint8[n1+ n2+ 4];          /// will hold the resulting string
-  uint32 *p1= (uint32 *)*out_str;           /// will walk source string
-  uint32 *p2= (uint32 *)buf;                /// will walk resulting string
+// <out_str>- output (resulting) string; the pointer will be mem-alocated (that's why there's the need for pointer to pointer)
+// <in_str>- string to insert (UTF8)
+// <in_pos>- insert position (selected unicode value at position is moved to the right);
+//           if left -1, unicode is inserted at the end of the string;
+// <returns>- resulting string length in bytes (including str terminator)
+int32 Str::insertStr16(uint16 **out_str, cuint16 *in_str, int32 in_pos) {
+  int32 n1= strlen16(*out_str);     /// current string size
+  int32 n2= strlen16(in_str)- 2;    /// insert string size (without terminator)
+  void *buf= new uint8[n1+ n2];     /// will hold the resulting string
+  uint16 *p1= *out_str;             /// will walk source string
+  uint16 *p2= (uint16 *)buf;        /// will walk resulting string
+
+  // skip unicodes until insertion point
+  /// skip unicodes & copy from old string to new one, what is skipped
+  if(in_pos>= 0)
+    while(in_pos-- && *p1) {
+      *p2++= *p1++;                 /// copy & advance pointers
+      if(Str::isLowSurrogate(*p1))  /// copy next int16 too, if this is a (low) surrogate
+        *p2++= *p1++;
+    }
+
+  /// skip to the end & copy from old string to new one, what is skipped
+  else
+    while(*p1)
+      *p2++= *p1++;
+  
+  // insert the new string
+  Str::strcpy16(p2, p1, false);
+  p2+= n2/ 2;
+
+  /// copy the rest of the string from the source, if there is any left
+  while((*p2++= *p1++));
+
+  // resulting string ('return value')
+  if(*out_str)
+    delete[] *out_str;
+  *out_str= (uint16 *)buf;
+
+  return n1+ n2;
+}
+
+
+// <out_str>- output (resulting) string; the pointer will be mem-alocated (that's why there's the need for pointer to pointer)
+// <in_str>- string to insert (UTF8)
+// <in_pos>- insert position (selected unicode value at position is moved to the right);
+//           if left -1, unicode is inserted at the end of the string;
+// <returns>- resulting string length in bytes (including str terminator)
+int32 Str::insertStr32(uint32 **out_str, cuint32 *in_str, int32 in_pos) {
+  int32 n1= strlen32(*out_str);     /// current string size
+  int32 n2= strlen32(in_str)- 4;    /// insert string size
+  void *buf= new uint8[n1+ n2];     /// will hold the resulting string
+  uint32 *p1= *out_str;             /// will walk source string
+  uint32 *p2= (uint32 *)buf;        /// will walk resulting string
 
   // skip either unicodes or chars, until insertion point
 
   /// skip unicodes & copy from old string to new one, what is skipped
-  if((in_nUnicode>= 0) && (in_nChar< 0)) {
-    while(*p1) {
-      in_nUnicode--;
-      if(in_nUnicode< 0) break;      // loop break condition
-
-      *p2= *p1, p1++, p2++;         /// copy & advance pointers
-    }
-  }
-
-  /// skip characters & copy from old string to new one, what is skipped
-  else if((in_nChar>= 0) && (in_nUnicode< 0)) {
-
-    while(*p1) {
-      if(!isComb(*p1))              /// combining diacriticals are copied, but they don't count to the character count to be skipped
-        in_nChar--;
-      if(in_nChar< 0) break;         // loop break condition
-
-      *p2= *p1, p1++, p2++;         /// copy & advance pointers
-    }
-  }
+  if(in_pos>= 0)
+    while(in_pos-- && *p1)
+      *p2++= *p1++;                 /// copy & advance pointers
 
   /// skip to the end & copy from old string to new one, what is skipped
   else
     while(*p1)
       *p2= *p1, p2++, p1++;
-
   
-  // insert the new unicode value
-  Str::memcpy(p2, p1, n2);
-  p2+= n2;
+  // insert the new string
+  Str::strcpy32(p2, p1, false);
+  p2+= n2/ 4;
 
   /// copy the rest of the string from the source, if there is any left
-  while(*p1) 
-    *p2= *p1, p2++, p1++;
-
-  *p2= 0;                           /// string terminator
+  while((*p2++= *p1++));
 
   // resulting string ('return value')
   if(*out_str)
     delete[] *out_str;
-  *out_str= buf;
+  *out_str= (uint32 *)buf;
 
-  return n1+ n1+ 4;
+  return n1+ n2;
 }
 
 
-// -1 = ignore;
-// in_nUnicodesToDel / in_nCharsToDel - number of unicodes or chars to del from string;
-// if both are -1, the last unicode is deleted
-// in_nUnicode - delete n'th unicode (first if multiple);
-// in_nChar - delete n'th character (first if multiple);
-// returns resulting string length in bytes (without terminator, terminator is 4bytes length)
-int32 del8(void **out_str, int32 in_nUnicodesToDel= 1, int32 in_nCharsToDel= 0, int32 in_nUnicode= -1, int32 in_nChar= -1) {
-  if(out_str== null) return 0;    /// safety check
-  if(*out_str== null) return 0;   /// safety check
-  
+
+// <out_str>- output (resulting) string; the pointer will be mem-alocated (that's why there's the need for pointer to pointer)
+// <in_nUnicodesToDel>- number of unicodes to del from string;
+// <in_pos>- delete position- selected unicode is deleted and every unicode to the right until <in_nrUnicodesToDel> is satisfied;
+//          if it remains -1, the last unicode in the string is the position;
+// <return>- resulting string length in bytes (incl str terminator)
+int32 Str::del8(void **out_str, int32 in_nUnicodesToDel, int32 in_pos) {
   int32 l1= strlen8(*out_str);
   uint8 *p1= (uint8 *)*out_str, *p2;
   int32 cutStart= 0, cutAmount= 0;  /// cut values, in bytes
 
+  if(in_nUnicodesToDel<= 0 || !*p1) return l1;  /// basic checks, for quick return
+
   // compute where the cutting starts and ends
-
-  /// unicodes requested to be cut
-  if((in_nUnicode>= 0) && (in_nChar< 0)) {
-    if(in_nUnicodesToDel<= 0) return l1;
-
+  /// a valid position is requested
+  if(in_pos>= 0) {
     /// find cutStart
-    for(; in_nUnicode && *p1; cutStart++)
+    for(; in_pos && *p1; cutStart++)
       if((*++p1 & 0xc0)!= 0x80)     /// skip continuation bytes
-        in_nUnicode--;
+        in_pos--;
 
     /// find cutAmount
     for(; in_nUnicodesToDel && *p1; cutAmount++)
@@ -2280,144 +3018,174 @@ int32 del8(void **out_str, int32 in_nUnicodesToDel= 1, int32 in_nCharsToDel= 0, 
         in_nUnicodesToDel--;
   }
 
-  /// characters (with diacriticals) are requested to be cut
-  else if((in_nChar>= 0) && (in_nUnicode< 0)) {
-    if(in_nCharsToDel<= 0) return l1;
-
-    /// find cutStart
-    while(in_nChar && *p1) {
-      if(!isComb(utf8to32(p1)))
-        in_nChar--;
-
-      int n= Str::utf8headerBytes(*p1);
-      p1+= n;
-      cutStart+= n;
-    }
-
-    /// find cutAmount
-    while(in_nCharsToDel && *p1) {
-      if(!isComb(utf8to32(p1)))
-        in_nCharsToDel--;
-
-      int n= Str::utf8headerBytes(*p1);
-      p1+= n;
-      cutAmount+= n;
-    }
-  } 
-
-  /// when nothing is requested, by default the last unicode value from the string is cut
+  /// when position is -1, unicodes are cut from the back of the string
   else {
-    if(!*p1) return l1;
+    /// skip to the end (p1 and cutStart point to str terminator)
+    cutStart= l1- 1;
+    p1+= cutStart;
 
-    while(*p1)
-      cutStart++, p1++;
-    p1--, cutStart--;
+    /// back away each unicode until in_nUnicodesToDel is satisfied
+    while(in_nUnicodesToDel--) {
+      cutStart--, p1--, cutAmount++;
+      while((*p1& 0xc0)== 0x80)       /// back every utf8 continuation byte
+        cutStart--, p1--, cutAmount++;
+    }
 
-    while((*p1& 0xc0)== 0x80) 
-      cutStart--, p1--;
-    
-    cutAmount= Str::utf8headerBytes(*p1);
+    if(cutStart< 0)
+      cutStart= 0, cutAmount= l1- 1;  /// just delete everything in this case
   }
+  if(cutAmount<= 0) return l1;
 
   // start cutting - got every variable needed
-  if(cutAmount<= 0) return l1;    /// safety check
-
   int32 l2= l1- cutAmount;
-  if(l2<= 0) return l1;           /// safety check
+  if(l2<= 0) return l1;             /// safety check - something is wrong if this happens, SHOULD IT JUST CRASH? (MIGHT BE BETTER FOR BUG SQUISHING)
 
-  uint8 *buf= new uint8[l2+ 1];
+  uint8 *buf= new uint8[l2];
 
+  /// copy everything until cut start
   p1= buf;
   p2= (uint8 *)*out_str;
 
   while(cutStart--)
     *p1= *p2, p1++, p2++;
 
+  /// skip what bytes are deleted
   p2+= cutAmount;
 
-  while(*p2)
-    *p1= *p2, p1++, p2++;
+  /// copy what bytes remain after the cutted part
+  while((*p1++= *p2++));
 
   // return / output values
-  delete[] *out_str;
+  delete[] (uint8 *)(*out_str);
   *out_str= buf;
 
   return l2;
 }
 
 
-// -1 = ignore;
-// in_nUnicodesToDel / in_nCharsToDel - number of unicodes or chars to del from string;
-// if both are -1, the last unicode is deleted
-// in_nUnicode - delete n'th unicode (first if multiple);
-// in_nChar - delete n'th character (first if multiple);
-// returns resulting string length in bytes (without terminator, terminator is 4 bytes long)
-int32 del32(void **out_str, int32 in_nUnicodesToDel= 1, int32 in_nCharsToDel= 0, int32 in_nUnicode= -1, int32 in_nChar= -1) {
-  if(out_str== null) return 0;    /// safety check
-  if(*out_str== null) return 0;   /// safety check
-  
-  int32 l1= strlen32((uint32 *)*out_str);
-  uint32 *p1= (uint32 *)*out_str, *p2;
-  int32 cutStart= 0, cutAmount= 0;  /// cut values (number of unicodes)
+// <out_str>- output (resulting) string; the pointer will be mem-alocated (that's why there's the need for pointer to pointer)
+// <in_nUnicodesToDel>- number of unicodes to del from string;
+// <in_pos>- delete position- selected unicode is deleted and every unicode to the right until <in_nrUnicodesToDel> is satisfied;
+//          if it remains -1, unicodes are deleted at the back of the string
+// <return>- resulting string length in bytes (incl str terminator)
+int32 Str::del16(uint16 **out_str, int32 in_nUnicodesToDel, int32 in_pos) {
+  int32 l1= strlen16(*out_str);
+  uint16 *p1= *out_str, *p2;
+  int32 cutStart= 0, cutAmount= 0;            /// cut values (number in int16's)
+
+  if(in_nUnicodesToDel<= 0|| !*p1) return l1; /// basic checks, for quick return
 
   // compute where the cutting starts and ends
+  if(in_pos>= 0) {
+    /// find cutStart
+    while(in_pos && *p1) {
+      in_pos--, p1++, cutStart++;
+      if(isLowSurrogate(*p1))
+        p1++, cutStart++;
+    }
+    /// find cutAmount
+    while(in_nUnicodesToDel && *p1) {
+      in_nUnicodesToDel--, p1++, cutAmount++;
+      if(isLowSurrogate(*p1))
+        p1++, cutAmount++;
+    }
+  }
 
-  /// unicodes requested to be cut
-  if((in_nUnicode>= 0) && (in_nChar< 0)) {
-    if(in_nUnicodesToDel<= 0) return l1;
+  /// when position is -1, unicodes are cut from the end of the string
+  else {
+    /// skip to the end of the string (p1 and cutStart point to the str terminator)
+    cutStart= (l1/ 2)- 1;
+    p1+= cutStart;
 
-    cutStart= in_nUnicode;
+    /// back away each unicode until in_nUnicodesToDel is satisfied
+    while(in_nUnicodesToDel--) {
+      cutStart--, p1--, cutAmount++;
+      if(isLowSurrogate(*p1))             /// back away another int16 if this char is made of 2 int16 (2 surrogates)
+        cutStart--, p1--, cutAmount++;
+    }
+
+    if(cutStart< 0)                       /// just delete everything, but no crashes
+      cutStart= 0, cutAmount= (l1/ 2)- 1;
+  }
+
+  // start cutting - got every variable needed
+  if(cutAmount<= 0) return l1;    /// safety check
+
+  int32 l2= l1- (cutAmount* 2);   /// resulting string length in bytes
+  if(l2< 2) return l1;            /// safety check
+  uint8 *buf= new uint8[l2];      /// mem alloc resulting string
+
+  /// copy everthing until cut start
+  p1= (uint16 *)buf;
+  p2= *out_str;
+  while(cutStart--)
+    *p1++= *p2++;
+
+  p2+= cutAmount;                 // skip cut amount (basically deletion part)
+
+  /// copy everything until source string end
+  while((*p1++= *p2++));
+
+  // return / output values
+  delete[] *out_str;
+  *out_str= (uint16 *)buf;
+
+  return l2;
+}
+
+
+// <out_str>- output (resulting) string; the pointer will be mem-alocated (that's why there's the need for pointer to pointer)
+// <in_nUnicodesToDel>- number of unicodes to del from string;
+// <in_pos>- delete position- selected unicode is deleted and every unicode to the right until <in_nrUnicodesToDel> is satisfied;
+//          if it remains -1, unicodes are deleted at the back of the string
+// <return>- resulting string length in bytes (incl str terminator)
+int32 Str::del32(uint32 **out_str, int32 in_nUnicodesToDel, int32 in_pos) {
+  int32 l1= strlen32(*out_str);
+  uint32 *p1= *out_str, *p2;
+  int32 cutStart= 0, cutAmount= 0;  /// cut values (number of unicodes)
+
+  if(in_nUnicodesToDel<= 0 || !*p1) return l1;  /// basic checks for quick return
+
+  // compute where the cutting starts and ends
+  if(in_pos>= 0) {
+    cutStart= in_pos;
     cutAmount= in_nUnicodesToDel;
   }
 
-  /// characters (with diacriticals) are requested to be cut
-  else if((in_nChar>= 0) && (in_nUnicode< 0)) {
-    if(in_nCharsToDel<= 0) return l1;
-
-    /// find cutStart
-    for(;in_nChar && *p1; cutAmount++)
-      if(!isComb(*p1++))
-        in_nChar--;
-
-    /// find cutAmount
-    for(;in_nCharsToDel && *p1; cutAmount++)
-      if(!isComb(*p1++))
-        in_nCharsToDel--;
-  } 
-
-  /// when nothing is requested, by default the last unicode value from the string is cut
+  /// when position stays -1, unicodes are cut from the end of the string
   else {
-    if(!*p1) return l1;
+    /// cutStart will point to the str terminator
+    cutStart= l1/ 4;
+    /// rest is easy to figure out
+    cutStart-= in_nUnicodesToDel;
+    cutAmount= in_nUnicodesToDel;
 
-    while(*p1)
-      cutStart++, p1++;
-
-    cutStart--;
-    cutAmount= 1;
+    if(cutStart< 0)                         /// delete everything in this case
+      cutStart= 0, cutAmount= (l1/ 4)- 1;
   }
 
   // start cutting - got every variable needed
   if(cutAmount<= 0) return l1;    /// safety check
 
   int32 l2= l1- (cutAmount* 4);   /// resulting string length in bytes
-  if(l2<= 0) return l1;           /// safety check
+  if(l2< 4) return l1;            /// safety check
+  uint8 *buf= new uint8[l2];      /// resulting string
 
-  uint32 *buf= new uint32[(l2/ 4)+ 1];  /// resulting string
-
-  p1= buf;
-  p2= (uint32 *)*out_str;
+  /// copy everything till cut start
+  p1= (uint32 *)buf;
+  p2= *out_str;
 
   while(cutStart--)
-    *p1= *p2, p1++, p2++;
+    *p1++= *p2++;
 
-  p2+= cutAmount;
+  p2+= cutAmount;             // skip what is being deleted
 
-  while(*p2)
-    *p1= *p2, p1++, p2++;
+  /// copy everyhing after deleted part, until string end
+  while((*p1++= *p2++));
 
   // return / output values
   delete[] *out_str;
-  *out_str= buf;
+  *out_str= (uint32 *)buf;
 
   return l2;
 }
@@ -2425,38 +3193,430 @@ int32 del32(void **out_str, int32 in_nUnicodesToDel= 1, int32 in_nCharsToDel= 0,
 
 
 
+///------------------------------------------------------------------------------------------------///
+// insert / delete of strings / single univals, working on a static buffer, no memory allocs happen //
+///------------------------------------------------------------------------------------------------///
+
+
+// <out_buf>- output buffer, it must be preallocated, no mem allocs happen in this func
+// <in_bufSize>- [REQUIRED] out_buf's size, in bytes;
+// <in_unicode>- unicode value to insert;
+// <in_pos>- insert position (selected unicode value at position is moved to the right);
+//           if left -1, unicode is inserted at the end of the string;
+// <return>- resulting string length in bytes (incl str terminator)
+int32_t Str::insert8static(void *out_buf, int32 in_bufSize, uint32_t in_unicode, int32_t in_pos) {
+  int32 n1= strlen8(out_buf);       /// current string size
+  int32 n2= utf8nrBytes(in_unicode);/// unicode addition size
+  if(n1+ n2> in_bufSize) return n1; /// unicode value must fit inside the buffer
+
+  uint8 *p1, *p2, *insertPoint;
+
+  /// compute insertion point (insertPoint)
+  if(in_pos>= 0)
+    insertPoint= Str::getUnicode8(out_buf, in_pos);
+  else            
+    insertPoint= (uint8 *)out_buf+ n1- 1; /// -1 position means at the end of the string
+  
+  /// move everything to the right to make room for inserted unival
+  p2= (uint8 *)out_buf+ n1- 1;
+  p1= p2+ n2;
+  while(p2>= insertPoint)
+    *p1--= *p2--;
+  
+  // character insert
+  Str::utf32to8(in_unicode, insertPoint);
+
+  return n1+ n2;
+}
+
+
+// <out_buf>- output buffer, it must be preallocated, no mem allocs happen in this func
+// <in_bufSize>- [REQUIRED] out_buf's size, in int16 units;
+// <in_unicode>- unicode value to insert;
+// <in_pos>- insert position (selected unicode value at position is moved to the right);
+//           if left -1, unicode is inserted at the end of the string;
+// <return>- resulting string length in bytes (incl str terminator)
+int32_t Str::insert16static(uint16 *out_buf, int32 in_bufSize, uint32_t in_unicode, int32_t in_pos) {
+  int32 n1= strlen16(out_buf);            /// current string size in bytes
+  int32 n2= (in_unicode>= 0x10000? 4: 2); /// unicode addition size in bytes (it can consist of 2 surrogates)
+  if(n1+ n2> in_bufSize) return n1;       /// unicode value must fit inside the buffer;
+
+  uint16 *p1, *p2, *insertPoint;
+
+  /// compute insertion point (insertPoint)
+  if(in_pos>= 0)
+    insertPoint= Str::getUnicode16(out_buf, in_pos);
+  else
+    insertPoint= out_buf+ (n1/ 2)- 1;     /// -1 on both means insert at the back of the string
+
+  /// move everything to the right to make room for inserted unival
+  p2= out_buf+ (n1/ 2)- 1;
+  p1= p2+ (n2/ 2);
+  while(p2>= insertPoint)
+    *p1--= *p2--;
+
+  // character insert
+  Str::utf32to16(in_unicode, insertPoint);
+
+  return n1+ n2;
+}
+
+
+// <out_buf>- output buffer, it must be preallocated, no mem allocs happen in this func
+// <in_bufSize>- [REQUIRED] out_buf's size, in int32 units;
+// <in_unicode>- unicode value to insert;
+// <in_pos>- insert position (selected unicode value at position is moved to the right);
+//           if left -1, unicode is inserted at the end of the string;
+// <return>- resulting string length in bytes (incl str terminator)
+int32_t Str::insert32static(uint32 *out_buf, int32 in_bufSize, uint32_t in_unicode, int32_t in_pos) {
+  int32 n= strunicodes32(out_buf);      /// number of unicode values in current string
+  if(n+ 1> in_bufSize- 1) return n* 4;  /// unicode value must fit inside the buffer;
+
+  uint32 *p1, *p2, *insertPoint;
+
+  /// compute insertion point (insertPoint)
+  if(in_pos)
+    insertPoint= Str::getUnicode32(out_buf, in_pos);
+  else
+    insertPoint= out_buf+ n;
+  
+  /// move everything 1 univode value to the right
+  p2= out_buf+ n;
+  p1= p2+ 1;
+  while(p2>= insertPoint)
+    *p1--= *p2--;
+
+  // unicode insert
+  *insertPoint= in_unicode;
+
+  return (n+ 2)* 4;
+}
+
+
+// <out_buf>- output buffer, it must be preallocated, no mem allocs happen in this func
+// <in_bufSize>- [REQUIRED] out_buf's size, in bytes;
+// <in_unicode>- unicode value to insert;
+// <in_str>- null terminated string that is to be inserted in out_buf
+// <in_pos>- insert position (selected unicode value at position is moved to the right);
+//           if left -1, unicode is inserted at the end of the string;
+// <return>- resulting string length in bytes (incl str terminator)
+int32_t Str::insertStr8static(void *out_buf, int32 in_bufSize, const void *in_str, int32_t in_pos) {
+  int32 n1= strlen8(out_buf);       /// current string size
+  int32 n2= strlen8(in_str)- 1;     /// added string size
+
+  uint8 *p1, *p2, *insertPoint;
+
+  /// string must fit inside the buffer - if it doesn't, whatever is possible to insert is inserted
+  if(n1+ n2> in_bufSize) {
+    /// pass thru in_str, try to find out how many characters would fit in the new string
+    for(p1= (uint8 *)in_str; *p1; ) {
+      int32 n= Str::utf8headerBytes(*p1);
+      if(n1+ n2+ n<= in_bufSize)  /// character fits
+        n2+= n, p1+= n;
+      else                        /// doesn't fit, end of added string
+        break;
+    }
+  }
+  if(n2<= 0) return n1;      /// if not even one character fits in out_buf, then just return
+
+  // find out insertPoint - where the new string will be placed
+  if(in_pos>= 0)
+    insertPoint= Str::getUnicode8(out_buf, in_pos);
+  else
+    insertPoint= (uint8 *)out_buf+ n1- 1;
+
+  /// move everything to the right, to make space for iserted string
+  p2= (uint8 *)out_buf+ n1- 1;
+  p1= p2+ n2;
+  while(p2>= insertPoint)
+    *p1--= *p2--;
+
+  // string insert
+  int32 n= n2;
+  p1= (uint8 *)in_str;
+  while(n--)
+    *insertPoint++= *p1++;
+
+  return n1+ n2;
+}
+
+
+// <out_buf>- output buffer, it must be preallocated, no mem allocs happen in this func
+// <in_bufSize>- [REQUIRED] out_buf's size, in int16 units;
+// <in_unicode>- unicode value to insert;
+// <in_str>- null terminated string that is to be inserted in out_buf
+// <in_pos>- insert position (selected unicode value at position is moved to the right);
+//           if left -1, unicode is inserted at the end of the string;
+// <return>- resulting string length in bytes (incl str terminator)
+int32_t Str::insertStr16static(uint16 *out_buf, int32 in_bufSize, cuint16 *in_str, int32_t in_pos) {
+  int32 n1= strlen16(out_buf);
+  int32 n2= strlen16(in_str)- 2;
+  uint16 *p1, *p2, *insertPoint;
+
+  /// string must fit inside the buffer - if it doesn't, whatever is possible to insert is inserted
+  if((n1+ n2)/ 2> in_bufSize) {
+    /// pass thru in_str, try to find out how many characters would fit in the new string
+    p1= (uint16 *)in_str;
+    int16 i1= n1/ 2, i2= 0;         /// better to use these than convert from byte->int16 every pass of the loop
+    while(*p1) {
+      int32 n= isHighSurrogate(*p1)? 2: 1;
+      if(i1+ i2+ n<= in_bufSize)    /// character fits
+        i2+= n, p1+= n;
+      else                          /// doesn't fit, end of added string
+        break;
+    }
+    n2= i2* 2;
+  }
+  if(n2<= 0) return n1;
+
+  /// finding insert point
+  if(in_pos>= 0)
+    insertPoint= Str::getUnicode16(out_buf, in_pos);
+  else
+    insertPoint= out_buf+ (n1/ 2)- 1;  /// end of the string
+
+  /// move everything n2 chars over
+  p2= out_buf+ (n1/ 2)- 1;
+  p1= p2+ (n2/ 2);
+  while(p2>= insertPoint)
+    *p1--= *p2--;
+
+  // string insert
+  int32 n= n2/ 2;
+  while(n--)
+    *insertPoint++= *in_str++;
+
+  return n1+ n2;
+}
+
+
+// <out_buf>- output buffer, it must be preallocated, no mem allocs happen in this func
+// <in_bufSize>- [REQUIRED] out_buf's size, in int32 units;
+// <in_unicode>- unicode value to insert;
+// <in_str>- null terminated string that is to be inserted in out_buf
+// <in_pos>- insert position (selected unicode value at position is moved to the right);
+//           if left -1, unicode is inserted at the end of the string;
+// <return>- resulting string length in bytes (incl str terminator)
+int32_t Str::insertStr32static(uint32 *out_buf, int32 in_bufSize, cuint32 *in_str, int32 in_pos) {
+  int32 n1= strunicodes32((uint32 *)out_buf);
+  int32 n2= strunicodes32((uint32 *)in_str);
+  
+  /// inserted string must fit inside the fixed length buffer
+  if(n1+ n2+ 1> in_bufSize)
+    n2= in_bufSize- n1- 1;
+  if(n2<= 0) return (n1+ 1)* 4;
+
+  uint32 *p1, *p2, *insertPoint;
+
+  /// finding out insert point
+  if(in_pos>= 0)
+    insertPoint= Str::getUnicode32(out_buf, in_pos);
+  else
+    insertPoint= out_buf+ n1;         /// back of the string (-1)
+
+  /// move everything n2 chars over
+  p2= out_buf+ n1;
+  p1= p2+ n2;
+  while(p2>= insertPoint)
+    *p1--= *p2--;
+
+  // string insert
+  int32 n= n2;
+  while(n--)
+    *insertPoint++= *in_str++;
+
+  return (n1+ n2+ 1)* 4;
+}
+
+
+// <out_buf>- output buffer, it must be preallocated, no mem allocs happen in this func
+// <in_nUnicodesToDel>- number of unicodes to del from str;
+// <in_pos>- delete position- selected unicode is deleted and every unicode to the right until <in_nrUnicodesToDel> is satisfied;
+//           if it remains -1, the last unicode in the string is the position;
+// <return>- resulting string length in bytes (incl str terminator)
+int32_t Str::del8static(void *out_buf, int32 in_nUnicodesToDel, int32 in_pos) {
+  int32 l= strlen8(out_buf);
+  uint8 *p1= (uint8 *)out_buf, *p2;
+  int32 cutStart= 0, cutAmount= 0;  /// cut values, in bytes
+
+  if(in_nUnicodesToDel<= 0 || !*p1) return l;
+
+  // compute where the cutting starts and ends
+  /// a valid position is requested
+  if(in_pos>= 0) {
+    /// find cutStart
+    for(; in_pos && *p1; cutStart++)
+      if((*++p1 & 0xc0)!= 0x80)     /// skip continuation bytes
+        in_pos--;
+
+    /// find cutAmount
+    for(; in_nUnicodesToDel && *p1; cutAmount++)
+      if((*++p1 & 0xc0)!= 0x80)     /// skip continuation bytes
+        in_nUnicodesToDel--;
+  }
+
+  /// when position is -1, unicodes are cut from the back of the string
+  else {
+    /// skip to the end (p1 and cutStart point to str terminator)
+    cutStart= l- 1;
+    p1+= cutStart;
+
+    /// back away each unicode until in_nUnicodesToDel is satisfied
+    while(in_nUnicodesToDel--) {
+      cutStart--, p1--, cutAmount++;
+      while((*p1& 0xc0)== 0x80)       /// back every utf8 continuation byte
+        cutStart--, p1--, cutAmount++;
+    }
+
+    if(cutStart< 0)
+      cutStart= 0, cutAmount= l- 1;  /// just delete everything in this case
+  }
+  if(cutAmount<= 0) return l;
+  if(l- cutAmount<= 0) return l;
+
+  // start cutting - got every variable needed
+
+  /// move everything from the right of the cut to the start of the cut (overwrite basically)
+  p1= (uint8 *)out_buf+ cutStart;
+  p2= p1+ cutAmount;
+  while((*p1++= *p2++));
+
+  return l- cutAmount;
+}
+
+
+// <out_buf>- output buffer, it must be preallocated, no mem allocs happen in this func
+// <in_nUnicodesToDel>- number of unicodes to del from str;
+// <in_pos>- delete position- selected unicode is deleted and every unicode to the right until <in_nrUnicodesToDel> is satisfied;
+//           if it remains -1, the last unicode in the string is the position;
+// <return>- resulting string length in bytes (incl str terminator)
+int32 Str::del16static(uint16 *out_buf, int32 in_nUnicodesToDel, int32 in_pos) {
+  int32 l= strlen16(out_buf);
+  uint16 *p1= out_buf, *p2;
+  int32 cutStart= 0, cutAmount= 0;  /// cut values (number of unicodes)
+  if(in_nUnicodesToDel<= 0 || !*p1) return l;
+
+  // compute where the cutting starts and ends
+  if(in_pos>= 0) {
+    /// find cutStart
+    while(in_pos && *p1) {
+      in_pos--, p1++, cutStart++;
+      if(isLowSurrogate(*p1))
+        p1++, cutStart++;
+    }
+    /// find cutAmount
+    while(in_nUnicodesToDel && *p1) {
+      in_nUnicodesToDel--, p1++, cutAmount++;
+      if(isLowSurrogate(*p1))
+        p1++, cutAmount++;
+    }
+  }
+
+  /// when position is -1, unicodes are cut from the end of the string
+  else {
+    /// skip to the end of the string (p1 and cutStart point to the str terminator)
+    cutStart= (l/ 2)- 1;
+    p1+= cutStart;
+
+    /// back away each unicode until in_nUnicodesToDel is satisfied
+    while(in_nUnicodesToDel--) {
+      cutStart--, p1--, cutAmount++;
+      if(isLowSurrogate(*p1))             /// back away another int16 if this char is made of 2 int16 (2 surrogates)
+        cutStart--, p1--, cutAmount++;
+    }
+
+    if(cutStart< 0)                       /// just delete everything, but no crashes
+      cutStart= 0, cutAmount= (l/ 2)- 1;
+  }
+  if(cutAmount<= 0) return l;
+  if(l- (cutAmount* 2)< 2) return l;
+
+  // start cutting - got every variable needed
+  p1= out_buf+ cutStart;
+  p2= p1+ cutAmount;
+  while((*p1++= *p2++));
+
+  return l- (cutAmount* 2);
+}
+
+
+// <out_buf>- output buffer, it must be preallocated, no mem allocs happen in this func
+// <in_nUnicodesToDel>- number of unicodes to del from str;
+// <in_pos>- delete position- selected unicode is deleted and every unicode to the right until <in_nrUnicodesToDel> is satisfied;
+//           if it remains -1, the last unicode in the string is the position;
+// <return>- resulting string length in bytes (incl str terminator)
+int32_t Str::del32static(uint32 *out_buf, int32_t in_nUnicodesToDel, int32_t in_pos) {
+  int32 l= strlen32(out_buf);
+  uint32 *p1= out_buf, *p2;
+  int32 cutStart= 0, cutAmount= 0;  /// cut values (number of unicodes)
+  if(in_nUnicodesToDel<= 0 || !*p1) return l;
+
+  // compute where the cutting starts and ends
+  /// specific location is avaible for cut
+  if(in_pos>= 0)
+    cutStart= in_pos, cutAmount= in_nUnicodesToDel;
+
+  /// when nothing is requested, by default the string is cut from the back
+  else {
+    /// cutStart will point to the str terminator
+    cutStart= l/ 4;
+    /// rest is easy to figure out
+    cutStart-= in_nUnicodesToDel;
+    cutAmount= in_nUnicodesToDel;
+
+    if(cutStart< 0)                 /// delete everything in this case
+      cutStart= 0, cutAmount= (l/ 4)- 1;
+  }
+  if(cutAmount<= 0) return l;       /// safety check
+  int32 ret= l- (cutAmount* 4);     /// resulting string length in bytes
+  if(ret< 4) return l;              /// safety check
+
+  // start cutting - got every variable needed
+  p1= out_buf+ cutStart;
+  p2= p1+ cutAmount;
+  while((*p1++= *p2++));
+
+  return ret;
+}
+
+
+
+
+
+
 // used for search8 func ATM, only
 // unpacks utf8 character, and returns the number of bytes that the utf8 character is packed on, too
-void _utf8to32custom(cuint8 *p, uint32 *out_unicode, int *out_utf8nrBytes= null) {
+void _utf8to32custom(cuint8 *p, uint32 *out_unicode= null, int *out_utf8nrBytes= null) {
   uint32 ret= 0;
   int n= 0;
 
   /// check how many chars this utf8 pack has
   if(*p < 128)                n= 1;
-  else if((*p& 0xe0) == 0xc0) n= 2;
-  else if((*p& 0xf0) == 0xe0) n= 3;
-  else if((*p& 0xf8) == 0xf0) n= 4;
-  // the last 2 bytes are not used, but avaible if in the future unicode will expand
-  else if((*p& 0xfc) == 0xf8) n= 5;
-  else if((*p& 0xfe) == 0xfc) n= 6;
-  
+  else if((*p& 0xe0) == 0xc0) n= 2, ret= (*p++)& 0x1f;
+  else if((*p& 0xf0) == 0xe0) n= 3, ret= (*p++)& 0x0f;
+  else if((*p& 0xf8) == 0xf0) n= 4, ret= (*p++)& 0x07;
+  //else if((*p& 0xfc) == 0xf8) n= 5, ret= (*p++)& 0x03;
+  //else if((*p& 0xfe) == 0xfc) n= 6, ret= (*p++)& 0x01;
+  else ret= 0xFFFD;
+
+  if(out_utf8nrBytes) *out_utf8nrBytes= !n? 1: n;
+
   /// unpack the utf8
   if(n== 1) ret= *p;
-  else for(int16 a= 0; a< n; a++)
-         ret<<= 6, ret+= *p++ & 0x3f;
+  else while(--n> 0)
+    ret<<= 6, ret+= *p++ & 0x3f;
 
   if(out_unicode) *out_unicode= ret;
-  if(out_utf8nrBytes) *out_utf8nrBytes= n;
 }
 
 
 
-// in_str - main text
-// in_search - search text to be found in in_str
-// in_caseSensitive - use case sensitive or not
-// return null if nothing found
-// return the begining of found text location in the in_str, IF FOUND
-void *search8(void *in_str, void *in_search, bool in_caseSensitive) {
+// <in_str>- main text
+// <in_search>- search text to be found in <in_str>
+// <in_caseSensitive>- use case sensitive or not
+// <return>- null if nothing found;
+//           IF FOUND, points to the begining of found text location in the <in_str>
+uint8 *Str::search8(cvoid *in_str, cvoid *in_search, bool in_caseSensitive) {
   uint8 *p1= (uint8 *)in_str;
   uint8 *p2= (uint8 *)in_search;
   uint32 c1, c2, first;
@@ -2502,10 +3662,70 @@ void *search8(void *in_str, void *in_search, bool in_caseSensitive) {
     /// not found, search more
     p1+= skip3;
   }
+  return null;
 }
 
+// <in_str>- main text
+// <in_search>- search text to be found in <in_str>
+// <in_caseSensitive>- use case sensitive or not
+// <return>- null if nothing found;
+//           IF FOUND, points to the begining of found text location in the <in_str>
+uint16 *Str::search16(cuint16 *in_str, cuint16 *in_search, bool in_caseSensitive) {
+  uint16 *p1= (uint16 *)in_str;
+  uint16 *p2= (uint16 *)in_search;
+  uint32 c1, c2, first;
 
-void *search32(void *in_str, void *in_search, bool in_caseSensitive) {
+  if((p1== null) || (p2== null)) return null;
+  if((!*p1) || (!*p2)) return null;
+  
+  first= Str::utf16to32(p2);        /// this will never change
+
+  while(*p1) {
+    c1= Str::utf16to32(p1);
+
+    /// first characters match, possible whole search match
+    if(in_caseSensitive? c1== first: (c1== first) || (tolower(c1)== tolower(first))) {
+      uint16 *potentialMatch= p1;
+      bool match= true;             /// start true, mark false if not matching
+
+      while(*p1 && *p2) {
+        c1= Str::utf16to32(p1);
+        c2= Str::utf16to32(p2);
+
+        if(in_caseSensitive? c1!= c2: (c1!= c2) && (tolower(c1) != tolower(c2))) {
+          match= false;
+          break;
+        }
+        p1++, p2++;
+        if(Str::isLowSurrogate(*p1))
+          p1++, p2++;
+      }
+
+      if(*p2) match= false;       /// there is still stuff in p2, and p1 reached the end
+
+      // found exact match
+      if(match)
+        return potentialMatch;
+
+      /// reset pointers to search further
+      p1= potentialMatch;
+      p2= (uint16 *)in_search;
+    }
+
+    /// not found, search more
+    p1++;
+    if(Str::isLowSurrogate(*p1))
+      p1++;
+  }
+  return null;
+}
+
+// <in_str>- main text
+// <in_search>- search text to be found in <in_str>
+// <in_caseSensitive>- use case sensitive or not
+// <return>- null if nothing found;
+//           IF FOUND, points to the begining of found text location in the <in_str>
+uint32 *Str::search32(cuint32 *in_str, cuint32 *in_search, bool in_caseSensitive) {
   uint32 *p1= (uint32 *)in_str;
   uint32 *p2= (uint32 *)in_search;
 
@@ -2541,6 +3761,7 @@ void *search32(void *in_str, void *in_search, bool in_caseSensitive) {
     /// not found, search more
     p1++;
   } 
+  return null;
 }
 
 

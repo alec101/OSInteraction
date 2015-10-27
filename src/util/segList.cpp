@@ -20,9 +20,12 @@
 #include "util/segList.h"
 
 
+
 // !!!!!!!!!!!
 // there shouldn't be many segments, else there are too many allocs/ loops get bigger = adios speed.
 // TRY AND MAKE THE SEGMENT SIZE AS OPTIMAL AS POSSIBLE WITH THAT IN MIND
+
+
 
 //#define CHAINLIST_SAFECHECKS 1 //to check for bad calls to chainList
 

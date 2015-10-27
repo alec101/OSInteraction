@@ -48,7 +48,10 @@ You can figure out how hard is to put an order in all this !!!
 #endif /// OS_LINUX
 
 #ifdef OS_MAC
-#include <OpenGL/gl.h>            // legacy
+//#include <OpenGL/gl.h>            // legacy
+//#include <OpenGL/gl3.h>
+#include <OpenGL/OpenGL.h>
+
 #endif /// OS_MAC
 
 /// at the moment, they say not to include glext.h if you use glcorearb, but there might be an osi option to use the EXT, NV, ATI extensions with the corearb stuff

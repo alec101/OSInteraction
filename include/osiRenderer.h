@@ -78,7 +78,7 @@ private:
 // this class is ok to use and it _handles multiple contexts_
 
 extern int _VAOrenderer;
-inline GLAPI void APIENTRY glBindVertexArray (GLuint array);
+GLAPI void APIENTRY glBindVertexArray (GLuint array);
 
 class glVAO {
 public:

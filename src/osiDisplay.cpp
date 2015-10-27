@@ -884,7 +884,6 @@ void _populateGrCards(osiDisplay *);
 
 void osiDisplay::populate() {
   bool chatty= false;
-  osi.mutex.lock();
   delData();
   
   #ifdef OS_WIN
@@ -920,7 +919,6 @@ void osiDisplay::populate() {
   }
   if(!nrMonitors) {
     error.simple("osiDisplay::populate: can't find any displays");
-    osi.mutex.unlock();
     return;
   }
 
@@ -1419,14 +1417,12 @@ void osiDisplay::populate() {
   if(!XineramaQueryExtension(osi._dis, &dummy1, &dummy2)) {
     error.console("No Xinerama extension");
     _populateGrCards(this);
-    osi.mutex.unlock();
     return;
   }
   
   if(!XineramaIsActive(osi._dis)) {
     error.console("Xinerama not active");
     _populateGrCards(this);
-    osi.mutex.unlock();
     return;
   }
 
@@ -1551,7 +1547,6 @@ void osiDisplay::populate() {
   
   if(!n) {
     error.simple("osiDisplay::populate: can't find any displays");
-    osi.mutex.unlock();
     return;
   }
   
@@ -1831,7 +1826,6 @@ void osiDisplay::populate() {
   #endif /// OS_MAC
 
   _populateGrCards(this);
-  osi.mutex.unlock();
 }
 
 

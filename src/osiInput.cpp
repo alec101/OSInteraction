@@ -8,6 +8,7 @@
 //#include <linux/joystick.h>   // it's not x stuff... lots of crap added, keyboard/mouse, that is not needed. IT'S POSSIBLE TO AVOID THIS HEADER, only some function definitions are needed.
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#include <errno.h>
 
 // avoid including joystick.h, which includes tons of unneeded stuff
 typedef uint8 __u8;
@@ -319,7 +320,6 @@ void osiInput::delData() {
 // ############ Input::init() - MUST call @ PROGRAM START ##############
 /// set mouse & keyboard mode with this func too (better leave on default)
 bool osiInput::init(int mMode, int kMode) {
-  mutex.lock();
   m.mode= (int8)mMode;
   k.mode= (int8)kMode;
   #ifdef OS_LINUX
@@ -336,16 +336,13 @@ bool osiInput::init(int mMode, int kMode) {
   if(!_dInput)
     if(DirectInput8Create(osi.primWin->_hInstance, DIRECTINPUT_VERSION, IID_IDirectInput8, (void**)&_dInput, NULL)!= DI_OK) {
       error.simple("Could not initialize Direct Input");
-      mutex.unlock();
       return false;
     }
   #endif
   #endif /// OS_WIN
 
   /// fill in all vars, find all xinput/directinput devices, etc
-  mutex.unlock();
   populate(true);
-  mutex.lock();
 
   /// Kv struct has (almost) all keyboard keys. It has to 'populate' all vars @ start
   Kv.populate();
@@ -399,7 +396,6 @@ bool osiInput::init(int mMode, int kMode) {
   //continue from 
   
   #endif /// OS_MAC
-  mutex.unlock();
   return true;
 }
 
@@ -418,7 +414,6 @@ void osiInput::populate(bool scanMouseKeyboard) {
   uint64 start, end;
   bool timer= false;
 
-  mutex.lock();
 
   _lastPopulate= osi.present;
 
@@ -596,7 +591,6 @@ void osiInput::populate(bool scanMouseKeyboard) {
   if(!addEventFile) {
     if(timer) osi.getNanosecs(&end);
     if(timer) printf("linux joystick scan: %llu nanosecs\n", (unsigned long long)(end- start));
-    mutex.unlock();
     return;
   }
   
@@ -630,7 +624,7 @@ void osiInput::populate(bool scanMouseKeyboard) {
     found= false;
     for(short b= 0; b< 8; b++)
       if(j[b]._jsFile!= -1)                          /// joystick struct must have a js file
-        if((j[b]._eventFile== -1) && (j[b].name== name)) {
+        if((j[b]._eventFile== -1) && (j[b].name== (cuint8 *)name)) {
           j[b]._eventFile= f;
           j[b]._eventID= a;
           if(chatty) printf("event file: %s%d belongs to joystick %d\n", s2.d, a, b);
@@ -736,7 +730,6 @@ void osiInput::populate(bool scanMouseKeyboard) {
   
   #endif /// USING_XINPUT
   #endif /// OS_WIN
-  mutex.unlock();
 }
 
 #ifdef OS_WIN
@@ -821,7 +814,6 @@ BOOL CALLBACK _diDevCallback(LPCDIDEVICEINSTANCE inst, LPVOID extra) {
 // ######################### MAIN INPUT UPDATE #################################
 ///=============================================================================
 void osiInput::update() {
-  mutex.lock();
   uint64 start, end;    /// debug
   bool timer= false;    /// debug
   if(timer) osi.getNanosecs(&start);
@@ -879,7 +871,6 @@ void osiInput::update() {
 
   if(timer) osi.getNanosecs(&end);
   if(timer) printf("Input::update() timer: %llu nanosecs\n", (unsigned long long)(end- start)); // it's nothing
-  mutex.unlock();
 }
 
 
@@ -1909,7 +1900,7 @@ ReadAgain:
 
       // check if the joystick was UNPLUGGED (read sets errno on EBADF: file does not exist anymore)
       //printf("e[%d]", errno);
-      if(errno== ENODEV) {
+      //if(errno== ENODEV) {
         if(chatty) printf("joystick %s REMOVED\n", name.d);
 
         /// set stick as DISABLED & close all opened driver files
@@ -1922,7 +1913,7 @@ ReadAgain:
         in.nr.jOS--;    in.nr.gpOS--;    in.nr.gwOS--;
         
         osi.flags.HIDlostConnection= true;
-      } /// if the file is not found (stick disconnected)
+      //} /// if the file is not found (stick disconnected)
       return;
     } /// if nothing read
 
@@ -2991,7 +2982,6 @@ static void HIDadded(void *context, IOReturn result, void *sender, IOHIDDeviceRe
   // result:    the result of the matching operation
   // sender:    the IOHIDManagerRef for the new device
   // device: the new HID device
-  in.mutex.lock();
   bool chatty= false;
 
   // IOHIDDeviceRegisterInputValueCallback(device, HIDchange, &driver[a]); this could further optimize some code, but very little, by passing &driver[a] after it is created...
@@ -3114,7 +3104,6 @@ static void HIDadded(void *context, IOReturn result, void *sender, IOHIDDeviceRe
 
   /// release grab of objects
   in.j[a]._cbTame.mutex.unlock();
-  in.mutex.unlock();
 } /// HIDadded
 
 
@@ -3128,7 +3117,6 @@ static void HIDremoved(void *context, IOReturn result, void *sender, IOHIDDevice
   // inSender:    the IOHIDManagerRef for the device being removed
   // inHIDDevice: the removed HID device
   bool chatty= false;
-  in.mutex.lock();
 
   if(chatty) printf("%s", __FUNCTION__);
 
@@ -3140,7 +3128,6 @@ static void HIDremoved(void *context, IOReturn result, void *sender, IOHIDDevice
 
   if(a== MAX_JOYSTICKS) {     /// if not found... well... something is wrong...
     error.simple("HIDremoved: can't find the requested device");
-    in.mutex.unlock();
     return;
   }
 
@@ -3168,7 +3155,6 @@ static void HIDremoved(void *context, IOReturn result, void *sender, IOHIDDevice
 
   /// release objects lock
   in.j[a]._cbTame.mutex.unlock();
-  in.mutex.unlock();
 } /// HIDremoved
 
 
@@ -3204,7 +3190,6 @@ void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDValueRef
   cookie--;
   #endif
   
-  in.mutex.lock();                  /// grab in object
 
   /// find the stick/pad/wheel this change belongs to
   int16 a;
@@ -3212,7 +3197,6 @@ void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDValueRef
     if(driver[a].device== device)   /// found it
       break;
 
-  in.mutex.unlock();                /// ungrab input class, all critical info from there (hopefully) was processed
 
   /// thread safety between osi-callbackFuncs
   in.j[a]._cbTame.mutex.lock();

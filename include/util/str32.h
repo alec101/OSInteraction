@@ -11,13 +11,9 @@
 // -this class is not using any c/c++ string function. At this moment with the windows/linux war...
 //  setting locale& other stuff is just not possible as everything differs.
 
-// -fopen knows of utf-8 but the win version wants to put a frakin BOM in the file,
+// -fopen knows of utf-8 but the win version wants to put a BOM in the file,
 //  wich cause problems in linux, so a file should be opened as pure binary (at
 //  least when writing). This should avoid fseek problems too (fseek is used internally)
-
-// -utf-16 is NOT handled atm. maybe some util funcs will be made, but nothing for 'internal' use.
-//  d16 (internal data) is used for windows compatibility, IT IS NOT UTF-16
-
 
 // NOTES:
 // character              - char - usually what every program knows about a character
@@ -42,34 +38,7 @@ class str8;
 
 class str32 {
 public:
-  uint32_t *d;                  // main internal data storage 32bits  (if u mess with it, call updateLen() !!! )
-  int32_t len;                  // string length in bytes
-  int32_t nrChars;              // number of characters in string (combining diacriticals are considered part of a character, therefore not counted)
-  int32_t nrCombs;              // number of diacriticals in string
-  // conversion to other strings. data is kept! (use clean() to remove them manually)
-
-  uint8_t  *d8;                 // secondary utf-8 bit data storage  (if u mess with it, call updateLen() !!! )
-  uint16_t *dWin;               // used for windows compatibility -16 bit data storage    (if u mess with it, call updateLen() !!! )
-
-private:
-  bool modif8;                // [internal] flag: if the string is modified, d8[] needs to be recreated (in case it is used
-  bool modifWin;              // [internal] flag: if the string is modified, dWin[] needs to be recreated (in case it is used)
-
-public:
-  // main functions
-
-  void updateLen();           // updates string length vars, in case you want to mess with the string internal data (d/d8/etc). [WARNING: see start of this header file]
-
-  void *convert8();           // UTF-32 to UTF-8 conversion
-  uint16_t *convertWin();     // UTF-32 to windows 16bit wide character format
-  void lower();               // converts whole string to lowercase (special cases that 1 character transforms into multiple characters ARE NOT HANDLED)
-  void upper();               // converts whole string to uppercase (special cases that 1 character transforms into multiple characters ARE NOT HANDLED)
-  
-
   // WIP vvv
-  void wrap(uint32_t *);
-
-
   str32 &f(const char *text, ...);
   str32 &addInt(int64_t);
   str32 &addUInt(uint64_t);
@@ -77,114 +46,169 @@ public:
   str32 &addDouble(double);
   // WIP ^^^
 
-  // UTF8 functions. These are SECURE functions. Read & validate each character
+  uint32_t *d;                  // main internal data storage 32bits  (if u mess with it, call updateLen() !!! )
+  uint8_t *d8;                  // used for UTF32 to UTF8 conversion - convert8(), so you don't need to manually dealloc mem for it
+  uint16_t *d16;                // used for UTF32 to UTF16 conversion - convert16(), so you don't need to manually dealloc mem for it
+  int32_t len;                  // string length in bytes, including the str terminator
+  int32_t nrUnicodes;           // number of unicode values in string
 
-  str32 &secureUTF8(const void *);   // reading from UNSAFE SOURCES / FILES / INPUT is NOT SAFE. use secureUTF8() to validate a utf8 string
-  void readUTF8(FILE *);             // read all (remaining) file       (SECURE)
-  void readUTF8n(FILE *, size_t);    // read n characters from file     (SECURE)
-  void readLineUTF8(FILE *);         // read till end of line (or file) (SECURE)
+  // wrapping on a custom buffer - changes the way the class works (it should be faster, no memory allocs)
+
+  bool wrapping;                // this flag signals if wrapping on a specific buffer
+  int32_t wrapSize;             // wrapped buffer size, in uint32_t units
+
+  void wrap(uint32_t *in_buffer, int32_t in_size= 0); // CHANGES THE WAY THIS CLASS WORKS: uses specified buffer for every operation, no memory allocs are made. This buffer must be big enough for every operation made, but critical errors will not occur if it's not big enough (the text will not be OK). if buffer size is 0, THE SIZE IS DETERMINED BY THE STRING SIZE INSIDE THE BUFFER.
+  void stopWrapping();                                // returns the way the class works to the normal functionality - d will be memory allocated, the custom buffer is released
+
+  // main functions
+
+  void updateLen();           // updates string length vars, in case you want to mess with the string internal data (d/d8/etc). [WARNING: see start of this header file]
+  void lower();               // converts whole string to lowercase (special cases that 1 character transforms into multiple characters ARE NOT HANDLED)
+  void upper();               // converts whole string to uppercase (special cases that 1 character transforms into multiple characters ARE NOT HANDLED)
+  int32_t nrChars() const;    // returns the number of characters in str, WHITOUT the number of combining diacriticals
+
+  uint8_t *convert8(int32_t *out_len= NULL);     // UTF-32 to UTF-8 conversion. returned pointer is part of the class (no need for dealloc). use getUTF8 for an 'unbound' pointer
+  uint16_t *convert16(int32_t *out_len= NULL);   // UTF-32 to UTF-16 conversion. returned pointer is part of the class (no need for dealloc). use getUTF16 for an 'unbound' pointer
+  uint8_t *getUTF8(int32_t *out_len= NULL) const;    // similar to convert8, but the returned pointer is not part of the class and must be manually deallocated
+  uint16_t *getUTF16(int32_t *out_len= NULL) const;  // similar to convert16, but the returned pointer is not part of the class and must be manually deallocated
+  void convert8static(uint8_t *out_buf, int32_t in_bufSize, int32_t *out_nrUnicodes, int32_t *out_len) const;  // returns string as UTF-8 in out_buf; please specify buffer size in <in_bufSize> (in bytes); out_nrUnicodes, out_len(in bytes includes str terminator) - optional return values
+  void convert16static(uint16_t *out_buf, int32_t in_bufSize, int32_t *out_nrUnicodes, int32_t *out_len) const;  // returns string as UTF-16 in out_buf; please specify buffer size in <in_bufSize> (in int16 units); out_nrUnicodes, out_len(in bytes includes str terminator) - optional return values
+  
+  // These are SECURE functions. Read & validate each character
+
+  str32 &secureUTF32(const uint32_t *str, int32_t in_len= 0);  // reading from UNSAFE SOURCES / FILES / INPUT is NOT SAFE. use secureUTF32() to validate a UTF-32 string;  <in_len>: the length in bytes of the string. If left 0, the string is null terminated and the function will use this
+  str32 &secureUTF16(const uint16_t *str, int32_t in_len= 0);  // reading from UNSAFE SOURCES / FILES / INPUT is NOT SAFE. use secureUTF16() to validate a UTF-16 string;  <in_len>: the length in bytes of the string. If left 0, the string is null terminated and the function will use this
+  str32 &secureUTF8(const void *str,  int32_t in_len= 0);  // reading from UNSAFE SOURCES / FILES / INPUT is NOT SAFE. use secureUTF8() to validate a UTF-8 string;    <in_len>: the length in bytes of the string. If left 0, the string is null terminated and the function will use this
+  
+  //void readUTF8(FILE *);             // read all (remaining) file       (SECURE)
+  //void readUTF8n(FILE *, size_t);    // read n characters from file     (SECURE)
+  //void readLineUTF8(FILE *);         // read till end of line (or file) (SECURE)
 
   // combining diacritical characters
 
-  void clearComb();                  // clears all combining diacritical characters from the string
+  void clearCombs();                 // clears all combining diacritical characters from the string
+  int32_t nrCombs() const;           // returns the number of combining diacriticals (if any) in string
 
   // character or string insertion / deletion from a string
 
-  void insert(uint32_t in_unicode, int32_t in_nUnicode= -1, int32_t in_nChar= -1);        // -1 = ignore; in_nUnicode - insert after n'th unicode; in_nChar - insert after n'th character (that can have combining diacriticals); if both are ignored, unicode is inserted at the end of the string; returns resulting string length in bytes (without terminator)
-  void insertStr(const void *in_str, int32_t in_nUnicode= -1, int32_t in_nChar= -1);      // -1 = ignore; in_nUnicode - insert after n'th unicode; in_nChar - insert after n'th character (that can have combining diacriticals); if both are ignored, unicode is inserted at the end of the string; returns resulting string length in bytes (without terminator)
-  void del(int32_t in_nUnicodesToDel= 1, int32_t in_nCharsToDel= 0, int32_t in_nUnicode= -1, int32_t in_nChar= -1); // -1 = ignore; in_nUnicodesToDel / in_nCharsToDel - number of unicodes or chars to del from string; in_nUnicode - delete n'th unicode (first if multiple); in_nChar - delete n'th character (first if multiple); if both are -1, the last unicode is deleted; returns resulting string length in bytes (without terminator)
+  void insert(uint32_t in_unicode, int32_t in_pos= -1);       // <in_unicode>- unicode to insert; <in_pos>- insert position (-1= insert at the end of str)
+  void insertStr(const uint32_t *in_str, int32_t in_pos= -1); // <in_str>- str to insert; <in_pos>- insert position (-1= at the end of the str)
+  void del(int32_t in_nUnicodesToDel= 1, int32_t in_pos= -1); // <in_nrToDel>- number of unicode values to delete; <in_pos>- delete position - (del at the left, -1= end of string);  <returns>- resulting string length in bytes (without terminator)
 
   // search in string funcs
-
-  void *search(void *in_str, void *in_search, bool in_caseSensitive= true);
+  
+  // <in_search>- text to search; <in_caseSensitive>- self explanatory; <return> NULL if not found; IF FOUND, points to the begining of found text location in the <in_str>
+  inline void *search(const uint32_t *in_str, const uint32_t *in_search, bool in_caseSensitive= true) {
+    return Str::search32(d, in_search, in_caseSensitive); }
 
 
   // constructors
 
-  str32();                                   // main constructor
-  str32(const str32 &s):    d(NULL), len(0), nrChars(0), nrCombs(0), d8(NULL), dWin(NULL), modif8(false), modifWin(false) { *this= s; } // from another string32
-  str32(const uint32_t *s): d(NULL), len(0), nrChars(0), nrCombs(0), d8(NULL), dWin(NULL), modif8(false), modifWin(false) { *this= s; } // from UTF-32 array string
-  str32(const uint8_t *s):  d(NULL), len(0), nrChars(0), nrCombs(0), d8(NULL), dWin(NULL), modif8(false), modifWin(false) { *this= s; } // from UTF-8 array string
-  str32(uint32_t c):        d(NULL), len(0), nrChars(0), nrCombs(0), d8(NULL), dWin(NULL), modif8(false), modifWin(false) { *this= c; } // makes 1 char length string + terminator
-  str32(const uint16_t *s): d(NULL), len(0), nrChars(0), nrCombs(0), d8(NULL), dWin(NULL), modif8(false), modifWin(false) { *this= s; } // from windows 16bit wide char string
-  str32(const char *s):     str32((uint8_t *)s) {}   // c++11 feature
+  str32(): d(NULL), d8(NULL), d16(NULL), len(0), nrUnicodes(0), wrapping(false), wrapSize(0) {} // main constructor
+  str32(const str32 &s):    str32() { *this= s; } // from another str32
+  str32(const uint32_t *s): str32() { *this= s; } // from UTF-32 string
+  str32(const uint16_t *s): str32() { *this= s; } // from UTF-16 string
+  str32(const uint8_t *s):  str32() { *this= s; } // from UTF-8 string
+  str32(const char *s):     str32((uint8_t *)s) {} // from UTF-8 string
+  str32(uint32_t c):        str32() { *this= c; } // makes 1 char length string + terminator
 
   // destructor / cleaners
 
   ~str32();
   void delData();                         // can be used to clean the string - this is used by destructor too
-  void clean();                           // clears everything but internal data [d] variable (other buffers: d8/ dWin)
+  void clean();                           // unallocs d16 and d8 (buffers used for conversion to UTF-8/16 only
 
   //operators
 
   str32 &operator= (const str32 &);       // assign from another string32 class
   str32 &operator= (const uint32_t *);    // assign from UTF-32 array string
+  str32 &operator= (const uint16_t *);    // assign from UTF-16 array string
   str32 &operator= (const uint8_t *);     // assign from UTF-8 array string
-  str32 &operator= (uint32_t);            // makes a 1 legth string of input char (+terminator)
-  str32 &operator= (const uint16_t *);    // assign from windows 16bit wide char array string
   str32 &operator= (const char *s) { return *this= (uint8_t *)s; } // assign from UTF-8 array string
+  str32 &operator= (uint32_t);            // makes a 1 legth string of input char (+terminator)
 
-  str32 operator+(const str32 &s) const { return str32(*this)+= s; }      // adds two string32 then returns the result
-  str32 operator+(const uint32_t *s) const  { return str32(*this)+= s; }  // adds string32 and UTF-32 arr str then returns the result
-  str32 operator+(const uint8_t *s) const   { return str32(*this)+= s; }  // adds string32 and UTF-8 arr str then returns the result
-  str32 operator+(uint32_t c) const    { return str32(*this)+= c; }       // adds string32 and a single unicode char then returns the result
-  str32 operator+(const char *s) const    { return str32(*this)+= (uint8_t *)s; } // adds string32 and UTF-8 arr str then returns the result
+  str32 operator+(const str32 &s) const     { return str32(*this)+= s; }  // adds two str32 then returns the result
+  str32 operator+(const uint32_t *s) const  { return str32(*this)+= s; }  // adds str32 and UTF-32 str then returns the result
+  str32 operator+(const uint16_t *s) const  { return str32(*this)+= s; }  // adds str32 and UTF-16 str then returns the result
+  str32 operator+(const uint8_t *s) const   { return str32(*this)+= s; }  // adds str32 and UTF-8  str then returns the result
+  str32 operator+(uint32_t c) const         { return str32(*this)+= c; }  // adds str32 and a single unicode char then returns the result
+  str32 operator+(const char *s) const      { return str32(*this)+= (uint8_t *)s; } // adds str32 and UTF-8 str then returns the result
 
-  str32 &operator+=(const str32 &);     // adds another string32 to current string32 class
-  str32 &operator+=(const uint32_t *);  // adds UTF-32 arr str to current string32 class
-  str32 &operator+=(const uint8_t *);   // adds UTF-8 arr str to current string32 class
-  str32 &operator+=(const uint16_t *);  // adds windows 16bit wide char str to current string32 class
-  str32 &operator+=(uint32_t);          // adds adds a single unicode character to current string32 class
-  str32 &operator+=(const char *s) { return *this+= (uint8_t *)s; }   // adds UTF-8 arr str to current string32 class
+  str32 &operator+=(const str32 &);     // adds another str32 to current str32
+  str32 &operator+=(const uint32_t *);  // adds UTF-32 str to current str32
+  str32 &operator+=(const uint16_t *);  // adds UTF-16 str to current str32
+  str32 &operator+=(const uint8_t *);   // adds UTF-8  str to current str32
+  str32 &operator+=(const char *s) { return *this+= (uint8_t *)s; }   // adds UTF-8  str to current str32 class
+  str32 &operator+=(uint32_t);          // adds adds a single unicode character to current str32 class
+  
+  str32 &operator-=(int n);             // removes n unicode values from the back of the string
+  str32 operator-(int n) const;         // returns a temp str32 that has n less unicode values
 
-  str32 &operator-=(int n);             // clears n character(s) from string
-  str32 operator-(int n) const;         // returns a temp string32 that has n less character(s)
-
-  operator uint32_t *() { return d; }                                       // returns pointer to internal data (d)
-  operator uint8_t *()  { return (modif8? (uint8_t *)convert8():  d8); }    // returns pointer to internal data (d8)
-  operator uint16_t *() { return (modifWin? convertWin(): dWin); }          // returns pointer to internal data (dWin)
-  operator char *()     { return (modif8? (char *)convert8(): (char *)d8); }// returns pointer to internal data (d8)
+  operator uint32_t *() { return d; }           // returns pointer to internal data (d)
+  operator uint16_t *() { return convert16(); } // converts to UTF-16. returned pointer is part of the class, no need for dealloc
+  operator uint8_t *()  { return convert8(); }  // converts to UTF-8. returned pointer is part of the class, no need for dealloc
+  operator char *()     { return (char *)convert8(); }  // converts to UTF-8. returned pointer is part of the class, no need for dealloc
 
   operator bool() const     { return (len? true: false); } // returns true if string has any characters
 
-  uint32_t *operator[](unsigned int n) const { return Str::getChar32(d, n); } // returns n-th character in string (there can be combining diacriticals in this full character)
-  uint32_t *getChar(unsigned int n) const    { return Str::getChar32(d, n); } // returns n-th character in string (same as operator[])
-  uint32_t getUnicode(unsigned int n) const  { return d[n]; }                 // returns the [n] unicode value in the string (doesn't care if it's a normal char or a comb)
-
-  bool operator==(const str32 &s) const;           // checks if strings are identical
-  bool operator==(const uint32_t *) const;         // checks if strings are identical                  (utf-32)
-  bool operator==(const uint8_t *s) const { return operator==(str32(s)); } // checks if strings are identical (utf-8)
-  bool operator==(uint32_t) const;                 // string must be 1 char long (+terminator) and identical to passed unicode character
-  bool operator==(const char *s)  const { return operator==(str32(s)); } // checks if strings are identical (utf-8)
-  bool operator==(const uint16_t *) const;         // checks if strings are identical (windows 16bit wide char string)
+  inline uint32_t *operator[](unsigned int n) const { return d+ n; }   // points to the [n] unicode value in string
+  inline uint32_t *pointUnicode(unsigned int n) const { return d+ n; } // points to the [n] unicode value in string
+  inline uint32_t getUnicode(unsigned int n) const  { return d[n]; }   // returns the [n] unicode value in string
+  //uint32_t *getChar(unsigned int n) const    { return Str::getChar32(d, n); } // returns n-th character in string (same as operator[])
   
+  bool operator==(const str32 &s) const;           // checks if strings are identical
+  bool operator==(const uint32_t *) const;         // checks if strings are identical (utf-32)
+  bool operator==(const uint16_t *) const;         // checks if strings are identical (UTF-16)
+  bool operator==(const uint8_t *s) const;         // checks if strings are identical (utf-8)
+  bool operator==(const char *s)  const { return operator==((uint8_t *)s); } // checks if strings are identical (utf-8)
+  bool operator==(uint32_t) const;                 // string must be 1 char long (+terminator) and identical to passed unicode character
 
   bool operator!=(const str32 &s) const    { return !(operator==(s)); }
   bool operator!=(const uint32_t *s) const { return !(operator==(s)); }
-  bool operator!=(const uint8_t *s) const  { return !(operator==(s)); }
-  bool operator!=(uint32_t c) const        { return !(operator==(c)); }
   bool operator!=(const uint16_t *s) const { return !(operator==(s)); }
+  bool operator!=(const uint8_t *s) const  { return !(operator==(s)); }
   bool operator!=(const char *s) const     { return !(operator==(s)); }
+  bool operator!=(uint32_t c) const        { return !(operator==(c)); }
 
-  bool operator!() { return len? true: false; };
+  bool operator!() { return nrUnicodes? true: false; };
 
   #ifdef STR8CLASSINCLUDED
-  str32(const str8 &s): d(null), len(0), nrChars(0), nrCombs(0), d8(null), dWin(null), modif8(false), modifWin(false) { *this= s.d; }
-  str32 &operator= (const str8 &s) { return *this= s.d; }
-  str32 operator+(const str8 &s) const { return str32(*this)+= s.d; }
+  str32(const str8 &s): str32()    { *this= s.d; }
+  str32 &operator=(const str8 &s)  { return *this= s.d; }
   str32 &operator+=(const str8 &s) { return *this+= s.d; }
   #endif /// STR8CLASSINCLUDED
+  #ifdef STR16CLASSINCLUDED
+  str32(const str16 &s): str32()    { *this= s.d; }
+  str32 &operator=(const str16 &s)  { return *this= s.d; }
+  str32 &operator+=(const str16 &s) { return *this+= s.d; }
+  #endif
 
   inline int64_t toInt()   const { return Str::utf32toInt64(d); }
   inline uint64_t toUint() const { return Str::utf32toUint64(d); }
   inline float toFloat()   const { return Str::utf32toFloat(d); }
   inline double toDouble() const { return Str::utf32toDouble(d); }
 
-  str32 &fromInt(int64_t n, int8_t base= 10, bool uppercase= true)   { if(len< 264) { if(d) delete[] d; d= new uint32_t[66]; len= 264; } nrChars= Str::int64toUtf32(n, d, base, uppercase);  nrCombs= 0; modif8= modifWin= true; return *this; }
-  str32 &fromUint(uint64_t n, int8_t base= 10, bool uppercase= true) { if(len< 264) { if(d) delete[] d; d= new uint32_t[66]; len= 264; } nrChars= Str::uint64toUtf32(n, d, base, uppercase); nrCombs= 0; modif8= modifWin= true; return *this; }
-  str32 &fromFloat(float n, int precision= 2, bool useE= false)      { if(len< 264) { if(d) delete[] d; d= new uint32_t[66]; len= 264; } nrChars= Str::floatToUtf32(n, d, precision, useE);  nrCombs= 0; modif8= modifWin= true; return *this; }
-  str32 &fromDouble(double n, int precision= 2, bool useE= false)    { if(len< 264) { if(d) delete[] d; d= new uint32_t[66]; len= 264; } nrChars= Str::doubleToUtf32(n, d, precision, useE); nrCombs= 0; modif8= modifWin= true; return *this; }
+  str32 &fromInt(int64_t n, int8_t base= 10, bool uppercase= true)   { if(!wrapping) if(len< 268) { if(d) delete[] d; d= new uint32_t[67]; } nrUnicodes= Str::int64toUtf32(n, d, base, uppercase);  len= (nrUnicodes+ 1)* 4; return *this; }
+  str32 &fromUint(uint64_t n, int8_t base= 10, bool uppercase= true) { if(!wrapping) if(len< 268) { if(d) delete[] d; d= new uint32_t[67]; } nrUnicodes= Str::uint64toUtf32(n, d, base, uppercase); len= (nrUnicodes+ 1)* 4; return *this; }
+  str32 &fromFloat(float n, int precision= 2, bool useE= false)      { if(!wrapping) if(len< 156) { if(d) delete[] d; d= new uint32_t[39]; } nrUnicodes= Str::floatToUtf32(n, d, precision, useE);  len= (nrUnicodes+ 1)* 4; return *this; }
+  str32 &fromDouble(double n, int precision= 2, bool useE= false)    { if(!wrapping) if(len< 156) { if(d) delete[] d; d= new uint32_t[39]; } nrUnicodes= Str::doubleToUtf32(n, d, precision, useE); len= (nrUnicodes+ 1)* 4; return *this; }
 };
+
+
+//these should have inline, and declared in the cpp, or whatever; basically CHECK IF THESE COMPILE (i remember there were problems)
+inline str32 operator+(const uint8_t *s1, const str32 &s2) { return str32(s1)+= s2; }
+inline str32 operator+(const char *s1, const str32 &s2)    { return str32(s1)+= s2; }
+inline str32 operator+(const str32 &s1, const uint8_t *s2) { return str32(s1)+= s2; }
+inline str32 operator+(const str32 &s1, const char *s2)    { return str32(s1)+= s2; }
+inline str32 operator+(const str32 &s1, const str32 &s2)   { return str32(s1)+= s2; }
+inline str32 operator+(const str32 &s1, const uint32_t c)  { return str32(s1)+= c; }
+
+#ifdef STR8CLASSINCLUDED
+inline str32 operator+(const str32 &s1, const str8 &s2)  { return str32(s1)+= s2.d; }
+#endif
+#ifdef STR16CLASSINCLUDED
+inline str32 operator+(const str32 &s1, const str16 &s2) { return str32(s1)+= s2.d; }
+#endif
 
 
 

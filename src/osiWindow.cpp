@@ -202,8 +202,9 @@ bool osiWindow::setIcon(cchar *file) {
   
   /// s will hold the file extension to be loaded, in lowercase
   str8 s("   ");
-  int32 len= Str::strlen8(file);
-  
+  int32 len= Str::strlen8(file)- 1;
+  if(len< 3) return false;            /// at least characters file
+
   for(char a= 0; a< 3; a++)
     s.d[a]= file[len- 3+ a];
 

@@ -188,7 +188,7 @@ void ErrorHandling::messageBox(cchar *text) {
 
   font= XLoadQueryFont(display, "10x20");
   XGetWindowAttributes(display, RootWindow(display, 0), &desktop);
-  XTextExtents(font, text, Str::strlen8(text), &tDir, &tAscent, &tDescent, &tStr);
+  XTextExtents(font, text, Str::strlen8(text)- 1, &tDir, &tAscent, &tDescent, &tStr);
 
 // window size & position computations based on text & desktop size
   dx= tStr.width+ 20;

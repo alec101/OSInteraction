@@ -182,7 +182,6 @@ main() {
 // standard libs includes
 #include <stdio.h>
 #include <stdint.h>
-#include <mutex>  // using std mutex for locking critical data - some objects will have the mutex object to protect critical data if using osi from different threads
 
 
 
@@ -276,6 +275,7 @@ main() {
 // utility classes
 //#include "util/typeShortcuts.h" // no point to clog other ppl's app with more custom C types - if they want it, they include it
 #include "util/str32.h"
+#include "util/str16.h"
 #include "util/str8.h"
 #include "util/errorHandling.h"
 #include "util/chainList.h"
@@ -366,7 +366,6 @@ public:
   str8 cmdLine;                        // command line
   int argc;                            // command line nr of arguments, same as the main(int argc..)
   char **argv;                         // command line arguments list, same as the main(.. , char *argv[])
-  std::mutex mutex;                    // lock the object when reading from 100 threads... reading from osi should be done from 1 thread, tho, but critical data is locked in case you do read from 100 sources
 
   osiDisplay display;                  // display class, handles monitors, resolutions
   osiWindow win[MAX_WINDOWS];          // all windows
@@ -395,19 +394,19 @@ public:
 
   // SYSTEM EVENTS HANDLER: call this in MAIN PROGRAM LOOP
   
-  bool checkMSG();                     // checks for OS messages, should be INCLUDED in the MAIN LOOP. returns true if any msg was processed - locks osi.mutex
+  bool checkMSG();                     // checks for OS messages, should be INCLUDED in the MAIN LOOP. returns true if any msg was processed
 
   //void startThread(void (void *));   std::threads!!! /// start / create a new thread
   //void endThread(int status= 0);     std::threads!!! /// call it within the thread to end the thread
   
-  // openGL window creation / deletion funcs - osi.mutex is locked
+  // openGL window creation / deletion funcs
   
   // createGLWindow is the main function to use
   // [mode1]: windowed, using size, center screen [mode2] fullscreen [mode3] fullscreen window [mode4] full Virtual Screen window, on all monitors
   bool createGLWindow(osiWindow *w, osiMonitor *m, const char *name, int dx, int dy, int8_t mode, short freq= 0, const char *iconFile= NULL);
   bool killGLWindow(osiWindow *w);     // destroys a specific opengl window
   
-  // next funcs call createGLWindow / killGLWindow; they might make life easier, but nothing more - osi.mutex is locked
+  // next funcs call createGLWindow / killGLWindow; they might make life easier, but nothing more
   
   bool primaryGLWindow(const char *name, int dx, int dy, int8_t mode, int16_t freq= 0); // mode: 1= windowed, 2= fullscreen, 3= fullscreeen window(must research this one), 4= fullscreen virtual desktop (every monitor)
   bool primaryGLWindow();              // creates a basic window, fullscreen
@@ -429,7 +428,7 @@ public:
   void clocks2millisecs(uint64_t *out); // WIP convert raw clocks to milliseconds  N/A LINUX... trying to make it work
   
   void setClipboard(const char *in_text);   // sends text to the clipboard/pasteboard - used for copy/paste operations between programs
-  bool getClipboard(const char **out_text); // gets text (if any) from the clipbard/pasteboard - used for copy/paste operations between programs (returned text is null if nothing is there)
+  bool getClipboard(const char **out_text); // gets text (if any) from the clipbard/pasteboard - used for copy/paste operations between programs (returned text is null if nothing is there) - DO NOT FORGET TO delete[] THE RETURNED TEXT WHEN DONE
 
   // opengl funcs
 

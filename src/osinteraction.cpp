@@ -6,6 +6,7 @@
 #ifdef OS_LINUX
 #include <unistd.h>
 #include <X11/XKBlib.h>
+#include <time.h>
 #endif
 
 
@@ -345,7 +346,7 @@ void _parseCmdLine(osinteraction *o) {
   o->argc= 1;    /// allways at least 1
   
   bool apostrophe= false, quote= false;
-  for(int a= 0; a< o->cmdLine.nrChars; a++) {
+  for(int a= 0; a< o->cmdLine.nrUnicodes; a++) {
     uint32 c= s.d[a];                /// c will hold the current character
 
     /// quotes - everything under will be 1 cmd argument
@@ -381,7 +382,7 @@ void _parseCmdLine(osinteraction *o) {
   int n= 0;                     /// current argument number (max = argc)
   apostrophe= quote= false;     /// if under a quote or doublequote, whitespaces are ignored
 
-  for(int a= 0; a< s.nrChars+ 1; a++) {
+  for(int a= 0; a< s.nrUnicodes+ 1; a++) {
     uint32 c= s.d[a];
     
     /// quotes - everything under will be 1 cmd argument
@@ -471,7 +472,6 @@ bool osinteraction::primaryGLWindow() {
 
 // MAIN CREATE WINDOW FUNC. has every customisation
 bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int32 dx, int32 dy, int8 mode, int16 freq, cchar *iconFile) {
-  mutex.lock();
   bool chatty= false;
 
   str8 func= "osinteraction::createGLWindow: ";
@@ -547,7 +547,6 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
 
   if (!RegisterClass(&wc)) {                        /// register the window class
     error.simple(func+ "Failed to register wc");
-    mutex.unlock();
     return false;
   }
 
@@ -599,14 +598,12 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
   {
     killGLWindow(w);                    // Reset The Display
     error.simple(func+ "Window creation error.");
-    mutex.unlock();
     return false;
   }
 
   if (!(w->_hDC= GetDC(w->_hWnd))) {                /// get a device context
     killGLWindow(w);
     error.simple(func+ "Can't create a GL DC");
-    mutex.unlock();
     return false;
   }
 
@@ -700,14 +697,12 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
   if (!(PixelFormat= ChoosePixelFormat(w->_hDC, &pfd))) {  /// lots of checks, don't think any needed
     killGLWindow(w);
     error.simple(func+ "Can't aquire a PixelFormat");
-    mutex.unlock();
     return false;
   }
 
   if(!SetPixelFormat(w->_hDC, PixelFormat, &pfd)) {        /// lots of checks, don't think any needed
     killGLWindow(w);
     error.simple(func+ "Can't set PixelFormat");
-    mutex.unlock();
     return false;
   }
   */
@@ -716,7 +711,6 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
   if(!assignRenderer(w)) {
     osi.killGLWindow(w);
     error.simple(func+ "Cannot create oGL renderer (context)");
-    mutex.unlock();
     return false;
   }
 
@@ -731,7 +725,6 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
   if(!glMakeCurrent(w->glr, w)) {
     killGLWindow(w);
     error.simple(func+ "Can't activate GL RC");
-    mutex.unlock();
     return false;
   }
 
@@ -742,7 +735,6 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
 
   w->glr->checkExt();
   w->glr->getExtFuncs();          /// once a window is created, getExtensions() aquires oGL extensions functions
-  mutex.unlock();
   return true;
   #endif /// OS_WIN
 
@@ -757,12 +749,10 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
   glXQueryVersion(osi._dis, &glxMajor, &glxMinor );
   if((glxMajor< 1) || ((glxMajor== 1) && (glxMinor< 3))) {
     error.simple(func+ "GLX version too low");
-    mutex.unlock();
     return false;
   }
 
   if(!w->_createFBandVisual()) {
-    mutex.unlock();
     return false;
   }
 
@@ -870,7 +860,6 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
   if(!assignRenderer(w)) {
     osi.killGLWindow(w);
     error.simple("FATAL ERROR: Cannot create oGL renderer (context)");
-    mutex.unlock();
     return false;
   }
 
@@ -894,7 +883,6 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
   w->show();                    /// map window= finish creation/ show window
   w->move(w->x0, w->y0);
 
-  mutex.unlock();
   return true;
 
   #endif /// OS_LINUX
@@ -903,12 +891,10 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
   
   /// window creation is in OScocoa.mm due to Abjective-C
   bool b= cocoa.createWindow(w, (iconFile? (cchar *)iconFile: (cchar *)_iconFile.d));  /// all window vars are set, just create the window.
-  mutex.unlock();
   return b;
   #endif /// OS_MAC
   
   error.simple(func+ "no OS_XXXX specified?");
-  mutex.unlock();
   return false;
 } // osinteraction::createGLWindow END <<<
 
@@ -950,12 +936,12 @@ bool osinteraction::killGLWindow(osiWindow *w) {
 
 bool osinteraction::createSplashWindow(osiWindow *w, osiMonitor *m, cchar *file) {
   if((!w) || (!m) || (!file)) return false;
-  mutex.lock();
   // image loading
   /// s will hold the file extension to be loaded, in lowercase
   str8 s("   ");
-  int32 len= Str::strlen8(file);
-  
+  int32 len= Str::strlen8(file)- 1;
+  if(len< 3) return false;         /// at least 3 character filename
+
   for(char a= 0; a< 3; a++)
     s.d[a]= file[len- 3+ a];
 
@@ -974,7 +960,6 @@ bool osinteraction::createSplashWindow(osiWindow *w, osiMonitor *m, cchar *file)
   if(s== "png") {
     png.load(file);
     if(png.type!= IMG_RGB && png.type!= IMG_RGBA) {
-      mutex.unlock();
       return false;
     }
 
@@ -987,7 +972,6 @@ bool osinteraction::createSplashWindow(osiWindow *w, osiMonitor *m, cchar *file)
   } else if(s== "tga") {
     tga.load(file);
     if(tga.type!= IMG_RGB && tga.type!= IMG_RGBA) {
-      mutex.unlock();
       return false;
     }
 
@@ -997,7 +981,7 @@ bool osinteraction::createSplashWindow(osiWindow *w, osiMonitor *m, cchar *file)
     bitmap= (uint8 *)tga.bitmap;
     bpc= tga.bpc;
     bpp= tga.bpp;
-  } else { mutex.unlock(); return false; }
+  } else return false;
   
   /// window attributes
   w->dx= dx+ 20;
@@ -1092,14 +1076,12 @@ bool osinteraction::createSplashWindow(osiWindow *w, osiMonitor *m, cchar *file)
   ShowWindow(w->_hWnd, SW_SHOW);
   //RedrawWindow(w->_hWnd, 0, 0, RDW_UPDATENOW);
 
-  mutex.unlock();
   return true;
 
 Fail:
   if(w->_imgBM) DeleteObject(w->_imgBM);
   if(w->_imgDC) DeleteDC(w->_imgDC);
   w->delData();
-  mutex.unlock();
   return false;
   #endif /// OS_WIN
 
@@ -1255,11 +1237,9 @@ Fail:
 
   #ifdef OS_MAC
   bool b= cocoa.createSplashWindow(w, bitmap, dx, dy, bpp, bpc);
-  mutex.unlock();
   return b;
   #endif /// OS_MAC
 
-  mutex.unlock();
   return true;
 }
 
@@ -2309,7 +2289,6 @@ bool osinteraction::_processMSG()  {
 
 bool osinteraction::checkMSG() {
   if(!primWin) return false;    /// if no primary window was created, no messages will be processed
-  mutex.lock();                 /// lock osinteraction
 
   uint64 prevPresent= present, prevEventTime= eventTime;
   getNanosecs(&present);         // current time, or 'present' variable updated here <<<
@@ -2340,7 +2319,6 @@ bool osinteraction::checkMSG() {
   ret= _processMSG();
   #endif /// OS_MAC
 
-  mutex.unlock();
   return ret;
 } /// osinteraction::checkMSG
 
@@ -2562,17 +2540,17 @@ void osinteraction::setProgramIcon(cchar *fileName) {
 // sends text to the clipboard/pasteboard - used for copy/paste operations between programs
 void osinteraction::setClipboard(cchar *in_text) {
   #ifdef OS_WIN
-  str8 s(in_text);
+  str16 s(in_text);
 
   if(OpenClipboard(NULL)) { // setting the handle, causes problems: CF_UNICODE stopped working, only CF_TEXT worked. just set NULL
     EmptyClipboard();
 
-    int len= (s.nrChars+ s.nrCombs+ 1)* 2;
-    HGLOBAL hg= GlobalAlloc(GMEM_MOVEABLE, len);
+    //int len= (s.nrChars+ s.nrCombs+ 1)* 2;
+    HGLOBAL hg= GlobalAlloc(GMEM_MOVEABLE, s.len);
     if(hg) {
       void *p= GlobalLock(hg);
       if(p) {
-        memcpy(p, s.convertWin(), len);
+        memcpy(p, s.d, s.len);
         GlobalUnlock(hg);
         SetClipboardData(CF_UNICODETEXT, hg);   // set the text (hopefully)
       }
@@ -2585,11 +2563,11 @@ void osinteraction::setClipboard(cchar *in_text) {
 
   #ifdef OS_LINUX
   if(!primWin) return;
-  XStoreBytes(primWin->_dis, in_text, Str::strlen8(in_text)+ 1);
+  XStoreBytes(primWin->_dis, in_text, Str::strlen8(in_text));
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
-  cocoa.setPastebin(in_text);
+  cocoa.setPastebin((uint8_t *)in_text);
   #endif /// OS_MAC
 }
 
@@ -2605,9 +2583,11 @@ bool osinteraction::getClipboard(cchar **out_text) {
     if(hdata) {
       uint16 *pchData= (uint16 *)GlobalLock(hdata);
       if(pchData) {
-        str8 s(pchData);
-        *out_text= (cchar *)new uint8[s.len];
-        Str::strcpy8((void *)*out_text, s.d);
+        str8 s;
+        s.secureUTF16(pchData);
+
+        *out_text= (const char *)s.d;
+        s.d= null; s.updateLen();   /// trick str8 into not deleting it's internal buffer
         GlobalUnlock(hdata);
       }
     }
@@ -2633,32 +2613,34 @@ bool osinteraction::getClipboard(cchar **out_text) {
 
   #ifdef OS_LINUX
   *out_text= null;
-  if(!primWin) return;
-  int len= 0
+  if(!primWin) return false;
+  int len= 0;
   char *xdata= XFetchBytes(primWin->_dis, &len);
   if(len) {
     uint8 *buf= new uint8[len+ 4];
     buf[len]= 0; buf[len+ 1]= 0; buf[len+ 2]= 0; buf[len+ 3]= 0;  // utf32 terminator - 4 bytes
 
-    Str::strncpy[buf, xdata, len);
+    Str::strncpy8(buf, xdata, len);
 
     str8 s8;
     s8.secureUTF8(buf);
 
-    if((s8.nrChars< 1) && (s8.nrCombs< 1)) {
+    /// if s8 seems wrong, then this might be a utf32 string
+    if(s8.nrUnicodes< 1) {
 
       /// this is a utf32 string, only if it's length is divisible by 4 (int32's)
-      if(!(len%4)) {
-        str32 s32((uint32*)s8.d);
-        str8 ret(s32.convert8());
-        *out_text= new char[ret.len];
-        Str::strcpy8(*out_text, ret.d);
+      if(!(len% 4)) {
+        str32 s32;
+        s32.secureUTF32((uint32*)buf);
+        str8 ret(s32.d);
+        *out_text= (const char *)ret.d;
+        ret.d= null; ret.updateLen();   /// trick str8 into not deleting it's bufer, because it's used
       }
 
     /// this seems to be a utf8 string
     } else {
-      *out_text= new char[s8.len];
-      Str::strcpy8(*out_len, s8.d);
+      *out_text= (const char *)s8.d;
+      s8.d= null; s8.updateLen();       /// trick str8 into not deleting it's bufer, because it's used
     }
     XFree(xdata);
   }
@@ -2666,7 +2648,7 @@ bool osinteraction::getClipboard(cchar **out_text) {
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
-  cocoa.getPastebin(out_text);
+  cocoa.getPastebin((uint8_t **)out_text);
   return *out_text? true: false;
   #endif /// OS_MAC
 }

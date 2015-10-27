@@ -40,7 +40,7 @@
 #define dword uint32_t    /// guaranteed 32 bit
 #define qword uint64_t    /// guaranteed 64 bit
 
-// usefull shortcuts - these can vary in size, but they have at LEAST n bits (check each comment for n)
+// useful shortcuts - these can vary in size, but they have at LEAST n bits (check each comment for n)
 
 #define uint unsigned int           /// at least 16 bit (usually this is 32bit, nowadays... note: nowadays)
 #define uchar unsigned char         /// at least  8 bit
