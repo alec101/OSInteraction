@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="winDebug|Win32">
       <Configuration>winDebug</Configuration>
@@ -32,6 +32,7 @@
     <ClCompile Include="..\src\util\fileTGA.cpp" />
     <ClCompile Include="..\src\util\mzPacker.cpp" />
     <ClCompile Include="..\src\util\segList.cpp" />
+    <ClCompile Include="..\src\util\str16.cpp" />
     <ClCompile Include="..\src\util\str32.cpp" />
     <ClCompile Include="..\src\util\str8.cpp" />
     <ClCompile Include="..\src\util\strCommon.cpp" />
@@ -57,6 +58,7 @@
     <ClInclude Include="..\include\util\mlib.hpp" />
     <ClInclude Include="..\include\util\mzPacker.h" />
     <ClInclude Include="..\include\util\segList.h" />
+    <ClInclude Include="..\include\util\str16.h" />
     <ClInclude Include="..\include\util\str32.h" />
     <ClInclude Include="..\include\util\str8.h" />
     <ClInclude Include="..\include\util\strCommon.h" />
@@ -75,26 +77,26 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='winDebug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v120_xp</PlatformToolset>
+    <PlatformToolset>v140_xp</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='winDebug|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v120_xp</PlatformToolset>
+    <PlatformToolset>v140_xp</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='winRelease|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v120_xp</PlatformToolset>
+    <PlatformToolset>v140_xp</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='winRelease|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v120_xp</PlatformToolset>
+    <PlatformToolset>v140_xp</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
