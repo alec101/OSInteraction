@@ -560,7 +560,7 @@ void osiInput::populate(bool scanMouseKeyboard) {
         j[b].mode= gp[b].mode= gw[b].mode= 1;   /// mode 1 sticks = system handled (the only type atm in linux)
         j[b]._jsFile= f;                        /// joystick class handles this
         j[b]._jsID= a;                          /// joystick class handles this
-        j[b].name= gp[b].name= gw[b].name= name;/// stick name / product name
+        j[b].name= gp[b].name= gw[b].name= (char *)name;/// stick name / product name
 
         /*
         joystick name! IT HAS TO HAVE A NAME, if name== null? make it "Unknown" , 
@@ -624,7 +624,7 @@ void osiInput::populate(bool scanMouseKeyboard) {
     found= false;
     for(short b= 0; b< 8; b++)
       if(j[b]._jsFile!= -1)                          /// joystick struct must have a js file
-        if((j[b]._eventFile== -1) && (j[b].name== (cuint8 *)name)) {
+        if((j[b]._eventFile== -1) && (j[b].name== (cchar *)name)) {
           j[b]._eventFile= f;
           j[b]._eventID= a;
           if(chatty) printf("event file: %s%d belongs to joystick %d\n", s2.d, a, b);
@@ -3010,7 +3010,7 @@ static void HIDadded(void *context, IOReturn result, void *sender, IOHIDDeviceRe
 		
 		CFStringGetBytes(name, CFRangeMake(0, CFStringGetLength(name)), kCFStringEncodingUTF8, '?', false, NULL, 100, &length);
     
-    in.j[a].name.d= new uint8[length+ 1];
+    in.j[a].name.d= (char *)new uint8[length+ 1];
                              
 		CFStringGetBytes(name, CFRangeMake(0, CFStringGetLength(name)), kCFStringEncodingUTF8, '?', false, (UInt8 *) in.j[a].name.d, length+ 1, NULL);
 		in.j[a].name.d[length]= 0;  /// terminator

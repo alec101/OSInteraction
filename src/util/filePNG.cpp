@@ -100,11 +100,11 @@ bool PNG::load(cchar *fname) {
   delData();
   err= 0;
 
-  uint8 PNGfileCheck[9];    /// PNG file stamp
+  char PNGfileCheck[9];     /// PNG file stamp
   bool tRNSloaded= false;   /// security checks
     /// header vars / chunk vars
   uint32 clength= 0;        /// chunk length
-  uint8 cname[5];           /// chunk name (4 bytes)
+  char cname[5];           /// chunk name (4 bytes)
   cname[4]= 0;              /// string terminator
   uint32 cCRC;              /// chunk CRC
   int8 colType;             /// PNG color type

@@ -275,13 +275,13 @@ osinteraction::osinteraction() {
     fread(buf, l, 1, f);
     fclose(f);
     
-    str8 utf8(buf);
+    str8 utf8((char *)buf);
     /// if string length is less than 2 chars, there's a problem (not a utf8 string, probly ... hopefully)
     if(utf8.len<= 3) {
       
       /// if the string length is divided by 4, it can be utf-32. if actually is not utf-32... well, shit happens i guess
       if(!(l% 4)) 
-        cmdLine= (uint32 *)buf;
+        cmdLine= (char32_t *)buf;
     } else cmdLine= utf8;
     
     delete[] buf;
@@ -413,7 +413,7 @@ void _parseCmdLine(osinteraction *o) {
       
       /// s2 will hold the cmd argument in utf32 format (easyer than utf8 to know how much mem to alloc / copy characters)
       s2.delData();
-      s2.d= new uint32[len+ 1];
+      s2.d= new char32_t[len+ 1];
       s2.d[len]= 0;                   /// str terminator
 
       for(int d= 0; d< len; d++)
@@ -1683,8 +1683,8 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
               osi.display.restoreRes(osi.win[a].monitor);
 
       } /// switch gain/lose focus
-
-      if(chatty) printf("WM_ACTIVATEAPP %s 0x%x %d %u\n", osi._getWinName(hWnd), m, wParam, lParam);
+      
+      if(chatty) printf("WM_ACTIVATEAPP %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, wParam, lParam);
       goto ret;
     case WM_POWERBROADCAST:
 
@@ -1699,18 +1699,18 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       goto ret;
 
     case WM_CLOSE:
-      if(chatty) printf("WM_CLOSE %s 0x%x %d %u\n", osi._getWinName(hWnd), m, wParam, lParam);
+      if(chatty) printf("WM_CLOSE %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, wParam, lParam);
       osi.flags.exit= true;     /// main exit flag
       return 0;
 
     case WM_CHAR:
-      if(chatty) printf("WM_CHAR %s %lc\n", osi._getWinName(hWnd), wParam);
+      if(chatty) printf("WM_CHAR %s %llu\n", osi._getWinName(hWnd), wParam);
       in.k._addChar((uint32)wParam, &osi.eventTime);
       return 0;
 
     case WM_UNICHAR:
       error.console("WM_UNICHAR not tested");
-      if(chatty) printf("WM_UNICHAR %s %lc\n", osi._getWinName(hWnd), wParam);
+      if(chatty) printf("WM_UNICHAR %s %llu\n", osi._getWinName(hWnd), wParam);
       in.k._addChar((uint32)wParam, &osi.eventTime);
       return 0;
 
@@ -1745,18 +1745,18 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
     case WM_SETFOCUS:         /// focus gained to a window
       if(w= osi._getWin(hWnd)) w->hasFocus= true;
 
-      if(chatty) printf("WM_SETFOCUS %s 0x%x %d %u\n", osi._getWinName(hWnd), m, wParam, lParam);
+      if(chatty) printf("WM_SETFOCUS %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, wParam, lParam);
       goto ret;
 
     case WM_KILLFOCUS:        /// window lost focus
       if(w= osi._getWin(hWnd)) w->hasFocus= false;
 
-      if(chatty) printf("WM_KILLFOCUS %s 0x%x %d %u\n", osi._getWinName(hWnd), m, wParam, lParam);
+      if(chatty) printf("WM_KILLFOCUS %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, wParam, lParam);
       goto ret;
 
     // system commands
     case WM_SYSCOMMAND:
-      if(chatty) printf("WM_SYSCOMMAND %s 0x%x %d %u\n", osi._getWinName(hWnd), m, wParam, lParam);
+      if(chatty) printf("WM_SYSCOMMAND %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, wParam, lParam);
 
       switch (wParam)	{
         case SC_SCREENSAVE:
@@ -1767,7 +1767,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
           
 				  // return 0;                         /// prevent these from happening by not calling DefWinProc
         case SC_CLOSE: 
-          if(chatty) printf("  SC_CLOSE %s 0x%x %d %u\n", osi._getWinName(hWnd), m, wParam, lParam);
+          if(chatty) printf("  SC_CLOSE %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, wParam, lParam);
           osi.flags.exit= true;
           return 0;
       } /// switch the type of WM_SYSCOMMAND
@@ -1796,12 +1796,12 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
   /// unhandled frequent windows messages
   if(chatty&& !onlyHandled)
     switch(m) {
-      case WM_ACTIVATE: if(chatty) printf("WM_ACTIVATE %s 0x%x %d %d\n", osi._getWinName(hWnd), m, wParam, lParam); goto ret;
-      case WM_ERASEBKGND: if(chatty) printf("WM_ERASEBKGND %s 0x%x %d %d\n", osi._getWinName(hWnd), m, wParam, lParam); goto ret;
-      case WM_PAINT: if(chatty) printf("WM_PAINT %s 0x%x %d %d\n", osi._getWinName(hWnd), m, wParam, lParam); goto ret;
-      case WM_NCPAINT: if(chatty) printf("WM_NCPAINT %s 0x%x %d %d\n", osi._getWinName(hWnd), m, wParam, lParam); goto ret;
-      case WM_NCACTIVATE: if(chatty) printf("WM_NCACTIVATE %s 0x%x %d %d\n", osi._getWinName(hWnd), m, wParam, lParam); goto ret;
-      case WM_GETICON: if(chatty) printf("WM_GETICON\n"); goto ret;              /// usually is used when alt-tabbing, gets an icon for the mini alt-tab list
+      case WM_ACTIVATE: if(chatty)   printf("WM_ACTIVATE %s 0x%x %llu %lld\n",   osi._getWinName(hWnd), m, wParam, lParam); goto ret;
+      case WM_ERASEBKGND: if(chatty) printf("WM_ERASEBKGND %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, wParam, lParam); goto ret;
+      case WM_PAINT: if(chatty)      printf("WM_PAINT %s 0x%x %llu %lld\n",      osi._getWinName(hWnd), m, wParam, lParam); goto ret;
+      case WM_NCPAINT: if(chatty)    printf("WM_NCPAINT %s 0x%x %llu %lld\n",    osi._getWinName(hWnd), m, wParam, lParam); goto ret;
+      case WM_NCACTIVATE: if(chatty) printf("WM_NCACTIVATE %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, wParam, lParam); goto ret;
+      case WM_GETICON: if(chatty)    printf("WM_GETICON\n"); goto ret;              /// usually is used when alt-tabbing, gets an icon for the mini alt-tab list
         // WHEN dealing with icons, must remember to develop WM_GETICON too
       case WM_IME_NOTIFY: if(chatty) printf("WM_IME_NOTIFY\n"); goto ret;
       case WM_IME_SETCONTEXT: if(chatty) printf("WM_IME_SETCONTEXT\n"); goto ret;
@@ -1811,7 +1811,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
     } /// switch
 
   if(chatty&& !onlyHandled)
-    printf("UNKNOWN %s 0x%x %d %d\n", osi._getWinName(hWnd), m, wParam, lParam);
+    printf("UNKNOWN %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, wParam, lParam);
   /// this DefWindowProc() handles window movement & resize & rest... without this, moving is not working, for example
 ret:
   if(timeFunc) { osi.getNanosecs(&end); printf("processMSG lag: %llu\n", end- start); }
@@ -2581,7 +2581,7 @@ bool osinteraction::getClipboard(cchar **out_text) {
     HANDLE hdata= GetClipboardData(CF_UNICODETEXT);
 
     if(hdata) {
-      uint16 *pchData= (uint16 *)GlobalLock(hdata);
+      char16_t *pchData= (char16_t *)GlobalLock(hdata);
       if(pchData) {
         str8 s;
         s.secureUTF16(pchData);
@@ -2596,11 +2596,11 @@ bool osinteraction::getClipboard(cchar **out_text) {
     if(!(*out_text)) {
       hdata= GetClipboardData(CF_TEXT);
       if(hdata) {
-        uint8 *pchData= (uint8 *)GlobalLock(hdata);
+        char *pchData= (char *)GlobalLock(hdata);
         if(pchData) {
           str8 s(pchData);
           *out_text= (cchar *)new uint8[s.len];
-          Str::strcpy8((void *)*out_text, s.d);
+          Str::strcpy8(*out_text, s.d);
           GlobalUnlock(hdata);
         }
       }
@@ -2620,10 +2620,10 @@ bool osinteraction::getClipboard(cchar **out_text) {
     uint8 *buf= new uint8[len+ 4];
     buf[len]= 0; buf[len+ 1]= 0; buf[len+ 2]= 0; buf[len+ 3]= 0;  // utf32 terminator - 4 bytes
 
-    Str::strncpy8(buf, xdata, len);
+    Str::strncpy8((char *)buf, xdata, len);
 
     str8 s8;
-    s8.secureUTF8(buf);
+    s8.secureUTF8((char *)buf);
 
     /// if s8 seems wrong, then this might be a utf32 string
     if(s8.nrUnicodes< 1) {
@@ -2631,7 +2631,7 @@ bool osinteraction::getClipboard(cchar **out_text) {
       /// this is a utf32 string, only if it's length is divisible by 4 (int32's)
       if(!(len% 4)) {
         str32 s32;
-        s32.secureUTF32((uint32*)buf);
+        s32.secureUTF32((char32_t *)buf);
         str8 ret(s32.d);
         *out_text= (const char *)ret.d;
         ret.d= null; ret.updateLen();   /// trick str8 into not deleting it's bufer, because it's used

@@ -149,7 +149,7 @@ bool _osiCocoaSetTheIcon;
   
   [self setExcludedFromWindowsMenu:NO];
 
-  printf("%s\n", __FUNCTION__);
+  //printf("%s\n", __FUNCTION__);
   return self;
 }
 
@@ -1645,7 +1645,7 @@ void osiCocoa::getPastebin(uint8_t **out_text) {
   
   if(buf) {
     *out_text= new uint8[Str::strlen8(buf)];
-    Str::strcpy8(*out_text, buf);
+    Str::strcpy8((char *)*out_text, buf);
   }
 
   [pool release];

@@ -235,7 +235,7 @@ osiDisplay::osiDisplay() {
   GPU= null;
   bResCanBeChanged= false;
   bGPUinfoAvaible= false;
-  uint8 buf[]= "osiDisplay.populate() was not called";
+  cchar buf[]= "osiDisplay.populate() was not called";
   bResCanBeChangedReason= buf;
   bGPUinfoAvaibleReason= buf;
   
@@ -1667,7 +1667,7 @@ void osiDisplay::populate() {
       CFStringRef st= CGDisplayModeCopyPixelEncoding((CGDisplayModeRef)resid);
       CFStringGetCString(st, (char *)buf, 512, CFStringGetSystemEncoding());
       
-      if(s!= buf) {
+      if(s!= (char *)buf) {
         CFRelease(st);
         continue;
       }
@@ -1731,7 +1731,7 @@ void osiDisplay::populate() {
       /// only 32bit resolutions ... SUBJECT OF INTESIVE THINKING... remove 16 bits?! <<<<<<<<<<<<<
       CFStringRef st= CGDisplayModeCopyPixelEncoding((CGDisplayModeRef)resid);
       CFStringGetCString(st, (char *)buf, 512, CFStringGetSystemEncoding());
-      if(s!= buf) {
+      if(s!= (char *)buf) {
         CFRelease(st);
         continue;
       }
@@ -1767,7 +1767,7 @@ void osiDisplay::populate() {
       CFStringRef st= CGDisplayModeCopyPixelEncoding((CGDisplayModeRef)resid);
       CFStringGetCString(st, (char *)buf, 512, CFStringGetSystemEncoding());
 
-      if(s!= buf) {
+      if(s!= (char *)buf) {
         CFRelease(st);
         continue;
       }

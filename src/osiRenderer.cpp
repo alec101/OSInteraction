@@ -543,13 +543,13 @@ bool _getContextFuncs(osiMonitor *m, osiRenderer *r) {
       } /// for each character in current ext string
 
       /// WGL_ARB_create_context #55 / WGL_ARB_create_context_profile #74 http://www.opengl.org/registry/specs/ARB/wgl_create_context.txt
-      if(!strcmp8(buf, r->glARBlist[54].desc) || !strcmp8(buf, "WGL_ARB_create_context_profile"))
+      if(!strcmp8((cchar *)buf, r->glARBlist[54].desc) || !strcmp8((cchar *)buf, "WGL_ARB_create_context_profile"))
       { r->glARBlist[54].avaible= 1; r->glARBlist[73].avaible= 1; }
       /// WGL_ARB_pixel_format #9 https://www.opengl.org/registry/specs/ARB/wgl_pixel_format.txt
-      if(!strcmp8(buf, r->glARBlist[8].desc))
+      if(!strcmp8((cchar *)buf, r->glARBlist[8].desc))
       { r->glARBlist[8].avaible= 1;}
       /// GLX_ARB_create_context #56 / GLX_ARB_create_context_profile #75 
-      if(!strcmp8(buf, r->glARBlist[55].desc) || !strcmp8(buf, "GLX_ARB_create_context_profile"))
+      if(!strcmp8((cchar *)buf, r->glARBlist[55].desc) || !strcmp8((cchar *)buf, "GLX_ARB_create_context_profile"))
       { r->glARBlist[55].avaible= 1; r->glARBlist[74].avaible= 1; }
 
       if(*p== '\0') break;        /// reached the end
@@ -578,13 +578,13 @@ bool _getContextFuncs(osiMonitor *m, osiRenderer *r) {
       if (error != GL_NO_ERROR) printf("OpenGL Error: %d\n", error);
 
       /// WGL_ARB_create_context / WGL_ARB_create_context_profile http://www.opengl.org/registry/specs/ARB/wgl_create_context.txt
-      if(!strcmp8(ext, r->glARBlist[54].desc) || !strcmp8(ext, "WGL_ARB_create_context_profile"))
+      if(!strcmp8((cchar *)ext, r->glARBlist[54].desc) || !strcmp8((cchar *)ext, "WGL_ARB_create_context_profile"))
       { r->glARBlist[54].avaible= 1; r->glARBlist[73].avaible= 1; }
       /// WGL_ARB_pixel_format #9 https://www.opengl.org/registry/specs/ARB/wgl_pixel_format.txt
-      if(!strcmp8(ext, r->glARBlist[8].desc))
+      if(!strcmp8((cchar *)ext, r->glARBlist[8].desc))
       { r->glARBlist[8].avaible= 1;}
       /// GLX_ARB_create_context / GLX_ARB_create_context_profile 
-      if(!strcmp8(ext, r->glARBlist[55].desc) || !strcmp8(ext, "GLX_ARB_create_context_profile"))
+      if(!strcmp8((cchar *)ext, r->glARBlist[55].desc) || !strcmp8((cchar *)ext, "GLX_ARB_create_context_profile"))
       { r->glARBlist[55].avaible= 1; r->glARBlist[74].avaible= 1; }
     }
   } // ogl <3 or 3>
@@ -617,13 +617,13 @@ bool _getContextFuncs(osiMonitor *m, osiRenderer *r) {
     } /// for each character in current ext string
 
     /// WGL_ARB_create_context #55 / WGL_ARB_create_context_profile #74 http://www.opengl.org/registry/specs/ARB/wgl_create_context.txt
-    if(!strcmp8(buf, r->glARBlist[54].desc) || !strcmp8(buf, "WGL_ARB_create_context_profile"))
+    if(!strcmp8((cchar *)buf, r->glARBlist[54].desc) || !strcmp8((cchar *)buf, "WGL_ARB_create_context_profile"))
     { r->glARBlist[54].avaible= 1; r->glARBlist[73].avaible= 1; }
     /// WGL_ARB_pixel_format #9 https://www.opengl.org/registry/specs/ARB/wgl_pixel_format.txt
-    if(!strcmp8(buf, r->glARBlist[8].desc))
+    if(!strcmp8((cchar *)buf, r->glARBlist[8].desc))
     { r->glARBlist[8].avaible= 1;}
     /// GLX_ARB_create_context #56 / GLX_ARB_create_context_profile #75 
-    if(!strcmp8(buf, r->glARBlist[55].desc) || !strcmp8(buf, "GLX_ARB_create_context_profile"))
+    if(!strcmp8((cchar *)buf, r->glARBlist[55].desc) || !strcmp8((cchar *)buf, "GLX_ARB_create_context_profile"))
     { r->glARBlist[55].avaible= 1; r->glARBlist[74].avaible= 1; }
 
     if(*p== '\0') break;        /// reached the end
@@ -1064,9 +1064,9 @@ void osiRenderer::checkExt() {
 
   
   /// basic renderer characteristics
-  glVendor= (cuint8 *)glGetString(GL_VENDOR);                    /// graphics card vendor string
-  glRenderer= (cuint8 *)glGetString(GL_RENDERER);                /// oGL 'renderer' string
-  glVersion= (cuint8 *)glGetString(GL_VERSION);                  /// oGL version in a string format
+  glVendor= (cchar *)glGetString(GL_VENDOR);                    /// graphics card vendor string
+  glRenderer= (cchar *)glGetString(GL_RENDERER);                /// oGL 'renderer' string
+  glVersion= (cchar *)glGetString(GL_VERSION);                  /// oGL version in a string format
   #ifdef OS_MAC
   CGLGetVersion(&glVerMajor, &glVerMinor);
   #else 
