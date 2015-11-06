@@ -1198,6 +1198,9 @@ char32_t Str::tolower(char32_t c) {
   /// check for Latin-1 characters (ASCII)
   if(c>= 0x41 && c<= 0x5A)
     return c+ 0x20;
+  /// quick check if the char is already lowercase ASCII
+  if(c>= 0x61 && c<= 0x7A)
+    return c;
 
   int min= 0;
   int max= sizeof(_cu2l)/ sizeof(struct _L2U)- 1;
@@ -1223,6 +1226,9 @@ char32_t Str::toupper(char32_t c) {
   /// check for Latin-1 characters (ASCII)
   if(c>= 0x61 && c<= 0x7A)
     return c- 0x20;
+  /// quick check if the char is already uppercase ASCII
+  if(c>= 0x41 && c<= 0x5A)
+    return c;
 
   int min= 0;
   int max= sizeof(_cl2u)/ sizeof(struct _L2U)- 1;

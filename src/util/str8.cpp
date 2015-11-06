@@ -391,42 +391,41 @@ str8 &str8::operator=(const char32_t *s) {
     int32_t m= wrapSize- 1;
     for(p1= (uint8_t *)d, p2= (uint32_t *)s; *p2; p2++) {
       /// compress unicode value into utf-8
-      if       (*p2<= 0x0000007F) {   //  1 byte   U-00000000�U-0000007F:  0xxxxxxx 
+      if       (*p2<= 0x0000007F) {      //  1 byte   U-00000000�U-0000007F:  0xxxxxxx 
         if((++len)> m) { --len; break; }
         *p1++= (uint8_t) *p2;
-      } else if(*p2<= 0x000007FF) {   //  2 bytes  U-00000080->U-000007FF:  110xxxxx 10xxxxxx 
+      } else if(*p2<= 0x000007FF) {     //  2 bytes  U-00000080->U-000007FF:  110xxxxx 10xxxxxx 
         if((len+= 2)> m) { len-= 2; break; }
         *p1++= (uint8_t) (*p2>> 6)        | 0xC0;    /// [BYTE 1]       >> 6= 000xxxxx 00000000  then header | c0 (11000000)
         *p1++= (uint8_t) (*p2&       0x3f)| 0x80;    /// [BYTE 2]         3f= 00000000 00xxxxxx  then header | 80 (10000000)
-      } else if(*p2<= 0x0000FFFF) {   //  3 bytes  U-00000800->U-0000FFFF:  1110xxxx 10xxxxxx 10xxxxxx 
+      } else if(*p2<= 0x0000FFFF) {     //  3 bytes  U-00000800->U-0000FFFF:  1110xxxx 10xxxxxx 10xxxxxx 
         if((len+= 3)> m) { len-= 3; break; }
         *p1++= (uint8_t) (*p2>> 12)       | 0xE0;    /// [BYTE 1]      >> 12= 0000xxxx 00000000 00000000  then header | e0 (11100000)
         *p1++= (uint8_t)((*p2>> 6)&  0x3F)| 0x80;    /// [BYTE 2]  >> 6 & 3f= 00000000 00xxxxxx 00000000  then header | 80 (10000000)
         *p1++= (uint8_t) (*p2&       0x3F)| 0x80;    /// [BYTE 3]       & 3f= 00000000 00000000 00xxxxxx  then header | 80 (10000000)
-      } else if(*p2<= 0x001FFFFF) {   // 4 bytes U-00010000->U-001FFFFF:    11110xxx 10xxxxxx 10xxxxxx 10xxxxxx 
+      } else if(*p2<= 0x001FFFFF) {     // 4 bytes U-00010000->U-001FFFFF:    11110xxx 10xxxxxx 10xxxxxx 10xxxxxx 
         if((len+= 4)> m) { len-= 4; break; }
         *p1++= (uint8_t) (*p2>> 18)       | 0xF0;    /// [BYTE 1]      >> 18= 00000xxx 00000000 00000000 00000000  then header | f0 (11110000)
         *p1++= (uint8_t)((*p2>> 12)& 0x3F)| 0x80;    /// [BYTE 2] >> 12 & 3f= 00000000 00xxxxxx 00000000 00000000  then header | 80 (10000000)
         *p1++= (uint8_t)((*p2>>  6)& 0x3F)| 0x80;    /// [BYTE 3] >>  6 & 3f= 00000000 00000000 00xxxxxx 00000000  then header | 80 (10000000)
         *p1++= (uint8_t) (*p2&       0x3F)| 0x80;    /// [BYTE 4]       & 3f= 00000000 00000000 00000000 00xxxxxx  then header | 80 (10000000)
-      } else continue;
       // last 2 bytes, UNUSED by utf ATM, but there be the code
-      ///else if(*p2<= 0x03FFFFFF) {   //  5 bytes U-00200000->U-03FFFFFF:   111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 
-        ///if((len+= 5)> m) { len-= 5; break; }
-        ///*p1++= (uint8_t) (*p2>> 24)       | 0xF8;    /// [BYTE 1]      >> 24= 000000xx 00000000 00000000 00000000 00000000  then header | f8 (11111000)
-        ///*p1++= (uint8_t)((*p2>> 18)& 0x3f)| 0x80;    /// [BYTE 2] >> 18 & 3f= 00000000 00xxxxxx 00000000 00000000 00000000  then header | 80 (10000000)
-        ///*p1++= (uint8_t)((*p2>> 12)& 0x3f)| 0x80;    /// [BYTE 3] >> 12 & 3f= 00000000 00000000 00xxxxxx 00000000 00000000  then header | 80 (10000000)
-        ///*p1++= (uint8_t)((*p2>>  6)& 0x3f)| 0x80;    /// [BYTE 4] >>  6 & 3f= 00000000 00000000 00000000 00xxxxxx 00000000  then header | 80 (10000000)
-        ///*p1++= (uint8_t) (*p2&       0x3f)| 0x80;    /// [BYTE 5]       & 3f= 00000000 00000000 00000000 00000000 00xxxxxx  then header | 80 (10000000)
-      ///} else if(*p2<= 0x7FFFFFFF) {   //  6 bytes U-04000000->U-7FFFFFFF:   1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
-        ///if((len+= 6)> m) { len-= 6; break; }
-        ///*p1++= (uint8_t) (*p2>> 30)       | 0xFC;    /// [BYTE 1]      >> 30= 0000000x 00000000 00000000 00000000 00000000 00000000  then header | fc (11111100)
-        ///*p1++= (uint8_t)((*p2>> 24)& 0x3f)| 0x80;    /// [BYTE 2] >> 24 & 3f= 00000000 00xxxxxx 00000000 00000000 00000000 00000000  then header | 80 (10000000)
-        ///*p1++= (uint8_t)((*p2>> 18)& 0x3f)| 0x80;    /// [BYTE 3] >> 18 & 3f= 00000000 00000000 00xxxxxx 00000000 00000000 00000000  then header | 80 (10000000)
-        ///*p1++= (uint8_t)((*p2>> 12)& 0x3f)| 0x80;    /// [BYTE 4] >> 12 & 3f= 00000000 00000000 00000000 00xxxxxx 00000000 00000000  then header | 80 (10000000)
-        ///*p1++= (uint8_t)((*p2>>  6)& 0x3f)| 0x80;    /// [BYTE 5] >>  6 & 3f= 00000000 00000000 00000000 00000000 00xxxxxx 00000000  then header | 80 (10000000)
-        ///*p1++= (uint8_t) (*p2&       0x3f)| 0x80;    /// [BYTE 6]         3f= 00000000 00000000 00000000 00000000 00000000 00xxxxxx  then header | 80 (10000000)
-      ///} else continue;
+      } else if(*p2<= 0x03FFFFFF) {     //  5 bytes U-00200000->U-03FFFFFF:   111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 
+        if((len+= 5)> m) { len-= 5; break; }
+        *p1++= (uint8_t) (*p2>> 24)       | 0xF8;    /// [BYTE 1]      >> 24= 000000xx 00000000 00000000 00000000 00000000  then header | f8 (11111000)
+        *p1++= (uint8_t)((*p2>> 18)& 0x3f)| 0x80;    /// [BYTE 2] >> 18 & 3f= 00000000 00xxxxxx 00000000 00000000 00000000  then header | 80 (10000000)
+        *p1++= (uint8_t)((*p2>> 12)& 0x3f)| 0x80;    /// [BYTE 3] >> 12 & 3f= 00000000 00000000 00xxxxxx 00000000 00000000  then header | 80 (10000000)
+        *p1++= (uint8_t)((*p2>>  6)& 0x3f)| 0x80;    /// [BYTE 4] >>  6 & 3f= 00000000 00000000 00000000 00xxxxxx 00000000  then header | 80 (10000000)
+        *p1++= (uint8_t) (*p2&       0x3f)| 0x80;    /// [BYTE 5]       & 3f= 00000000 00000000 00000000 00000000 00xxxxxx  then header | 80 (10000000)
+      } else if(*p2<= 0x7FFFFFFF) {     //  6 bytes U-04000000->U-7FFFFFFF:   1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
+        if((len+= 6)> m) { len-= 6; break; }
+        *p1++= (uint8_t) (*p2>> 30)       | 0xFC;    /// [BYTE 1]      >> 30= 0000000x 00000000 00000000 00000000 00000000 00000000  then header | fc (11111100)
+        *p1++= (uint8_t)((*p2>> 24)& 0x3f)| 0x80;    /// [BYTE 2] >> 24 & 3f= 00000000 00xxxxxx 00000000 00000000 00000000 00000000  then header | 80 (10000000)
+        *p1++= (uint8_t)((*p2>> 18)& 0x3f)| 0x80;    /// [BYTE 3] >> 18 & 3f= 00000000 00000000 00xxxxxx 00000000 00000000 00000000  then header | 80 (10000000)
+        *p1++= (uint8_t)((*p2>> 12)& 0x3f)| 0x80;    /// [BYTE 4] >> 12 & 3f= 00000000 00000000 00000000 00xxxxxx 00000000 00000000  then header | 80 (10000000)
+        *p1++= (uint8_t)((*p2>>  6)& 0x3f)| 0x80;    /// [BYTE 5] >>  6 & 3f= 00000000 00000000 00000000 00000000 00xxxxxx 00000000  then header | 80 (10000000)
+        *p1++= (uint8_t) (*p2&       0x3f)| 0x80;    /// [BYTE 6]         3f= 00000000 00000000 00000000 00000000 00000000 00xxxxxx  then header | 80 (10000000)
+      } else continue;
       nrUnicodes++;
     } /// for each unicode value in source string
     len++;
@@ -439,46 +438,45 @@ str8 &str8::operator=(const char32_t *s) {
       else if(*p2<= 0x000007FF) len+= 2;  /// 2 bytes U-00000080->U-000007FF:  110xxxxx 10xxxxxx 
       else if(*p2<= 0x0000FFFF) len+= 3;  /// 3 bytes U-00000800->U-0000FFFF:  1110xxxx 10xxxxxx 10xxxxxx 
       else if(*p2<= 0x001FFFFF) len+= 4;  /// 4 bytes U-00010000->U-001FFFFF:  11110xxx 10xxxxxx 10xxxxxx 10xxxxxx 
-      ///else if(*p2<= 0x03FFFFFF) len+= 5;  /// 5 bytes U-00200000->U-03FFFFFF:  111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 
-      ///else if(*p2<= 0x7FFFFFFF) len+= 6;  /// 6 bytes U-04000000->U-7FFFFFFF:  1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
+      else if(*p2<= 0x03FFFFFF) len+= 5;  /// 5 bytes U-00200000->U-03FFFFFF:  111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 
+      else if(*p2<= 0x7FFFFFFF) len+= 6;  /// 6 bytes U-04000000->U-7FFFFFFF:  1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
     }
-    nrUnicodes= (int32_t)(p2- (uint32_t *)s- 1);
+    nrUnicodes= (int32_t)(p2- (uint32_t *)s);
     len++;                          /// space for terminator
   
     d= (char *)new uint8_t[len];
 
     for(p1= (uint8_t *)d, p2= (uint32_t *)s; *p2; p2++)
       ///  p1+= Str::utf32to8(*p2, p1);
-      if       (*p2<= 0x0000007F) {   //  1 byte   U-00000000�U-0000007F:  0xxxxxxx 
+      if       (*p2<= 0x0000007F) {     //  1 byte   U-00000000->U-0000007F:  0xxxxxxx 
         *p1++= (uint8_t) *p2;
-      } else if(*p2<= 0x000007FF) {   //  2 bytes  U-00000080->U-000007FF:  110xxxxx 10xxxxxx 
+      } else if(*p2<= 0x000007FF) {     //  2 bytes  U-00000080->U-000007FF:  110xxxxx 10xxxxxx 
         *p1++= (uint8_t) (*p2>> 6)        | 0xC0;    /// [BYTE 1]       >> 6= 000xxxxx 00000000  then header | c0 (11000000)
         *p1++= (uint8_t) (*p2&       0x3f)| 0x80;    /// [BYTE 2]         3f= 00000000 00xxxxxx  then header | 80 (10000000)
-      } else if(*p2<= 0x0000FFFF) {   //  3 bytes  U-00000800->U-0000FFFF:  1110xxxx 10xxxxxx 10xxxxxx 
+      } else if(*p2<= 0x0000FFFF) {     //  3 bytes  U-00000800->U-0000FFFF:  1110xxxx 10xxxxxx 10xxxxxx 
         *p1++= (uint8_t) (*p2>> 12)       | 0xE0;    /// [BYTE 1]      >> 12= 0000xxxx 00000000 00000000  then header | e0 (11100000)
         *p1++= (uint8_t)((*p2>> 6)&  0x3F)| 0x80;    /// [BYTE 2]  >> 6 & 3f= 00000000 00xxxxxx 00000000  then header | 80 (10000000)
         *p1++= (uint8_t) (*p2&       0x3F)| 0x80;    /// [BYTE 3]       & 3f= 00000000 00000000 00xxxxxx  then header | 80 (10000000)
-      } else if(*p2<= 0x001FFFFF) {   // 4 bytes U-00010000->U-001FFFFF:    11110xxx 10xxxxxx 10xxxxxx 10xxxxxx 
+      } else if(*p2<= 0x001FFFFF) {     // 4 bytes U-00010000->U-001FFFFF:    11110xxx 10xxxxxx 10xxxxxx 10xxxxxx 
         *p1++= (uint8_t) (*p2>> 18)       | 0xF0;    /// [BYTE 1]      >> 18= 00000xxx 00000000 00000000 00000000  then header | f0 (11110000)
         *p1++= (uint8_t)((*p2>> 12)& 0x3F)| 0x80;    /// [BYTE 2] >> 12 & 3f= 00000000 00xxxxxx 00000000 00000000  then header | 80 (10000000)
         *p1++= (uint8_t)((*p2>>  6)& 0x3F)| 0x80;    /// [BYTE 3] >>  6 & 3f= 00000000 00000000 00xxxxxx 00000000  then header | 80 (10000000)
         *p1++= (uint8_t) (*p2&       0x3F)| 0x80;    /// [BYTE 4]       & 3f= 00000000 00000000 00000000 00xxxxxx  then header | 80 (10000000)
-      } else continue;
       // last 2 bytes, UNUSED by utf ATM, but there be the code
-      ///else if(*p2<= 0x03FFFFFF) {   //  5 bytes U-00200000->U-03FFFFFF:   111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 
-        ///*p1++= (uint8_t) (*p2>> 24)       | 0xF8;    /// [BYTE 1]      >> 24= 000000xx 00000000 00000000 00000000 00000000  then header | f8 (11111000)
-        ///*p1++= (uint8_t)((*p2>> 18)& 0x3f)| 0x80;    /// [BYTE 2] >> 18 & 3f= 00000000 00xxxxxx 00000000 00000000 00000000  then header | 80 (10000000)
-        ///*p1++= (uint8_t)((*p2>> 12)& 0x3f)| 0x80;    /// [BYTE 3] >> 12 & 3f= 00000000 00000000 00xxxxxx 00000000 00000000  then header | 80 (10000000)
-        ///*p1++= (uint8_t)((*p2>>  6)& 0x3f)| 0x80;    /// [BYTE 4] >>  6 & 3f= 00000000 00000000 00000000 00xxxxxx 00000000  then header | 80 (10000000)
-        ///*p1++= (uint8_t) (*p2&       0x3f)| 0x80;    /// [BYTE 5]       & 3f= 00000000 00000000 00000000 00000000 00xxxxxx  then header | 80 (10000000)
-      ///} else if(*p2<= 0x7FFFFFFF) {   //  6 bytes U-04000000->U-7FFFFFFF:   1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
-        ///*p1++= (uint8_t) (*p2>> 30)       | 0xFC;    /// [BYTE 1]      >> 30= 0000000x 00000000 00000000 00000000 00000000 00000000  then header | fc (11111100)
-        ///*p1++= (uint8_t)((*p2>> 24)& 0x3f)| 0x80;    /// [BYTE 2] >> 24 & 3f= 00000000 00xxxxxx 00000000 00000000 00000000 00000000  then header | 80 (10000000)
-        ///*p1++= (uint8_t)((*p2>> 18)& 0x3f)| 0x80;    /// [BYTE 3] >> 18 & 3f= 00000000 00000000 00xxxxxx 00000000 00000000 00000000  then header | 80 (10000000)
-        ///*p1++= (uint8_t)((*p2>> 12)& 0x3f)| 0x80;    /// [BYTE 4] >> 12 & 3f= 00000000 00000000 00000000 00xxxxxx 00000000 00000000  then header | 80 (10000000)
-        ///*p1++= (uint8_t)((*p2>>  6)& 0x3f)| 0x80;    /// [BYTE 5] >>  6 & 3f= 00000000 00000000 00000000 00000000 00xxxxxx 00000000  then header | 80 (10000000)
-        ///*p1++= (uint8_t) (*p2&       0x3f)| 0x80;    /// [BYTE 6]         3f= 00000000 00000000 00000000 00000000 00000000 00xxxxxx  then header | 80 (10000000)
-      ///}
+      } else if(*p2<= 0x03FFFFFF) {     //  5 bytes U-00200000->U-03FFFFFF:   111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 
+        *p1++= (uint8_t) (*p2>> 24)       | 0xF8;    /// [BYTE 1]      >> 24= 000000xx 00000000 00000000 00000000 00000000  then header | f8 (11111000)
+        *p1++= (uint8_t)((*p2>> 18)& 0x3f)| 0x80;    /// [BYTE 2] >> 18 & 3f= 00000000 00xxxxxx 00000000 00000000 00000000  then header | 80 (10000000)
+        *p1++= (uint8_t)((*p2>> 12)& 0x3f)| 0x80;    /// [BYTE 3] >> 12 & 3f= 00000000 00000000 00xxxxxx 00000000 00000000  then header | 80 (10000000)
+        *p1++= (uint8_t)((*p2>>  6)& 0x3f)| 0x80;    /// [BYTE 4] >>  6 & 3f= 00000000 00000000 00000000 00xxxxxx 00000000  then header | 80 (10000000)
+        *p1++= (uint8_t) (*p2&       0x3f)| 0x80;    /// [BYTE 5]       & 3f= 00000000 00000000 00000000 00000000 00xxxxxx  then header | 80 (10000000)
+      } else if(*p2<= 0x7FFFFFFF) {     //  6 bytes U-04000000->U-7FFFFFFF:   1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
+        *p1++= (uint8_t) (*p2>> 30)       | 0xFC;    /// [BYTE 1]      >> 30= 0000000x 00000000 00000000 00000000 00000000 00000000  then header | fc (11111100)
+        *p1++= (uint8_t)((*p2>> 24)& 0x3f)| 0x80;    /// [BYTE 2] >> 24 & 3f= 00000000 00xxxxxx 00000000 00000000 00000000 00000000  then header | 80 (10000000)
+        *p1++= (uint8_t)((*p2>> 18)& 0x3f)| 0x80;    /// [BYTE 3] >> 18 & 3f= 00000000 00000000 00xxxxxx 00000000 00000000 00000000  then header | 80 (10000000)
+        *p1++= (uint8_t)((*p2>> 12)& 0x3f)| 0x80;    /// [BYTE 4] >> 12 & 3f= 00000000 00000000 00000000 00xxxxxx 00000000 00000000  then header | 80 (10000000)
+        *p1++= (uint8_t)((*p2>>  6)& 0x3f)| 0x80;    /// [BYTE 5] >>  6 & 3f= 00000000 00000000 00000000 00000000 00xxxxxx 00000000  then header | 80 (10000000)
+        *p1++= (uint8_t) (*p2&       0x3f)| 0x80;    /// [BYTE 6]         3f= 00000000 00000000 00000000 00000000 00000000 00xxxxxx  then header | 80 (10000000)
+      } else continue;
   }
       
   *p1= 0;         /// string terminator
