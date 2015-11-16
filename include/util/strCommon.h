@@ -169,33 +169,38 @@ namespace Str {
 
   // utility
 
-  inline void memclr(void *dst, uint32_t n, uint8_t v= 0) { for(uint8_t *p= (uint8_t *)dst; n> 0; n--) *p++= v; }
+  inline void memclr(void *dst, uint32_t n, uint8_t v= 0) {
+    uint64_t *p1;
+    uint8_t *p2;
+    uint32_t i;
 
-  // copies 1 byte at a time
-  inline void memcpy(void *dst, const void *src, uint32_t n) { for(int8_t *p= (int8_t *)dst, *t= (int8_t *)src; n> 0; n--) *p++= *t++; }
-  // copies 4 bytes at a time - better for bigger memory copy operations
-  inline void memcpy32(void *dst, const void *src, uint32_t n) {
-    uint32_t i, *p1, *p2;
-    uint8_t *p3, *p4;
-
-    for(i= n/ 4, p1= (uint32_t *)dst, p2= (uint32_t *)src; i; )
-      *p1++= *p2++, i--;
-
-    for(i= n% 4, p3= (uint8_t *)p1,   p4= (uint8_t *)p2;   i; )
-      *p3++= *p4++, i--;
+    for(i= n/ 8, p1= (uint64_t *)dst; i; i--)
+      *p1++= v;
+    for(i= n% 8, p2= (uint8_t *)p1; i; i--)
+      *p2++= v;
   }
 
-  // copies 8 bytes at a time - better for bigger memory copy operations
-  inline void memcpy64(void *dst, const void *src, uint64_t n) {
-    uint64_t i, *p1, *p2;
-    uint8_t *p3, *p4;
+  // copies 8 bytes at a time - 2x- 3x slower than Microsoft memcpy
+  inline void memcpy(void *dst, const void *src, uint64_t n) {
+    if(dst< src) {
+      
+      uint64_t *p1= (uint64_t *)dst, *p2= (uint64_t *)src;
+      while(n>= 8)                /// 8 bytes at a time copy
+        *p1++= *p2++, n-= 8;
 
-    for(i= n/ 8, p1= (uint64_t *)dst, p2= (uint64_t *)src; i;)
-      *p1++= *p2++, i--;
+      uint8_t *p3= (uint8_t *)p1, *p4= (uint8_t *)p2;
+      while(n)                    /// rest of bytes 1 by 1 (max 7)
+        *p3++= *p4++, n--;
 
-    for(i= n% 8, p3= (uint8_t *)p1, p4= (uint8_t *)p2; i; )
-      *p3++= *p4++, i--;
+    } else {
+      uint64_t *p1= (uint64_t *)dst+ n, *p2= (uint64_t *)src+ n;
+      while(n>= 8)                /// 8 bytes at a time copy
+        *--p1= *--p2, n-= 8;
 
+      uint8_t *p3= (uint8_t *)p1, *p4= (uint8_t *)p2;
+      while(n)                    /// rest of bytes 1 by 1 (max 7)
+        *--p3= *--p4, n--;
+    }
   }
 
   // other versions: 

@@ -1,7 +1,7 @@
 
 #ifdef _WIN32
-#define OS_WIN
-#define USING_DIRECTINPUT     // << DISABLE / ENABLE
+#define OS_WIN 1
+#define USING_DIRECTINPUT 1    // << DISABLE / ENABLE
 #include <windows.h>
 
 
@@ -14,16 +14,16 @@
 #endif /// OS_WIN
 
 #ifdef __linux__
-#define OS_LINUX
+#define OS_LINUX 1
 #include <X11/Xlib.h>
 #endif /// OS_LINUX
 
 #ifdef __APPLE__
-#define OS_MAC
+#define OS_MAC 1
 #include <CoreFoundation/CoreFoundation.h>
 #endif /// OS_APPLE
 
-#define USING_OPENGL
+#define USING_OPENGL 1
 #ifdef USING_OPENGL
 #ifdef __APPLE__
 #include <OpenGL/gl.h>
@@ -41,15 +41,13 @@
 #include "util/errorHandling.h"
 
 
-#ifdef USING_CONSOLE          // project defined
-#include "Console.h"
-extern Console console;
-#endif
+void _consoleFunc_notLoaded(cchar *txt, bool exit= false, void (*exitFunc)(void)= NULL);
 
 
 ErrorHandling::ErrorHandling() {
   useConsoleFlag= false;
   useWindowsFlag= true;
+  console= _consoleFunc_notLoaded;
 }
 
 ErrorHandling::~ErrorHandling() {
@@ -67,14 +65,15 @@ void ErrorHandling::glFlushErrors() { glGetError(); }
 
 void ErrorHandling::simple(cchar *txt, bool exit, void (*exitFunc)(void)) {
 
-// print to ConsoleClass
+  // print to ConsoleClass
   if(useConsoleFlag) {
-    console(txt, false);          /// if the error is critical, it will exit after it prints to terminal/window
+
+    console(txt, false, exitFunc); /// if the error is critical, it will exit after it prints to terminal/window
     if(!exit)
       return;
   }
 
-// use of a window
+  // use of a window
   if(useWindowsFlag) {
     if(exit || !useConsoleFlag)   /// if the ConsoleClass was used, it wont create a window unless the error is critical
       window(txt, exit, exitFunc);
@@ -85,21 +84,27 @@ void ErrorHandling::simple(cchar *txt, bool exit, void (*exitFunc)(void)) {
   terminal(txt, exit, exitFunc);
 }
 
+void ErrorHandling::detail(const char *txt, const char *func, int line, bool exit, void (*exitFunc)(void)) {
+  str8 s;
+  if(func)    s+= str8().f("f[%s] ", func);
+  if(line> 0) s+= str8().f("l[%d] ", line);
+  if(txt)     s+= txt;
 
-void ErrorHandling::console(cchar *txt, bool exit, void (*exitFunc)(void)) {
-#ifdef USING_CONSOLE
-  console.print(txt);
+  simple(s, exit, exitFunc);
+}
+
+
+void _consoleFunc_notLoaded(cchar *txt, bool exit, void (*exitFunc)(void)) {
+  // same as the terminal func
+  printf("%s\n", txt);
   if(exit) {
     if(exitFunc)
       (*exitFunc)();
-    ::exit(EXIT_FAILURE);
+    else
+      abort();    // this is the best option, it triggers a breakpoint+ callstack that point exactly to the source
+    //::exit(EXIT_FAILURE);
   }
-  return;
-#endif /// USING_CONSOLE
-  printf("ConsoleClass not loaded, mate...\n");
-  terminal(txt, exit, exitFunc);
 }
-
 
 void ErrorHandling::window(cchar *txt, bool exit, void (*exitFunc)(void)) {
   #ifdef OS_WIN
@@ -107,7 +112,9 @@ void ErrorHandling::window(cchar *txt, bool exit, void (*exitFunc)(void)) {
   if(exit) {
     if(exitFunc)
       (*exitFunc)();
-    ::exit(EXIT_FAILURE);
+    else
+      abort();    // this is the best option, it triggers a breakpoint+ callstack that point exactly to the source
+    //::exit(EXIT_FAILURE);
     //::PostQuitMessage(1); // ??????????
   }
   return;
@@ -119,7 +126,9 @@ void ErrorHandling::window(cchar *txt, bool exit, void (*exitFunc)(void)) {
   if(exit) {
     if(exitFunc)
       (*exitFunc)();
-    ::exit(EXIT_FAILURE);
+    else 
+      abort();    // this is the best option, it triggers a breakpoint+ callstack that point exactly to the source
+    //::exit(EXIT_FAILURE);
   }
 
   return;
@@ -135,7 +144,9 @@ void ErrorHandling::window(cchar *txt, bool exit, void (*exitFunc)(void)) {
   if(exit) {
     if(exitFunc)
       (*exitFunc)();
-    _exit(EXIT_FAILURE);
+    else
+      abort();    // this is the best option, it triggers a breakpoint+ callstack that point exactly to the source
+    //_exit(EXIT_FAILURE);
   }
   return;
   #endif ///OS_MAC
@@ -150,7 +161,9 @@ void ErrorHandling::terminal(cchar *txt, bool exit, void (*exitFunc)(void)) {
   if(exit) {
     if(exitFunc)
       (*exitFunc)();
-    ::exit(EXIT_FAILURE);
+    else
+      abort();    // this is the best option, it triggers a breakpoint+ callstack that point exactly to the source
+    //::exit(EXIT_FAILURE);
   }
 }
 
@@ -306,7 +319,7 @@ void ErrorHandling::dinput(int32 n) {
 
 
 #ifdef USING_OPENGL
-int ErrorHandling::glError(cchar *text) {
+int ErrorHandling::glError(cchar *text, bool exit) {
   int ret= glGetError();
   if(!ret) return 0;        // fast return if no error
 
@@ -327,8 +340,7 @@ int ErrorHandling::glError(cchar *text) {
   else if(ret== GL_STACK_OVERFLOW)
     simple((s+= "GL_STACK_OVERFLOW"));
   else
-    simple((s.f("%s Unknown [%d]", s.d, ret)));
-
+    simple((s.f("%s Unknown [%d]", s.d, ret)), exit);
   return ret;  
 }
 #endif /// USING_OPENGL

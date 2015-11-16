@@ -7,9 +7,12 @@
 
 //TODO:
 /*
+ * when formatting is done, a null check for string that is set to null would print null. or something
  * think about operator==: when comparing a NULL pointer to a wrapped no unicode inside string? too much? maybe
 */
-using namespace Str;
+
+
+//using namespace Str;
 
 /// character case change helper structs (initialized at the back of the file)
 struct _L2U {
@@ -31,8 +34,8 @@ void _parseUTF8(const char *str, int32_t *outChars= NULL, int32_t *outCombs= NUL
 
       (*punicodes)++;
 
-      if(isComb(utf8to32((char *)p))) (*pcombs)++;
-      else                            (*pchars)++;
+      if(Str::isComb(Str::utf8to32((char *)p))) (*pcombs)++;
+      else                                      (*pchars)++;
     }
 }      
 
@@ -48,14 +51,14 @@ void _parseUTF16(const char16_t *str, int32_t *outChars= NULL, int32_t *outCombs
   *psurrogates= false;
 
   for(uint16_t *p= (uint16_t *)str; *p; p++)
-    if(!isLowSurrogate(*p)) {
+    if(!Str::isLowSurrogate(*p)) {
       (*punicodes)++;
-      if(isComb(utf16to32((char16_t *)p)))
+      if(Str::isComb(Str::utf16to32((char16_t *)p)))
         (*pcombs)++;
       else
         (*pchars)++;
 
-      if(isSurrogate(*p))
+      if(Str::isSurrogate(*p))
         *psurrogates= true;
     }
 }
@@ -70,8 +73,8 @@ void _parseUTF32(const char32_t *str, int32_t *outChars= NULL, int32_t *outCombs
 
   for(uint32_t *p= (uint32_t *)str; *p; p++) {
     (*punicodes)++;
-    if(isComb(*p)) (*pcombs)++;
-    else           (*pchars)++;
+    if(Str::isComb(*p)) (*pcombs)++;
+    else                (*pchars)++;
   }
 }
 
@@ -89,7 +92,7 @@ char32_t _secure16to32advance(const char16_t **in_str) {
   char32_t c= 0;
   const uint16_t *p= (const uint16_t *)*in_str;
 
-  if(isHighSurrogate(*p)) {               // [security check] next byte must be avaible
+  if(Str::isHighSurrogate(*p)) {          // [security check] next byte must be avaible
     if(!*(p+ 1)) {
       (*((uint16_t**)in_str))++;
       return 0xFFFD;
@@ -103,7 +106,7 @@ char32_t _secure16to32advance(const char16_t **in_str) {
     c= (*p<< 10)+ *(p+ 1)+ Str::UTF16_SURROGATE_OFFSET;
     (*((uint16_t**)in_str))+= 2;
       
-  } else if(isLowSurrogate(*p)) {         // [security check] a low surrogate before a high surrogate causes a bad character
+  } else if(Str::isLowSurrogate(*p)) {    // [security check] a low surrogate before a high surrogate causes a bad character
     (*((uint16_t**)in_str))++;
     c= 0xFFFD;
     return 0xFFFD;
@@ -2920,7 +2923,7 @@ int32_t Str::insertStr8(char **out_str, const char *in_str, int32_t in_pos) {
       *p2= *p1, p2++, p1++;
 
   // insert the new string
-  Str::memcpy(p2, p1, n2);
+  memcpy(p2, p1, n2);
   p2+= n2;
 
   /// copy the rest of the string from the source, if there is any left

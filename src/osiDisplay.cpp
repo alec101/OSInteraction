@@ -1415,13 +1415,13 @@ void osiDisplay::populate() {
   int dummy1, dummy2, heads;
   
   if(!XineramaQueryExtension(osi._dis, &dummy1, &dummy2)) {
-    error.console("No Xinerama extension");
+    error.console("No Xinerama extension", false, null);
     _populateGrCards(this);
     return;
   }
   
   if(!XineramaIsActive(osi._dis)) {
-    error.console("Xinerama not active");
+    error.console("Xinerama not active", false, null);
     _populateGrCards(this);
     return;
   }
@@ -1663,8 +1663,8 @@ void osiDisplay::populate() {
       flags= CGDisplayModeGetIOFlags((CGDisplayModeRef)resid);
       if(flags& kDisplayModeInterlacedFlag) continue;
       
-      /// only 32bit resolutions ... SUBJECT OF INTESIVE THINKING... remove 16 bits?! <<<<<<<<<<<<<
-      CFStringRef st= CGDisplayModeCopyPixelEncoding((CGDisplayModeRef)resid);
+      /// only 32bit resolutions ... remove 16 bits?! <<<<<<<<<<<<<
+      CFStringRef st= CGDisplayModeCopyPixelEncoding((CGDisplayModeRef)resid);  // << THIS WAS REMOVED IN 10.11, NO OTHER WAY TO GET BPP ATM
       CFStringGetCString(st, (char *)buf, 512, CFStringGetSystemEncoding());
       
       if(s!= (char *)buf) {
@@ -1729,7 +1729,7 @@ void osiDisplay::populate() {
       if(flags& kDisplayModeInterlacedFlag) continue;
       
       /// only 32bit resolutions ... SUBJECT OF INTESIVE THINKING... remove 16 bits?! <<<<<<<<<<<<<
-      CFStringRef st= CGDisplayModeCopyPixelEncoding((CGDisplayModeRef)resid);
+      CFStringRef st= CGDisplayModeCopyPixelEncoding((CGDisplayModeRef)resid);          // REMOVED IN 10.11, NO WAY TO GET IT ATM, STILL SEEM TO WORK 
       CFStringGetCString(st, (char *)buf, 512, CFStringGetSystemEncoding());
       if(s!= (char *)buf) {
         CFRelease(st);
@@ -1853,7 +1853,7 @@ void _populateGrCards(osiDisplay *display) {
 
   /// find out how many 'displays' are on the system
   int nrDis= d3d->GetAdapterCount();
-  if(!nrDis) { error.console("osiDisplay::populateGrCards(): Direct3D found 0 displays"); return; }
+  if(!nrDis) { error.console("osiDisplay::populateGrCards(): Direct3D found 0 displays", false, null); return; }
 
   // populate disList
   disList= new D3DADAPTER_IDENTIFIER9[nrDis];

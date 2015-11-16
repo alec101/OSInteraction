@@ -102,7 +102,10 @@ main() {
 */
 
 
-
+// this should enable functions that operate on files bigger than 2GB
+#ifndef _LARGEFILE_SOURCE
+#define _LARGEFILE_SOURCE 1
+#endif
 
 
 #ifdef _WIN32
@@ -429,6 +432,9 @@ public:
   
   void setClipboard(const char *in_text);   // sends text to the clipboard/pasteboard - used for copy/paste operations between programs
   bool getClipboard(const char **out_text); // gets text (if any) from the clipbard/pasteboard - used for copy/paste operations between programs (returned text is null if nothing is there) - DO NOT FORGET TO delete[] THE RETURNED TEXT WHEN DONE
+
+  int fseek64(FILE *, int64_t, int);    // normal fseek cannot operate on files bigger than 2GB
+  int64_t ftell64(FILE *);              // normal ftell cannot operate on files bigger than 2GB
 
   // opengl funcs
 

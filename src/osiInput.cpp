@@ -520,7 +520,7 @@ void osiInput::populate(bool scanMouseKeyboard) {
     
     /// this limit to 8 can be changed if neccesary... can't predict what will happen in 10-20 years....
     if(nr.jOS== 8) {
-      error.console("osinput::init: Maximum number of jSticks/gPads/gWheels reached (where did you plug more than 8?)");
+      error.console("osinput::init: Maximum number of jSticks/gPads/gWheels reached (where did you plug more than 8?)", false, null);
       break;
     }
     
@@ -764,7 +764,7 @@ BOOL CALLBACK _diDevCallback(LPCDIDEVICEINSTANCE inst, LPVOID extra) {
   if(in.j[id]._diDevice->SetCooperativeLevel(osi.primWin->_hWnd, DISCL_EXCLUSIVE| DISCL_FOREGROUND)!= DI_OK) fail= true;
 
   if(fail) {
-    error.console("diDevCallback(): couldn't add the new device");
+    error.console("diDevCallback(): couldn't add the new device", false, null);
     if(in.j[id]._diDevice)
       in.j[id]._diDevice->Release();
     in.j[id]._diDevice= null;

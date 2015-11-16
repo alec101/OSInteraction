@@ -82,11 +82,6 @@ public:
   str16 &secureUTF16(const char16_t *, int32_t in_len= 0);  // reading from UNSAFE SOURCES / FILES / INPUT is NOT SAFE. use secureUTF16() to validate a utf-16 string
   str16 &secureUTF32(const char32_t *, int32_t in_len= 0);  // reading from UNSAFE SOURCES / FILES / INPUT is NOT SAFE. use secureUTF32() to validate a utf-32 string
 
-  // these would require stdio.h
-  //void readUTF8(FILE *);             // read all (remaining) file       (SECURE)
-  //void readUTF8n(FILE *, size_t);    // read n characters from file     (SECURE)
-  //void readLineUTF8(FILE *);         // read till end of line (or file) (SECURE)
-
   // combining diacritical characters
 
   void clearCombs();                  // clears all combining diacritical characters from the string

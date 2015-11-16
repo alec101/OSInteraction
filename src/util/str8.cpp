@@ -4,7 +4,7 @@
 #endif
 #endif
 
-#include <stdio.h>            // only for file handling... this might go
+//#include <stdio.h>            // only for file handling... this might go
 #include <stdarg.h>
 #include "util/strCommon.h"
 #include "util/str32.h"
@@ -69,7 +69,7 @@
 
 */
 
-using namespace Str;
+//using namespace Str;
 
 
 /// character case change helper structs (initialized at the back of the file)
@@ -168,7 +168,7 @@ uint8_t fBuf[2048];
 
 str8 &str8::f(const char *format, ...) {
   //m.lock();
-	int32_t l= strlen8(format);
+	int32_t l= Str::strlen8(format);
 	if(l> 2048) {
 		*this= "TOO BIG, FORMAT FAILED";
 		return *this;
@@ -283,7 +283,7 @@ str8 &str8::operator=(const char *s) {
 
   // not wrapping version
   } else {
-    len= strlen8(s);
+    len= Str::strlen8(s);
     d= (char *)new uint8_t[len];
 
     for(p1= (uint8_t *)d, p2= (uint8_t *)s; *p2; ) {
@@ -314,7 +314,7 @@ str8 &str8::operator=(const char16_t *s) {
 
     for(p1= (uint8_t *)d, p2= (uint16_t *)s; *p2; ){
       /// unpack UTF-16 unicode and advance pointer
-      if(isHighSurrogate(*p2))
+      if(Str::isHighSurrogate(*p2))
         c= (*p2<< 10)+ *(p2+ 1)+ Str::UTF16_SURROGATE_OFFSET,  p2+= 2;
       else
         c= *p2,  p2++;
@@ -349,12 +349,12 @@ str8 &str8::operator=(const char16_t *s) {
   } else {
     /// string length in bytes
     for(p2= (uint16_t *)s; *p2;) {
-      if(isHighSurrogate(*p2))
+      if(Str::isHighSurrogate(*p2))
         c= (*p2<< 10)+ *(p2+ 1)+ Str::UTF16_SURROGATE_OFFSET,  p2+= 2;
       else
         c= *p2,  p2++;
       nrUnicodes++;
-      len+= utf8nrBytes(c);
+      len+= Str::utf8nrBytes(c);
     }
     len++;                        /// space for str terminator
     /// alloc mem
@@ -362,7 +362,7 @@ str8 &str8::operator=(const char16_t *s) {
 
     for(p1= (uint8_t *)d, p2= (uint16_t *)s; *p2; ) {
       /// unpack UTF-16 unicode and advance pointer
-      if(isHighSurrogate(*p2))
+      if(Str::isHighSurrogate(*p2))
         c= (*p2<< 10)+ *(p2+ 1)+ Str::UTF16_SURROGATE_OFFSET,  p2+= 2;
       else
         c= *p2,  p2++;
@@ -544,7 +544,7 @@ str8 str8::operator+(const str16 &s) const {
   for(p3= (uint16_t *)s.d; *p3; )
     if(*p3<=      0x0000007F)     ret.len++,   p3++;    /// 1 byte
     else if(*p3<= 0x000007FF)     ret.len+= 2, p3++;    /// 2 bytes
-    else if(isHighSurrogate(*p3)) ret.len+= 4, p3+= 2;  /// 4 bytes
+    else if(Str::isHighSurrogate(*p3)) ret.len+= 4, p3+= 2;  /// 4 bytes
     else                          ret.len+= 3, p3++;    /// 3 bytes
 
   ret.nrUnicodes= nrUnicodes+ s.nrUnicodes;
@@ -556,7 +556,7 @@ str8 str8::operator+(const str16 &s) const {
   for(p3= (uint16_t *)s.d; *p3; ) {
     char32_t c;
     /// 16 to 32
-    if(isHighSurrogate(*p3))
+    if(Str::isHighSurrogate(*p3))
       c= (*p3<< 10)+ *(p3+ 1)+ Str::UTF16_SURROGATE_OFFSET,  p3+= 2;
     else
       c= *p3++;
@@ -664,7 +664,7 @@ str8 str8::operator+(const char16_t *s) const {
   for(p3= (uint16_t *)s; *p3; ret.nrUnicodes++)
     if(*p3<=      0x0000007F)     ret.len++,   p3++;    /// 1 byte
     else if(*p3<= 0x000007FF)     ret.len+= 2, p3++;    /// 2 bytes
-    else if(isHighSurrogate(*p3)) ret.len+= 4, p3+= 2;  /// 4 bytes
+    else if(Str::isHighSurrogate(*p3)) ret.len+= 4, p3+= 2;  /// 4 bytes
     else                          ret.len+= 3, p3++;    /// 3 bytes
   
   ret.d= (char *)new uint8_t[ret.len];
@@ -675,7 +675,7 @@ str8 str8::operator+(const char16_t *s) const {
   for(p3= (uint16_t *)s; *p3; ) {
     char32_t c;
     /// 16 to 32
-    if(isHighSurrogate(*p3))
+    if(Str::isHighSurrogate(*p3))
       c= (*p3<< 10)+ *(p3+ 1)+ Str::UTF16_SURROGATE_OFFSET,  p3+= 2;
     else
       c= *p3++;
@@ -883,7 +883,7 @@ str8 &str8::operator+=(const char16_t *s) {
   if(wrapping) {
     for(p1= (uint8_t *)d+ len- 1, p2= (uint16_t *)s; *p2;) {
       /// unpack UTF-16 unicode and advance pointer
-      if(isHighSurrogate(*p2))
+      if(Str::isHighSurrogate(*p2))
         c= (*p2<< 10)+ *(p2+ 1)+ Str::UTF16_SURROGATE_OFFSET,  p2+= 2;
       else
         c= *p2,  p2++;
@@ -916,7 +916,7 @@ str8 &str8::operator+=(const char16_t *s) {
   } else {
     
     for(p2= (uint16_t *)s; *p2;) {
-      if(isHighSurrogate(*p2))
+      if(Str::isHighSurrogate(*p2))
         c= (*p2<< 10)+ *(p2+ 1)+ Str::UTF16_SURROGATE_OFFSET,  p2+= 2;
       else
         c= *p2,  p2++;
@@ -934,11 +934,11 @@ str8 &str8::operator+=(const char16_t *s) {
 
     /// copy the other string
     for(p2= (uint16_t *)s; *p2;) {
-      if(isHighSurrogate(*p2))
+      if(Str::isHighSurrogate(*p2))
         c= (*p2<< 10)+ *(p2+ 1)+ Str::UTF16_SURROGATE_OFFSET,  p2+= 2;
       else
         c= *p2,  p2++;
-      p1+= utf32to8(c, (char *)p1);
+      p1+= Str::utf32to8(c, (char *)p1);
     }
   }
 
@@ -998,7 +998,7 @@ str8 &str8::operator+=(const char32_t *s) {
 
     /// copy the other string
     for(p2= (uint32_t *)s; *p2; p2++)
-      p1+= utf32to8(*p2, (char *)p1);
+      p1+= Str::utf32to8(*p2, (char *)p1);
   }
 
   *p1= 0;                   /// str terminator
@@ -1047,7 +1047,7 @@ str8 &str8::operator+=(char32_t c) {
     while(*p2)
       *p1++= *p2++;
     /// add single unicode value
-    p1+= utf32to8(c, (char *)p1);
+    p1+= Str::utf32to8(c, (char *)p1);
     *p1= 0;                   /// str terminator
 
     delete[] d;
@@ -1473,8 +1473,8 @@ bool str8::operator==(const char16_t *s) const {
 
     /// UTF-16 to unicode32
     //c2 = Str::utf16to32(p2, &nbytes2);  // THIS IS WAY SLOWER
-    if (isHighSurrogate(*p2))
-      c2= (*p2 << 10) + *(p2 + 1) + UTF16_SURROGATE_OFFSET, p2+= 2;
+    if (Str::isHighSurrogate(*p2))
+      c2= (*p2 << 10) + *(p2 + 1) + Str::UTF16_SURROGATE_OFFSET, p2+= 2;
     else
       c2= *p2++;
 
@@ -1537,7 +1537,7 @@ bool str8::operator==(char32_t c) const {
     else   return false;
   }
   if(nrUnicodes!= 1) return false;
-  return (utf8to32(d) == c);
+  return (Str::utf8to32(d) == c);
 }
 
 
@@ -1560,7 +1560,7 @@ void str8::clearCombs() {
   while(*p2) {
     c= Str::utf8to32((char *)p2, &adv);
     /// skip this char from copy if it's a diacritical
-    if(isComb(c)) {
+    if(Str::isComb(c)) {
       p2+= adv;
       nrUnicodes--;
       len-= adv;
@@ -1586,7 +1586,7 @@ int32_t str8::nrCombs() const {
   int32_t ret= 0;
   for(uint8_t *p= (uint8_t *)d; *p; p++)
     if((*p& 0xc0)!= 0x80)   /// count only utf8 header bytes
-      if(isComb(utf8to32((char *)p)))
+      if(Str::isComb(Str::utf8to32((char *)p)))
         ret++;
   return ret;
 }
@@ -1598,7 +1598,7 @@ int32_t str8::nrChars() const {
   int32_t ret= 0;
   for(uint8_t *p= (uint8_t *)d; *p; p++)
     if((*p& 0xc0)!= 0x80)   /// count only utf8 header bytes
-      if(!isComb(utf8to32((char *)p)))
+      if(!Str::isComb(Str::utf8to32((char *)p)))
         ret++;
   return ret;
 }
@@ -1820,8 +1820,8 @@ str8 &str8::secureUTF16(const char16_t *in_s, int32_t in_len) {
   
   for(p2= (uint16_t *)in_s; *p2; ) {
     if(usingLimit) {
-      if(isHighSurrogate(*p2)) { if((limit- 4)< 0) break; }
-      else                       if((limit- 2)< 0) break;
+      if(Str::isHighSurrogate(*p2)) { if((limit- 4)< 0) break; }
+      else                            if((limit- 2)< 0) break;
     }
 
     char32_t c= _secure16to32advance((const char16_t **)&p2);
@@ -1847,8 +1847,8 @@ str8 &str8::secureUTF16(const char16_t *in_s, int32_t in_len) {
   limit= in_len;
   for(p1= (uint8_t *)d, p2= (uint16_t *)in_s; *p2;) {
     if(usingLimit) {
-      if(isHighSurrogate(*p2)) { if(limit- 4< 0) break; }
-      else                       if(limit- 2< 0) break;
+      if(Str::isHighSurrogate(*p2)) { if(limit- 4< 0) break; }
+      else                            if(limit- 2< 0) break;
     }
     char32_t c= _secure16to32advance((const char16_t **)&p2);
     limit= in_len- (int32_t)((uint8_t *)p2- (uint8_t *)in_s);
@@ -1961,121 +1961,6 @@ str8 &str8::secureUTF32(const char32_t *in_s, int32_t in_len) {
 }
 
 
-
-
-// fopen knows of utf-8 but the win version wants to put a fukin BOM in the file, wich cause problems in linux, so file must be opened as pure binary
-
-// read all file                   (validates each char)
-void str8::readUTF8(FILE *f) {
-  /// read / ignore the BOM in an UTF file
-  // BOM:
-  // UTF-16:  U+FEFF/ U+FFFE
-  // UTF-8:   0xEF,0xBB,0xBF
-  uint8_t bom[3];
-  long start= ftell(f), pos;
-  if(fread(bom, 3, 1, f)) {
-    if((bom[0]!= 0xEF) && (bom[1]!= 0xBB) && (bom[2]!= 0xBF))
-      fseek(f, start, SEEK_SET);        /// go back if it is not the BOM
-  } else
-    fseek(f, start, SEEK_SET);          /// maybe it read 1 byte? just go back anyways
-  pos= ftell(f);
-  
-  /// determine remaining filesize in bytes (maybe it is not reading from the start)
-	long fs;
-	fseek(f, 0L, SEEK_END);
-	fs= ftell(f);
-	fseek(f, pos, SEEK_SET);
-  fs-= pos;
-
-  if(!fs)
-    return;
-  
-  /// read all file
-  uint8_t *buffer= new uint8_t[fs+ 1];
-  fread(buffer, 1, fs, f);
-  buffer[fs]= 0;                      /// terminator
-  
-  secureUTF8((char *)buffer, fs+ 1);
-  delete[] buffer;
-}
-
-
-
-// read n characters from file     (validates each char)
-void str8::readUTF8n(FILE *f, size_t n) {
-  /// read / ignore the BOM in an UTF file
-  // BOM:
-  // UTF-16:  U+FEFF/ U+FFFE
-  // UTF-8:   0xEF,0xBB,0xBF
-  uint8_t bom[3];
-  long start= ftell(f), pos;
-  if(fread(bom, 3, 1, f)) {
-    if((bom[0]!= 0xEF) && (bom[1]!= 0xBB) && (bom[2]!= 0xBF))
-      fseek(f, start, SEEK_SET);        /// go back if it is not the BOM
-  } else
-    fseek(f, start, SEEK_SET);          /// maybe it read 1 byte? just go back anyways
-  pos= ftell(f);
-
-  /// determine remaining filesize in bytes (maybe it is not reading from the start)
-	long fs;
-	fseek(f, 0L, SEEK_END);
-	fs= ftell(f);
-	fseek(f, pos, SEEK_SET);
-  fs-= pos;
-
-  if(!fs)
-    return;
-  
-  if(n> fs)                           /// it will read what it can
-    n= fs;
-
-  /// read n bytes from file
-  uint8_t *buffer= new uint8_t[n+ 1];
-  fread(buffer, 1, n, f);
-  buffer[n]= 0;                       /// terminator
-
-  secureUTF8((char *)buffer, (int32_t)n+ 1);
-
-  delete[] buffer;
-}
-
-/// read till end of line (or file) (validates each char)
-void str8::readLineUTF8(FILE *f) {
-  /// read / ignore the BOM in an UTF file
-  // BOM:
-  // UTF-16:  U+FEFF/ U+FFFE
-  // UTF-8:   0xEF,0xBB,0xBF
-  uint8_t bom[3];
-  long start= ftell(f), pos;
-  if(fread(bom, 3, 1, f)) {
-    if((bom[0]!= 0xEF) && (bom[1]!= 0xBB) && (bom[2]!= 0xBF))
-      fseek(f, start, SEEK_SET);        /// go back if it is not the BOM
-  } else
-    fseek(f, start, SEEK_SET);          /// maybe it read 1 byte? just go back anyways
-  pos= ftell(f);
-
-  /// compute line length
-  long l;
-  char r;
-
-  while(fread(&r, 1, 1, f))
-    if(r == '\n')
-      break;
-      
-  l= ftell(f);
-  l-= pos;
-  if(!l) return;
-
-  /// read line from file
-  uint8_t *buffer= new uint8_t[l+ 1];
-  fseek(f, pos, SEEK_SET);
-  fread(buffer, 1, l, f);
-  buffer[l]= 0;                     /// terminator
-
-  secureUTF8((char *)buffer);
-
-  delete[] buffer;
-}
 
 
 

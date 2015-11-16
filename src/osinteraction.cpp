@@ -1709,7 +1709,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       return 0;
 
     case WM_UNICHAR:
-      error.console("WM_UNICHAR not tested");
+      //error.console("WM_UNICHAR not tested", false, null);
       if(chatty) printf("WM_UNICHAR %s %llu\n", osi._getWinName(hWnd), wParam);
       in.k._addChar((uint32)wParam, &osi.eventTime);
       return 0;
@@ -2653,7 +2653,35 @@ bool osinteraction::getClipboard(cchar **out_text) {
   #endif /// OS_MAC
 }
   
+// normal fseek cannot operate on files bigger than 2GB
+int osinteraction::fseek64(FILE *in_file, int64_t in_position, int in_origin) {
+  #ifdef OS_WIN
+  return _fseeki64(in_file, in_position, in_origin);
+  #endif /// OS_WIN
 
+  #ifdef OS_LINUX
+  return fseeko64(in_file, (off64_t)in_position, in_origin);
+  #endif /// OS_LINUX
+
+  #ifdef OS_MAC
+  return ::fseeko(in_file, (off_t)in_position, in_origin);
+  #endif /// OS_MAC
+}
+
+// normal ftell cannot operate on files bigger than 2GB
+int64_t osinteraction::ftell64(FILE *in_file) {
+  #ifdef OS_WIN
+  return (int64_t)_ftelli64(in_file);
+  #endif /// OS_WIN
+
+  #ifdef OS_LINUX
+  return (int64_t)ftello64(in_file);
+  #endif /// OS_LINUX
+
+  #ifdef OS_MAC
+  return (int64_t)ftello(in_file);
+  #endif /// OS_MAC
+}
 
 
 

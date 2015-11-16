@@ -5,12 +5,32 @@
    Implements RFC 1950: http://www.ietf.org/rfc/rfc1950.txt and RFC 1951: http://www.ietf.org/rfc/rfc1951.txt
 */
 #define _CRT_SECURE_NO_WARNINGS
+#ifndef _LARGEFILE_SOURCE
+#define _LARGEFILE_SOURCE 1
+#endif
+#include <string.h>   // memset & memcpy
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 #include "util/typeShortcuts.h"
 #include "util/mzPacker.h"
 
+
+
+#if defined(_WIN32) || defined(_WIN64)
+#define mz_fseek64(a, b, c) _fseeki64(a, b, c)
+#define mz_ftell64(a) (int64_t)_ftelli64(a)
+#endif
+
+#ifdef __linux__
+#define mz_fseek64(a, b, c) fseeko64(a, (off64_t)b, c)
+#define mz_ftell64(a) (int64_t)ftello64(a)
+#endif
+
+#ifdef __APPLE__
+#define mz_fseek64(a, b, c) fseeko(a, (off_t)b, c)
+#define mz_ftell64(a) (int64_t)ftello(a)
+#endif
 
 
 // mzPacker class is at the end of the file
@@ -346,8 +366,8 @@ uint32 mzPacker::crc32(uint32 crc, cvoid *dat, int64 buf_len) {
 // ------------------- Low-level Decompression (completely independent from all compression API's)
 ///===============================================================================================
 
-#define _MEMCPY(d, s, l) for(int64 _a= 0; _a< (l); _a++) ((uint8*)d)[_a]= ((uint8 *)s)[_a]  //memcpy(d, s, l)
-#define _MEMSET(p, c, l) for(int64 _a= 0; _a< (l); _a++) ((uint8*)p)[_a]= (c);              //memset(p, c, l)
+#define _MEMCPY(d, s, l) memcpy(d, s, l) // for(int64 _a= 0; _a< (l); _a++) ((uint8*)d)[_a]= ((uint8 *)s)[_a]  //memcpy(d, s, l)
+#define _MEMSET(p, c, l) memset(p, c, l) // for(int64 _a= 0; _a< (l); _a++) ((uint8*)p)[_a]= (c);              //memset(p, n, l)
 
 
 
@@ -1923,9 +1943,9 @@ bool mzPacker::startAdvDecomp(int64 nrBytes, mzTarget srcType, cvoid *src, int64
   }
   if(srcType== STDIO_FULL_FILE) {
     if((_file= fopen((cchar *)src, "rb"))) {  /// open the file
-      fseek((FILE *)_file, 0, SEEK_END);  
-      _nrBytes= ftell((FILE *)_file);       /// nr bytes that will be processed will be determined by the file's size
-      fseek((FILE *)_file, 0, SEEK_SET);
+      mz_fseek64((FILE *)_file, 0, SEEK_END);  
+      _nrBytes= mz_ftell64((FILE *)_file);       /// nr bytes that will be processed will be determined by the file's size
+      mz_fseek64((FILE *)_file, 0, SEEK_SET);
     } else 
       err= 0xF0;
   }
@@ -2168,9 +2188,9 @@ bool mzPacker::startAdvComp(int64 nrBytes, mzTarget srcType, cvoid *src, int64 s
   }
   if(srcType== STDIO_FULL_FILE) {
     if((_file= fopen((cchar *)src, "rb"))) {  /// open the file for reading
-      fseek((FILE *)_file, 0, SEEK_END);  
-      _nrBytes= ftell((FILE *)_file);       /// nr bytes that will be processed will be determined by the file's size
-      fseek((FILE *)_file, 0, SEEK_SET);
+      mz_fseek64((FILE *)_file, 0, SEEK_END);  
+      _nrBytes= mz_ftell64((FILE *)_file);       /// nr bytes that will be processed will be determined by the file's size
+      mz_fseek64((FILE *)_file, 0, SEEK_SET);
     } else 
       err= 0xF0;
   }

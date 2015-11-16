@@ -99,10 +99,6 @@ public:
   str8 &secureUTF16(const char16_t *, int32_t in_len= 0); // reading from UNSAFE SOURCES / FILES / INPUT is NOT SAFE. use secureUTF16() to validate a UTF-16 string; <in_len>: the length in bytes of the string. If left 0, the string is null terminated and the function will use this
   str8 &secureUTF32(const char32_t *, int32_t in_len= 0); // reading from UNSAFE SOURCES / FILES / INPUT is NOT SAFE. use secureUTF32() to validate a UTF-32 string; <in_len>: the length in bytes of the string. If left 0, the string is null terminated and the function will use this
   
-  void readUTF8(FILE *);            // read all (remaining) file       (SECURE)
-  void readUTF8n(FILE *, size_t);   // read n characters from file     (SECURE)
-  void readLineUTF8(FILE *);        // read till end of line (or file) (SECURE)
-
   // combining diacritical characters
   
   void clearCombs();                 // clears all combining diacritical characters from the string
