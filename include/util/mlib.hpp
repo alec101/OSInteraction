@@ -30,12 +30,44 @@
   - if faceforward will be used, intrinsics are not made for it
   - glsl has swizzling: vec3 thirdVec = otherVec.zyy; or thirdVec= otherVec.zyw
       _maybe_ something like this can be done, but only if it's very fast, will think about it
+
+      https://en.wikipedia.org/wiki/Methods_of_computing_square_roots
+Reciprocal of the square root[edit]
+Main article: Fast inverse square root
+A variant of the above routine is included below, which can be used to compute the reciprocal of the square root, i.e., {\displaystyle x^{-{1 \over 2}}} x^{-{1 \over 2}} instead, was written by Greg Walsh. The integer-shift approximation produced a relative error of less than 4%, and the error dropped further to 0.15% with one iteration of Newton's method on the following line.[13] In computer graphics it is a very efficient way to normalize a vector.
+float invSqrt(float x)
+{
+    float xhalf = 0.5f*x;
+    union
+    {
+        float x;
+        int i;
+    } u;
+    u.x = x;
+    u.i = 0x5f3759df - (u.i >> 1);
+    // The next line can be repeated any number of times to increase accuracy
+    u.x = u.x * (1.5f - xhalf * u.x * u.x);
+    return u.x;
+}
+
+
+http://stackoverflow.com/questions/19611198/finding-square-root-without-using-sqrt-function
+
+sin - it could be done too
+http://stackoverflow.com/questions/18662261/fastest-implementation-of-sine-cosine-and-square-root-in-c-doesnt-need-to-b
+
+http://forum.devmaster.net/t/fast-and-accurate-sine-cosine/9648
+
+
+
+IT SEEMS sqrt CAN BE FOUND, AND THERE SHOULD BE DOUBLE AND FLOAT VARIANTS, I NEED TO DO TESTS FOR VARIOUS NUMBERS, BIG, SMALL, AND SEE THE SPEEDS WITH STD
+
+
+
 */
 
 
 #include "util/typeShortcuts.h"
-
-
 
 // #define MLIB_USE_INTRINSICS 1
 
@@ -52,11 +84,18 @@ namespace mlib {
 inline float degrees(float radians) { return radians* RAD2DEG; }
 inline float radians(float degrees) { return degrees* DEG2RAD; }
 
-#define cInt(x) ((x)> 0? (((x)- int(x)< 0.5)? int(x): int(x)+ 1) : ((int(x)- (x)< 0.5)? int(x): int(x)- 1))
+
 inline int64_t abs64(int64_t n) { return (n< 0? -n: n); }
-inline int32_t abs32(int32_t n) { return (n< 0? -n: n); }
+inline int32 abs32(int32 n) { return (n< 0? -n: n); }
 inline double absd(double n) { return (n< 0? -n: n); }
 inline float absf(float n) { return (n< 0? -n: n); }
+
+//#define cInt(x) ((x)> 0? (((x)- int(x)< 0.5)? int(x): int(x)+ 1) : ((int(x)- (x)< 0.5)? int(x): int(x)- 1))
+inline int32 roundf(float f)  { return (int32)(f> 0.0f? (f+ 0.5f): f- 0.5f); }
+inline int64 roundd(double d) { return (int64)(d> 0.0?  (d+ 0.5):  d- 0.5); }
+inline int32 ceilf(float f)  { return (f> 0.0f? int32(f)+ 1: int32(f)- 1); }
+inline int64 ceild(double d) { return (d> 0.0?  int64(d)+ 1: int64(d)- 1); }
+
 
 #ifndef max
 #define max(a, b)   (((a)< (b))? (b): (a))
@@ -79,7 +118,7 @@ struct mat4;
 
 // Not a Number check - NAN
 inline bool isNAN(float n) { return ((n!= n)? true: false); }
-inline bool isNANv(const float *n, int components) { for(int a= 0; a< components; a++) if(n[a]!= n[a]) return true; return false; }
+inline bool isNANv(const float *n, int components) { for(int a= components; a> 0; a--, n++) if((*n)!= (*n)) return true; return false; }
 bool isNAN(const vec2 &o);
 bool isNAN(const vec3 &o);
 bool isNAN(const vec4 &o);
@@ -399,6 +438,133 @@ const vec3 operator*(float scalar, const vec3 &v);
 const vec3 operator/(float scalar, const vec3 &v);
 
 
+
+struct ALIGNED(4) vec3i {
+  union {
+    struct { int32 x, y, z; };
+    struct { int32 r, g, b; };
+    int32 v[3];
+  };
+  int getComponents() { return 3; } /// xyz
+
+  // constructors
+
+  vec3i();
+  //vec3i(const vec2i &o, int32 _z= 0);
+  vec3i(const vec3i &o);
+  //vec3i(const vec4i &o);
+  vec3i(int32 _x, int32 _y, int32 _z);
+  vec3i(const int32 *n);
+  vec3i(int32 n);
+
+  // operators
+
+  vec3i &operator=(int32 n);
+  //vec3i &operator=(const vec2i &o);
+  vec3i &operator=(const vec3i &o);
+  //vec3i &operator=(const vec4i &o);
+  vec3i &operator=(const int32 *n);
+
+  inline vec3i &set(int32 in_x, int32 in_y, int32 in_z) { x= in_x, y= in_y, z= in_z; return *this; }
+
+
+  vec3i &operator+=(int32 scalar);
+  //vec3i &operator+=(const vec2i &v2);
+  vec3i &operator+=(const vec3i &v2);
+  //vec3i &operator+=(const vec4i &v2);
+  vec3i &operator+=(const int32 *arr);
+
+  vec3i &operator-=(int32 scalar);
+  //vec3i &operator-=(const vec2i &v2);
+  vec3i &operator-=(const vec3i &v2);
+  //vec3i &operator-=(const vec4i &v2);
+  vec3i &operator-=(const int32 *arr);
+
+  vec3i &operator*=(int32 scalar);
+  //vec3i &operator*=(const vec2i &v2);
+  vec3i &operator*=(const vec3i &v2);
+  //vec3i &operator*=(const vec4i &v2);
+  vec3i &operator*=(const int32 *arr);
+
+  vec3i &operator/=(int32 scalar);
+  //vec3i &operator/=(const vec2i &v2);
+  vec3i &operator/=(const vec3i &v2);
+  //vec3i &operator/=(const vec4i &v2);
+  vec3i &operator/=(const int32 *arr);
+
+  const vec3i operator+(int32 scalar)   const;
+  //const vec3i operator+(const vec2i &v2) const;
+  const vec3i operator+(const vec3i &v2) const;
+  //const vec3i operator+(const vec4i &v2) const;
+  const vec3i operator+(const int32 *arr) const;
+
+  const vec3i operator-(int32 scalar)   const;
+  //const vec3i operator-(const vec2i &v2) const;
+  const vec3i operator-(const vec3i &v2) const;
+  //const vec3i operator-(const vec4i &v2) const;
+  const vec3i operator-(const int32 *arr) const;
+
+  const vec3i operator*(int32 scalar)   const;
+  //const vec3i operator*(const vec2i &v2) const;
+  const vec3i operator*(const vec3i &v2) const;
+  //const vec3i operator*(const vec4i &v2) const;
+  const vec3i operator*(const int32 *arr) const;
+
+  const vec3i operator/(int32 scalar)   const;
+  //const vec3i operator/(const vec2i &v2) const;
+  const vec3i operator/(const vec3i &v2) const;
+  //const vec3i operator/(const vec4i &v2) const;
+  const vec3i operator/(const int32 *arr) const;
+
+  bool operator==(int32 n)       const; // this compares vector's length, not each element with n
+  //bool operator==(const vec2i &o) const;
+  bool operator==(const vec3i &o) const;
+  //bool operator==(const vec4i &o) const;
+  bool operator==(const int32 *n) const;
+
+  bool operator!=(int32 n)        const; // this compares vector's length, not each element with n
+  //bool operator!=(const vec2i &o)   const;
+  bool operator!=(const vec3i &o)   const;
+  //bool operator!=(const vec4i &o)   const;
+  bool operator!=(const int32 *n) const;
+  
+
+  bool operator!() const;
+
+  const vec3i operator-() const;
+
+  int32 &operator[](int i);
+  const int32 operator[](int i) const;
+  operator int32* ();
+  operator const int32 *() const;
+
+  // dot product
+
+  //int32 dot(const vec2i &o, int32 _z= 0.0f)   const;
+  int32 dot(const vec3i &o)                     const;
+  //int32 dot(const vec4i &o)                     const;
+  int32 dot(int32 _x, int32 _y, int32 _z) const;
+  int32 dot(const int32 *n)                   const;
+
+  // cross product
+
+  //vec3i cross(const vec2i &o, int32 _z)         const;
+  vec3i cross(const vec3i &o)                     const;
+  //vec3i cross(const vec4i &o)                     const;
+  vec3i cross(int32 _x, int32 _y, int32 _z) const;
+
+  // funcs - research: https://github.com/g-truc/glm/blob/master/glm/detail/func_geometric.inl
+
+  vec3i &normalize();
+  int32 length() const;
+  int32 norm2() const;
+  void addConstant(int32 n);
+};
+
+const vec3i operator+(int32 scalar, const vec3i &v);
+const vec3i operator-(int32 scalar, const vec3i &v);
+const vec3i operator*(int32 scalar, const vec3i &v);
+const vec3i operator/(int32 scalar, const vec3i &v);
 
 
 
@@ -990,6 +1156,137 @@ inline void vec3::addConstant(float n) {
 
 
 
+
+
+///==========================================///
+// vec3i ================-------------------- //
+///==========================================///
+
+// constructors
+inline vec3i::vec3i():                             x(0), y(0), z(0) {}
+//inline vec3i::vec3i(const vec2i &o, int32 _z):     x(o.x),  y(o.y),  z(_z)   {}
+inline vec3i::vec3i(const vec3i &o):               x(o.x),  y(o.y),  z(o.z)  {}
+//inline vec3i::vec3i(const vec4i &o):               x(o.x),  y(o.y),  z(o.z)  {}
+inline vec3i::vec3i(int32 _x, int32 _y, int32 _z): x(_x),   y(_y),   z(_z)   {}
+inline vec3i::vec3i(const int32 *n):               x(n[0]), y(n[1]), z(n[2]) {}
+inline vec3i::vec3i(int32 n):                      x(n),    y(n),    z(n)    {}
+
+// operators
+
+inline vec3i &vec3i::operator=(int32 n)        { x= n;    y= n;    z= n;    return *this; }
+//inline vec3i &vec3i::operator=(const vec2i &o) { x= o.x;  y= o.y;           return *this; }
+inline vec3i &vec3i::operator=(const vec3i &o) { x= o.x;  y= o.y;  z= o.z;  return *this; }
+//inline vec3i &vec3i::operator=(const vec4i &o) { x= o.x;  y= o.y;  z= o.z;  return *this; }
+inline vec3i &vec3i::operator=(const int32 *n) { x= n[0]; y= n[1]; z= n[2]; return *this; }
+
+inline vec3i &vec3i::operator+=(int32 n)        { x+= n;    y+= n;    z+= n;    return *this; }
+//inline vec3i &vec3i::operator+=(const vec2i &o) { x+= o.x;  y+= o.y;            return *this; }
+inline vec3i &vec3i::operator+=(const vec3i &o) { x+= o.x;  y+= o.y;  z+= o.z;  return *this; }
+//inline vec3i &vec3i::operator+=(const vec4i &o) { x+= o.x;  y+= o.y;  z+= o.z;  return *this; }
+inline vec3i &vec3i::operator+=(const int32 *n) { x+= n[0]; y+= n[1]; z+= n[2]; return *this; }
+
+inline vec3i &vec3i::operator-=(int32 n)        { x-= n;    y-= n;    z-= n;    return *this; }
+//inline vec3i &vec3i::operator-=(const vec2i &o)   { x-= o.x;  y-= o.y;            return *this; }
+inline vec3i &vec3i::operator-=(const vec3i &o)   { x-= o.x;  y-= o.y;  z-= o.z;  return *this; }
+//inline vec3i &vec3i::operator-=(const vec4i &o)   { x-= o.x;  y-= o.y;  z-= o.z;  return *this; }
+inline vec3i &vec3i::operator-=(const int32 *n) { x-= n[0]; y-= n[1]; z-= n[2]; return *this; }
+
+inline vec3i &vec3i::operator*=(int32 n)        { x*= n;    y*= n;    z*= n;    return *this; }
+//inline vec3i &vec3i::operator*=(const vec2i &o)   { x*= o.x;  y*= o.y;            return *this; }
+inline vec3i &vec3i::operator*=(const vec3i &o)   { x*= o.x;  y*= o.y;  z*= o.z;  return *this; }
+//inline vec3i &vec3i::operator*=(const vec4i &o)   { x*= o.x;  y*= o.y;  z*= o.z;  return *this; }
+inline vec3i &vec3i::operator*=(const int32 *n) { x*= n[0]; y*= n[1]; z*= n[2]; return *this; }
+
+inline vec3i &vec3i::operator/=(int32 n)        { x/= n;    y/= n;    z/= n;    return *this; }
+//inline vec3i &vec3i::operator/=(const vec2i &o)   { x/= o.x;  y/= o.y;            return *this; }
+inline vec3i &vec3i::operator/=(const vec3i &o)   { x/= o.x;  y/= o.y;  z/= o.z;  return *this; }
+//inline vec3i &vec3i::operator/=(const vec4i &o)   { x/= o.x;  y/= o.y;  z/= o.z;  return *this; }
+inline vec3i &vec3i::operator/=(const int32 *n) { x/= n[0]; y/= n[1]; z/= n[2]; return *this; }
+
+inline const vec3i vec3i::operator+(int32 n)        const { return vec3i(*this)+= n; }
+//inline const vec3i vec3i::operator+(const vec2i &o)   const { return vec3i(*this)+= o; }
+inline const vec3i vec3i::operator+(const vec3i &o)   const { return vec3i(*this)+= o; }
+//inline const vec3i vec3i::operator+(const vec4i &o)   const { return vec3i(*this)+= o; }
+inline const vec3i vec3i::operator+(const int32 *n) const { return vec3i(*this)+= n; }
+
+inline const vec3i vec3i::operator-(int32 n)        const { return vec3i(*this)-= n; }
+//inline const vec3i vec3i::operator-(const vec2i &o)   const { return vec3i(*this)-= o; }
+inline const vec3i vec3i::operator-(const vec3i &o)   const { return vec3i(*this)-= o; }
+//inline const vec3i vec3i::operator-(const vec4i &o)   const { return vec3i(*this)-= o; }
+inline const vec3i vec3i::operator-(const int32 *n) const { return vec3i(*this)-= n; }
+
+inline const vec3i vec3i::operator*(int32 n)        const { return vec3i(*this)*= n; }
+//inline const vec3i vec3i::operator*(const vec2i &o)   const { return vec3i(*this)*= o; }
+inline const vec3i vec3i::operator*(const vec3i &o)   const { return vec3i(*this)*= o; }
+//inline const vec3i vec3i::operator*(const vec4i &o)   const { return vec3i(*this)*= o; }
+inline const vec3i vec3i::operator*(const int32 *n) const { return vec3i(*this)*= n; }
+
+inline const vec3i vec3i::operator/(int32 n)        const { return vec3i(*this)/= n; }
+//inline const vec3i vec3i::operator/(const vec2i &o)   const { return vec3i(*this)/= o; }
+inline const vec3i vec3i::operator/(const vec3i &o)   const { return vec3i(*this)/= o; }
+//inline const vec3i vec3i::operator/(const vec4i &o)   const { return vec3i(*this)/= o; }
+inline const vec3i vec3i::operator/(const int32 *n) const { return vec3i(*this)/= n; }
+
+inline const vec3i operator+(int32 scalar, const vec3i &v) { return vec3i(scalar+ v.x, scalar+ v.y, scalar+ v.z); }
+inline const vec3i operator-(int32 scalar, const vec3i &v) { return vec3i(scalar- v.x, scalar- v.y, scalar- v.z); }
+inline const vec3i operator*(int32 scalar, const vec3i &v) { return vec3i(scalar* v.x, scalar* v.y, scalar* v.z); }
+inline const vec3i operator/(int32 scalar, const vec3i &v) { return vec3i(scalar/ v.x, scalar/ v.y, scalar/ v.z); }
+
+inline bool vec3i::operator==(int32 n)        const { return (n== length()); }
+//inline bool vec3i::operator==(const vec2i &o)   const { return ((x== o.x)  && (y== o.y)); }
+inline bool vec3i::operator==(const vec3i &o)   const { return ((x== o.x)  && (y== o.y)  && (z== o.z)); }
+//inline bool vec3i::operator==(const vec4i &o)   const { return ((x== o.x)  && (y== o.y)  && (z== o.z)); }
+inline bool vec3i::operator==(const int32 *n) const { return ((x== n[0]) && (y== n[1]) && (z== n[2])); }
+
+inline bool vec3i::operator!=(int32 n)        const { return (n!= length()); }
+//inline bool vec3i::operator!=(const vec2i &o)   const { return ((x!= o.x)  || (y!= o.y)); }
+inline bool vec3i::operator!=(const vec3i &o)   const { return ((x!= o.x)  || (y!= o.y)  || (z!= o.z)); }
+//inline bool vec3i::operator!=(const vec4i &o)   const { return ((x!= o.x)  || (y!= o.y)  || (z!= o.z)); }
+inline bool vec3i::operator!=(const int32 *n) const { return ((x!= n[0]) || (y!= n[1]) || (z!= n[2])); }
+
+inline bool vec3i::operator!() const { return ((x || y || z)? false: true); }
+
+inline const vec3i vec3i::operator-() const { return vec3i(-x, -y, -z); }
+
+inline int32 &vec3i::operator[](int i)            { return v[i]; }
+inline const int32 vec3i::operator[](int i) const { return v[i]; }
+inline vec3i::operator int32* ()             { return v; }
+inline vec3i::operator const int32 *() const { return v; }
+
+// dot product
+
+//inline int32 vec3i::dot(const vec2i &o, int32 _z)         const { return x* o.x+   y* o.y+  z* _z; }
+inline int32 vec3i::dot(const vec3i &o)                     const { return x* o.x+   y* o.y+  z* o.z; }
+//inline int32 vec3i::dot(const vec4i &o)                     const { return x* o.x+   y* o.y+  z* o.z; }
+inline int32 vec3i::dot(int32 _x, int32 _y, int32 _z) const { return x* _x+    y* _y+   z* _z; }
+inline int32 vec3i::dot(const int32 *n)                   const { return x* n[0] + y* n[1]+ z* n[2]; }
+
+// cross product
+
+//vec3i vec3i::cross(const vec3i &o)                            const { return vec3i(crossSSE(*this, o)); }
+//inline vec3i vec3i::cross(const vec2i &o, int32 _z)         const { return vec3i(y* _z-  z* o.y, z* o.x- x* _z,  x* o.y- y* o.x); }
+inline vec3i vec3i::cross(const vec3i &o)                     const { return vec3i(y* o.z- z* o.y, z* o.x- x* o.z, x* o.y- y* o.x); }
+//inline vec3i vec3i::cross(const vec4i &o)                     const { return vec3i(y* o.z- z* o.y, z* o.x- x* o.z, x* o.y- y* o.x); }
+inline vec3i vec3i::cross(int32 _x, int32 _y, int32 _z) const { return vec3i(y* _z-  z* _y,  z* _x-  x* _z,  x* _y-  y* _x); }
+
+
+inline vec3i &vec3i::normalize() { int32 size= length(); if(size) { this->operator/=(size); } return *this; } // return vec* inversesqrt(dot(vec, vec)); - another option
+
+inline int32 vec3i::length() const { return roundf(sqrtf((float)(x* x+ y* y+ z* z))); };
+inline int32 vec3i::norm2() const { return x* x + y* y + z* z; }
+
+inline void vec3i::addConstant(int32 n) {
+  int32 xx= x* x, yy= y* y, zz= z* z, size= length()+ n;
+  if(x!= 0) x= (abs32(x)/ x)* size/ roundf(sqrtf(yy/ xx+ zz/ xx+ 1.0f));
+  if(y!= 0) y= (abs32(y)/ y)* size/ roundf(sqrtf(xx/ yy+ zz/ yy+ 1.0f));
+  if(z!= 0) z= (abs32(z)/ z)* size/ roundf(sqrtf(xx/ zz+ yy/ zz+ 1.0f));
+};
+
+
+
+
+
+
 ///=========================================///
 // vec4 ================-------------------- //
 ///=========================================///
@@ -1146,7 +1443,6 @@ inline float vec4::dot(float _x, float _y, float _z, float _w) const { return x*
 
 // funcs - research: https://github.com/g-truc/glm/blob/master/glm/detail/func_geometric.inl
 inline vec4 &vec4::set(float _x, float _y, float _z, float _w) { x= _x; y= _y; z= _z; w= _w; return *this; }
-
 inline vec4 &vec4::normalize() { float size= length(); if(size) { this->operator/=(size); } return *this; } // return vec* inversesqrt(dot(vec, vec)); - another option
 
 //#ifdef MLIB_USE_INTRINSICS 2.5x times slower

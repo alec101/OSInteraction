@@ -1610,11 +1610,11 @@ void str32::insert(char32_t in_unicode, int32_t in_pos) {
 }
 
 
-void str32::insertStr(const char32_t *in_str, int32_t in_pos) {
+void str32::insertStr(const char32_t *in_str, int32_t in_n, int32_t in_pos) {
   if(wrapping)
-    len= Str::insertStr32static(d, wrapSize, in_str, in_pos);
+    len= Str::insertStr32static(d, wrapSize, in_str, in_n, in_pos);
   else
-    len= Str::insertStr32(&d, in_str, in_pos);
+    len= Str::insertStr32(&d, in_str, in_n, in_pos);
   nrUnicodes= (len/ 4)- 1;
 }
 
@@ -1628,6 +1628,27 @@ void str32::del(int32_t in_nUnicodesToDel, int32_t in_pos) {
     len= Str::del32(&d, in_nUnicodesToDel, in_pos);
   nrUnicodes= (len/ 4)- 1;
 }
+
+
+
+
+/*
+str32 &str32::f(const char *text, ...) {
+}
+
+str32 &str32::addInt(int64_t) {
+}
+
+str32 &str32::addUInt(uint64_t) {
+}
+
+str32 &str32::addFloat(float) {
+}
+
+str32 &str32::addDouble(double) {
+}
+*/
+
 
 
 

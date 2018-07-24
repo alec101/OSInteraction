@@ -14,6 +14,7 @@ public:
 
   bool isActive;           // a simple check to see if it is already active when calling glMakeCurrent() is WAAAY faster than switching contexts... 
   osiMonitor *monitor;    /// the monitor on which the renderer was created. assigning a renderer to render to a different monitor that is handled by a different GPU, can be bad
+  // osiGPU ?!!?!?!? this should be a thing i think
 
   // renderer / graphics card parameters
 

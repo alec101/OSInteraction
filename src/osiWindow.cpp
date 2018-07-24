@@ -329,7 +329,7 @@ void osiWindow::setName(cchar *s) {
   if(!s) return;
   name= s;
   #ifdef OS_WIN
-  SetWindowText(_hWnd, s);
+  SetWindowText(_hWnd, name);
   #endif /// OS_WIN
   
   #ifdef OS_LINUX

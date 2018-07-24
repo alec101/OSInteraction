@@ -140,11 +140,11 @@ public:
 
   /// in charTyped.nrNodes / manipTyped.nrNodes is the nr of chars waiting to be processed (they get auto-del after 1-2 secs if not processed)
   segList charTyped;              // list with chars typed. charTyped::nrNodes has nr of chars waiting to be 'read'. dimensions: [size:32, unitsize sizeof(chTyped)];
-  segList manipTyped;             // list with string manip chars (arrow keys, backspace, del, enter, etc)
+  //segList manipTyped;             // list with string manip chars (arrow keys, backspace, del, enter, etc)
 
   /// the main functions to call to get a char / string manip char
   uint32_t getChar();             // returns a character typed @ keyboard or null if nothing is typed. (call it until it returns 0, or for each charTyped.nrNodes)
-  uint32_t getManip();            // returns a str manip key press. (call it until it returns 0, or for each manipTyped.nrNodes)
+  //uint32_t getManip();            // returns a str manip key press. (call it until it returns 0, or for each manipTyped.nrNodes)
   void clearTypedBuffer();        // clears all character buffers, ususally called when switching to a new/ existing input box / control
   
   // funcs
@@ -165,8 +165,11 @@ public:
   bool init(int8_t mode= 1);                  // see 'mode' var; can be used to initialize direct input, otherwize, use Input::init()
   void _log(const osiKeyLog &);               // [internal] just puts the last key in the last key-history (it logs imediatly when a key is down)
   void _addChar(uint32_t c, uint64_t *time);  // [internal] used in WM_CHAR message... nothing to bother
-  void _addManip(uint32_t c, uint64_t *time); // [internal] string manipulation keys - enter/del/arrow keys/etc
-  void _doManip();                            // [internal] OSchar.cpp. checks if current keys pressed form a char manip, if they do, calls addManip() 
+  //void _addManip(uint32_t c, uint64_t *time); // [internal] string manipulation keys - enter/del/arrow keys/etc
+
+  void _checkAndAddUnicode(uint32_t in_char);   // [internal] OSchar.cpp. checks if current unicode and keys pressed form a char manip, if they do, it adds it into charTyped
+  void _checkKeyManip(uint32_t in_keyCode);     // [internal] OSchar.cpp. checks if current keys pressed form a char manip, if they do, it adds it in charTyped
+
   inline void swapBuffers();                  // swaps what key and lastKey point to (so no copying is involved)
 
   osiKeyboard();

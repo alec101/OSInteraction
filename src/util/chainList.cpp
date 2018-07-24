@@ -60,9 +60,51 @@ void chainList::addFirst(chainData *p2) {
     p2->prev= null;       /// this is the place to initialize these vars
   }
 
-
   nrNodes++;
 }
+
+void chainList::addAfter(chainData *p, chainData *afterPoint) {
+  #ifdef CHAINLIST_SAFECHECKS
+  if((!p) || (!afterPoint)) return;
+  #endif
+
+  if(afterPoint->next) afterPoint->next->prev= p;
+  else last= p;
+  p->next= afterPoint->next;
+  afterPoint->next= p;
+  p->prev= afterPoint;
+  nrNodes++;
+}
+
+
+void chainList::addBefore(chainData *p, chainData *beforePoint) {
+  #ifdef CHAINLIST_SAFECHECKS
+  if((!p) || (!beforePoint)) return;
+  #endif
+
+  if(beforePoint->prev) beforePoint->prev->next= p;
+  else first= p;
+  p->prev= beforePoint->prev;
+  beforePoint->prev= p;
+  p->next= beforePoint;
+  nrNodes++;
+}
+
+
+void chainList::addi(chainData *p, int n) {
+  #ifdef CHAINLIST_SAFECHECKS
+  if((n> nrNodes) || (!p)) return;
+  #endif
+
+  /// find the node that will be inserted before
+  chainData *t= first;
+  for(int a= n; a> 0; a--)       // <<< SLOW PART >>>
+    t= t->next;
+
+  if(!t) add(p);
+  else addBefore(p, t);
+}
+
 
 // fast - few instructions - NO SEARCHES / PASSTHRUs
 void chainList::del(chainData *p) {

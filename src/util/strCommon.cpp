@@ -384,6 +384,91 @@ char32_t *Str::getChar32(const char32_t *s, int32_t n) {
 }
 
 
+int32_t Str::getUnicodesInChar8(const char *in_s) {
+  int32_t ret= 0;
+  uint32_t u;
+  while(*in_s) {
+    in_s= (const char *)utf8to32fast((const uint8_t *)in_s, &u);
+    ret++;
+    if(!isComb(u))
+      break;
+  }
+
+  return ret;
+}
+
+
+int32_t Str::getUnicodesInChar16(const char16_t *in_s) {
+  int32_t ret= 0;
+  uint32_t u;
+  while(*in_s) {
+    in_s= (const char16_t *)utf16to32fast((const uint16_t *)in_s, &u);
+    ret++;
+    if(!isComb(u))
+      break;
+  }
+
+  return ret;
+}
+
+
+int32_t Str::getUnicodesInChar32(const char32_t *in_s) {
+  int32_t ret= 0;
+  while(*in_s) {
+    ret++;
+    if(!isComb(*in_s))
+      break;
+    in_s++;
+  }
+
+  return ret;
+}
+
+
+
+
+int32_t Str::getUnicodesInChars8(const char *in_s, int32_t in_maxChars) {
+  int32_t ret= 0;
+  while(in_maxChars && *in_s) {
+    uint32_t c;
+    in_s= (const char *)utf8to32fast((const uint8_t *)in_s, &c);
+    if(!isComb(c))
+    in_maxChars--;
+    in_s++;
+    ret++;
+  }
+  return ret;
+}
+
+
+
+int32_t Str::getUnicodesInChars16(const char16_t *in_s, int32_t in_maxChars) {
+  int32_t ret= 0;
+  while(in_maxChars && *in_s) {
+    uint32_t c;
+    in_s= (const char16_t *)utf16to32fast((const uint16_t *)in_s, &c);
+    if(!isComb(c))
+    in_maxChars--;
+    in_s++;
+    ret++;
+  }
+  return ret;
+}
+
+
+
+int32_t Str::getUnicodesInChars32(const char32_t *in_s, int32_t in_maxChars) {
+  int32_t ret= 0;
+  while(in_maxChars && *in_s) {
+    if(!isComb(*in_s))
+    in_maxChars--;
+    in_s++;
+    ret++;
+  }
+  return ret;
+}
+
+
 
 
 
@@ -2773,6 +2858,7 @@ int Str::doubleToUtf32(double n, char32_t *buf, int precision, bool useE) {
 int32_t Str::insert8(char **out_str, char32_t in_unicode, int32_t in_pos) {
   int32_t n1= strlen8(*out_str);      /// current string size
   int32_t n2= utf8nrBytes(in_unicode);/// unicode addition size
+  if(!n1) n1= 1;                      /// n1 will hold at least a terminator
 
   uint8_t *buf= new uint8_t[n1+ n2];  /// will hold the resulting string
   uint8_t *p1= (uint8_t *)*out_str;   /// will walk source string
@@ -2780,7 +2866,7 @@ int32_t Str::insert8(char **out_str, char32_t in_unicode, int32_t in_pos) {
 
   // skip unicodes until insertion point
   /// skip unicodes & copy from old string to new one, what is skipped
-  if(in_pos>= 0) {
+  if(in_pos>= 0 && p1) {
     while(*p1) {
       if((*p1 & 0xc0)!= 0x80)       /// if this is not a continuation byte, it's a start of a character
         in_pos--;
@@ -2792,8 +2878,9 @@ int32_t Str::insert8(char **out_str, char32_t in_unicode, int32_t in_pos) {
 
   /// skip to the end & copy from old string to new one, what is skipped
   else
-    while(*p1)
-      *p2= *p1, p2++, p1++;
+    if(p1)
+      while(*p1)
+        *p2= *p1, p2++, p1++;
 
   
   // insert the new unicode value
@@ -2801,7 +2888,10 @@ int32_t Str::insert8(char **out_str, char32_t in_unicode, int32_t in_pos) {
   p2+= n2;
 
   /// copy the rest of the string from the source, if there is any left
-  while((*p2++= *p1++));
+  if(p1)
+    while((*p2++= *p1++));
+  else
+    *p2= 0;   /// str terminator
 
   // resulting string ('return value')
   if(*out_str)
@@ -2820,6 +2910,8 @@ int32_t Str::insert8(char **out_str, char32_t in_unicode, int32_t in_pos) {
 int32_t Str::insert16(char16_t **out_str, char32_t in_unicode, int32_t in_pos) {
   int32_t n1= strlen16(*out_str);             /// current string size
   int32_t n2= Str::utf16nrBytes(in_unicode);
+  if(!n1) n1= 2;                              /// n1 will hold at least a terminator
+
   void *buf= new uint8_t[n1+ n2];             /// will hold the resulting string
   uint16_t *p1= (uint16_t *)*out_str;         /// will walk source string
   uint16_t *p2= (uint16_t *)buf;              /// will walk resulting string
@@ -2835,8 +2927,9 @@ int32_t Str::insert16(char16_t **out_str, char32_t in_unicode, int32_t in_pos) {
 
   /// skip to the end & copy from old string to new one, what is skipped
   else
-    while(*p1)
-      *p2++= *p1++;
+    if(p1)
+      while(*p1)
+        *p2++= *p1++;
 
   
   // insert the new unicode value
@@ -2844,7 +2937,10 @@ int32_t Str::insert16(char16_t **out_str, char32_t in_unicode, int32_t in_pos) {
   p2+= ((in_unicode>= 0x10000)? 2: 1);
 
   /// copy the rest of the string from the source, if there is any left
-  while((*p2++= *p1++));
+  if(p1)
+    while((*p2++= *p1++));
+  else
+    *p2= 0;
 
   // resulting string ('return value')
   if(*out_str)
@@ -2855,33 +2951,39 @@ int32_t Str::insert16(char16_t **out_str, char32_t in_unicode, int32_t in_pos) {
 }
 
 
+
 // <out_str>- output (resulting) string; the pointer will be mem-alocated (that's why there's the need for pointer to pointer)
 // <in_unicode>- unicode value to insert
 // <in_pos>- insert position (selected unicode value at position is moved to the right);
 //           if left -1, unicode is inserted at the end of the string;
 // <returns>- resulting string length in bytes (including str terminator)
-int32 Str::insert32(char32_t **out_str, char32_t in_unicode, int32 in_pos) {
-  int32_t n1= strlen32(*out_str);      /// current string size
-  void *buf= new uint8_t[n1+ 4];       /// will hold the resulting string
-  uint32_t *p1= (uint32_t *)*out_str;  /// will walk source string
-  uint32_t *p2= (uint32_t *)buf;       /// will walk resulting string
+int32_t Str::insert32(char32_t **out_str, char32_t in_unicode, int32_t in_pos) {
+  int32_t n1= strlen32(*out_str);       /// current string size
+  if(!n1) n1= 4;                        /// n1 will hold at least a terminator
+  void *buf= new uint8_t[n1+ 4];        /// will hold the resulting string
+  uint32_t *p1= (uint32_t *)*out_str;   /// will walk source string
+  uint32_t *p2= (uint32_t *)buf;        /// will walk resulting string
 
   // skip unicodes until insertion point
   /// skip unicodes & copy from old string to new one, what is skipped
-  if(in_pos>= 0)
+  if(in_pos>= 0 && p1)
     while(in_pos && *p1)
       *p2++= *p1++, in_pos--;
 
   /// skip to the end & copy from old string to new one, what is skipped
   else
-    while(*p1)
-      *p2++= *p1++;
+    if(p1)                            /// can be null, therefore creating a new string
+      while(*p1)
+        *p2++= *p1++;
   
   // insert the new unicode value
   *p2++= in_unicode;
 
   /// copy the rest of the string from the source, if there is any left
-  while((*p2++= *p1++));
+  if(*out_str)                        /// can be null, therefore creating a new string
+    while((*p2++= *p1++));
+  else
+    *p2= 0;
 
   // resulting string ('return value')
   if(*out_str)
@@ -2892,22 +2994,26 @@ int32 Str::insert32(char32_t **out_str, char32_t in_unicode, int32 in_pos) {
 }
 
 
-// <out_str>- output (resulting) string; the pointer will be mem-alocated (that's why there's the need for pointer to pointer)
-// <in_str>- string to insert (UTF8)
-// <in_pos>- insert position (selected unicode value at position is moved to the right);
-//           if left -1, unicode is inserted at the end of the string;
-// <returns>- resulting string length in bytes (including str terminator)
-int32_t Str::insertStr8(char **out_str, const char *in_str, int32_t in_pos) {
-  int32_t n1= strlen8(*out_str);      /// current string size
-  int32_t n2= strlen8(in_str)- 1;     /// insert string size
 
-  uint8_t *buf= new uint8_t[n1+ n2];  /// will hold the resulting string
-  uint8_t *p1= (uint8_t *)*out_str;   /// will walk source string
-  uint8_t *p2= buf;                   /// will walk resulting string
+// <out_str>- output (resulting) string; the pointer will be mem-alocated (that's why there's the need for pointer to pointer)
+// <in_str> - string to insert (UTF8)
+// <n>      - number of unicodes to insert; when -1 (default), will insert the whole string
+// <in_pos> - insert position (selected unicode value at position is moved to the right);
+//            if left -1, unicode is inserted at the end of the string;
+// <returns>- resulting string length in bytes (including str terminator)
+int32_t Str::insertStr8(char **out_str, const char *in_str, int32_t n, int32_t in_pos) {
+  int32_t n1= strlen8(*out_str);              /// current string size
+  int32_t n2= (int32_t)(n<= 0? strlen8(in_str)- 1: (getChar8(in_str, n)- in_str)); /// insert string size
+  if(!n2) return n1;
+  if(!n1) n1= 1;                              /// n1 will hold at least a terminator
+
+  uint8_t *buf= new uint8_t[n1+ n2];          /// will hold the resulting string
+  uint8_t *p1= (uint8_t *)*out_str;           /// will walk source string
+  uint8_t *p2= buf;                           /// will walk resulting string
 
   // skip unicodes until insertion point
   /// skip unicodes & copy from old string to new one, what is skipped
-  if(in_pos>= 0) {
+  if(in_pos>= 0 && p1) {
     while(*p1) {
       if((*p1 & 0xc0)!= 0x80)       /// if this is not a continuation byte, it's a start of a character
         in_pos--;
@@ -2919,15 +3025,19 @@ int32_t Str::insertStr8(char **out_str, const char *in_str, int32_t in_pos) {
 
   /// skip to the end & copy from old string to new one, what is skipped
   else
-    while(*p1)
-      *p2= *p1, p2++, p1++;
+    if(p1)
+      while(*p1)
+        *p2= *p1, p2++, p1++;
 
   // insert the new string
-  memcpy(p2, p1, n2);
+  memcpy(p2, in_str, n2);
   p2+= n2;
 
   /// copy the rest of the string from the source, if there is any left
-  while((*p2++= *p1++));
+  if(p1)
+    while((*p2++= *p1++));
+  else
+    *p2= 0;                       /// str terminator
 
   // resulting string ('return value')
   if(*out_str)
@@ -2939,20 +3049,24 @@ int32_t Str::insertStr8(char **out_str, const char *in_str, int32_t in_pos) {
 
 
 // <out_str>- output (resulting) string; the pointer will be mem-alocated (that's why there's the need for pointer to pointer)
-// <in_str>- string to insert (UTF8)
-// <in_pos>- insert position (selected unicode value at position is moved to the right);
-//           if left -1, unicode is inserted at the end of the string;
+// <in_str> - string to insert (UTF16)
+// <n>      - number of unicodes to insert; when -1 (default), will insert the whole string
+// <in_pos> - insert position (selected unicode value at position is moved to the right);
+//            if left -1, unicode is inserted at the end of the string;
 // <returns>- resulting string length in bytes (including str terminator)
-int32_t Str::insertStr16(char16_t **out_str, const char16_t *in_str, int32_t in_pos) {
+int32_t Str::insertStr16(char16_t **out_str, const char16_t *in_str, int32_t n, int32_t in_pos) {
   int32_t n1= strlen16(*out_str);     /// current string size
-  int32_t n2= strlen16(in_str)- 2;    /// insert string size (without terminator)
+  int32_t n2= (int32_t)(n<= 0? strlen16(in_str)- 2: ((Str::getChar16(in_str, n)- in_str)* 2));    /// insert string size (without terminator)
+  if(!n2) return n1;
+  if(!n1) n1= 2;                      /// n1 will hold at least a terminator
+
   void *buf= new uint8_t[n1+ n2];     /// will hold the resulting string
   uint16_t *p1= (uint16_t *)*out_str; /// will walk source string
   uint16_t *p2= (uint16_t *)buf;      /// will walk resulting string
 
   // skip unicodes until insertion point
   /// skip unicodes & copy from old string to new one, what is skipped
-  if(in_pos>= 0)
+  if(in_pos>= 0 && p1)
     while(in_pos-- && *p1) {
       *p2++= *p1++;                 /// copy & advance pointers
       if(Str::isLowSurrogate(*p1))  /// copy next int16 too, if this is a (low) surrogate
@@ -2961,15 +3075,19 @@ int32_t Str::insertStr16(char16_t **out_str, const char16_t *in_str, int32_t in_
 
   /// skip to the end & copy from old string to new one, what is skipped
   else
-    while(*p1)
-      *p2++= *p1++;
+    if(p1)
+      while(*p1)
+        *p2++= *p1++;
   
   // insert the new string
-  Str::strcpy16((char16_t *)p2, (char16_t *)p1, false);
+  Str::memcpy(p2, in_str, n2);
   p2+= n2/ 2;
 
   /// copy the rest of the string from the source, if there is any left
-  while((*p2++= *p1++));
+  if(p1)
+    while((*p2++= *p1++));
+  else
+    *p2= 0;                         /// str terminator
 
   // resulting string ('return value')
   if(*out_str)
@@ -2981,35 +3099,44 @@ int32_t Str::insertStr16(char16_t **out_str, const char16_t *in_str, int32_t in_
 
 
 // <out_str>- output (resulting) string; the pointer will be mem-alocated (that's why there's the need for pointer to pointer)
-// <in_str>- string to insert (UTF8)
-// <in_pos>- insert position (selected unicode value at position is moved to the right);
-//           if left -1, unicode is inserted at the end of the string;
+// <in_str> - string to insert (UTF32)
+// <n>      - number of unicodes to insert; when -1 (default), will insert the whole string
+// <in_pos> - insert position (selected unicode value at position is moved to the right);
+//            if left -1, unicode is inserted at the end of the string;
 // <returns>- resulting string length in bytes (including str terminator)
-int32_t Str::insertStr32(char32_t **out_str, const char32_t *in_str, int32_t in_pos) {
-  int32_t n1= strlen32(*out_str);     /// current string size
-  int32_t n2= strlen32(in_str)- 4;    /// insert string size
-  void *buf= new uint8_t[n1+ n2];     /// will hold the resulting string
-  uint32_t *p1= (uint32_t *)*out_str; /// will walk source string
-  uint32_t *p2= (uint32_t *)buf;      /// will walk resulting string
+int32_t Str::insertStr32(char32_t **out_str, const char32_t *in_str, int32_t n, int32_t in_pos) {
+  int32_t n1= strlen32(*out_str);             /// current string size
+  int32_t n2= (n< 0? strlen32(in_str)- 4: (n* 4)); /// insert string size
+  if(!n2) return n1;
+  if(!n1) n1= 4;                              /// n1 will hold at least a terminator
+
+  void *buf= new uint8_t[n1+ n2];             /// will hold the resulting string
+  uint32_t *p1= (uint32_t *)*out_str;         /// will walk source string
+  uint32_t *p2= (uint32_t *)buf;              /// will walk resulting string
 
   // skip either unicodes or chars, until insertion point
 
   /// skip unicodes & copy from old string to new one, what is skipped
-  if(in_pos>= 0)
+  if(in_pos>= 0 && p1)
     while(in_pos-- && *p1)
       *p2++= *p1++;                 /// copy & advance pointers
 
   /// skip to the end & copy from old string to new one, what is skipped
   else
-    while(*p1)
-      *p2= *p1, p2++, p1++;
+    if(p1)
+      while(*p1)
+        *p2= *p1, p2++, p1++;
   
   // insert the new string
-  Str::strcpy32((char32_t *)p2, (char32_t *)p1, false);
+  Str::memcpy(p2, in_str, n2);
   p2+= n2/ 4;
 
+
   /// copy the rest of the string from the source, if there is any left
-  while((*p2++= *p1++));
+  if(p1)
+    while((*p2++= *p1++));
+  else
+    *p2= 0;                         /// str terminator
 
   // resulting string ('return value')
   if(*out_str)
@@ -3018,7 +3145,6 @@ int32_t Str::insertStr32(char32_t **out_str, const char32_t *in_str, int32_t in_
 
   return n1+ n2;
 }
-
 
 
 // <out_str>- output (resulting) string; the pointer will be mem-alocated (that's why there's the need for pointer to pointer)
@@ -3179,12 +3305,11 @@ int32_t Str::del32(char32_t **out_str, int32_t in_nUnicodesToDel, int32_t in_pos
   if(in_pos>= 0) {
     cutStart= in_pos;
     cutAmount= in_nUnicodesToDel;
-  }
 
   /// when position stays -1, unicodes are cut from the end of the string
-  else {
+  } else {
     /// cutStart will point to the str terminator
-    cutStart= l1/ 4;
+    cutStart= l1/ 4- 1;
     /// rest is easy to figure out
     cutStart-= in_nUnicodesToDel;
     cutAmount= in_nUnicodesToDel;
@@ -3233,7 +3358,7 @@ int32_t Str::del32(char32_t **out_str, int32_t in_nUnicodesToDel, int32_t in_pos
 // <in_pos>- insert position (selected unicode value at position is moved to the right);
 //           if left -1, unicode is inserted at the end of the string;
 // <return>- resulting string length in bytes (incl str terminator)
-int32_t Str::insert8static(char *out_buf, int32 in_bufSize, char32_t in_unicode, int32_t in_pos) {
+int32_t Str::insert8static(char *out_buf, int32_t in_bufSize, char32_t in_unicode, int32_t in_pos) {
   int32_t n1= strlen8(out_buf);       /// current string size
   int32_t n2= utf8nrBytes(in_unicode);/// unicode addition size
   if(n1+ n2> in_bufSize) return n1;   /// unicode value must fit inside the buffer
@@ -3304,7 +3429,7 @@ int32_t Str::insert32static(char32_t *out_buf, int32_t in_bufSize, char32_t in_u
   uint32_t *p1, *p2, *insertPoint;
 
   /// compute insertion point (insertPoint)
-  if(in_pos)
+  if(in_pos>= 0)
     insertPoint= (uint32_t *)Str::getUnicode32(out_buf, in_pos);
   else
     insertPoint= (uint32_t *)out_buf+ n;
@@ -3322,16 +3447,15 @@ int32_t Str::insert32static(char32_t *out_buf, int32_t in_bufSize, char32_t in_u
 }
 
 
-// <out_buf>- output buffer, it must be preallocated, no mem allocs happen in this func
+// <out_buf>   - output buffer, it must be preallocated, no mem allocs happen in this func
 // <in_bufSize>- [REQUIRED] out_buf's size, in bytes;
-// <in_unicode>- unicode value to insert;
-// <in_str>- NULL terminated string that is to be inserted in out_buf
-// <in_pos>- insert position (selected unicode value at position is moved to the right);
-//           if left -1, unicode is inserted at the end of the string;
-// <return>- resulting string length in bytes (incl str terminator)
-int32_t Str::insertStr8static(char *out_buf, int32_t in_bufSize, const char *in_str, int32_t in_pos) {
+// <in_str>    - NULL terminated string that is to be inserted in out_buf
+// <n>         - number of unicodes to insert; when -1 (default), will insert the whole string
+// <in_pos>    - insert position (in unicodes); when -1 (default), position is at end of string
+// <return>    - resulting string length in bytes (incl str terminator)
+int32_t Str::insertStr8static(char *out_buf, int32_t in_bufSize, const char *in_str, int32_t in_n, int32_t in_pos) {
   int32_t n1= strlen8(out_buf);       /// current string size
-  int32_t n2= strlen8(in_str)- 1;     /// added string size
+  int32_t n2= (int32_t)(in_n<= 0? strlen8(in_str)- 1: (getChar8(in_str, in_n)- in_str)); /// added string size
 
   uint8_t *p1, *p2, *insertPoint;
 
@@ -3370,16 +3494,15 @@ int32_t Str::insertStr8static(char *out_buf, int32_t in_bufSize, const char *in_
 }
 
 
-// <out_buf>- output buffer, it must be preallocated, no mem allocs happen in this func
-// <in_bufSize>- [REQUIRED] out_buf's size, in int16 units;
-// <in_unicode>- unicode value to insert;
-// <in_str>- NULL terminated string that is to be inserted in out_buf
-// <in_pos>- insert position (selected unicode value at position is moved to the right);
-//           if left -1, unicode is inserted at the end of the string;
-// <return>- resulting string length in bytes (incl str terminator)
-int32_t Str::insertStr16static(char16_t *out_buf, int32_t in_bufSize, const char16_t *in_str, int32_t in_pos) {
+// <out_buf>   - output buffer, it must be preallocated, no mem allocs happen in this func
+// <in_bufSize>- [REQUIRED] out_buf's size, in int15 units;
+// <in_str>    - NULL terminated string that is to be inserted in out_buf
+// <n>         - number of unicodes to insert; when -1 (default), will insert the whole string
+// <in_pos>    - insert position (in unicodes); when -1 (default), position is at end of string
+// <return>    - resulting string length in bytes (incl str terminator)
+int32_t Str::insertStr16static(char16_t *out_buf, int32_t in_bufSize, const char16_t *in_str, int32_t in_n, int32_t in_pos) {
   int32_t n1= strlen16(out_buf);
-  int32_t n2= strlen16(in_str)- 2;
+  int32_t n2= (int32_t)(in_n<= 0? strlen16(in_str)- 2: (getChar16(in_str, in_n)- in_str));
   uint16_t *p1, *p2, *insertPoint;
 
   /// string must fit inside the buffer - if it doesn't, whatever is possible to insert is inserted
@@ -3419,16 +3542,15 @@ int32_t Str::insertStr16static(char16_t *out_buf, int32_t in_bufSize, const char
 }
 
 
-// <out_buf>- output buffer, it must be preallocated, no mem allocs happen in this func
+// <out_buf>   - output buffer, it must be preallocated, no mem allocs happen in this func
 // <in_bufSize>- [REQUIRED] out_buf's size, in int32 units;
-// <in_unicode>- unicode value to insert;
-// <in_str>- NULL terminated string that is to be inserted in out_buf
-// <in_pos>- insert position (selected unicode value at position is moved to the right);
-//           if left -1, unicode is inserted at the end of the string;
-// <return>- resulting string length in bytes (incl str terminator)
-int32_t Str::insertStr32static(char32_t *out_buf, int32_t in_bufSize, const char32_t *in_str, int32_t in_pos) {
+// <in_str>    - NULL terminated string that is to be inserted in out_buf
+// <n>         - number of unicodes to insert; when -1 (default), will insert the whole string
+// <in_pos>    - insert position (in unicodes); when -1 (default), position is at end of string
+// <return>    - resulting string length in bytes (incl str terminator)
+int32_t Str::insertStr32static(char32_t *out_buf, int32_t in_bufSize, const char32_t *in_str, int32_t in_n, int32_t in_pos) {
   int32_t n1= strunicodes32(out_buf);
-  int32_t n2= strunicodes32(in_str);
+  int32_t n2= (in_n<= 0? strunicodes32(in_str): in_n);
   
   /// inserted string must fit inside the fixed length buffer
   if(n1+ n2+ 1> in_bufSize)

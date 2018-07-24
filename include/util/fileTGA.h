@@ -79,11 +79,11 @@ public:
 
   // saving / loading
 
-  bool load(const char *);        // loads a TGA (RLE compressed or uncompressed)
-  bool save(const char *);        // TGA uncompressed
+  bool load(cchar *);        // loads a TGA (RLE compressed or uncompressed)
+  bool save(cchar *);        // TGA uncompressed
   
-  bool loadPalette(const char *);
-  bool savePalette(const char *);
+  bool loadPalette(cchar *);
+  bool savePalette(cchar *);
 
   // error handling
 

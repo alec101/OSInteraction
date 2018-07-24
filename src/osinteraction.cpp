@@ -216,7 +216,8 @@ osinteraction::osinteraction() {
   flags.keyPress= false;
   //flags.systemInSuspend= false; LINUX NOTHING FOUND
   flags.windowResized= false;
-  
+  flags.windowMoved= false;
+
   primWin= null;
   
   glr= null;
@@ -228,11 +229,11 @@ osinteraction::osinteraction() {
   QueryPerformanceFrequency(&_timerFreq);   /// read cpu frequency. used for high performance timer (querryPerformanceBlaBla)
 
   cmdLine= GetCommandLine();                /// full command line - argc / *argv[] are created from this few lines down
-
+  
   /// 'path' string - program path
-  char *buf= new char[2048];
-  GetCurrentDirectory(2047, buf);
-  path= buf;
+  void *buf= new char16[2048];
+  GetCurrentDirectoryW(2047, (LPWSTR)buf);
+  path= (char16 *)buf;
   delete[] buf;
   #endif /// OS_WIN
   
@@ -543,7 +544,7 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
   wc.hCursor=       LoadCursor(NULL, IDC_ARROW);          /// load arrow pointer
   wc.hbrBackground= NULL;                                 /// no backgraound required when using opengl
   wc.lpszMenuName=  NULL;                                 /// no menus
-  wc.lpszClassName= name;                                 /// class name... dunno for shure what this is
+  wc.lpszClassName= w->name;                              /// class name... dunno for shure what this is
 
   if (!RegisterClass(&wc)) {                        /// register the window class
     error.simple(func+ "Failed to register wc");
@@ -580,11 +581,13 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
 
   AdjustWindowRectEx(&rect, dwStyle, FALSE, dwExStyle); // Adjust Window To True Requested Size
 
+  str8 className= w->name;
+
   // Create The Window
   if (!(w->_hWnd= CreateWindowEx(
                 dwExStyle,              // Extended Style For The Window
-                name,                   // class name           <--- might want a different class name?
-                name,                   /// window title
+                className,              // class name           <--- might want a different class name?
+                w->name,                /// window title
                 dwStyle |               /// defined window style
                 WS_CLIPSIBLINGS |       /// Required Window Style ?? not shure
                 WS_CLIPCHILDREN,        /// Required Window Style ?? not shure
@@ -606,6 +609,10 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
     error.simple(func+ "Can't create a GL DC");
     return false;
   }
+  
+  // enable WM_UNICHAR messages - TO BE OR NOT TO BE
+  SendMessage(w->_hWnd, UNICODE_NOCHAR, 0, 0);
+
 
   /*
   /// pixel format - MORE TESTING NEEDED HERE. screen blacks out on mode 3 - it shouldn't
@@ -955,6 +962,7 @@ bool osinteraction::createSplashWindow(osiWindow *w, osiMonitor *m, cchar *file)
   int8 depth;                     /// byte depth - either 3 or 4 bytes (with or without alpha)
   int8 bpc;
   int8 bpp;
+  str8 className;
 
   /// check the file extension
   if(s== "png") {
@@ -1017,9 +1025,9 @@ bool osinteraction::createSplashWindow(osiWindow *w, osiMonitor *m, cchar *file)
 
   if(!RegisterClassEx(&wc)) { error.simple("osi::createSplashWindow(): RegisterClassEx failed"); goto Fail; }
   
-  int32 y0= display.vdy- display.vy0- (w->y0+ w->dy);              /// coordonate unification changed y0
-
-  w->_hWnd= CreateWindowEx(WS_EX_LAYERED, w->name, w->name,       /// type & name
+  int32 y0= display.vdy- display.vy0- (w->y0+ w->dy);             /// coordonate unification changed y0
+  className= w->name;
+  w->_hWnd= CreateWindowEx(WS_EX_LAYERED, className, w->name,     /// type & name
                            WS_VISIBLE| WS_POPUP,                  /// more attribs
                            w->x0, y0, w->dx, w->dy,               /// position & size
                            (primWin? primWin->_hWnd: NULL),       /// parent window
@@ -1367,9 +1375,6 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
   osiWindow *w;           /// window that received the message
 //  WINDOWPOS *tw;          /// used for window position change messages
 
-  /// set flags down 
-  osi.flags.windowResized= false;
-  
   if(timeFunc) osi.getNanosecs(&start);
 
   int mb= 0;
@@ -1378,7 +1383,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
   if((m>= WM_MOUSEFIRST)&& (m<= WM_MOUSELAST)) {
     if(!osi.flags.haveFocus)
       goto ret;
-
+    
     /// mouse in [MODE 2], THE WHEEL IS NOT POSSIBLE TO READ with funcs, so events are the only way (decent way, anyways)
     if(in.m.mode== 2)
       if(m== WM_MOUSEWHEEL) {
@@ -1537,7 +1542,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
           }
           //in.k.repeat[code]+= KF_REPEAT& HIWORD(lParam);   // THIS MIGHT BE DELETED <-------------------------------------------
 
-          in.k._doManip();                         /// check if current pressed keys form a manip char
+          in.k._checkKeyManip(code);                         /// check if current pressed keys form a manip char
           //if(chatty) printf("key REPEAT code[0x%X] vcode[0x%X]\n", code, vcode);
           goto ret; //return 0;
         }
@@ -1553,7 +1558,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 
 
 
-        in.k._doManip();                          /// check if current pressed keys form a manip char
+        in.k._checkKeyManip(code);                          /// check if current pressed keys form a manip char
         //if(chatty) printf("key PRESS code[0x%X] vcode[0x%X]\n", code, vcode);
         goto ret; //return 0;
       }
@@ -1686,6 +1691,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       
       if(chatty) printf("WM_ACTIVATEAPP %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, wParam, lParam);
       goto ret;
+
     case WM_POWERBROADCAST:
 
       // ---=== system ENTERING suspend mode ===---
@@ -1702,17 +1708,34 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       if(chatty) printf("WM_CLOSE %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, wParam, lParam);
       osi.flags.exit= true;     /// main exit flag
       return 0;
+    
+    case WM_SYSCHAR:
+      // alt+keys, etc.
+      //goto ret; // creates a beep if not handled. defWinProc must be avoided to get rid of the beep
+      return 0;
 
     case WM_CHAR:
       if(chatty) printf("WM_CHAR %s %llu\n", osi._getWinName(hWnd), wParam);
-      in.k._addChar((uint32)wParam, &osi.eventTime);
-      return 0;
 
+      in.k._checkAndAddUnicode((uint32)wParam);
+      return 0;
+      //goto ret;
+      
     case WM_UNICHAR:
       //error.console("WM_UNICHAR not tested", false, null);
       if(chatty) printf("WM_UNICHAR %s %llu\n", osi._getWinName(hWnd), wParam);
-      in.k._addChar((uint32)wParam, &osi.eventTime);
+      in.k._checkAndAddUnicode((uint32)wParam);
       return 0;
+      
+    case UNICODE_NOCHAR:
+      // to activate WM_UNICHAR, a msg with UNICODE_NOCHAR must be manually sent, and responded with TRUE, here
+      return TRUE;
+
+    /*
+    case WM_DEADCHAR:
+      in.k._checkAndAddUnicode((uint32)wParam);
+      return 0;
+      */
 
     case WM_DEVICECHANGE:
       in.populate();                        /// a call to in.populate to rescan for joysticks/gamepads/gamewheels
@@ -1724,6 +1747,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         if(w->mode== 1) {
           w->x0= (int32)(int16)LOWORD(lParam);
           w->y0= (osi.display.vdy)- (int32)(int16)HIWORD(lParam)- w->dy;
+          osi.flags.windowMoved= true;
         }
       goto ret;
 
@@ -1738,6 +1762,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
           }
       }
       goto ret;
+
 
 
 
@@ -1788,7 +1813,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       }
       */
       goto ret;
-
+    
     //case WM_PAINT:      // TEST
     //  return 0;
   } /// switch message
@@ -1831,7 +1856,8 @@ bool osinteraction::_processMSG()  {
   
   /// set all flags down
   flags.windowResized= false;
-    
+  flags.windowMoved= false;
+
   while(XPending(_dis)) {                 /// while there are messages in queue, loop thru them
     XNextEvent(_dis, &event);
     ret= true;                            /// if a message is processed, return value is true
@@ -1936,12 +1962,6 @@ bool osinteraction::_processMSG()  {
         error.console( (string8("").f("there are still mods not applied to key %d\n", code)).d)
       */
 
-      /// if the keysym can be a character, update the keyboard char stream
-      uint32 ch;
-      in._getUnicode(&ks, &ch);
-      if(ch)
-        in.k._addChar(ch, &eventTime);
-      
       /// if this is a real key press, log it and set vars
       if(!repeat) {
         if(chatty) printf("key PRESS code=%d \n", code);
@@ -1965,10 +1985,14 @@ bool osinteraction::_processMSG()  {
         (code== in.Kv.kp0 && !in.k.numLock))
         if(!repeat)
           in.k.insertLock= (in.k.insertLock? false: true);
-
-        
-
-      in.k._doManip();                     /// check & handle if pressed keys form a manip char
+      
+      /// if the keysym can be a character, update the keyboard char stream
+      uint32 ch;
+      in._getUnicode(&ks, &ch);
+      if(ch)
+        in.k._checkAndAddUnicode(ch);
+      
+      in.k._checkKeyManip(code);
       
       continue;
       
@@ -2257,11 +2281,14 @@ bool osinteraction::_processMSG()  {
       if(!w->_isSplashWindow && w->mode== 1) {
         if((event.xconfigure.width!= w->dx) || (event.xconfigure.height!= w->dy))
           flags.windowResized= true;
-        
+        int32 xold= w->x0, yold= w->y0;
+
         w->x0= event.xconfigure.x;
         w->y0= display.vdy- display.vy0- (event.xconfigure.y+ event.xconfigure.height); // coordinate unification
         w->dx= event.xconfigure.width;
         w->dy= event.xconfigure.height;
+        if((w->x0 != xold) || (w->y0!= yold))
+          flags.windowMoved= true;
       }
       if(floodChatty) printf("ConfigureNotify[%s]: x[%d] y[%d] dx[%d] dy[%d] win->y0[%d]\n", w->name.d, event.xconfigure.x, event.xconfigure.y, event.xconfigure.width, event.xconfigure.height, w->y0);
       
@@ -2300,6 +2327,10 @@ bool osinteraction::checkMSG() {
   bool ret= false;              /// return value, start false, if any msg is processed, ret= true
 
   #ifdef OS_WIN
+  /// set flags down 
+  osi.flags.windowResized= false;
+  osi.flags.windowMoved= false;
+
   while(1)    // loop thru ALL msgs... i used to peek thru only 1 msg, that was baaad... biig LAG
     if(PeekMessage(&primWin->_msg, NULL, 0, 0, PM_REMOVE)) {	// Is There A Message Waiting?
       // eventTime= primWin->_msg.time; // not reliable. 1 sec before getMillisecs(). this time is in the dang future
@@ -2573,7 +2604,7 @@ void osinteraction::setClipboard(cchar *in_text) {
 
 
 // gets text (if any) from the clipbard/pasteboard - used for copy/paste operations between programs (returned text is null if nothing is there)
-bool osinteraction::getClipboard(cchar **out_text) {
+bool osinteraction::getClipboard(char **out_text) {
   #ifdef OS_WIN
   *out_text= null;
   if(OpenClipboard(NULL)) { // setting the handle, causes problems, CF_UNICODE stopped working, only CF_TEXT worked. just set NULL
@@ -2586,7 +2617,7 @@ bool osinteraction::getClipboard(cchar **out_text) {
         str8 s;
         s.secureUTF16(pchData);
 
-        *out_text= (const char *)s.d;
+        *out_text= (char *)s.d;
         s.d= null; s.updateLen();   /// trick str8 into not deleting it's internal buffer
         GlobalUnlock(hdata);
       }

@@ -209,7 +209,7 @@ BOOL CALLBACK monitorData(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor,
   MONITORINFOEX hmon;
   hmon.cbSize= sizeof(hmon);
   GetMonitorInfo(hMonitor, &hmon);
-  printf("%s ", hmon.szDevice);
+  // printf("%s ", hmon.szDevice); %s or %ls depending on the windows "unicode" or mbyte... watever those really mean
   if(hmon.dwFlags& MONITORINFOF_PRIMARY)
     printf("primary monitor\n");
   printf("\n");
@@ -959,7 +959,7 @@ void osiDisplay::populate() {
     monitor[id].y0= vdy- dm.dmPosition.y- dm.dmPelsHeight;   /// coordonate unification
     
     for(a= 0; EnumDisplayDevices(monitor[id]._id, a, &dd, null); a++) {
-      if(chatty) printf("found %d ID[%s]\nName[%s]\nString[%s]\n", a, dd.DeviceID, dd.DeviceName, dd.DeviceString);
+      //if(chatty) printf("found %d ID[%s]\nName[%s]\nString[%s]\n", a, dd.DeviceID, dd.DeviceName, dd.DeviceString);
       if(!(dd.StateFlags& DISPLAY_DEVICE_ATTACHED_TO_DESKTOP)) printf("!!not attached!!\n");
 
     }

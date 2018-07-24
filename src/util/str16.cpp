@@ -1851,9 +1851,9 @@ void str16::insert(char32_t in_unicode, int32_t in_pos) {
 }
 
 
-void str16::insertStr(const char16_t *in_str, int32_t in_pos) {
-  if(wrapping)  Str::insertStr16static(d, wrapSize, in_str, in_pos);
-  else          Str::insertStr16(&d, in_str, in_pos);
+void str16::insertStr(const char16_t *in_str, int32_t in_n, int32_t in_pos) {
+  if(wrapping)  Str::insertStr16static(d, wrapSize, in_str, in_n, in_pos);
+  else          Str::insertStr16(&d, in_str, in_n, in_pos);
   updateLen();
 }
 

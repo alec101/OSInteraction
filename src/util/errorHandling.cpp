@@ -43,11 +43,12 @@
 
 void _consoleFunc_notLoaded(cchar *txt, bool exit= false, void (*exitFunc)(void)= NULL);
 
+void (*(_FUNCconsole)) (const char *txt, bool exit, void (*exitFunc)(void));  // console print pointer. ixConsole sets this to it's own printing func, for example
 
 ErrorHandling::ErrorHandling() {
   useConsoleFlag= false;
   useWindowsFlag= true;
-  console= _consoleFunc_notLoaded;
+  _FUNCconsole= _consoleFunc_notLoaded;
 }
 
 ErrorHandling::~ErrorHandling() {
@@ -63,7 +64,7 @@ void ErrorHandling::glFlushErrors() { glGetError(); }
 #endif
 
 
-void ErrorHandling::simple(cchar *txt, bool exit, void (*exitFunc)(void)) {
+void ErrorHandling::simple(const char *txt, bool exit, void (*exitFunc)(void)) {
 
   // print to ConsoleClass
   if(useConsoleFlag) {
@@ -94,7 +95,7 @@ void ErrorHandling::detail(const char *txt, const char *func, int line, bool exi
 }
 
 
-void _consoleFunc_notLoaded(cchar *txt, bool exit, void (*exitFunc)(void)) {
+void _consoleFunc_notLoaded(const char *txt, bool exit, void (*exitFunc)(void)) {
   // same as the terminal func
   printf("%s\n", txt);
   if(exit) {
@@ -106,9 +107,11 @@ void _consoleFunc_notLoaded(cchar *txt, bool exit, void (*exitFunc)(void)) {
   }
 }
 
-void ErrorHandling::window(cchar *txt, bool exit, void (*exitFunc)(void)) {
+
+
+void ErrorHandling::window(const char *txt, bool exit, void (*exitFunc)(void)) {
   #ifdef OS_WIN
-  MessageBox(null, txt, "PROGRAM ERROR", MB_OK);
+  MessageBoxA(null, txt, "PROGRAM ERROR", MB_OK);
   if(exit) {
     if(exitFunc)
       (*exitFunc)();
@@ -156,7 +159,7 @@ void ErrorHandling::window(cchar *txt, bool exit, void (*exitFunc)(void)) {
 }
 
 
-void ErrorHandling::terminal(cchar *txt, bool exit, void (*exitFunc)(void)) {
+void ErrorHandling::terminal(const char *txt, bool exit, void (*exitFunc)(void)) {
   printf("%s\n", txt);
   if(exit) {
     if(exitFunc)
@@ -170,7 +173,7 @@ void ErrorHandling::terminal(cchar *txt, bool exit, void (*exitFunc)(void)) {
 
 // linux message box window
 #ifdef OS_LINUX
-void ErrorHandling::messageBox(cchar *text) {
+void ErrorHandling::messageBox(const char *text) {
   Display *display;
   Visual *visual;
   int depth, x0, y0, dx, dy;
@@ -260,7 +263,7 @@ void ErrorHandling::messageBox(cchar *text) {
 
 
 #ifdef USING_DIRECTINPUT
-void ErrorHandling::dinput(int32 n) {
+void ErrorHandling::dinput(int32_t n) {
   str8 s;
   switch(n) {
     case S_FALSE:                   { s= "S_FALSE: DI_BUFFEROVERFLOW: The device buffer overflowed and some input was lost.\nDI_NOEFFECT: The operation had no effect.\nDI_NOTATTACHED: The device exists but is not currently attached to the user's computer.\nDI_PROPNOEFFECT: The change in device properties had no effect."; break; }
@@ -319,7 +322,7 @@ void ErrorHandling::dinput(int32 n) {
 
 
 #ifdef USING_OPENGL
-int ErrorHandling::glError(cchar *text, bool exit) {
+int ErrorHandling::glError(const char *text, bool exit) {
   int ret= glGetError();
   if(!ret) return 0;        // fast return if no error
 

@@ -70,7 +70,6 @@ osiRenderer *osinteraction::assignRenderer(osiWindow *w) {
       r= p;
     else {
       r= new osiRenderer;
-      
       if(!_getContextFuncs(w->monitor, r)) { error.simple("Cannot get context funcs"); goto Failed; }
       rendererAllocated= true;
     }
@@ -109,6 +108,8 @@ osiRenderer *osinteraction::assignRenderer(osiWindow *w) {
   // success
   w->glr= r;
   w->monitor->glr= r;
+  r->monitor= w->monitor;
+
   osi.glRenderers.add(r);
   return r;
 

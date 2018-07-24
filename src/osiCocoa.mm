@@ -127,6 +127,12 @@ bool _osiCocoaSetTheIcon;
 
   [[NSNotificationCenter defaultCenter]
     addObserver:self
+    selector:@selector(windowDidMove:)
+    name:NSWindowDidMoveNotification
+    object:self];
+
+  [[NSNotificationCenter defaultCenter]
+    addObserver:self
     selector:@selector(windowWillClose:)
     name:NSWindowWillCloseNotification
     object:self];
@@ -166,6 +172,18 @@ bool _osiCocoaSetTheIcon;
     }
 }
 
+// window move
+- (void) windowDidMove: (NSNotification *)notification {
+  osiWindow *w;
+  if((w= osi._getWin(self))
+    if(w->mode== 1) {
+      NSRect r= [self frame];
+      w->x0= r.origin.x;
+      w->y0= r.origin.y;
+      osi.flags.windowMoved= true;
+    }
+
+}
 
 // window close - PROGRAM EXIT
 - (void) windowWillClose: (NSNotification *)notification {
@@ -460,7 +478,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
     //in.k.repeat[code]= 1;                  /// a new key press, sets repeat to 1  // MIGHT BE DELETED
   }
   
-  in.k._doManip();     /// check if pressed keys form a manip char. if they do, manipChar is added to manip stream
+  in.k._checkKeyManip(code);     /// check if pressed keys form a manip char. if they do, manipChar is added to manip stream
   
   /// next line translates key(s) for inputText and doCommandBySelector (wich is disabled)
   */
@@ -513,7 +531,7 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 
   for(short a= 0; a< [string length]; a++) {
     unicode= [string characterAtIndex: a];
-    in.k._addChar(unicode, &osi.eventTime);      /// eventTime is already updated. insertText is RIGHT AFTER a keyDown event
+    in.k._checkAndAddUnicode(unicode);      /// eventTime is already updated. insertText is RIGHT AFTER a keyDown event
   }
   
   //DISABLED [super insertText:string];  // have superclass insert it - THIS MAKES A BEEP if no one handles the text
@@ -666,6 +684,7 @@ bool _processMSG(void) {
 
   /// set flags down
   osi.flags.windowResized= false;
+  osi.flags.windowMoved= false;
 
   osi.eventTime= osi.present/ 1000000;
 
@@ -931,7 +950,7 @@ bool _processMSG(void) {
           in.k.insertLock= (in.k.insertLock? false: true);
       }
   
-      in.k._doManip();     /// check if pressed keys form a manip char. if they do, manipChar is added to manip stream
+      in.k._checkKeyManip(code);     /// check if pressed keys form a manip char. if they do, manipChar is added to manip stream
     }
     // ---------------================= KEY UP ==================-------------------
     else if([event type]== NSKeyUp) {

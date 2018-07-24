@@ -1239,106 +1239,104 @@ void osiInput::_getUnicode(KeySym *ks, uint32_t *ret) {
 
 // is this function more tied to OSchar.cpp? should this be in osinput.cpp, as it is part of Keyboard?
 
-void osiKeyboard::_doManip() {
-  // only string manipulator characters/keys are returned
+void osiKeyboard::_checkKeyManip(uint32_t in_keyCode) {
+  // only string manipulator characters/keys are inserted in charTyped
+  // only characters that would NOT be unicodes are checked. for characters that could be unicodes, _checkAndAddUnicode is used
 
   // XK_Tab 0xff09 NOT RETURNED ATM, SUBJECT TO CHANGE?
-
-  /// check if shift is pressed; if it is, check for selection changes chars
-  if(key[in.Kv.lshift] || key[in.Kv.rshift]) {
-    if(key[in.Kv.home])   { _addManip(Kch_selHome, &osi.eventTime);   return; }
-    if(key[in.Kv.end])    { _addManip(Kch_selEnd, &osi.eventTime);    return; }
-    if(key[in.Kv.pgup])   { _addManip(Kch_selPgUp, &osi.eventTime);   return; }
-    if(key[in.Kv.pgdown]) { _addManip(Kch_selPgDown, &osi.eventTime); return; }
-    if(key[in.Kv.left])   { _addManip(Kch_selLeft, &osi.eventTime);   return; }
-    if(key[in.Kv.up])     { _addManip(Kch_selUp, &osi.eventTime);     return; }
-    if(key[in.Kv.right])  { _addManip(Kch_selRight, &osi.eventTime);  return; }
-    if(key[in.Kv.down])   { _addManip(Kch_selDown, &osi.eventTime);   return; }
-    
-    if(!numLock) {
-      if(key[in.Kv.kp7]) { _addManip(Kch_selHome, &osi.eventTime);   return; }
-      if(key[in.Kv.kp1]) { _addManip(Kch_selEnd, &osi.eventTime);    return; }
-      if(key[in.Kv.kp9]) { _addManip(Kch_selPgUp, &osi.eventTime);   return; }
-      if(key[in.Kv.kp3]) { _addManip(Kch_selPgDown, &osi.eventTime); return; }
-      if(key[in.Kv.kp4]) { _addManip(Kch_selLeft, &osi.eventTime);   return; }
-      if(key[in.Kv.kp8]) { _addManip(Kch_selUp, &osi.eventTime);     return; }
-      if(key[in.Kv.kp6]) { _addManip(Kch_selRight, &osi.eventTime);  return; }
-      if(key[in.Kv.kp2]) { _addManip(Kch_selDown, &osi.eventTime);   return; }
-    }
-  } /// if shift key is pressed
   
-  if(key[in.Kv.enter])     { _addManip(Kch_enter, &osi.eventTime);     return; }
-  if(key[in.Kv.kpenter])   { _addManip(Kch_enter, &osi.eventTime);     return; }
-
-  if(key[in.Kv.backspace]) { _addManip(Kch_backSpace, &osi.eventTime); return; }
-  if(key[in.Kv.del])       { _addManip(Kch_delete, &osi.eventTime);    return; }
-  if(key[in.Kv.kpdel])     { _addManip(Kch_delete, &osi.eventTime);    return; }
-  
-  if(key[in.Kv.home])      { _addManip(Kch_home, &osi.eventTime);      return; }
-  if(key[in.Kv.end])       { _addManip(Kch_end, &osi.eventTime);       return; }
-  if(key[in.Kv.pgup])      { _addManip(Kch_pgUp, &osi.eventTime);      return; }
-  if(key[in.Kv.pgdown])    { _addManip(Kch_pgDown, &osi.eventTime);    return; }
-    
-  if(key[in.Kv.left])      { _addManip(Kch_left, &osi.eventTime);      return; }
-  if(key[in.Kv.up])        { _addManip(Kch_up, &osi.eventTime);        return; }
-  if(key[in.Kv.right])     { _addManip(Kch_right, &osi.eventTime);     return; }
-  if(key[in.Kv.down])      { _addManip(Kch_down, &osi.eventTime);      return; }
-         
-  if(!numLock) {         
-    if(key[in.Kv.kp7])  { _addManip(Kch_home, &osi.eventTime);      return; }
-    if(key[in.Kv.kp1])  { _addManip(Kch_end, &osi.eventTime);       return; }
-    if(key[in.Kv.kp9])  { _addManip(Kch_pgUp, &osi.eventTime);      return; }
-    if(key[in.Kv.kp3])  { _addManip(Kch_pgDown, &osi.eventTime);    return; }
-    if(key[in.Kv.kp4])  { _addManip(Kch_left, &osi.eventTime);      return; }
-    if(key[in.Kv.kp8])  { _addManip(Kch_up, &osi.eventTime);        return; }
-    if(key[in.Kv.kp6])  { _addManip(Kch_right, &osi.eventTime);     return; }
-    if(key[in.Kv.kp2])  { _addManip(Kch_down, &osi.eventTime);      return; }
-  }
-
-
   // no clue what to do on a japanese keyboard, for example ... :\
   // must find out what their default 'copy/cut/paste' keys combs are
   // IT SEEMS TO BE THE SAME, SO NOTHING TO BOTHER ABOUT OTHER COUNTRYES KEYBOARDS
   
-  /// 'copy' key combination checks
-  if((key[in.Kv.lctrl]  || key[in.Kv.rctrl]) &&     /// ctrl +
-     (key[in.Kv.insert] || key[in.Kv.kp0])) {       /// insert
-    _addManip(Kch_copy, &osi.eventTime);
-    return;
+
+  // shift modifier key combinations
+  if(key[in.Kv.lshift] || key[in.Kv.rshift]) {
+    if(in_keyCode== in.Kv.home)   { _addChar(Kch_selHome, &osi.eventTime);   return; }
+    if(in_keyCode== in.Kv.end)    { _addChar(Kch_selEnd, &osi.eventTime);    return; }
+    if(in_keyCode== in.Kv.pgup)   { _addChar(Kch_selPgUp, &osi.eventTime);   return; }
+    if(in_keyCode== in.Kv.pgdown) { _addChar(Kch_selPgDown, &osi.eventTime); return; }
+    if(in_keyCode== in.Kv.left)   { _addChar(Kch_selLeft, &osi.eventTime);   return; }
+    if(in_keyCode== in.Kv.up)     { _addChar(Kch_selUp, &osi.eventTime);     return; }
+    if(in_keyCode== in.Kv.right)  { _addChar(Kch_selRight, &osi.eventTime);  return; }
+    if(in_keyCode== in.Kv.down)   { _addChar(Kch_selDown, &osi.eventTime);   return; }
+    if(in_keyCode== in.Kv.insert) { _addChar(Kch_paste, &osi.eventTime);     return; }
+
+    if(!numLock) {
+      if(in_keyCode== in.Kv.kp7)   { _addChar(Kch_selHome, &osi.eventTime);   return; }
+      if(in_keyCode== in.Kv.kp1)   { _addChar(Kch_selEnd, &osi.eventTime);    return; }
+      if(in_keyCode== in.Kv.kp9)   { _addChar(Kch_selPgUp, &osi.eventTime);   return; }
+      if(in_keyCode== in.Kv.kp3)   { _addChar(Kch_selPgDown, &osi.eventTime); return; }
+      if(in_keyCode== in.Kv.kp4)   { _addChar(Kch_selLeft, &osi.eventTime);   return; }
+      if(in_keyCode== in.Kv.kp8)   { _addChar(Kch_selUp, &osi.eventTime);     return; }
+      if(in_keyCode== in.Kv.kp6)   { _addChar(Kch_selRight, &osi.eventTime);  return; }
+      if(in_keyCode== in.Kv.kp2)   { _addChar(Kch_selDown, &osi.eventTime);   return; }
+      if(in_keyCode== in.Kv.kp0)   { _addChar(Kch_paste, &osi.eventTime);     return; }
+    }
+  } /// if shift key is pressed
+
+
+  // ctrl modifier key combinations
+  if(key[in.Kv.lctrl] || key[in.Kv.rctrl]) {
+    if(in_keyCode== in.Kv.insert)  { _addChar(Kch_copy, &osi.eventTime); return; }
+    if(in_keyCode== in.Kv.del)     { _addChar(Kch_cut, &osi.eventTime);  return; }
+
+    if(!numLock) {
+      if(in_keyCode== in.Kv.kpdel) { _addChar(Kch_cut, &osi.eventTime);  return; }
+      if(in_keyCode== in.Kv.kp0)   { _addChar(Kch_copy, &osi.eventTime); return; }
+    }
   }
-  if((key[in.Kv.lctrl] || key[in.Kv.rctrl]) &&      /// ctrl +
-      key[in.Kv.c]) {                               /// c
-    _addManip(Kch_copy, &osi.eventTime);
-    return;
-  }
-    
-  /// 'cut' key combination checks
-  if((key[in.Kv.lctrl] || key[in.Kv.rctrl])  &&     /// ctrl +
-     (key[in.Kv.del]   || key[in.Kv.kpdel]))  {     /// del
-    _addManip(Kch_cut, &osi.eventTime);
-    return;
-  }
-  if((key[in.Kv.lctrl] || key[in.Kv.rctrl]) &&      /// ctrl +
-      key[in.Kv.x]) {                               /// x
-    _addManip(Kch_cut, &osi.eventTime);
-    return;
-  }
-    
-  /// 'paste' key combination checks
-  if((key[in.Kv.lshift] || key[in.Kv.rshift]) &&    /// shift +
-     (key[in.Kv.insert] || key[in.Kv.kp0])) {       /// insert
-    _addManip(Kch_paste, &osi.eventTime);
-    return;
-  }
-  if((key[in.Kv.lctrl] || key[in.Kv.rctrl]) &&      /// ctrl +
-      key[in.Kv.v]) {                               /// v
-    _addManip(Kch_paste, &osi.eventTime);
-    return;
-  }
+
+  if(in_keyCode== in.Kv.enter)     { _addChar(Kch_enter, &osi.eventTime);     return; }
+  if(in_keyCode== in.Kv.kpenter)   { _addChar(Kch_enter, &osi.eventTime);     return; }
+
+  if(in_keyCode== in.Kv.backspace) { _addChar(Kch_backSpace, &osi.eventTime); return; }
+  if(in_keyCode== in.Kv.del)       { _addChar(Kch_delete, &osi.eventTime);    return; }
   
+  if(in_keyCode== in.Kv.home)      { _addChar(Kch_home, &osi.eventTime);      return; }
+  if(in_keyCode== in.Kv.end)       { _addChar(Kch_end, &osi.eventTime);       return; }
+  if(in_keyCode== in.Kv.pgup)      { _addChar(Kch_pgUp, &osi.eventTime);      return; }
+  if(in_keyCode== in.Kv.pgdown)    { _addChar(Kch_pgDown, &osi.eventTime);    return; }
+    
+  if(in_keyCode== in.Kv.left)      { _addChar(Kch_left, &osi.eventTime);      return; }
+  if(in_keyCode== in.Kv.up)        { _addChar(Kch_up, &osi.eventTime);        return; }
+  if(in_keyCode== in.Kv.right)     { _addChar(Kch_right, &osi.eventTime);     return; }
+  if(in_keyCode== in.Kv.down)      { _addChar(Kch_down, &osi.eventTime);      return; }
+         
+  if(!numLock) {         
+    if(in_keyCode== in.Kv.kpdel) { _addChar(Kch_delete, &osi.eventTime);    return; }
+    if(in_keyCode== in.Kv.kp7)  { _addChar(Kch_home, &osi.eventTime);      return; }
+    if(in_keyCode== in.Kv.kp1)  { _addChar(Kch_end, &osi.eventTime);       return; }
+    if(in_keyCode== in.Kv.kp9)  { _addChar(Kch_pgUp, &osi.eventTime);      return; }
+    if(in_keyCode== in.Kv.kp3)  { _addChar(Kch_pgDown, &osi.eventTime);    return; }
+    if(in_keyCode== in.Kv.kp4)  { _addChar(Kch_left, &osi.eventTime);      return; }
+    if(in_keyCode== in.Kv.kp8)  { _addChar(Kch_up, &osi.eventTime);        return; }
+    if(in_keyCode== in.Kv.kp6)  { _addChar(Kch_right, &osi.eventTime);     return; }
+    if(in_keyCode== in.Kv.kp2)  { _addChar(Kch_down, &osi.eventTime);      return; }
+  }
 }
 
 
+void osiKeyboard::_checkAndAddUnicode(uint32_t in_unicode) {
+  // check for string manipulation characters
+  // only those manipulation characters that could be unicodes or part of a string
+  // for the other manip chars, they're processed in _checkKeyManip()
+
+
+  // could be, that these modifiers won't even be needed, cuz the OS will not put unicode chars in the stream if there's a ctrl/shift key pressed
+  // but i am not sure, so here it is
+  if(key[in.Kv.lctrl] || key[in.Kv.rctrl]) {
+    if(in_unicode== 'c') { _addChar(Kch_copy, &osi.eventTime); return; }
+    if(in_unicode== 'x') { _addChar(Kch_cut, &osi.eventTime); return; }
+    if(in_unicode== 'v') { _addChar(Kch_paste, &osi.eventTime); return; }
+  }
+
+  if(in_unicode== '\n') return; // it's handled in the other func, there is only one char for enter, '\n'
+  if(in_unicode== '\r') return; // this will be totally ignored if it's from the OS
+  if(in_unicode== '\b') return; // this could happen to be in the OS unicode stream. it's ignored here, and handled on key press func
+
+  _addChar(in_unicode, &osi.eventTime);
+}
 
 
 

@@ -1988,9 +1988,9 @@ void str8::insert(char32_t in_unicode, int32_t in_pos) {
 // <in_pos>: insert position of <in_str> in current string;
 //           if left -1, the string is inserted at the end of the current string
 //           the unicode value which this points to (and every unicodes after) is moved to the right
-void str8::insertStr(const char *in_str, int32_t in_pos) {
-  if(wrapping) Str::insertStr8static(d, wrapSize, in_str, in_pos);
-  else         Str::insertStr8(&d, in_str, in_pos);
+void str8::insertStr(const char *in_str, int32_t in_n, int32_t in_pos) {
+  if(wrapping) Str::insertStr8static(d, wrapSize, in_str, in_n, in_pos);
+  else         Str::insertStr8(&d, in_str, in_n, in_pos);
   updateLen();
 }
 

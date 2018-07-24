@@ -37,7 +37,7 @@
 // the functions are using (u)int8_t, (u)int16_t and (u)int32_t internally, which are guaranteed to be 8, 16 and 32bits
 
 namespace Str {
-  
+  const uint32_t UNICODE_MAX= 0x10FFFF;
   const uint32_t UTF16_LEAD_OFFSET= 0xD800- (0x10000>> 10);               // #define UTF16_LEAD_OFFSET 55232U
   const uint32_t UTF16_SURROGATE_OFFSET= 0x10000- (0xD800<< 10)- 0xDC00;  // #define UTF16_SURROGATE_OFFSET 4238353408U
 
@@ -66,6 +66,7 @@ namespace Str {
   // utf-8 utf-16 utf-32 in-between conversions
 
   char32_t utf8to32(const char *in_utf8, int32_t *out_bytes= NULL); // unpacks UTF-8 and returns unicode value (UTF-32); <out_bytes>: [optional] returns how many bytes has the character in UTF8 format
+  
   void utf8to16(const char *in_utf8, char16_t *out_utf16, int32_t *out_utf8bytes= NULL, int32_t *out_utf16ints= NULL);          // unpacks UTF-8 and packs to UTF-16 (if neccesary); in_str: UTF-8 input; out_str: UTF-16 output
   char32_t utf16to32(const char16_t *in_utf16, int32_t *out_nInt16= NULL); // unpacks (if surrogates present) UTF-16 and returns unicode value; out_nInt16: [optional] returns the number of int16 in the packed UTF-16 (it can be 1 or 2, basically if using surrogates or not)
   void utf16to8(const char16_t *in_utf16, char *out_utf8);          // unpacks (if surrogates present) UTF-16 and packs into UTF-8
@@ -92,7 +93,14 @@ namespace Str {
   char16_t *getChar16(const char16_t *s,    int32_t n); // UTF-16: returns the [n] char in string (diacriticals are considered part of a character)
   char32_t *getUnicode32(const char32_t *s, int32_t n); // UTF-32: returns the [n] unicode value in string; you can just use s[n], but this checks for end string terminator, SLOW FUNC, passes thru string
   char32_t *getChar32(const char32_t *s,    int32_t n); // UTF-32: returns the [n] char in string (diacriticals are considered part of a character)
-  
+
+  int32_t getUnicodesInChar8(const char *s);        // UTF-8:  returns the number of unicodes a char is composed of (how many diacriticals+ the actual char glyph)
+  int32_t getUnicodesInChar16(const char16_t *s);   // UTF-16: returns the number of unicodes a char is composed of (how many diacriticals+ the actual char glyph)
+  int32_t getUnicodesInChar32(const char32_t *s);   // UTF-32: returns the number of unicodes a char is composed of (how many diacriticals+ the actual char glyph)
+  int32_t getUnicodesInChars8(const char *in_s, int32_t in_maxChars);   // UTF-8:  returns the number of unicodes in a text with <in_maxChars> number of characters
+  int32_t getUnicodesInChars16(const char16_t *in_s, int32_t in_maxChars);  // UTF-16: returns the number of unicodes in a text with <in_maxChars> number of characters
+  int32_t getUnicodesInChars32(const char32_t *in_s, int32_t in_maxChars);  // UTF-32: returns the number of unicodes in a text with <in_maxChars> number of characters
+
   bool isComb(char32_t n);              // checks specified unicode value to see if this is a combining diacritical (if u dont know what they are, you can use clearComb() to remove them all from a string, and avoid headaches)
   inline bool isHighSurrogate(uint32_t n) { return (n>= 0xD800 && n<= 0xDBFF); } // checks specified value to see if it's a utf-16 high surrogate
   inline bool isLowSurrogate(uint32_t n)  { return (n>= 0xDC00 && n<= 0xDFFF); } // checks specified value to see if it's a utf-16 low surrogate
@@ -139,24 +147,26 @@ namespace Str {
 
   // character or string insertion / deletion from a string
 
-  int32_t insert8(char      **out_str, char32_t in_unicode, int32_t in_pos= -1); // <in_unicode>-unicode value to insert <in_pos>- insert position (selected unicode value at position is moved to the right); if left -1, unicode is inserted at the end of the string; <returns> resulting string length in bytes (including str terminator)
-  int32_t insert16(char16_t **out_str, char32_t in_unicode, int32_t in_pos= -1); // <in_unicode>-unicode value to insert <in_pos>- insert position (selected unicode value at position is moved to the right); if left -1, unicode is inserted at the end of the string; <returns> resulting string length in bytes (incl str terminator)
-  int32_t insert32(char32_t **out_str, char32_t in_unicode, int32_t in_pos= -1); // <in_unicode>-unicode value to insert <in_pos>- insert position (selected unicode value at position is moved to the right); if left -1, unicode is inserted at the end of the string; <returns> resulting string length in bytes (incl str terminator)
-  int32_t insertStr8(char      **out_str, const char     *in_str, int32_t in_pos= -1); // <in_str>- string to insert (UTF8) <in_pos>- insert position (selected unicode value at position is moved to the right); if left -1, unicode is inserted at the end of the string; <returns> resulting string length in bytes (incl str terminator)
-  int32_t insertStr16(char16_t **out_str, const char16_t *in_str, int32_t in_pos= -1); // <in_str>- string to insert (UTF16) <in_pos>- insert position (selected unicode value at position is moved to the right); if left -1, unicode is inserted at the end of the string; <returns> resulting string length in bytes (incl str terminator)
-  int32_t insertStr32(char32_t **out_str, const char32_t *in_str, int32_t in_pos= -1); // <in_str>- string to insert (UTF32) <in_pos>- insert position (selected unicode value at position is moved to the right); if left -1, unicode is inserted at the end of the string; <returns> resulting string length in bytes (incl str terminator)
+  int32_t insert8(char      **out_str, char32_t in_unicode, int32_t in_pos= -1); // <in_unicode>-unicode value to insert <in_pos>- insert position (in unicodes); when -1 (default), position is end of string; <returns> resulting string length in bytes (including str terminator)
+  int32_t insert16(char16_t **out_str, char32_t in_unicode, int32_t in_pos= -1); // <in_unicode>-unicode value to insert <in_pos>- insert position (in unicodes); when -1 (default), position is end of string; <returns> resulting string length in bytes (incl str terminator)
+  int32_t insert32(char32_t **out_str, char32_t in_unicode, int32_t in_pos= -1); // <in_unicode>-unicode value to insert <in_pos>- insert position (in unicodes); when -1 (default), position is end of string; <returns> resulting string length in bytes (incl str terminator)
+  int32_t insertStr8(char      **out_str, const char     *in_str, int32_t n= -1, int32_t in_pos= -1); // <in_str>- string to insert (UTF8);  <n>- nr unicodes to insert; when -1(default), will insert the whole string; <in_pos>- insert position (in unicodes); when -1 (default), position is end of string;  <returns> resulting string length in bytes (incl str terminator)
+  int32_t insertStr16(char16_t **out_str, const char16_t *in_str, int32_t n= -1, int32_t in_pos= -1); // <in_str>- string to insert (UTF16); <n>- nr unicodes to insert; when -1(default), will insert the whole string; <in_pos>- insert position (in unicodes); when -1 (default), position is end of string;  <returns> resulting string length in bytes (incl str terminator)
+  int32_t insertStr32(char32_t **out_str, const char32_t *in_str, int32_t n= -1, int32_t in_pos= -1); // <in_str>- string to insert (UTF32); <n>- nr unicodes to insert; when -1(default), will insert the whole string; <in_pos>- insert position (in unicodes); when -1 (default), position is end of string;  <returns> resulting string length in bytes (incl str terminator)
+
   int32_t del8(char      **out_str, int32_t in_nUnicodesToDel= 1, int32_t in_pos= -1); // <in_nUnicodesToDel>- number of unicodes to del from UTF8 str; <in_pos>- delete position- selected unicode is deleted and every unicode to the right until <in_nrUnicodesToDel> is satisfied; if it remains -1, the last unicode in the string is the position; <returns> resulting string length in bytes (incl str terminator)
   int32_t del16(char16_t **out_str, int32_t in_nUnicodesToDel= 1, int32_t in_pos= -1); // <in_nUnicodesToDel>- number of unicodes to del from UTF16 str; <in_pos>- delete position- selected unicode is deleted and every unicode to the right until <in_nrUnicodesToDel> is satisfied; if it remains -1, the last unicode in the string is the position; <returns> resulting string length in bytes (incl str terminator)
   int32_t del32(char32_t **out_str, int32_t in_nUnicodesToDel= 1, int32_t in_pos= -1); // <in_nUnicodesToDel>- number of unicodes to del from UTF32 str; <in_pos>- delete position- selected unicode is deleted and every unicode to the right until <in_nrUnicodesToDel> is satisfied; if it remains -1, the last unicode in the string is the position; <returns> resulting string length in bytes (incl str terminator)
 
   // next functions act on the supplied fixed size buffer, no memory allocations are made
 
-  int32_t insert8static(char      *out_buf, int32_t in_bufSize, char32_t in_unicode, int32_t in_pos= -1);   // <in_bufSize>- [REQUIRED] out_buf's size, in bytes; <in_unicode>- unicode value to insert; <in_pos>- insert position (selected unicode value at position is moved to the right); if left -1, unicode is inserted at the end of the string; <returns> resulting string length in bytes (incl str terminator)
-  int32_t insert16static(char16_t *out_buf, int32_t in_bufSize, char32_t in_unicode, int32_t in_pos= -1);   // <in_bufSize>- [REQUIRED] out_buf's size, in int16 units; <in_unicode>- unicode value to insert; <in_pos>- insert position (selected unicode value at position is moved to the right); if left -1, unicode is inserted at the end of the string; <returns> resulting string length in bytes (incl str terminator)
-  int32_t insert32static(char32_t *out_buf, int32_t in_bufSize, char32_t in_unicode, int32_t in_pos= -1);   // <in_bufSize>- [REQUIRED] out_buf's size, in int32 units; <in_unicode>- unicode value to insert; <in_pos>- insert position (selected unicode value at position is moved to the right); if left -1, unicode is inserted at the end of the string; <returns> resulting string length in bytes (incl str terminator)
-  int32_t insertStr8static(char      *out_buf, int32_t in_bufSize, const char *in_str,     int32_t in_pos= -1); // <in_bufSize>- [REQUIRED] out_buf's size, in bytes; <in_str>- str to insert (UTF8); <in_pos>- insert position (selected unicode value at position is moved to the right); if  left -1, unicode is inserted at the end of the string; <returns> resulting string length in bytes (incl str terminator)
-  int32_t insertStr16static(char16_t *out_buf, int32_t in_bufSize, const char16_t *in_str, int32_t in_pos= -1); // <in_bufSize>- [REQUIRED] out_buf's size, in int16 units; <in_str>- str to insert (UTF16); <in_pos>- insert position (selected unicode value at position is moved to the right); if  left -1, unicode is inserted at the end of the string; <returns> resulting string length in bytes (incl str terminator)
-  int32_t insertStr32static(char32_t *out_buf, int32_t in_bufSize, const char32_t *in_str, int32_t in_pos= -1); // <in_bufSize>- [REQUIRED] out_buf's size, in int32 units; <in_str>- str to insert (UTF32); <in_pos>- insert position (selected unicode value at position is moved to the right); if  left -1, unicode is inserted at the end of the string; <returns> resulting string length in bytes (incl str terminator)
+  int32_t insert8static(char      *out_buf, int32_t in_bufSize, char32_t in_unicode, int32_t in_pos= -1);   // <in_bufSize>- [REQUIRED] out_buf's size, in bytes; <in_unicode>- unicode value to insert; <in_pos>- insert position (in unicodes); when -1 (default), position is end of string; <returns> resulting string length in bytes (incl str terminator)
+  int32_t insert16static(char16_t *out_buf, int32_t in_bufSize, char32_t in_unicode, int32_t in_pos= -1);   // <in_bufSize>- [REQUIRED] out_buf's size, in int16 units; <in_unicode>- unicode value to insert; <in_pos>- insert position (in unicodes); when -1 (default), position is end of string; <returns> resulting string length in bytes (incl str terminator)
+  int32_t insert32static(char32_t *out_buf, int32_t in_bufSize, char32_t in_unicode, int32_t in_pos= -1);   // <in_bufSize>- [REQUIRED] out_buf's size, in int32 units; <in_unicode>- unicode value to insert; <in_pos>- insert position (in unicodes); when -1 (default), position is end of string; <returns> resulting string length in bytes (incl str terminator)
+  int32_t insertStr8static(char      *out_buf, int32_t in_bufSize, const char *in_str,     int32_t n, int32_t in_pos= -1); // <in_bufSize>- [REQUIRED] out_buf's size, in bytes;       <in_str>- str to insert (UTF8);  <n>- nr unicodes to insert; when -1(default), will insert the whole string; <in_pos>- insert position (in unicodes); when -1 (default), position is end of string; <returns> resulting string length in bytes (incl str terminator)
+  int32_t insertStr16static(char16_t *out_buf, int32_t in_bufSize, const char16_t *in_str, int32_t n, int32_t in_pos= -1); // <in_bufSize>- [REQUIRED] out_buf's size, in int16 units; <in_str>- str to insert (UTF16); <n>- nr unicodes to insert; when -1(default), will insert the whole string; <in_pos>- insert position (in unicodes); when -1 (default), position is end of string; <returns> resulting string length in bytes (incl str terminator)
+  int32_t insertStr32static(char32_t *out_buf, int32_t in_bufSize, const char32_t *in_str, int32_t n, int32_t in_pos= -1); // <in_bufSize>- [REQUIRED] out_buf's size, in int32 units; <in_str>- str to insert (UTF32); <n>- nr unicodes to insert; when -1(default), will insert the whole string; <in_pos>- insert position (in unicodes); when -1 (default), position is end of string; <returns> resulting string length in bytes (incl str terminator)
+  
   int32_t del8static(char      *out_buf, int32_t in_nUnicodesToDel= 1, int32_t in_pos= -1); // <in_nUnicodesToDel>- number of unicodes to del from UTF8 str; <in_pos>- delete position- selected unicode is deleted and every unicode to the right until <in_nrUnicodesToDel> is satisfied; if it remains -1, the last unicode in the string is the position; <returns> resulting string length in bytes (incl str terminator)
   int32_t del16static(char16_t *out_buf, int32_t in_nUnicodesToDel= 1, int32_t in_pos= -1); // <in_nUnicodesToDel>- number of unicodes to del from UTF16 str; <in_pos>- delete position- selected unicode is deleted and every unicode to the right until <in_nrUnicodesToDel> is satisfied; if it remains -1, the last unicode in the string is the position; <returns> resulting string length in bytes (incl str terminator)
   int32_t del32static(char32_t *out_buf, int32_t in_nUnicodesToDel= 1, int32_t in_pos= -1); // <in_nUnicodesToDel>- number of unicodes to del from UTF32 str; <in_pos>- delete position- selected unicode is deleted and every unicode to the right until <in_nrUnicodesToDel> is satisfied; if it remains -1, the last unicode in the string is the position; <returns> resulting string length in bytes (incl str terminator)
@@ -193,7 +203,7 @@ namespace Str {
         *p3++= *p4++, n--;
 
     } else {
-      uint64_t *p1= (uint64_t *)dst+ n, *p2= (uint64_t *)src+ n;
+      uint64_t *p1= (uint64_t *)((uint8_t *)dst+ n), *p2= (uint64_t *)((uint8_t *)src+ n);
       while(n>= 8)                /// 8 bytes at a time copy
         *--p1= *--p2, n-= 8;
 
@@ -201,6 +211,50 @@ namespace Str {
       while(n)                    /// rest of bytes 1 by 1 (max 7)
         *--p3= *--p4, n--;
     }
+  }
+
+  // unpacks UTF-8 and returns unicode value (UTF-32) 
+  inline uint8_t *utf8to32fast(const uint8_t *in_txt, uint32_t *out_unicode) {
+    if(*in_txt < 128) {                    /// character uses 1 byte (ascii 0-127)
+      *out_unicode= *in_txt++;
+    } else if((*in_txt& 0xe0) == 0xc0) {   /// character uses 2 bytes
+      *out_unicode= (*in_txt++)& 0x1f;
+      *out_unicode<<= 6; *out_unicode+= (*in_txt++)& 0x3f;
+    } else if((*in_txt& 0xf0) == 0xe0) {   /// character uses 3 bytes
+      *out_unicode= (*in_txt++)& 0x0f;
+      *out_unicode<<= 6; *out_unicode+= (*in_txt++)& 0x3f;
+      *out_unicode<<= 6; *out_unicode+= (*in_txt++)& 0x3f;
+    } else if((*in_txt& 0xf8) == 0xf0) {   /// character uses 4 bytes
+      *out_unicode= (*in_txt++)& 0x07;
+      *out_unicode<<= 6; *out_unicode+= (*in_txt++)& 0x3f;
+      *out_unicode<<= 6; *out_unicode+= (*in_txt++)& 0x3f;
+      *out_unicode<<= 6; *out_unicode+= (*in_txt++)& 0x3f;
+    } else if((*in_txt& 0xfc) == 0xf8) {   /// character uses 5 bytes
+      // the last 2 bytes are not used, but printed if in the future unicode will expand
+      *out_unicode= (*in_txt++)& 0x03;
+      *out_unicode<<= 6; *out_unicode+= (*in_txt++)& 0x3f;
+      *out_unicode<<= 6; *out_unicode+= (*in_txt++)& 0x3f;
+      *out_unicode<<= 6; *out_unicode+= (*in_txt++)& 0x3f;
+      *out_unicode<<= 6; *out_unicode+= (*in_txt++)& 0x3f;
+    } else if((*in_txt& 0xfe) == 0xfc) {   /// character uses 6 bytes
+      *out_unicode= (*in_txt++)& 0x01;
+      *out_unicode<<= 6; *out_unicode+= (*in_txt++)& 0x3f;
+      *out_unicode<<= 6; *out_unicode+= (*in_txt++)& 0x3f;
+      *out_unicode<<= 6; *out_unicode+= (*in_txt++)& 0x3f;
+      *out_unicode<<= 6; *out_unicode+= (*in_txt++)& 0x3f;
+      *out_unicode<<= 6; *out_unicode+= (*in_txt++)& 0x3f;
+    } else 
+      *out_unicode= 0xFFFD;
+    return (uint8_t *)in_txt;
+  }
+
+  // unpacks UTF-16 and returns unicode value (UTF-32)
+  inline uint16_t *utf16to32fast(const uint16_t *in_txt, uint32_t *out_unicode) {
+    if(Str::isHighSurrogate(*in_txt))
+      *out_unicode= (*in_txt<< 10)+ *(in_txt+ 1)+ Str::UTF16_SURROGATE_OFFSET, in_txt+= 2;
+    else
+      *out_unicode= *in_txt, in_txt++;
+    return (uint16_t *)in_txt;
   }
 
   // other versions: 

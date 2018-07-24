@@ -1,6 +1,6 @@
 #pragma once
 #define STR8CLASSINCLUDED 1
-#include <stdio.h>    // FILE * for safe read... this might go
+//#include <stdio.h>    // FILE * for safe read... this might go
 
 
 // WARNING:
@@ -86,7 +86,7 @@ public:
   // character / string insertion deletion at specific points
 
   void insert(char32_t in_unicode, int32_t in_pos= -1);       // <in_unicode>- unicode to insert; <in_pos>- insert position (-1= insert at the end of str)
-  void insertStr(const char *in_str, int32_t in_pos= -1);     // <in_str>- str(UTF-8) to insert; <in_pos>- insert position (-1= at the end of the str)
+  void insertStr(const char *in_str, int32_t n, int32_t in_pos= -1);     // <in_str>- str(UTF-8) to insert; <in_pos>- insert position (-1= at the end of the str)
   void del(int32_t in_nrToDel= 1, int32_t in_pos= -1);        // <in_nrToDel>- number of unicode values to delete; <in_pos>- delete position - (del at the left, -1= end of string);
 
   // search in string funcs
@@ -116,7 +116,7 @@ public:
   str8 &fromFloat(float n, int precision= 2, bool useE= false)      { if(!wrapping) if(len< 39) { if(d) delete[] d; d= (char *)new uint8_t[39]; } nrUnicodes= Str::floatToUtf8(n, d, precision, useE);  len= nrUnicodes+ 1; return *this; }
   str8 &fromDouble(double n, int precision= 2, bool useE= false)    { if(!wrapping) if(len< 39) { if(d) delete[] d; d= (char *)new uint8_t[39]; } nrUnicodes= Str::doubleToUtf8(n, d, precision, useE); len= nrUnicodes+ 1; return *this; }
 
-
+  
 
   // constructors
   
@@ -140,7 +140,7 @@ public:
   str8 &operator= (const str8 &);     // assign from another str8 class
   str8 &operator= (const str16 &s);   // assign from a str16 class
   str8 &operator= (const str32 &);    // assign from a str32 class
-  str8 &operator= (const char *);  // assign from a UTF-8 str
+  str8 &operator= (const char *);     // assign from a UTF-8 str
   str8 &operator= (const char16_t *); // assign from a UTF-16 str
   str8 &operator= (const char32_t *); // assign from a UTF-32 str
   str8 &operator= (const char32_t);   // makes a 1 char length string of specified unicode value (+terminator)
@@ -148,7 +148,7 @@ public:
   str8 operator+(const str8 &s) const;     // adds two str8 then returns the result
   str8 operator+(const str16 &s) const;    // adds two str then returns the result
   str8 operator+(const str32 &s) const;    // adds two str then returns the result
-  str8 operator+(const char *s) const;  // adds str8 and UTF-8 arr str then returns the result
+  str8 operator+(const char *s) const;     // adds str8 and UTF-8 arr str then returns the result
   str8 operator+(const char16_t *s) const; // adds str8 and UTF-16 arr str then returns the result
   str8 operator+(const char32_t *s) const; // adds str8 and UTF-32 arr str then returns the result
   str8 operator+(char32_t c) const;        // adds str8 and a single unicode char then returns the result
@@ -156,7 +156,7 @@ public:
   str8 &operator+=(const str8 &);         // adds another string to current
   str8 &operator+=(const str16 &);
   str8 &operator+=(const str32 &);
-  str8 &operator+=(const char *);      // adds an UTF-8 array str
+  str8 &operator+=(const char *);         // adds an UTF-8 array str
   str8 &operator+=(const char16_t *);     // adds am UTF-16 array str
   str8 &operator+=(const char32_t *);     // adds an UTF-32 array str
   str8 &operator+=(const char32_t);       // adds a (unicode) character
@@ -164,10 +164,13 @@ public:
   str8 &operator-=(const int n);          // clears n char(s) from string
   str8 operator-(int n) const;            // returns a temp string that has n less chars
 
-  inline operator char*()      { return d; }     // returns the string as UTF-8
+  inline operator char*() const { return d; }     // returns the string as UTF-8
   //operator const char*() { return (const char *)d; }   // returns the string as UTF-8
-  //operator char16_t *() { return convert16(); }   // returns the string as UTF-16; returned pointer is part of the class, no need for dealloc
-  //operator char32_t *() { return convert32(); }   // returns the string as UTF-32; returned pointer is part of the class, no need for dealloc
+  inline operator char16_t *() { return convert16(); }   // returns the string as UTF-16; returned pointer is part of the class, no need for dealloc
+  inline operator char32_t *() { return convert32(); }   // returns the string as UTF-32; returned pointer is part of the class, no need for dealloc
+  inline explicit operator const bool() const { return (bool)nrUnicodes; /*? true: false;*/ }
+  inline bool operator!() const { return (bool)nrUnicodes;/*? false: true;*/ }
+  inline const bool exists() const { return (bool)nrUnicodes; }
 
   inline char *operator[](unsigned n) const   { return Str::getUnicode8(d, n); } // points to the n-th unicode value in the string
   inline char *pointUnicode(unsigned n) const { return Str::getUnicode8(d, n); } // points to the n-th unicode value in the string
@@ -189,9 +192,14 @@ public:
   bool operator!=(const char32_t *s) const  { return !(operator==(s)); }
   bool operator!=(const char32_t c) const   { return !(operator==(c)); }
   bool operator!=(char *s) const { return !(operator==((const char *)s)); }
+    
 
-  inline operator bool() const { return nrUnicodes? true: false; }
-  inline bool operator!() { return nrUnicodes? false: true; }
+#ifdef OS_WIN // osinteraction for LPCSTR convertion
+  inline operator WCHAR*() { return (WCHAR *)convert16(); }
+  inline str8 &operator= (const WCHAR *s) { return operator= ((char16_t *)s); }
+#endif /// OS_WIN
+  private:
+    bool _changed;
 };
 
 inline str8 operator+(const char *s1,     const str8 &s2) { return str8(s1)+= s2; }

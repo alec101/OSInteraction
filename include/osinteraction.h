@@ -162,20 +162,20 @@ main() {
 #ifdef USING_DIRECTINPUT
   #define DIRECTINPUT_VERSION 0x0800
   #include DINPUTINCLUDE
-  #pragma comment(lib, DINPUTLIB32)   /// if not using visual studio, this lib must be manually included, if using directinput
+  //#pragma comment(lib, DINPUTLIB32)   /// if not using visual studio, this lib must be manually included, if using directinput
   #pragma comment(lib, DINPUTLIB64)   /// if not using visual studio, this lib must be manually included, if using directinput
-  #pragma comment(lib, DXGUIDLIB32)   /// if not using visual studio, this lib must be manually included, if using directinput
+  //#pragma comment(lib, DXGUIDLIB32)   /// if not using visual studio, this lib must be manually included, if using directinput
   #pragma comment(lib, DXGUIDLIB64)   /// if not using visual studio, this lib must be manually included, if using directinput
 #endif
 
 #ifdef USING_XINPUT
   #include XINPUTINCLUDE
   #pragma comment(lib, XINPUTLIB64)   /// if not using visual studio, this lib must be manually included, if using xinput
-  #pragma comment(lib, XINPUTLIB32)   /// if not using visual studio, this lib must be manually included, if using xinput
+  //#pragma comment(lib, XINPUTLIB32)   /// if not using visual studio, this lib must be manually included, if using xinput
 #endif
 
 #ifdef USING_DIRECT3D
-  #pragma comment(lib, D3D9LIB32)     /// if not using visual studio, this lib must be manually included, if using direct3d
+  //#pragma comment(lib, D3D9LIB32)     /// if not using visual studio, this lib must be manually included, if using direct3d
   #pragma comment(lib, D3D9LIB64)     /// if not using visual studio, this lib must be manually included, if using direct3d
 #endif /// USING_DIRECT3D
 
@@ -387,6 +387,8 @@ public:
     bool HIDlostConnection;            // one of the HIDs (joysticks/gamepads/gamewheels) lost connection - a recheck of all active should be made / repopulate
     //bool sysHIDunplugged;              // system signaled that a HID was unplugged (there's no linux version, so a check to HIDlostConnection is better)
     bool windowResized;                // one of the windows was resized (usually need a gl aspect ratio recompute) - only for window mode 1
+    bool windowMoved;                  // one of the windows was moved
+
     //bool systemInSuspend;              // CAN'T FIND FOR LINUX the system entered a suspend mode - THIS IS VERY IMPORTANT TO CHECK nowadays - there HAS to be some kind of pause
   } flags;
 
@@ -414,6 +416,7 @@ public:
   bool primaryGLWindow(const char *name, int dx, int dy, int8_t mode, int16_t freq= 0); // mode: 1= windowed, 2= fullscreen, 3= fullscreeen window(must research this one), 4= fullscreen virtual desktop (every monitor)
   bool primaryGLWindow();              // creates a basic window, fullscreen
   bool killPrimaryGLWindow();          // calls restoreResolution, if in fullscreen
+
   void setProgramIcon(const char *fileName);/// sets program icon - CALL BEFORE ANY WINDOW CREATION, or pass icon file to each window
   bool createSplashWindow(osiWindow *w, osiMonitor *m, const char *file);
 
@@ -431,7 +434,7 @@ public:
   void clocks2millisecs(uint64_t *out); // WIP convert raw clocks to milliseconds  N/A LINUX... trying to make it work
   
   void setClipboard(const char *in_text);   // sends text to the clipboard/pasteboard - used for copy/paste operations between programs
-  bool getClipboard(const char **out_text); // gets text (if any) from the clipbard/pasteboard - used for copy/paste operations between programs (returned text is null if nothing is there) - DO NOT FORGET TO delete[] THE RETURNED TEXT WHEN DONE
+  bool getClipboard(char **out_text);       // gets text (if any) from the clipbard/pasteboard - used for copy/paste operations between programs (returned text is null if nothing is there) - DO NOT FORGET TO delete[] THE RETURNED TEXT WHEN DONE
 
   int fseek64(FILE *, int64_t, int);    // normal fseek cannot operate on files bigger than 2GB
   int64_t ftell64(FILE *);              // normal ftell cannot operate on files bigger than 2GB
@@ -440,7 +443,7 @@ public:
 
   void swapBuffers(osiWindow *w);                  // swap buffers of specific window
   void swapPrimaryBuffers();                       // calls swapBuffers, but for primary window (this makes life a little easier)
-  bool glMakeCurrent(osiRenderer *, osiWindow *w); // OS independant variant. Pass null, to unmake current
+  bool glMakeCurrent(osiRenderer *, osiWindow *w); // OS independent variant. Pass null, to unmake current
 
   void glGetVersion(int *outMajor= NULL, int *outMinor= NULL); /// returns opengl version. only one of the outputs can be present
 

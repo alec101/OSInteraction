@@ -208,7 +208,7 @@ BOOL CALLBACK EnumEffectsCallback(LPCDIEFFECTINFO di, LPVOID pvRef) {
     //ffb->ffbcaps.ConstantForce = DIEFT_GETTYPE(di->dwEffType) == DIEFT_CONSTANTFORCE;
     //ffb->ffbcaps.PeriodicForce = DIEFT_GETTYPE(di->dwEffType) == DIEFT_PERIODIC;
   
-    printf(" Effect '%s'. IsConstant = %d, IsPeriodic = %d", di->tszName, DIEFT_GETTYPE(di->dwEffType) == DIEFT_CONSTANTFORCE, DIEFT_GETTYPE(di->dwEffType) == DIEFT_PERIODIC);
+    //printf(" Effect '%ls'. IsConstant = %d, IsPeriodic = %d", di->tszName, DIEFT_GETTYPE(di->dwEffType) == DIEFT_CONSTANTFORCE, DIEFT_GETTYPE(di->dwEffType) == DIEFT_PERIODIC);
 
     return DIENUM_CONTINUE;
 }
@@ -1233,8 +1233,8 @@ void osiMouse::resetButtons() {
 // ========================================================================
 
 osiKeyboard::osiKeyboard():
-charTyped(40, sizeof(chTyped), true),
-manipTyped(40, sizeof(chTyped), true) {
+charTyped(40, sizeof(chTyped), true) {
+//, manipTyped(40, sizeof(chTyped), true) {
   mode= 1;
   _bActive= _bGrabbed= false;
   delData();
@@ -1505,8 +1505,8 @@ void osiKeyboard::updateLocks() {
 void osiKeyboard::clearTypedBuffer() {
   while(charTyped.first)
     charTyped.del(charTyped.first);
-  while(manipTyped.first)
-    manipTyped.del(manipTyped.first);
+  //while(manipTyped.first)
+    //manipTyped.del(manipTyped.first);
 }
 
 
@@ -1551,7 +1551,7 @@ uint32 osiKeyboard::getChar() {
   return ret;
 }
 
-
+/*
 // basically same func as getChar, but for the other stream of string manipulation keys
 uint32 osiKeyboard::getManip() {
   if(!manipTyped.nrNodes)
@@ -1573,9 +1573,10 @@ uint32 osiKeyboard::getManip() {
   return ret;
   
 }
+*/
 
 // [internal]
-void osiKeyboard::_addChar(uint32 c, uint64 *time) {
+void osiKeyboard::_addChar(uint32_t c, uint64 *time) {
   if(!c) return;
 
   /// clear old typed characters (must have stayed in buffer longer than 1 sec)
@@ -1591,7 +1592,7 @@ void osiKeyboard::_addChar(uint32 c, uint64 *time) {
   p->time= *time;
 }
 
-
+/*
 // [internal] identical as addChar...
 void osiKeyboard::_addManip(uint32 c, uint64 *time) {
   if(!c) return;
@@ -1608,7 +1609,7 @@ void osiKeyboard::_addManip(uint32 c, uint64 *time) {
   p->c= c;
   p->time= *time;
 }
-
+*/
 
 // might never be used... gets the first key that is down... not much uses for this other than checking if any key is pressed
 int16 osiKeyboard::getFirstKey() {

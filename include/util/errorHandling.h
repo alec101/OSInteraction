@@ -17,9 +17,11 @@ USAGE ==========================================================================
 
 // 
 #define __FUNC_LINE__ str8().f("f[%s] l[%d]", __FUNCTION__, __LINE__)
-
+extern void (*(_FUNCconsole)) (const char *txt, bool exit, void (*exitFunc)(void));  // console print pointer. ixConsole sets this to it's own printing func, for example
+#define errorMAKEME error.detail("makeme", __FUNCTION__, __LINE__, true)
 
 #define USING_OPENGL 1    // << enables OpenGL error handling
+
 
 class ErrorHandling {
 public:
@@ -37,8 +39,7 @@ public:
   // these funcs will force a type of window/ print to something
   
   void window(const char *txt, bool exit= false, void (*exitFunc)(void)= NULL);
-  //void console(const char *txt, bool exit= false, void (*exitFunc)(void)= NULL);
-  void (*(console)) (const char *, bool exit, void (*exitFunc)(void));
+  inline void console(const char *txt, bool exit= false, void (*exitFunc)(void)= NULL) { _FUNCconsole(txt, exit, exitFunc); }
   void terminal(const char *txt, bool exit= false, void (*exitFunc)(void)= NULL);
 
   
@@ -61,6 +62,8 @@ private:
   void messageBox(const char *text);   // linux specific messageBox window
   #endif /// OS_LINUX
 };
+
+
 
 extern ErrorHandling error; // only 1 global class
 

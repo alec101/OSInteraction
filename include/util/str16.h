@@ -90,7 +90,7 @@ public:
   // character or string insertion / deletion from a string
 
   void insert(char32_t in_unicode,       int32_t in_pos= -1);  // <in_unicode>- unicode to insert; <in_pos>- insert position (-1= insert at the end of str)
-  void insertStr(const char16_t *in_str, int32_t in_pos= -1);  // <in_str>- str(UTF-16) to insert; <in_pos>- insert position (-1= at the end of the str)
+  void insertStr(const char16_t *in_str, int32_t n, int32_t in_pos= -1);  // <in_str>- str(UTF-16) to insert; <in_pos>- insert position (-1= at the end of the str)
   void del(int32_t in_nUnicodesToDel= 1, int32_t in_pos= -1);  // <in_nrToDel>- number of unicode values to delete; <in_pos>- delete position - (del at the left, -1= end of string);
 
   // search in string funcs
@@ -157,11 +157,12 @@ public:
   str16 &operator-=(int n);             // removes n unicode values from the back of the string
   str16 operator-(int n) const;         // returns a temp str32 that has n less unicode values
 
-  inline operator char16_t *() { return d; }           // returns pointer to internal data (d)   UTF-16 format
-  //operator char32_t *() { return convert32(); } // returns pointer to internal data (d32) UTF-32 format
-  //operator char *()     { return convert8(); }  // returns pointer to internal data (d8)  UTF-8 format
+  inline operator char16_t *() const { return d; }           // returns pointer to internal data (d)   UTF-16 format
+  inline operator char32_t *()       { return convert32(); } // returns pointer to internal data (d32) UTF-32 format
+  inline operator char *()           { return convert8(); }  // returns pointer to internal data (d8)  UTF-8 format
 
-  inline operator bool() const     { return (nrUnicodes? true: false); } // returns true if string has any characters
+  inline explicit operator bool() const { return (bool)nrUnicodes; /*(nrUnicodes? true: false);*/ } // returns true if string has any characters
+  inline bool operator!()         const { return (bool)nrUnicodes; /*len? true: false;*/ };
 
   inline char16_t *operator[](unsigned int n) const   { return Str::getUnicode16(d, n); }  // points to the [n] unicode value in the string
   inline char16_t *pointUnicode(unsigned int n) const { return Str::getUnicode16(d, n); }  // points to the [n] unicode value in the string
@@ -183,8 +184,6 @@ public:
   inline bool operator!=(const char16_t *s) const { return !(operator==(s)); }
   inline bool operator!=(const char *s)     const { return !(operator==(s)); }
   inline bool operator!=(char32_t c)        const { return !(operator==(c)); }
-
-  inline bool operator!() { return len? true: false; };
 };
 
 
