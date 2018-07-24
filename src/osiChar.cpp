@@ -1329,6 +1329,13 @@ void osiKeyboard::_checkAndAddUnicode(uint32_t in_unicode) {
     if(in_unicode== 'c') { _addChar(Kch_copy, &osi.eventTime); return; }
     if(in_unicode== 'x') { _addChar(Kch_cut, &osi.eventTime); return; }
     if(in_unicode== 'v') { _addChar(Kch_paste, &osi.eventTime); return; }
+
+    // windows sends ctrl+a to ctrl+z as unicodes 1-26, in alphabetical order... don't ask why
+    if(in_unicode== 3) { _addChar(Kch_copy, &osi.eventTime); return; }
+    if(in_unicode== 24) { _addChar(Kch_cut, &osi.eventTime); return; }
+    if(in_unicode== 22) { _addChar(Kch_paste, &osi.eventTime); return; }
+
+    return; // if ctrl is pressed, no other char will be inserted in the stream
   }
 
   if(in_unicode== '\n') return; // it's handled in the other func, there is only one char for enter, '\n'
