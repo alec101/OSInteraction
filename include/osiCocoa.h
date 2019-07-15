@@ -33,15 +33,17 @@ public:
   
   // oGL related
 
-  bool createPixelFormat(osiRenderer *, uint32_t oglDisplayMask);
-  bool createContext(osiRenderer *r, uint32_t oglDisplayMask);
+  bool glCreateWindow(osiWindow *w, const char* iconFile);
 
-  void setRendererVertSync(osiRenderer *r, bool vertSync= true);
+  bool createPixelFormat(osiGlRenderer *, uint32_t oglDisplayMask);
+  bool createContext(osiGlRenderer *r, uint32_t oglDisplayMask);
+
+  void setRendererVertSync(osiGlRenderer *r, bool vertSync= true);
   void delContext(void *);          // dealloc memory
   void delPixelFormat(void *);      // dealloc memory
   void delNSImage(void *);          // dealloc memory
   void swapBuffers(osiWindow *w);
-  bool makeCurrent(osiRenderer *, osiWindow *);
+  bool makeCurrent(osiGlRenderer *, osiWindow *);
   
   osiCocoa();
   ~osiCocoa();

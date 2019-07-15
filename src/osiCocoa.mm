@@ -63,7 +63,7 @@
  */
 
 
-osiCocoa cocoa;
+//osiCocoa cocoa;
 bool _osiCocoaSetTheIcon;
 
 ///-------------------///
@@ -98,12 +98,12 @@ bool _osiCocoaSetTheIcon;
 // MAC WINDOW object //
 ///-----------------///
 
-@interface MacGLwindow: NSWindow {
+@interface osiMacWindow: NSWindow {
 }
 
 @end
 
-@implementation MacGLwindow
+@implementation osiMacWindow
 /*
 - (BOOL) canBecomeMainWindow:(NSApplication *)theApplication  {
   printf("%s\n", __FUNCTION__);
@@ -175,7 +175,7 @@ bool _osiCocoaSetTheIcon;
 // window move
 - (void) windowDidMove: (NSNotification *)notification {
   osiWindow *w;
-  if((w= osi._getWin(self))
+  if((w= osi._getWin(self)))
     if(w->mode== 1) {
       NSRect r= [self frame];
       w->x0= r.origin.x;
@@ -217,7 +217,7 @@ bool _osiCocoaSetTheIcon;
           if(w)
             if(osi.win[a].mode== 1)
               if(osi.win[a]._win!= w->_win)
-                [((MacGLwindow *)osi.win[a]._win) orderWindow:NSWindowBelow relativeTo: [((MacGLwindow *)w->_win) windowNumber]];
+                [((osiMacWindow *)osi.win[a]._win) orderWindow:NSWindowBelow relativeTo: [((osiMacWindow *)w->_win) windowNumber]];
           
           // UNHIDE (maximize) is set in createWindow, easyer: [win setHidesOnDeactivate:YES];
 
@@ -227,7 +227,7 @@ bool _osiCocoaSetTheIcon;
             
           /// in full screen & full screen window, set the windows level to top (shilding level)
           if(osi.win[a].mode== 2 || osi.win[a].mode== 3|| osi.win[a].mode== 4)
-            [((MacGLwindow *)osi.win[a]._win) setLevel:CGShieldingWindowLevel()];
+            [((osiMacWindow *)osi.win[a]._win) setLevel:CGShieldingWindowLevel()];
 
         } /// if the window is created
       
@@ -265,7 +265,7 @@ bool _osiCocoaSetTheIcon;
         
         /// lose the 'shielded' atribute (move to back)
         if(osi.win[a].mode== 2|| osi.win[a].mode== 3|| osi.win[a].mode== 4)
-          [((MacGLwindow *)osi.win[a]._win) setLevel:kCGNormalWindowLevel- 1];
+          [((osiMacWindow *)osi.win[a]._win) setLevel:kCGNormalWindowLevel- 1];
       } /// if this is a created window
   } /// if the program is not active anymore
 }
@@ -278,14 +278,14 @@ bool _osiCocoaSetTheIcon;
 // MAC OPENGLVIEW object //
 ///---------------------///
 
-@interface MacGLview : NSOpenGLView {
+@interface osiMacGLview : NSOpenGLView {
 }
 
 - (void) drawRect: (NSRect) bounds;
 @end
 
 // not much to bother here
-@implementation MacGLview
+@implementation osiMacGLview
 
 /*
 - (BOOL) canBecomeKeyView {
@@ -1103,8 +1103,10 @@ bool osiCocoa::createWindow(osiWindow *w, const char *iconFile) {
   
   bool ret= true;
   
-  MacGLwindow *win= NULL;
-  MacGLview *view= NULL;
+  osiMacWindow *win= NULL;
+
+  // REMOVED 1
+  //osiMacGLview *view= NULL;
   
   /// change monitor resolution
   if(w->mode== 2)
@@ -1115,7 +1117,7 @@ bool osiCocoa::createWindow(osiWindow *w, const char *iconFile) {
   contRect= NSMakeRect(w->x0, w->y0, w->dx, w->dy);
   
   /// window style
-  uint winStyle;
+  uint winStyle= 0;
 	if(w->mode== 1)                                 /// windowed style
     winStyle=
       NSTitledWindowMask|
@@ -1130,7 +1132,7 @@ bool osiCocoa::createWindow(osiWindow *w, const char *iconFile) {
       NSBorderlessWindowMask;
   
   /// window alloc & init
-  win= [MacGLwindow alloc];
+  win= [osiMacWindow alloc];
   [win initWithContentRect: contRect
                  styleMask: winStyle
                    backing: NSBackingStoreBuffered
@@ -1157,11 +1159,16 @@ bool osiCocoa::createWindow(osiWindow *w, const char *iconFile) {
   [format initWithAttributes: formatAttrib];
   */
 
+
+
+
+
+  /* REMOVED 2
   // assign/create a renderer
   osi.assignRenderer(w);
  
   /// OpenGL view alloc & init
-  view= [MacGLview alloc];
+  view= [osiMacGLview alloc];
   contRect= NSMakeRect(0, 0, w->dx, w->dy);
   [view initWithFrame: contRect pixelFormat: (NSOpenGLPixelFormat *)w->glr->_pixelFormat];
   //[view initWithFrame: contRect pixelFormat: format];
@@ -1172,6 +1179,11 @@ bool osiCocoa::createWindow(osiWindow *w, const char *iconFile) {
   /// rest of window settings
   [win setContentView: view];
   [win makeFirstResponder: view];
+  */
+
+
+
+
 
   /// windowed mode
   if(w->mode== 1) {
@@ -1186,15 +1198,26 @@ bool osiCocoa::createWindow(osiWindow *w, const char *iconFile) {
     //      [win setHidesOnDeactivate:YES]; /// using this for fullscreen... TEST IF CHANGING RES IS OK WITH JUST MOVING THE WINDOW TO THE BACK
   }
   
+
+
+
+  /* REMOVED 3
   /// set renderer's view (doc writes there have to be both way set)
   [(NSOpenGLContext *)w->glr->glContext setView: view];
+  */
   
-  
+
+
+
   //see https://developer.apple.com/library/mac/documentation/graphicsimaging/conceptual/OpenGL-MacProgGuide/EnablingOpenGLforHighResolution/EnablingOpenGLforHighResolution.html#//apple_ref/doc/uid/TP40001987-CH1001-SW5  
   
   /// osiWindow connection
   w->_win= win;
-  w->_view= view;
+
+
+  // REMOVED 4
+  //w->_view= view;
+
   w->isCreated= true;
 
   if(iconFile)
@@ -1210,18 +1233,63 @@ bool osiCocoa::createWindow(osiWindow *w, const char *iconFile) {
   //  [NSApp activateIgnoringOtherApps: YES]; // THIS WAS MOVED TO CONSTRUCTOR
 
   
-  
+  /* REMOVED 5
   osi.glMakeCurrent(w->glr, w);
   
   
   w->glr->checkExt();
-  
+  */
   // no need, right????? osi.getExtensions();              // WIP <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
   [pool release];
 
   return ret;
 }
+
+
+
+
+
+
+bool osiCocoa::glCreateWindow(osiWindow *w, const char *iconFile) {
+  NSAutoreleasePool *pool= [[NSAutoreleasePool alloc] init];
+  NSRect contRect;
+  
+  osiMacGLview *view= NULL;
+
+  // assign/create a renderer
+  osi.glAssignRenderer(w);
+ 
+  /// OpenGL view alloc & init
+  view= [osiMacGLview alloc];
+  contRect= NSMakeRect(0, 0, w->dx, w->dy);
+  [view initWithFrame: contRect pixelFormat: (NSOpenGLPixelFormat *)((osiGlRenderer *)w->renderer)->_pixelFormat];
+  //[view initWithFrame: contRect pixelFormat: format];
+  
+  /// set the view's renderer
+  [view setOpenGLContext: (NSOpenGLContext *)((osiGlRenderer *)w->renderer)->glContext];
+  
+  /// rest of window settings
+  [(osiMacWindow *)w->_win setContentView: view];
+  [(osiMacWindow *)w->_win makeFirstResponder: view];
+
+
+  
+  /// set renderer's view (doc writes there have to be both way set)
+  [(NSOpenGLContext *)((osiGlRenderer *)w->renderer)->glContext setView: view];
+  
+  w->_view= view;
+  
+  osi.glMakeCurrent((osiGlRenderer *)w->renderer, w);
+  ((osiGlRenderer *)w->renderer)->checkExt();
+
+  [pool release];
+  
+  return true;
+}
+
+
+
 
 
 
@@ -1233,8 +1301,8 @@ bool osiCocoa::createSplashWindow(osiWindow *w, uint8_t *bitmap, int dx, int dy,
   
   bool ret= true;
   
-  MacGLwindow *win= NULL;
-  MacGLview *view= NULL;      // THIS MIGHT NEED TO BE ANOTHER NORMAL NSView
+  osiMacWindow *win= NULL;
+  osiMacGLview *view= NULL;      // THIS MIGHT NEED TO BE ANOTHER NORMAL NSView
   
   /// window size
   NSRect contRect;
@@ -1246,7 +1314,7 @@ bool osiCocoa::createSplashWindow(osiWindow *w, uint8_t *bitmap, int dx, int dy,
     NSTexturedBackgroundWindowMask; // maybe
 
   /// window alloc & init
-  win= [MacGLwindow alloc];
+  win= [osiMacWindow alloc];
   [win initWithContentRect: contRect
                  styleMask: winStyle
                    backing: NSBackingStoreBuffered
@@ -1258,7 +1326,7 @@ bool osiCocoa::createSplashWindow(osiWindow *w, uint8_t *bitmap, int dx, int dy,
   [win setOneShot:NO];
 
   /// OpenGL view alloc & init
-  view= [MacGLview alloc];
+  view= [osiMacGLview alloc];
   contRect= NSMakeRect(0, 0, w->dx, w->dy);
   [view initWithFrame: contRect];
   
@@ -1314,11 +1382,11 @@ void osiCocoa::delWindow(osiWindow* w) {
   if(!w) return;
   
   if(w->_view)
-    [(MacGLview *)w->_view release];
+    [(osiMacGLview *)w->_view release];
   w->_view= nil;
   
   if(w->_win)
-    [(MacGLwindow *)w->_win release];
+    [(osiMacWindow *)w->_win release];
   w->_win= nil;
 }
 
@@ -1365,7 +1433,7 @@ void osiCocoa::setIcon(uint8_t *bitmap, int dx, int dy, int bpp, int bpc) {
 
 void osiCocoa::getWindowSize(osiWindow *w, int *dx, int *dy) {
   NSRect rect;
-  rect= [(MacGLview *)w->_view frame];
+  rect= [(osiMacGLview *)w->_view frame];
   *dx= rect.size.width;
   *dy= rect.size.height;
 }
@@ -1377,7 +1445,7 @@ void osiCocoa::setWindowSize(osiWindow *w, int dx, int dy) {
   rect.size.height= dy;
   rect.origin.x= w->x0;
   rect.origin.y= w->y0- dy;
-  [(MacGLwindow *)w->_win setFrame:rect display:false];
+  [(osiMacWindow *)w->_win setFrame:rect display:false];
 }
 
 
@@ -1385,20 +1453,20 @@ void osiCocoa::setWindowPos(osiWindow *w, int x, int y) {
   NSPoint p;
   p.x= (float)x;
   p.y= (float)y- w->dy;
-  [(MacGLwindow *)w->_win setFrameOrigin: p];
+  [(osiMacWindow *)w->_win setFrameOrigin: p];
 }
 
 
 void osiCocoa::setWindowName(osiWindow *w, cchar *name) {
-  [((MacGLwindow *)w->_win) setTitle:[NSString stringWithUTF8String: (char *)w->name.d]];
+  [((osiMacWindow *)w->_win) setTitle:[NSString stringWithUTF8String: (char *)w->name.d]];
 }
 
 void osiCocoa::setWindowHidden(osiWindow *w) {
-  [(MacGLwindow *)w->_win makeKeyAndOrderFront:nil];
+  [(osiMacWindow *)w->_win makeKeyAndOrderFront:nil];
 }
 
 void osiCocoa::setWindowShown(osiWindow *w) {
-  [(MacGLwindow *)w->_win orderOut:nil];
+  [(osiMacWindow *)w->_win orderOut:nil];
 }
 
 
@@ -1412,14 +1480,14 @@ void osiCocoa::setWindowShown(osiWindow *w) {
 ///=================================
 
 void osiCocoa::swapBuffers(osiWindow *w) {
-  [[(MacGLview *)w->_view openGLContext] flushBuffer];
+  [[(osiMacGLview *)w->_view openGLContext] flushBuffer];
 }
 
 
-bool osiCocoa::makeCurrent(osiRenderer *r, osiWindow *w) {
+bool osiCocoa::makeCurrent(osiGlRenderer *r, osiWindow *w) {
   if(w && r) {
     NSOpenGLContext *c= (NSOpenGLContext *)r->glContext;
-    MacGLview *v= (MacGLview *)w->_view;
+    osiMacGLview *v= (osiMacGLview *)w->_view;
 
     if([v openGLContext] != c)
       [v setOpenGLContext: c];
@@ -1434,17 +1502,17 @@ bool osiCocoa::makeCurrent(osiRenderer *r, osiWindow *w) {
     if(!CGLSetCurrentContext((CGLContextObj)[c CGLContextObj])) return true;
     else                                                        return false;
 
-    //[[(MacGLview *)w->_view openGLContext] makeCurrentContext]; // old way
+    //[[(osiMacGLview *)w->_view openGLContext] makeCurrentContext]; // old way
   } else {
     CGLSetCurrentContext(NULL);
     return true;
   }
   return true;
-  // [[(MacGLview *)w->_view openGLContext] makeCurrentContext]; // old way
+  // [[(osiMacGLview *)w->_view openGLContext] makeCurrentContext]; // old way
 }
 
 /// creates a pixel format with current osi settings
-bool osiCocoa::createPixelFormat(osiRenderer *r, uint32_t oglDisplayMask) {
+bool osiCocoa::createPixelFormat(osiGlRenderer *r, uint32_t oglDisplayMask) {
   // https://developer.apple.com/library/mac/documentation/GraphicsImaging/Reference/CGL_OpenGL/index.html#//apple_ref/c/func/CGLChoosePixelFormat
 
   // pixel buffers: NSOpenGLPixelBuffer
@@ -1464,7 +1532,7 @@ bool osiCocoa::createPixelFormat(osiRenderer *r, uint32_t oglDisplayMask) {
   /// monitors that renderer must be able to work on
   if(oglDisplayMask) { attr[n++]= kCGLPFADisplayMask;  attr[n++]= (CGLPixelFormatAttribute)oglDisplayMask; }
 
-  if(osi.settings.renderer.legacyCompatibility) { /// use of compatibility extension. this val can also be kCGLOGLPVersion_3_2_Core (probly the last ver)
+  if(osi.settings.glRenderer.legacyCompatibility) { /// use of compatibility extension. this val can also be kCGLOGLPVersion_3_2_Core (probly the last ver)
     attr[n++]= kCGLPFAOpenGLProfile; attr[n++]= (CGLPixelFormatAttribute)kCGLOGLPVersion_Legacy; }
   
   if(osi.settings.pixelFormat.dblBuffer) attr[n++]= kCGLPFADoubleBuffer;    /// double buffer
@@ -1495,7 +1563,7 @@ bool osiCocoa::createPixelFormat(osiRenderer *r, uint32_t oglDisplayMask) {
   //attr[n++]= kCGLPFAAllowOfflineRenderers;     /// renderers that are not connected to displays are considered
   //attr[n++]= kCGLPFAAcceleratedCompute;        /// only renderers that render to a hardware device that is capable of OpenCL processing are considered
   
-  attr[n]= 0i;
+  attr[n]= (CGLPixelFormatAttribute)0;
   
   /// core oGL pixel format object
   CGLPixelFormatObj pf;
@@ -1516,7 +1584,7 @@ bool osiCocoa::createPixelFormat(osiRenderer *r, uint32_t oglDisplayMask) {
 }
 
 
-bool osiCocoa::createContext(osiRenderer *r, uint32_t oglDisplayMask) {
+bool osiCocoa::createContext(osiGlRenderer *r, uint32_t oglDisplayMask) {
 
   /// create the pixel format that this renderer will function on
   if(!createPixelFormat(r, oglDisplayMask))
@@ -1524,13 +1592,14 @@ bool osiCocoa::createContext(osiRenderer *r, uint32_t oglDisplayMask) {
 
   /// context sharing group
   CGLContextObj sh= nil;
-  if(osi.settings.renderer.shareGroup)
-    sh= (CGLContextObj)[(NSOpenGLContext *)osi.settings.renderer.shareGroup->glContext CGLContextObj];
+  if(osi.settings.glRenderer.shareGroup)
+    sh= (CGLContextObj)[(NSOpenGLContext *)osi.settings.glRenderer.shareGroup->glContext CGLContextObj];
   
   /// create the CGL context
   CGLContextObj cCGL;
   CGLPixelFormatObj pfCGL= (CGLPixelFormatObj)[(NSOpenGLPixelFormat *)r->_pixelFormat CGLPixelFormatObj];
   if(CGLCreateContext(pfCGL, sh, &cCGL)) {
+    printf("CGL CREATE CONTEXT FAILED !!!!!!!!!!!");
     error.simple("CreateRenderer(): CGLCreateContext FAILED");
     delPixelFormat(r->_pixelFormat);
     r->_pixelFormat= NULL;
@@ -1562,7 +1631,7 @@ void osiCocoa::delNSImage(void *i) {
   [(NSImage *)i dealloc];
 }
 
-void osiCocoa::setRendererVertSync(osiRenderer *r, bool vertSync) {
+void osiCocoa::setRendererVertSync(osiGlRenderer *r, bool vertSync) {
   CGLContextObj cCGL= (CGLContextObj)[(NSOpenGLContext *)r->glContext CGLContextObj];
   GLint v= vertSync? 1: 0;
   CGLSetParameter(cCGL, kCGLCPSwapInterval, &v);
@@ -1605,13 +1674,15 @@ bool osiCocoa::displayName(uint32 id, str8 *out) {
 
 
 bool osiCocoa::displayGPU(uint32 id, str8 *out) {
+  if(!out) { printf("osiCocoa::displayGPU(): null string. aborting."); return false; }
+
   NSAutoreleasePool *pool= [[NSAutoreleasePool alloc] init];
   // !!!!! these seem to not be listed anywhere - must test
   // kIODisplayEDIDKey special key tied to the monitor
   // kIOFramebufferInfoKey - this might be it
   // but, there should be a 'location' of the monitor (probly the framebufferInfoKey)
   // !!!!!
-  if(!out) printf("null string");
+  
   
   out->delData();
   
@@ -1621,7 +1692,7 @@ bool osiCocoa::displayGPU(uint32 id, str8 *out) {
   
   /// out will hold the whole location info, which has monitor info too (i think) 
   *out= [locInfo UTF8String];
-  if(!*out) { [locInfo release]; [deviceInfo release]; return false; }
+  if(!*out) { [pool release]; return false; }
   
   /// wipe the last 2 items in the location info, hopefully the remaining info is grcard info
   int n= 2;

@@ -4,6 +4,9 @@
 // you can define OSI_USE_OPENGL_LEGACY before including this file, to signal osi to use all the deprecated / legacy / extensions in OpenGL (the old way)
 // you can define OSI_USE_OPENGL_EXOTIC_EXT before including this file, to signal osi to use exotic extensions when in core ARB mode
 
+#define OSI_USE_OPENGL 1        // <<< enable/disalbe all opengl functionability
+#define OSI_USE_VKO 1           // <<< enable/disable all Vulkan object functionability
+
 // !!!
 // any comment starting with '<<<' marks a setting that can / SHOULD be changed for your project
 // keep glext.h wglext.h, glxext.h updated from https://www.opengl.org/registry/ , to be able to access the latest OpenGL extensions
@@ -82,7 +85,7 @@
 #include "osinteraction.h"                    // the only thing needed to be included
 
 main() {
-  osi.createGLWindow(&osi.win[0],             // creates an OpenGL window - first parameter is what window object to use (there are 64 pre-alocated)
+  osi.glCreateGLWindow(&osi.win[0],           // creates an OpenGL window - first parameter is what window object to use (there are 64 pre-alocated)
                      &osi.display.monitor[0], // specify on what monitor to create the window
                      "Win 0",                 // window name
                      500, 500,                // window size OR if fullscreen, what resolution to change the monitor to
@@ -102,18 +105,26 @@ main() {
 */
 
 
+
+
+
+
+
+
 // this should enable functions that operate on files bigger than 2GB
 #ifndef _LARGEFILE_SOURCE
 #define _LARGEFILE_SOURCE 1
 #endif
 
-
+#ifndef _OS_TYPE
+#define _OS_TYPE
 #ifdef _WIN32
 #define OS_WIN 1
 #elif defined __linux__
 #define OS_LINUX 1
 #elif defined __APPLE__
 #define OS_MAC 1
+#endif
 #endif
 
 #define OSI_PROGRAM_ICON "icon.png"
@@ -187,11 +198,31 @@ main() {
 #include <stdint.h>
 
 
+///==============-----------------------------///
+// Vulkan header ==================----------- //
+///==============-----------------------------///
+
+// if you create your own Vulkan instance, you can pass it to osi.vkInit(yourInstance), but you should enable following extensions too:
+// if vulkan 1.1 is not present, vk_KHR_get_physical_device_properties2
+// else osiRenderers will not have any vulkan data on them
+// vk_KHR_surface
+// vk_KHR_win32_surface        for WINDOWS (draw to a window)
+// vk_KHR_xlib_surface         for LINUX (draw to xlib window)
+// vk_EXT_acquire_xlib_display for LINUX (this requires the next 2 extensions)
+// vk_EXT_direct_mode_display  for LINUX
+// vk_KHR_display              for LINUX
+// vk_MVK_macos_surface        for MACOS (draw to window)
+
+#ifdef OSI_USE_VKO
+#include "vko/include/vkObject.h"
+#endif
+
 
 ///===============----------------------------///
 // OpenGL headers =================----------- //
 ///===============----------------------------///
 
+#ifdef OSI_USE_OPENGL
 // if you want OpenGL legacy stuff, define OSI_USE_OPENGL_LEGACY before including osinteraction.h <<<
 
 //#define OSI_USE_OPENGL_LEGACY 1 // you could just set this here, but it is encouraged to define this before including this header
@@ -250,7 +281,6 @@ main() {
 #else
 #include <OpenGL/gl3.h> /// at the moment, it seems macs use the old gl3.h header, not the new glcorearb.h header
 #endif
-
 #include <OpenGL/OpenGL.h>
 #endif /// OS_MAC
 
@@ -263,6 +293,10 @@ main() {
 #if(defined(OS_MAC) && defined(OSI_USE_OPENGL_EXOTIC_EXT))
 #include <OpenGL/glext.h>
 #endif
+
+#endif // OSI_USE_OPENGL
+
+
 
 // os specific
 
@@ -277,24 +311,36 @@ main() {
 
 // utility classes
 //#include "util/typeShortcuts.h" // no point to clog other ppl's app with more custom C types - if they want it, they include it
+
 #include "util/str32.h"
 #include "util/str16.h"
 #include "util/str8.h"
 #include "util/errorHandling.h"
-#include "util/chainList.h"
+#include "util/chainList.hpp"
 #include "util/segList.h"
+
+
 //#include "util/filePNG.h"
 //#include "util/fileTGA.h"
 
-// osi headers
 
+
+// osi headers
 #include "osiDisplay.h"
-#include "osiGlExt.h"
 #include "osiRenderer.h"
+#ifdef OSI_USE_OPENGL
+#include "osiGlExt.h"
+#include "osiGlRenderer.h"
+#endif
+#ifdef OSI_USE_VKO
+#include "osiVulkan.h"
+#endif
 #include "osiChar.h"
 #include "osiInput.h"
 #include "osiCocoa.h"
 #include "osiWindow.h"
+
+
 
 // WIP vvv - works, but i don't like this
 // You can start the program with this macro; starting with main() in windows signals to create a console
@@ -308,60 +354,78 @@ int main(int argc, char *argv[], char *envp[]) { \
 
 
 
-class osiRenderer;
+//class osiGlRenderer;
 
 
 struct osiSettings {
+  enum RendererAssignOrCreate {
+    onePerGPU= 0,           // autocreates a renderer - if a renderer is already created on window's GPU, it uses that renderer
+    onePerMonitor= 1,       // if no info on GPU's, this is the fallback - autocreates a renderer - one renderer per monitor and assigns it to the next created window
+    onePerWindow= 2,        // set this to create one renderer per each next created windows
+    onlyOne= 3,             // [default] set this to create only one renderer / use existing renderer when creating windows
+    noAutocreate= 4         // no renderer autocreated - you must manually create a renderer and for each window you must set osiWindow::glr pointer to point to a manually created renderer
+  } rendererCreation;       
+
+  void setOneRenderer()           { rendererCreation= onlyOne;        customRenderer= nullptr; }
+  void setOneRendererPerGPU()     { rendererCreation= onePerGPU;      customRenderer= nullptr; }
+  void setOneRendererPerMonitor() { rendererCreation= onePerMonitor;  customRenderer= nullptr; }
+  void setNoAutocreateRenderer()  { rendererCreation= noAutocreate;   customRenderer= nullptr; }
+  void setOneRendererPerWindow()  { rendererCreation= onePerWindow;   customRenderer= nullptr; }
+
+  osiRenderer *customRenderer;  // [def:null] - when creating next window(s), you can use this renderer instead (oneRendererPerXXX/oneRenderer are ignored).
+  void setCustomRenderer(osiRenderer *r) { customRenderer= r; rendererCreation= noAutocreate; }
+
+  #ifdef OSI_USE_OPENGL
   struct {
-    int minVerMajor;                /// [default= 0]
-    int minVerMinor;                /// [default= 0]
-    bool oneRendererPerGPU;         /// [default] - autocreates a renderer - if a renderer is already created on window's GPU, it uses that renderer
-    bool oneRendererPerMonitor;     /// if no info on GPU's, this is the fallback - autocreates a renderer - one renderer per monitor and assigns it to the next created window
-    bool oneRendererPerWin;         /// set this to create one renderer per each next created windows
-    bool oneRenderer;               /// set this to create only one renderer / use existing renderer when creating windows
-    bool noAutocreateRenderer;      /// no renderer autocreated - you must manually create a renderer and for each window you must set osiWindow::glr pointer to point to a manually created renderer
-    osiRenderer *customRenderer;    /// [default NULL] - when creating the next window(s), use this renderer instead (oneRendererPerXXX/oneRenderer are ignored)
-    osiRenderer *shareGroup;        /// [default NULL] - after a renderer is created, you can set this pointer to point to it, and the next created renderers will share data (wglShareLists / etc)
-    bool legacyCompatibility;       /// [default true] - using legacy (OpenGL 1.0 - 2.x) functions. If set to false, the old ways to draw stuff will not work.
-    bool debugRenderer;             /// [default false] - slower opengl context, but lots of bug checks and reports. used when developing applications
-    void setOneRenderer()           { oneRenderer= true;  oneRendererPerGPU= false; oneRendererPerMonitor= false; noAutocreateRenderer= false; oneRendererPerWin= false; customRenderer= NULL; }
-    void setOneRendererPerGPU()     { oneRenderer= false; oneRendererPerGPU= true;  oneRendererPerMonitor= false; noAutocreateRenderer= false; oneRendererPerWin= false; customRenderer= NULL; }
-    void setOneRendererPerMonitor() { oneRenderer= false; oneRendererPerGPU= false; oneRendererPerMonitor= true;  noAutocreateRenderer= false; oneRendererPerWin= false; customRenderer= NULL; }
-    void setNoAutocreateRenderer()  { oneRenderer= false; oneRendererPerGPU= false; oneRendererPerMonitor= false; noAutocreateRenderer= true;  oneRendererPerWin= false; customRenderer= NULL; }
-    void setOneRendererPerWindow()  { oneRenderer= false; oneRendererPerGPU= false; oneRendererPerMonitor= false; noAutocreateRenderer= false; oneRendererPerWin= true;  customRenderer= NULL; }
-    void setCustomRenderer(osiRenderer *r) { customRenderer= r; }
-  } renderer;
+    int minVerMajor;                // [def:0]
+    int minVerMinor;                // [def:0]
+    //osiGlRenderer *customRenderer;  // [def:NULL] - when creating the next window(s), use this renderer instead (oneRendererPerXXX/oneRenderer are ignored)
+    osiGlRenderer *shareGroup;      // [def:NULL] - after a renderer is created, you can set this pointer to point to it, and the next created renderers will share data (wglShareLists / etc)
+    bool legacyCompatibility;       // [def:true] - using legacy (OpenGL 1.0 - 2.x) functions. If set to false, the old ways to draw stuff will not work.
+    bool debugRenderer;             // [def:false] - slower opengl context, but lots of bug checks and reports. used when developing applications
+  } glRenderer;
+
   struct {
     // aux buffers are not done
-    bool renderOnWindow;  /// [default= true]  select a renderer that can draw to windows - all 3 types of renderOn can be activated 
-    bool renderOnBitmap;  /// [default= false] select a renderer that can draw to bitmaps - all 3 types of renderOn can be activated 
-    bool renderOnPBuffer; /// [default= false] select a renderer that can draw on pixel buffers - all 3 types of renderOn can be activated 
-    bool onlyAccelerated; /// [default= false] hardware accelerated only
-    bool dblBuffer;       /// [default= true] double buffer
-    //int pixelType;        /// [default= 1]  1= RGBA, 2= CMAP ONLY 2 OPTIONS, AND ONE IS CMAP? NOPE!
-    int colorSize;        /// [default= 24] color buffer size, on some systems alpha is not used, and RGBX is used, with a padding
-    int redSize;          /// [default= 8] red pixel channel size in bits
-    int greenSize;        /// [default= 8] green pixel channel size in bits
-    int blueSize;         /// [default= 8] blue pixel channel size in bits
-    int alphaSize;        /// [default= 8] alpha pixel channel size in bits
-    int depthSize;        /// [default= 16]
-    int stencilSize;      /// [default= 8]
-    bool sampleBuffers;   /// [default= false] MSAA, if using, this should be set to true
-    int samples;          /// [default= 4] MSAA, if using, this usually is between 2 - 8
-    bool transparent;           /// [default= false] true if transparency is supported.
-    int transparentRedSize;     /// [default= 8] if transparency is set to false, this is ignored
-    int transparentGreenSize;   /// [default= 8] if transparency is set to false, this is ignored
-    int transparentBlueSize;    /// [default= 8] if transparency is set to false, this is ignored
-    int transparentAlphaSize;   /// [default= 8] if transparency is set to false, this is ignored
+    bool renderOnWindow;  // [default= true]  select a renderer that can draw to windows - all 3 types of renderOn can be activated 
+    bool renderOnBitmap;  // [default= false] select a renderer that can draw to bitmaps - all 3 types of renderOn can be activated 
+    bool renderOnPBuffer; // [default= false] select a renderer that can draw on pixel buffers - all 3 types of renderOn can be activated 
+    bool onlyAccelerated; // [default= false] hardware accelerated only
+    bool dblBuffer;       // [default= true] double buffer
+    //int pixelType;        // [default= 1]  1= RGBA, 2= CMAP ONLY 2 OPTIONS, AND ONE IS CMAP? NOPE!
+    int colorSize;        // [default= 24] color buffer size, on some systems alpha is not used, and RGBX is used, with a padding
+    int redSize;          // [default= 8] red pixel channel size in bits
+    int greenSize;        // [default= 8] green pixel channel size in bits
+    int blueSize;         // [default= 8] blue pixel channel size in bits
+    int alphaSize;        // [default= 8] alpha pixel channel size in bits
+    int depthSize;        // [default= 16]
+    int stencilSize;      // [default= 8]
+    bool sampleBuffers;   // [default= false] MSAA, if using, this should be set to true
+    int samples;          // [default= 4] MSAA, if using, this usually is between 2 - 8
+    bool transparent;           // [default= false] true if transparency is supported.
+    int transparentRedSize;     // [default= 8] if transparency is set to false, this is ignored
+    int transparentGreenSize;   // [default= 8] if transparency is set to false, this is ignored
+    int transparentBlueSize;    // [default= 8] if transparency is set to false, this is ignored
+    int transparentAlphaSize;   // [default= 8] if transparency is set to false, this is ignored
   } pixelFormat;
+  #endif
 };
+
+
+
+
+
+
+
+
+
+
 
 ///================================================================================///
 // -------------============ OSINTERACTION CLASS ================------------------ //
 ///================================================================================///
 
 class osinteraction {
-  str8 _iconFile;
 public:
   
   osiSettings settings;                // [atm only renderer options] osinteraction settings. usually change this and the next action/function will use these settings
@@ -371,7 +435,7 @@ public:
   char **argv;                         // command line arguments list, same as the main(.. , char *argv[])
 
   osiDisplay display;                  // display class, handles monitors, resolutions
-  osiWindow win[MAX_WINDOWS];          // all windows
+  osiWindow win[OSI_MAX_WINDOWS];          // all windows
   osiWindow *primWin;                  // primary window - splash windows will not be marked as primary windows
   
   uint64_t present;                    // present time, updated in checkMSG(), wich should be the first func in a main loop. present MUST BE UPDATED MANUALLY, each frame, if checkMSG() is not called
@@ -392,33 +456,15 @@ public:
     //bool systemInSuspend;              // CAN'T FIND FOR LINUX the system entered a suspend mode - THIS IS VERY IMPORTANT TO CHECK nowadays - there HAS to be some kind of pause
   } flags;
 
-  
-  osinteraction();                     // lots of inits go here. check cpp file
-  ~osinteraction();
-  void delData();                      // called by destructor
-
   // SYSTEM EVENTS HANDLER: call this in MAIN PROGRAM LOOP
   
   bool checkMSG();                     // checks for OS messages, should be INCLUDED in the MAIN LOOP. returns true if any msg was processed
 
+
   //void startThread(void (void *));   std::threads!!! /// start / create a new thread
   //void endThread(int status= 0);     std::threads!!! /// call it within the thread to end the thread
   
-  // openGL window creation / deletion funcs
-  
-  // createGLWindow is the main function to use
-  // [mode1]: windowed, using size, center screen [mode2] fullscreen [mode3] fullscreen window [mode4] full Virtual Screen window, on all monitors
-  bool createGLWindow(osiWindow *w, osiMonitor *m, const char *name, int dx, int dy, int8_t mode, short freq= 0, const char *iconFile= NULL);
-  bool killGLWindow(osiWindow *w);     // destroys a specific opengl window
-  
-  // next funcs call createGLWindow / killGLWindow; they might make life easier, but nothing more
-  
-  bool primaryGLWindow(const char *name, int dx, int dy, int8_t mode, int16_t freq= 0); // mode: 1= windowed, 2= fullscreen, 3= fullscreeen window(must research this one), 4= fullscreen virtual desktop (every monitor)
-  bool primaryGLWindow();              // creates a basic window, fullscreen
-  bool killPrimaryGLWindow();          // calls restoreResolution, if in fullscreen
 
-  void setProgramIcon(const char *fileName);/// sets program icon - CALL BEFORE ANY WINDOW CREATION, or pass icon file to each window
-  bool createSplashWindow(osiWindow *w, osiMonitor *m, const char *file);
 
   // very useful functions that will work on all OSes
   
@@ -428,10 +474,10 @@ public:
   void sleep(uint64_t millisecs);      // sleeps for specified milliseconds
   void exit(int retVal= 0);            // restores all monitor resolutions & exits. call this instead of _exit() or exit() func
   
-  void getClocks(uint64_t *out);        // WIP performance timer in raw clocks     N/A LINUX... trying to make it work
-  void clocks2nanosecs(uint64_t *out);  // WIP convert raw clocks to nanoseconds   N/A LINUX... trying to make it work
-  void clocks2microsecs(uint64_t *out); // WIP convert raw clocks to microseconds  N/A LINUX... trying to make it work
-  void clocks2millisecs(uint64_t *out); // WIP convert raw clocks to milliseconds  N/A LINUX... trying to make it work
+  void getClocks(uint64_t *out);        // WIP performance timer in raw clocks     N/A LINUX...
+  void clocks2nanosecs(uint64_t *out);  // WIP convert raw clocks to nanoseconds   N/A LINUX...
+  void clocks2microsecs(uint64_t *out); // WIP convert raw clocks to microseconds  N/A LINUX...
+  void clocks2millisecs(uint64_t *out); // WIP convert raw clocks to milliseconds  N/A LINUX...
   
   void setClipboard(const char *in_text);   // sends text to the clipboard/pasteboard - used for copy/paste operations between programs
   bool getClipboard(char **out_text);       // gets text (if any) from the clipbard/pasteboard - used for copy/paste operations between programs (returned text is null if nothing is there) - DO NOT FORGET TO delete[] THE RETURNED TEXT WHEN DONE
@@ -439,24 +485,124 @@ public:
   int fseek64(FILE *, int64_t, int);    // normal fseek cannot operate on files bigger than 2GB
   int64_t ftell64(FILE *);              // normal ftell cannot operate on files bigger than 2GB
 
-  // opengl funcs
+  // window creation / deletion
+  // this function will not attach any renderer
+  bool createWindow(osiWindow *out_w, osiMonitor *in_m, const char *in_name, int32_t in_dx, int32_t in_dy, int8_t in_mode, int16_t in_freq= 0, const char *in_iconFile= NULL);
+  bool createSplashWindow(osiWindow *w, osiMonitor *m, const char *file);
+  void setProgramIcon(const char *fileName);/// sets program icon - CALL BEFORE ANY WINDOW CREATION, or pass icon file to each window
 
-  void swapBuffers(osiWindow *w);                  // swap buffers of specific window
-  void swapPrimaryBuffers();                       // calls swapBuffers, but for primary window (this makes life a little easier)
-  bool glMakeCurrent(osiRenderer *, osiWindow *w); // OS independent variant. Pass null, to unmake current
+  bool destroyPrimaryWindow();          // destroys the primary window, restores resolution if in fullscreen, sets new primary window if other windows exist
+  bool destroyWindow(osiWindow *w);     // destroys a osiWindow, restores resolution if in fullscreen, sets new primary window if any other exists
 
-  void glGetVersion(int *outMajor= NULL, int *outMinor= NULL); /// returns opengl version. only one of the outputs can be present
+
+  ///=======///
+  // VULKAN  // 
+  ///=======///
+
+  #ifdef OSI_USE_VKO
+  // -Critical instance creation vulkan funcs (around 5 for vulkan 1.1) are auto-linked and are avaible in <vk> global struct.
+  // -For the rest of instance funcs, <vkInit> must be called. If you created a vulkan instance by yourself,
+  //   pass it to this func and osi will use it to get all the global instance funcs, in <vk> struct.
+  // -If you let osi create the vulkan instance (leave <in_instance> null), it will use the settings from <osi.settings.vulkan>,
+  //   so be sure to fill those out first if you want more customisation
+  // Note: Vulkan device funcs will be aquired in vkInit, but global device funcs will have driver overhead - they will require more cpu.
+  //       when the osiVkRenderer is created, and a vulkan device is tied to it, funcs specific for that device will be linked.
+  //       These funcs are faster, with no driver overhead. It is recomanded to use those. (osiVkRenderer::vk struct)
+  //void vkInit(void *in_instance= NULL) { osiVk::init(in_instance); }
+
+  void vkInit(vkObject *in_vk) { vk= in_vk; osiVk::init(this); }
+  vkObject *vk;
+
+  //void vkClose() { osiVk::close(); }   // called by osi destructor, destroys all created vulkan devices/surfaces
+
+  // Vulkan window creation / deletion funcs
+
+
+  // [mode1]: windowed, using size, center screen [mode2] fullscreen [mode3] fullscreen window [mode4] full Virtual Screen window, on all monitors
+  // this func will create a device with using osi.settings.vulkan struct for configuration
+  // it will basically call osi.createWindow() then osi.vkCreateRenderer() (if there's not one already on that monitor) then osi.vkLinkRendererToWindow()
+  // these 3 steps can be called by the user for more customisation 
+  bool vkCreateWindow(osiWindow *w, osiMonitor *m, const char *name, int32_t dx, int32_t dy, int8_t mode, int16_t freq= 0, const char *iconFile= NULL);
+  
+  // next funcs call vkCreateWindow; they might make life easier, but nothing more
+  
+  bool vkPrimaryWindow(const char *name, int32_t dx, int32_t dy, int8_t mode, int16_t freq= 0); // mode: 1= windowed, 2= fullscreen, 3= fullscreeen window(must research this one), 4= fullscreen virtual desktop (every monitor)
+  bool vkPrimaryWindow();              // creates a basic window, fullscreen
+
+  void vkDestroyAllSurfaces();
+  void vkDestroySurface(osiWindow *in_w) { osiVk::destroySurface(vk, in_w); }
+
+
+
+  // it's best you create your own vulkan device, but you can let osi to create it (using settings.vulkan)
+  // if you want to let osi handle the device, just let <in_device> NULL
+  //inline osiVkRenderer *vkCreateRendererMon(osiMonitor *m, VkDevice in_device= NULL) { return osiVkRenderer::vkCreateRendererMon(m, in_device); }
+  //inline osiVkRenderer *vkCreateRendererWin(osiWindow *w, VkDevice in_device= NULL)  { return osiVkRenderer::vkCreateRendererWin(w, in_device); }
+  //inline osiVkRenderer *vkAssignRenderer(osiWindow *w, VkDevice in_device= NULL)     { return osiVkRenderer::vkAssignRenderer(w, in_device); }
+  //inline void vkDelRenderer(osiVkRenderer *r) { osiVkRenderer::vkDelRenderer(r); }
+
+  // creates a vulkan osi renderer from the specified already created vulkan device.
+  // you must create the device yourself. This func could be used for other than drawing types of vulkan devices
+  // it will link the vulkan funcs to it so it will be a ready to use osi renderer
+  //inline bool vkCreateRenderer(osiVkRenderer **out_renderer, VkDevice in_device, VkPhysicalDevice in_physicalDevice) { return osiVkRenderer::vkCreateRenderer(out_renderer, in_device, in_physicalDevice); }
+
+  // makes sure there's a vkSurface created on that window
+  //inline bool vkLinkRendererToWindow(osiWindow *in_window, osiVkRenderer *in_renderer) { return osiVkRenderer::vkLinkRendererToWindow(in_window, in_renderer); }
+
+  //chainList vkRenderers;        // chainlist with all the vulkan renderers active
+  //VkInstance vkInstance;        // Vulkan instance handle assigned to this app
+  //uint32_t vkApiVersion;        // OS installed Vulkan api version, on the instance level at least; use VK_VERSION_MAJOR(vkApiVersion) VK_VERSION_MINOR(vkApiVersion) VK_VERSION_PATCH(vkApiVersion) to extract the version
+
+  #endif // OSI_USE_VKO
+
+
+  ///======///
+  // OPENGL //
+  ///======///
+  #ifdef OSI_USE_OPENGL
+  // OpenGL window creation / deletion funcs
+  
+  // glCreateWindow is the main function to use
+
+  // [mode1]: windowed, using size, center screen [mode2] fullscreen [mode3] fullscreen window [mode4] full Virtual Screen window, on all monitors
+  bool glCreateWindow(osiWindow *w, osiMonitor *m, const char *name, int32_t dx, int32_t dy, int8_t mode, int16_t freq= 0, const char *iconFile= NULL);
+  
+  // next funcs call glCreateWindow; they might make life easier, but nothing more
+  
+  bool glPrimaryWindow(const char *name, int32_t dx, int32_t dy, int8_t mode, int16_t freq= 0); // mode: 1= windowed, 2= fullscreen, 3= fullscreeen window(must research this one), 4= fullscreen virtual desktop (every monitor)
+  bool glPrimaryWindow();              // creates a basic window, fullscreen
+  
+
+
+  // OPENGL funcs
+
+  void glSwapBuffers(osiWindow *w);                  // swap buffers of specific window
+  void glSwapPrimaryBuffers();                       // calls swapBuffers, but for primary window (this makes life a little easier)
+  bool glMakeCurrent(osiRenderer *, osiWindow *w);   // OS independent variant. Pass null, to unmake current
+
+  void glGetVersion(int *outMajor= NULL, int *outMinor= NULL); // returns opengl version
 
   chainList glRenderers;
-  osiRenderer *glr;                              // this will allways point to the current active glRenderer;
-  osiWindow *glrWin;                             // the window that the currently active glRenderer(osi.glr) draws into
-  osiRenderer *assignRenderer(osiWindow *w);     // create or assign a renderer to selected window, using settings.renderer; returns pointer to the renderer or null if failed, somehow
-  osiRenderer *createRendererMon(osiMonitor *m); // create a custom renderer, that will surely work on selected monitor
-  osiRenderer *createRendererWin(osiWindow *w);  // WIP create a custom renderer, that will be asigned to specified window WIP
-  void delRenderer(osiRenderer *);               // deletes the specified renderer and makes shure that windows and monitors that used it, know about it
+  osiGlRenderer *glr;                                // this will allways point to the current active glRenderer;
+  osiWindow *glrWin;                                 // the window that the currently active glRenderer(osi.glr) draws into
+
+  osiGlRenderer *glAssignRenderer(osiWindow *w);     // create or assign a renderer to selected window, using settings.renderer; returns pointer to the renderer or null if failed, somehow
+  osiGlRenderer *glCreateRendererMon(osiMonitor *m); // create a custom renderer, that will surely work on selected monitor
+  osiGlRenderer *glCreateRendererWin(osiWindow *w);  // WIP create a custom renderer, that will be asigned to specified window WIP
+  void glDelRenderer(osiGlRenderer *);               // deletes the specified renderer and makes shure that windows and monitors that used it, know about it
+  #endif // OSI_USE_OPENGL
+
+
+  // constructor / destructor
+  
+  osinteraction();                     // lots of inits go here. check cpp file
+  ~osinteraction();
+  void delData();                      // called by destructor
+
 
   // internals from here on; nothing to bother
 private:
+  str8 _iconFile;
   #ifdef OS_WIN
 
   LARGE_INTEGER _timerFreq;
@@ -485,17 +631,19 @@ private:
 
   // friending funcs (happy happy joy joy)
   
-  friend bool doChange(osiMonitor *, osiResolution *, int8_t, int16_t);
-  friend void _populateGrCards(osiDisplay *);
+  friend bool _osiDoChange(osiMonitor *, osiResolution *, int16_t);
+  friend void _osiPopulateGrCards(osiDisplay *);
   friend class osiDisplay;
   friend class osiMouse;
   friend class osiKeyboard;
   friend class osiJoystick;
   
-  // nothing to do with this class:
-public:
-  //bool resizeGLScene(GLsizei dx, GLsizei dy);   // debug stuff
 };
+
+
+
+
+
 
 #ifdef OS_WIN
 LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam); // wndproc - use checkMSG() to check (it will call this one)
@@ -511,7 +659,14 @@ extern osinteraction osi;   // only 1 global class
 extern ErrorHandling error;
 
 
+
+
+
+
 #endif /// OSI_RESOURCE_ONLY
+
+
+
 
 
 

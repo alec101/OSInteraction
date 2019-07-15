@@ -1,7 +1,8 @@
-#include <stdio.h>
-#include "util/typeShortcuts.h"
+//#include <stdio.h>
+//#include "util/typeShortcuts.h"
 #include "util/chainList.h"
 //#define CHAINLIST_SAFECHECKS 1 //to check for bad calls to chainList
+
 
 ///---------------///
 // chainData class //
@@ -10,14 +11,17 @@
 chainData::~chainData() {
 }
 
+
+
+
 ///---------------///
 // chainList class //
 ///---------------///
 
 
 chainList::chainList() {
-  first= null;
-  last= null;
+  first= nullptr;
+  last= nullptr;
   nrNodes= 0;
 }
 
@@ -38,26 +42,27 @@ void chainList::add(chainData *p2) {
   if(last) {              /// list has members
     last->next= p2;
     p2->prev= last;
-    p2->next= null;       /// do not depend on the constructor! it wont be called in the derived class! ...nice source of errors
+    p2->next= nullptr;       /// do not depend on the constructor! it wont be called in the derived class! ...nice source of errors
     last= p2;
   } else {                /// list is empty
     first= last= p2;
-    p2->next= null;       /// do not depend on the constructor! it wont be called in the derived class! ...nice source of errors
-    p2->prev= null;       /// this is the place to initialize these vars
+    p2->next= nullptr;       /// do not depend on the constructor! it wont be called in the derived class! ...nice source of errors
+    p2->prev= nullptr;       /// this is the place to initialize these vars
   }
 
   nrNodes++;
 }
 
 void chainList::addFirst(chainData *p2) {
-  if(first) {                 // list has members
+  if(first) {              // list has members
     first->prev= p2;
     p2->next= first;
+    p2->prev= nullptr;       /// do not depend on the constructor! it wont be called in the derived class! ...nice source of errors
     first= p2;
   } else {                // list is empty
     first= last= p2;
-    p2->next= null;       /// do not depend on the constructor! it wont be called in the derived class! ...nice source of errors
-    p2->prev= null;       /// this is the place to initialize these vars
+    p2->next= nullptr;       /// do not depend on the constructor! it wont be called in the derived class! ...nice source of errors
+    p2->prev= nullptr;       /// this is the place to initialize these vars
   }
 
   nrNodes++;
@@ -114,7 +119,7 @@ void chainList::del(chainData *p) {
     return;
   }
   #endif
-
+  
   /// make the links next/prev
   if(p->prev) p->prev->next= p->next;
   if(p->next) p->next->prev= p->prev;
@@ -165,8 +170,8 @@ void chainList::release(chainData *p) {
   if(p== last) last= p->prev;
 
   /// p belongs to no list from now on
-  p->next= null;
-  p->prev= null;
+  p->next= nullptr;
+  p->prev= nullptr;
 
   /// update nr nodes
   nrNodes--;
@@ -192,8 +197,8 @@ void chainList::releasei(int nr) {
   if(p== last) last= p->prev;
 
   /// p belongs to no list from now on
-  p->next= null;
-  p->prev= null;
+  p->next= nullptr;
+  p->prev= nullptr;
 
   /// update number of nodes in the list
   nrNodes--;
@@ -223,6 +228,14 @@ int chainList::search(chainData *e) {
     if(p== e) return a;
 
   return -1;
+}
+
+
+bool chainList::isMember(chainData *in_p) {
+  for(chainData *c= first; c; c= c->next)
+    if(c== in_p)
+      return true;
+  return false;
 }
 
 

@@ -16,7 +16,7 @@
 
 #include <mutex>
 #include "util/typeShortcuts.h"
-#include "util/chainList.h"
+#include "util/chainList.hpp"
 #include "util/segList.h"
 
 
@@ -391,7 +391,7 @@ void segList::delEmptySegments() {
 
 // NOT THREAD SAFE - each checkIdle will use/del segments that could be accessed from different threads
 // checks ALL created segLists for idle segments; can be VERY SLOW if many lists are created; use rarely!!!!
-void checkIdleALL() {
+void segList::checkIdleALL() {
   _ALLsegsMutex.lock(); // with the mutex, this is still not thread safe
   _ALLsegsData *p= (_ALLsegsData *)_ALLsegs.first;
   while(p) {
@@ -404,7 +404,7 @@ void checkIdleALL() {
 
 // NOT THREAD SAFE - each checkIdle will use/del segments that could be accessed from different threads
 // same as delEmptySegments() but for ALL segLists that were created; basically a garbage collector
-void delEmptySegmentsALL() {
+void segList::delEmptySegmentsALL() {
   _ALLsegsMutex.lock(); // with the mutex, this is still not thread safe
 
   _ALLsegsData *p= (_ALLsegsData *)_ALLsegs.first;

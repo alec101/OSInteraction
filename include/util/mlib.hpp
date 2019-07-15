@@ -1,75 +1,15 @@
 #pragma once
 #define MLIB_INCLUDED 1
-#include <math.h>
+#include "util/typeShortcuts.h"
 
-// http://stackoverflow.com/questions/11228855/header-files-for-simd-intrinsics
-//#include <mmintrin.h>  // MMX 1996
-//#include <xmmintrin.h> // SSE 1999
-//#include <emmintrin.h> // SSE2 2001
-//#include <pmmintrin.h> // SSE3 2004  - _mm_hadd_ps (add between a __m128)
-//#include <tmmintrin.h> // SSSE3 2006
-//#include <smmintrin.h> // SSE4.1 2006  - _mm_dp_sp (dot product)
-//#include <nmmintrin.h> // SSE4.2 2006
-//#include <ammintrin.h> // SSE4A 2006
-//#include <wmmintrin.h> // AES 2008
-//#include <immintrin.h> // AVX 2008
-
-// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-// sse seems to be a waste of time, imho - tests run, way slower. You need to be running some parralel stuff, bla-bla, neah. not working
-// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-// _MM_SHUFFLE macro:
-// shuffle(3,2,1,0) on same m128 will do nothing
-// shuffle(0,1,2,3) on same m128 will invert all the floats
-// therefore: the first var in _MM_SHUFFLE will be placed last (or first on the hiest byte order)
-// the first two vars are from m128_1, the last two from m128_2 ??? this is never trully explained (from what positions, what order what way etc)
-// m1(abcd) m2(efgh)   m3= _mm_shuffle_ps(m1, m2, __MMSHUFFLE(1,0,3,2)) -> m3(ghab)
-//    0123 ?   0123 ? is this the notation? HOPEFULLY YEA!
 
 /* TODO:
-  - if faceforward will be used, intrinsics are not made for it
   - glsl has swizzling: vec3 thirdVec = otherVec.zyy; or thirdVec= otherVec.zyw
       _maybe_ something like this can be done, but only if it's very fast, will think about it
-
-      https://en.wikipedia.org/wiki/Methods_of_computing_square_roots
-Reciprocal of the square root[edit]
-Main article: Fast inverse square root
-A variant of the above routine is included below, which can be used to compute the reciprocal of the square root, i.e., {\displaystyle x^{-{1 \over 2}}} x^{-{1 \over 2}} instead, was written by Greg Walsh. The integer-shift approximation produced a relative error of less than 4%, and the error dropped further to 0.15% with one iteration of Newton's method on the following line.[13] In computer graphics it is a very efficient way to normalize a vector.
-float invSqrt(float x)
-{
-    float xhalf = 0.5f*x;
-    union
-    {
-        float x;
-        int i;
-    } u;
-    u.x = x;
-    u.i = 0x5f3759df - (u.i >> 1);
-    // The next line can be repeated any number of times to increase accuracy
-    u.x = u.x * (1.5f - xhalf * u.x * u.x);
-    return u.x;
-}
-
-
-http://stackoverflow.com/questions/19611198/finding-square-root-without-using-sqrt-function
-
-sin - it could be done too
-http://stackoverflow.com/questions/18662261/fastest-implementation-of-sine-cosine-and-square-root-in-c-doesnt-need-to-b
-
-http://forum.devmaster.net/t/fast-and-accurate-sine-cosine/9648
-
-
-
-IT SEEMS sqrt CAN BE FOUND, AND THERE SHOULD BE DOUBLE AND FLOAT VARIANTS, I NEED TO DO TESTS FOR VARIOUS NUMBERS, BIG, SMALL, AND SEE THE SPEEDS WITH STD
-
-
 
 */
 
 
-#include "util/typeShortcuts.h"
-
-// #define MLIB_USE_INTRINSICS 1
 
 
 namespace mlib {
@@ -78,6 +18,11 @@ namespace mlib {
 #define PI 3.1415926535897932384626433832795f
 #endif
 
+#define FPII 0.159154943091895f                   // 1/ (2* PI)
+#define PI_HALF 1.570796326794896619f             // PI/ 2
+#define PI_DBL 6.283185307179586476925286766559f  // PI* 2
+#define II_PI 0.63661977236758134307553505349006f // 2/ PI
+
 // multiply with deg2rad or rad2deg to convert
 #define DEG2RAD 0.01745329251994329576923690768489f // (PI/ 180.f)
 #define RAD2DEG 57.295779513082320876798154814105f  // (180.f/ PI)
@@ -85,24 +30,163 @@ inline float degrees(float radians) { return radians* RAD2DEG; }
 inline float radians(float degrees) { return degrees* DEG2RAD; }
 
 
-inline int64_t abs64(int64_t n) { return (n< 0? -n: n); }
-inline int32 abs32(int32 n) { return (n< 0? -n: n); }
+inline int64 abs64(int64 n)  { return (n< 0? -n: n); }
+inline int32 abs32(int32 n)  { return (n< 0? -n: n); }
+inline float absf(float n)   { return (n< 0? -n: n); }
 inline double absd(double n) { return (n< 0? -n: n); }
-inline float absf(float n) { return (n< 0? -n: n); }
+
 
 //#define cInt(x) ((x)> 0? (((x)- int(x)< 0.5)? int(x): int(x)+ 1) : ((int(x)- (x)< 0.5)? int(x): int(x)- 1))
 inline int32 roundf(float f)  { return (int32)(f> 0.0f? (f+ 0.5f): f- 0.5f); }
 inline int64 roundd(double d) { return (int64)(d> 0.0?  (d+ 0.5):  d- 0.5); }
-inline int32 ceilf(float f)  { return (f> 0.0f? int32(f)+ 1: int32(f)- 1); }
-inline int64 ceild(double d) { return (d> 0.0?  int64(d)+ 1: int64(d)- 1); }
+inline int32 ceilf(float f)  { return (f>= 0.0f? int32(f)+ 1: int32(f)); }
+inline int64 ceild(double d) { return (d>= 0.0 ? int64(d)+ 1: int64(d)); }
+inline int32 floorf(float f)  { return (f>= 0.0f? (int32)(f): (int32)(f)- 1); }
+inline int64 floord(double f) { return (f>= 0.0 ? (int64)(f): (int64)(f)- 1); }
+
+#ifndef MAX
+#define MAX(a, b)   (((a)< (b))? (b): (a))
+#endif
+#ifndef MIN
+#define MIN(a, b)   (((a)< (b))? (a): (b))
+#endif
 
 
-#ifndef max
-#define max(a, b)   (((a)< (b))? (b): (a))
-#endif
-#ifndef min
-#define min(a, b)   (((a)< (b))? (a): (b))
-#endif
+
+
+
+// ===============
+// = Square Root ===================================================================
+// ===============
+
+// https://en.wikipedia.org/wiki/Methods_of_computing_square_roots
+// based on the quake inv sqrt [Q_rsqrt()]
+
+// extreem precise
+inline float isqrtfPrecise(float n) {
+  float nhalf= n* 0.5f;
+  int32 *i= (int32 *)&n;
+  *i= 0x5f3759df- (*i>> 1);     // the magic constant
+
+  n*= (1.5f- (nhalf* n* n));    // iteration 1 <<< 3.4% error
+  n*= (1.5f- (nhalf* n* n));    // iteration 2 <<< 0.17% error
+  n*= (1.5f- (nhalf* n* n));    // iteration 3 <<< probly it's darn precise
+  return n;
+}
+
+
+// 0.17% error
+inline float isqrtf(float n) {
+  float nhalf= n* 0.5f;
+  int32 *i= (int32 *)&n;
+  *i= 0x5f3759df- (*i>> 1);     // the magic constant
+
+  n*= (1.5f- (nhalf* n* n));    // iteration 1 <<< 3.4% error
+  n*= (1.5f- (nhalf* n* n));    // iteration 2 <<< 0.17% error
+  return n;
+}
+
+
+// 3.4% error
+inline float isqrtfFast(float n) {
+  float nhalf= n* 0.5f;
+  int32 *i= (int32 *)&n;
+  *i= 0x5f3759df- (*i>> 1);     // the magic constant
+
+  n*= (1.5f- (nhalf* n* n));    // iteration 1 <<< 3.4% error
+  return n;
+}
+
+
+// extreem acurate
+inline float sqrtfPrecise(float n) { return 1.0f/ isqrtfPrecise(n); }
+
+// 0.17% error
+inline float sqrtf(float n)        { return 1.0f/ isqrtf(n); }
+
+// 3.4% error
+inline float sqrtfFast(float n)    { return 1.0f/ isqrtfFast(n); }
+
+
+
+
+
+
+// =============
+// = sin / cos =----------------------------------------------------------------
+// =============
+
+// https://stackoverflow.com/questions/18662261/fastest-implementation-of-sine-cosine-and-square-root-in-c-doesnt-need-to-b
+
+
+// ~0.00109 precision, fastest func from all methods
+inline float cosf(float n) {
+  n*= FPII;
+  n-= 0.25f+ mlib::floorf(n+ 0.25f);
+  n*= 16.0f* ((n< 0.0f? -n: n)- 0.5f);       // << 0.056 precision
+  n+= 0.225f* n* ((n< 0.0f? -n: n)- 1.0f);   // << 0.00109 precision
+  return n;
+}
+
+// ~0.00109 precision, fastest func from all methods
+inline float sinf(float n) { return mlib::cosf(n- PI_HALF); }
+
+
+
+
+
+
+// TAYLOR SERIES 
+// cos(x)= 1- x^2/ 2! + x^4/ 4! - x^6/ 6! + ...
+// sin(x)= x- x^3/ 3! + x^5/ 5! - x^7/ 7! + ...
+// varies in accuracy and speed. atm it is set to ~0.00001 accuracy
+
+inline float sinfPrecise(float n) {
+  // the func runs on -PI to +PI. <n> must be adjusted to this boundary
+  //if(n< -PI || n> PI)
+    n-= mlib::floorf((n+ PI)* FPII)* PI_DBL;
+  /// adjust n to -PI/2 -> +PI/2 - extra precision - the further away from 0, the more the error
+  if(n> PI_HALF)       n= PI- n;   
+  else if(n< -PI_HALF) n= -PI- n;
+
+  const float f3=  0.16666666666666666666666666666667f;   // 1/ 3!
+  const float f5=  0.00833333333333333333333333333333f;   // 1/ 5!
+  const float f7=  1.984126984126984126984126984127e-4f;  // 1/ 7!
+  const float f9=  2.7557319223985890652557319223986e-6f; // 1/ 9!
+  //const float f11= 2.5052108385441718775052108385442e-8f; // 1/ 11!
+
+  float n2= n* n;
+  float n3= n2* n, n5= n3* n2, n7= n5* n2;
+  float n9= n7* n2;
+  //float n11= n9* n2;
+
+  // sin(x)= x- x^3/ 3! + x^5/ 5! - x^7/ 7! + ...
+  //return n- (n3* f3)+ (n5* f5)- (n7* f7);                           // ~0.0001 accuracy
+  return n- (n3* f3)+ (n5* f5)- (n7* f7)+ (n9* f9);                 // ~0.00001 accuracy
+  //return n- (n3* f3)+ (n5* f5)- (n7* f7)+ (n9* f9)- (n11* f11);       // ~preety freaking accurate
+}
+
+
+
+inline float cosfPrecise(float n) {
+  return sinfPrecise(n+ PI_HALF);
+  // see cosf_Taylor() for the expanded taylor series func
+}
+
+
+
+inline float tanf(float n) {
+  //tan(n)= sin(n)/ cos(n);
+  float c= mlib::cosf(n);
+  return c== 0.0f? 0.0f: mlib::sinf(n)/ c;
+}
+
+
+inline float tanfPrecise(float n) {
+  //tan(n)= sin(n)/ cos(n);
+  float c= mlib::cosfPrecise(n);
+  return c== 0.0f? 0.0f: mlib::sinfPrecise(n)/ c;
+}
 
 
 
@@ -110,6 +194,13 @@ struct vec2;
 struct vec3;
 struct vec4;
 struct mat4;
+
+struct vec2i;
+struct vec3i;
+
+
+
+
 
 ///=====================///
 // basic funcs --------- //
@@ -119,6 +210,9 @@ struct mat4;
 // Not a Number check - NAN
 inline bool isNAN(float n) { return ((n!= n)? true: false); }
 inline bool isNANv(const float *n, int components) { for(int a= components; a> 0; a--, n++) if((*n)!= (*n)) return true; return false; }
+
+
+
 bool isNAN(const vec2 &o);
 bool isNAN(const vec3 &o);
 bool isNAN(const vec4 &o);
@@ -138,6 +232,7 @@ float dot(const vec3 &v1, const vec3 &v2);
 float dot(const vec4 &v1, const vec4 &v2);
 const vec3 cross(const vec3 &v1, const vec3 &v2);
 const vec3 faceForward(const vec3 *v1, const vec3 &v2, const vec3 &v3); // <<<< NO SSE
+
 // reflect & refract checkout further <<<
 /*
 vec3 refract(vec3 &v1, vec3 &v2, float eta) {
@@ -147,296 +242,407 @@ vec3 refract(vec3 &v1, vec3 &v2, float eta) {
 }
 */
 
-#ifdef MLIB_USE_INTRINSICS
-const __m128 dotSSE(const __m128 &v1, const __m128 &v2);
-const __m128 lengthSSE(const __m128 &v);
-const __m128 distanceSSE(const __m128 &v1, const __m128 &v2);
-const __m128 crossSSE(const __m128 &v1, const __m128 &v2);
-const __m128 normalizeSSE(const __m128 &v);
-const __m128 norm2SSE(const __m128 &v);
-#endif
 
 
 
 
+///========
+// = vec2 =---------------------------------------------------------------------
+///========
 
-#ifdef MLIB_USE_INTRINSICS
-struct ALIGNED(16) vec2 {
-#else
 struct ALIGNED(4) vec2 {
-#endif
   union {
     struct { float x, y; };
     struct { float r, g; };
-    #ifdef MLIB_USE_INTRINSICS
-    float v[4];               /// allignment for intrinsics needs 16 bytes anyways this can be 4
-    #else
     float v[2];
-    #endif
   };
-  int getComponents() { return 2; } /// xy
+  inline int getComponents() { return 2; } /// xy
 
   // constructors
 
-  vec2();
-  vec2(const vec2 &o);
-  vec2(const vec3 &o);
-  vec2(const vec4 &o);
-  vec2(float _x, float _y);
-  vec2(const float *n);
-  vec2(float n);
-  #ifdef MLIB_USE_INTRINSICS
-  vec2(__m128 n);
-  #endif
+  inline vec2():                   x(0.0f), y(0.0f) {}
+  inline vec2(float _x, float _y): x(_x),   y(_y)   {}
+  inline vec2(const float *n):     x(n[0]), y(n[1]) {}
+  inline vec2(float n):            x(n),    y(n)    {}
+  inline vec2(const vec2 &v2):     x(v2.x), y(v2.y)  {}
+  vec2(const vec3 &v2);
+  vec2(const vec4 &v2);
 
   // operators
 
-  vec2 &operator=(float scalar);
-  vec2 &operator=(const vec2 &v2);
+  inline vec2 &operator=(float n)        { x= y= n;          return *this; }
+  inline vec2 &operator=(const float *n) { x= n[0], y= n[1]; return *this; }      /// array with 2 floats
+  inline vec2 &operator=(const vec2 &v2) { x= v2.x, y= v2.y; return *this; }
   vec2 &operator=(const vec3 &v2);
   vec2 &operator=(const vec4 &v2);
-  vec2 &operator=(const float *arr);       /// array with 2 floats
-  #ifdef MLIB_USE_INTRINSICS
-  vec2 &operator=(const __m128 &n);
-  #endif
 
-  vec2 &operator+=(float scalar);
-  vec2 &operator+=(const vec2 &v2);
+  inline vec2 &operator+=(float n)        { x+= n, y+= n;       return *this; }
+  inline vec2 &operator+=(const float *n) { x+= n[0], y+= n[1]; return *this; }     /// array with 2 floats
+  inline vec2 &operator+=(const vec2 &v2) { x+= v2.x, y+= v2.y; return *this; }
   vec2 &operator+=(const vec3 &v2);
   vec2 &operator+=(const vec4 &v2);
-  vec2 &operator+=(const float *arr);      /// array with 2 floats
 
-  vec2 &operator-=(float scalar);
-  vec2 &operator-=(const vec2 &v2);
+  inline vec2 &operator-=(float n)        { x-= n, y-= n;       return *this; }
+  inline vec2 &operator-=(const float *n) { x-= n[0], y-= n[1]; return *this; }      /// array with 2 floats
+  inline vec2 &operator-=(const vec2 &v2) { x-= v2.x, y-= v2.y; return *this; }
   vec2 &operator-=(const vec3 &v2);
   vec2 &operator-=(const vec4 &v2);
-  vec2 &operator-=(const float *arr);      /// array with 2 floats
 
-  vec2 &operator*=(float scalar);
-  vec2 &operator*=(const vec2 &v2);
+  inline vec2 &operator*=(float n)        { x*= n, y*= n;       return *this; }
+  inline vec2 &operator*=(const float *n) { x*= n[0], y*= n[1]; return *this; }     /// array with 2 floats
+  inline vec2 &operator*=(const vec2 &v2) { x*= v2.x, y*= v2.y; return *this; }
   vec2 &operator*=(const vec3 &v2);
   vec2 &operator*=(const vec4 &v2);
-  vec2 &operator*=(const float *arr);      /// array with 2 floats
 
-  vec2 &operator/=(float scalar);
-  vec2 &operator/=(const vec2 &v2);
+  inline vec2 &operator/=(float n)        { x/= n, y/= n;       return *this; }
+  inline vec2 &operator/=(const float *n) { x/= n[0], y/= n[1]; return *this; }     /// array with 2 floats
+  inline vec2 &operator/=(const vec2 &v2) { x/= v2.x, y/= v2.y; return *this; }
   vec2 &operator/=(const vec3 &v2);
   vec2 &operator/=(const vec4 &v2);
-  vec2 &operator/=(const float *arr);      /// array with 2 floats
 
-  const vec2 operator+(float scalar)   const;
-  const vec2 operator+(const vec2 &v2) const;
+  inline const vec2 operator+(float n)        const { return vec2(*this)+= n; }
+  inline const vec2 operator+(const float *n) const { return vec2(*this)+= n; }
+  inline const vec2 operator+(const vec2 &v2) const { return vec2(*this)+= v2; }
   const vec2 operator+(const vec3 &v2) const;
   const vec2 operator+(const vec4 &v2) const;
-  const vec2 operator+(const float *arr2) const;
 
-  const vec2 operator-(float scalar)  const;
-  const vec2 operator-(const vec2 &o) const;
-  const vec2 operator-(const vec3 &o) const;
-  const vec2 operator-(const vec4 &o) const;
-  const vec2 operator-(const float *n) const;
+  inline const vec2 operator-(float n)        const { return vec2(*this)-= n; }
+  inline const vec2 operator-(const float *n) const { return vec2(*this)-= n; }
+  inline const vec2 operator-(const vec2 &v2) const { return vec2(*this)-= v2; }
+  const vec2 operator-(const vec3 &v2) const;
+  const vec2 operator-(const vec4 &v2) const;
 
-  const vec2 operator*(float scalar)  const;
-  const vec2 operator*(const vec2 &o) const;
-  const vec2 operator*(const vec3 &o) const;
-  const vec2 operator*(const vec4 &o) const;
-  const vec2 operator*(const float *n) const;
+  inline const vec2 operator*(float n)        const { return vec2(*this)*= n; }
+  inline const vec2 operator*(const float *n) const { return vec2(*this)*= n; }
+  inline const vec2 operator*(const vec2 &v2) const { return vec2(*this)*= v2; }
+  const vec2 operator*(const vec3 &v2) const;
+  const vec2 operator*(const vec4 &v2) const;
 
-  const vec2 operator/(float scalar)  const;
-  const vec2 operator/(const vec2 &o) const;
-  const vec2 operator/(const vec3 &o) const;
-  const vec2 operator/(const vec4 &o) const;
-  const vec2 operator/(const float *n) const;
+  inline const vec2 operator/(float n)        const { return vec2(*this)/= n; }
+  inline const vec2 operator/(const float *n) const { return vec2(*this)/= n; }
+  inline const vec2 operator/(const vec2 &v2) const { return vec2(*this)/= v2; }
+  const vec2 operator/(const vec3 &v2) const;
+  const vec2 operator/(const vec4 &v2) const;
 
-  bool operator==(float n)       const;    // this compares vector's length, not each element to n
-  bool operator==(const vec2 &o) const;
-  bool operator==(const vec3 &o) const;
-  bool operator==(const vec4 &o) const;
-  bool operator==(const float *n) const;
-
-  bool operator!=(float n)       const;    // this compares vector's length, not each element to n
-  bool operator!=(const vec2 &o) const;
-  bool operator!=(const vec3 &o) const;
-  bool operator!=(const vec4 &o) const;
-  bool operator!=(const float *n) const;
+  inline bool operator==(float n)        const { return (n== length()); }   // this compares vector's length, not each element to n
+  inline bool operator==(const float *n) const { return ((x== n[0]) && (y== n[1])); }
+  inline bool operator==(const vec2 &v2) const { return ((x== v2.x) && (y== v2.y)); }
+  bool operator==(const vec3 &v2) const;
+  bool operator==(const vec4 &v2) const;
   
+  inline bool operator!=(float n)        const { return (n!= length()); }    // this compares vector's length, not each element to n
+  inline bool operator!=(const float *n) const { return ((x!= n[0]) || (y!= n[1])); }
+  inline bool operator!=(const vec2 &v2) const { return ((x!= v2.x) || (y!= v2.y)); }
+  bool operator!=(const vec3 &v2) const;
+  bool operator!=(const vec4 &v2) const;
 
-  bool operator!() const;
+  inline bool operator!() const { return (x== 0.0f) && (y== 0.0f); }
+  
+  inline const vec2 operator-() const { return vec2(-x, -y); }
 
-  const vec2 operator-() const;
-
-  float &operator[](int i);
-  const float operator[](int i) const;
-  operator float* ();
-  operator const float *() const;
-  #ifdef MLIB_USE_INTRINSICS
-  operator const __m128() const;
-  #endif
+  //inline float &operator[](int i)            { return v[i]; }
+  inline const float operator[](int i) const { return v[i]; }
+  inline operator float* ()                  { return v; }
+  inline operator const float *()      const { return v; }
 
   // dot product
 
-  float dot(const vec2 &o)      const;
-  float dot(const vec3 &o)      const;
-  float dot(const vec4 &o)      const;
-  float dot(float _x, float _y) const;
-  float dot(const float *n)     const;
+  inline float dot(float _x, float _y) const { return (x* _x)+ (y* _y); }
+  inline float dot(const float *n)     const { return this->dot(n[0], n[1]); }
+  inline float dot(const vec2 &v2)     const { return this->dot(v2.x, v2.y); }
+  float dot(const vec3 &v2) const;
+  float dot(const vec4 &v2) const;
 
   // rest of funcs
 
-  vec2 &normalize();
-  float length() const;
-  float norm2();
+  inline vec2 &normalize() { float size= length(); if(size) this->operator/=(size); return *this; } // return vec* inversesqrt(dot(vec, vec)); - another option
+  inline float length() const { return sqrtf((x* x)+ (y* y)); }
+  inline float norm2() { return (x* x) + (y* y); }
 };
 
-const vec2 operator+(float scalar, const vec2 &v);
-const vec2 operator-(float scalar, const vec2 &v);
-const vec2 operator*(float scalar, const vec2 &v);
-const vec2 operator/(float scalar, const vec2 &v);
+
+inline const vec2 operator+(float n, const vec2 &v) { return vec2(n+ v.x, n+ v.y); }
+inline const vec2 operator-(float n, const vec2 &v) { return vec2(n- v.x, n- v.y); }
+inline const vec2 operator*(float n, const vec2 &v) { return vec2(n* v.x, n* v.y); }
+inline const vec2 operator/(float n, const vec2 &v) { return vec2(n/ v.x, n/ v.y); }
 
 
 
 
-#ifdef MLIB_USE_INTRINSICS
-struct ALIGNED(16) vec3 {    /// aligned(16) if intrinsics are used
-#else
-struct ALIGNED(4) vec3 {
-#endif
+
+
+// =========
+// = vec2i =--------------------------------------------------------------------
+// =========
+
+struct ALIGNED(4) vec2i {
   union {
-    struct { float x, y, z; };
-    struct { float r, g, b; };
-    #ifdef MLIB_USE_INTRINSICS
-    float v[4];
-    #else
-    float v[3];
-    #endif
+    struct { int32 x, y; };
+    struct { int32 r, g; };
+    int32 v[2];
   };
-  int getComponents() { return 3; } /// xyz
+  inline int getComponents() { return 2; } /// xy
 
   // constructors
 
-  vec3();
-  vec3(const vec2 &o, float _z= 0);
-  vec3(const vec3 &o);
-  vec3(const vec4 &o);
-  vec3(float _x, float _y, float _z);
-  vec3(const float *n);
-  vec3(float n);
-  #ifdef MLIB_USE_INTRINSICS
-  vec3(const __m128 &n);
-  #endif
+  inline vec2i():                   x(0),    y(0) {}
+  inline vec2i(int32 _x, int32 _y): x(_x),   y(_y)   {}
+  inline vec2i(const int32 *n):     x(n[0]), y(n[1]) {}
+  inline vec2i(int32 n):            x(n),    y(n)    {}
+  inline vec2i(const vec2i &v2):    x(v2.x), y(v2.y) {}
+  vec2i(const vec3i &v2);
+  //vec2i(const vec4 &v2);
 
   // operators
 
-  vec3 &operator=(float n);
-  vec3 &operator=(const vec2 &o);
-  vec3 &operator=(const vec3 &o);
-  vec3 &operator=(const vec4 &o);
-  vec3 &operator=(const float *n);
-  #ifdef MLIB_USE_INTRINSICS
-  vec3 &operator=(const __m128 &n);
-  #endif
+  inline vec2i &operator=(int32 n)         { x= y= n;          return *this; }
+  inline vec2i &operator=(const int32 *n)  { x= n[0], y= n[1]; return *this; }      /// array with 2 floats
+  inline vec2i &operator=(const vec2i &v2) { x= v2.x, y= v2.y; return *this; }
+  vec2i &operator=(const vec3i &v2);
+  //vec2i &operator=(const vec4i &v2);
 
-  vec3 &operator+=(float scalar);
-  vec3 &operator+=(const vec2 &v2);
-  vec3 &operator+=(const vec3 &v2);
-  vec3 &operator+=(const vec4 &v2);
-  vec3 &operator+=(const float *arr);
+  inline vec2i &operator+=(int32 n)         { x+= n,    y+= n;    return *this; }
+  inline vec2i &operator+=(const int32 *n)  { x+= n[0], y+= n[1]; return *this; }     /// array with 2 floats
+  inline vec2i &operator+=(const vec2i &v2) { x+= v2.x, y+= v2.y; return *this; }
+  vec2i &operator+=(const vec3i &v2);
+  //vec2i &operator+=(const vec4i &v2);
 
-  vec3 &operator-=(float scalar);
-  vec3 &operator-=(const vec2 &v2);
-  vec3 &operator-=(const vec3 &v2);
-  vec3 &operator-=(const vec4 &v2);
-  vec3 &operator-=(const float *arr);
+  inline vec2i &operator-=(int32 n)         { x-= n,    y-= n;    return *this; }
+  inline vec2i &operator-=(const int32 *n)  { x-= n[0], y-= n[1]; return *this; }      /// array with 2 floats
+  inline vec2i &operator-=(const vec2i &v2) { x-= v2.x, y-= v2.y; return *this; }
+  vec2i &operator-=(const vec3i &v2);
+  //vec2i &operator-=(const vec4i &v2);
 
-  vec3 &operator*=(float scalar);
-  vec3 &operator*=(const vec2 &v2);
-  vec3 &operator*=(const vec3 &v2);
-  vec3 &operator*=(const vec4 &v2);
-  vec3 &operator*=(const float *arr);
+  inline vec2i &operator*=(int32 n)         { x*= n,    y*= n;    return *this; }
+  inline vec2i &operator*=(const int32 *n)  { x*= n[0], y*= n[1]; return *this; }     /// array with 2 floats
+  inline vec2i &operator*=(const vec2i &v2) { x*= v2.x, y*= v2.y; return *this; }
+  vec2i &operator*=(const vec3i &v2);
+  //vec2i &operator*=(const vec4i &v2);
 
-  vec3 &operator/=(float scalar);
-  vec3 &operator/=(const vec2 &v2);
-  vec3 &operator/=(const vec3 &v2);
-  vec3 &operator/=(const vec4 &v2);
-  vec3 &operator/=(const float *arr);
+  inline vec2i &operator/=(int32 n)         { x/= n,    y/= n;    return *this; }
+  inline vec2i &operator/=(const int32 *n)  { x/= n[0], y/= n[1]; return *this; }     /// array with 2 floats
+  inline vec2i &operator/=(const vec2i &v2) { x/= v2.x, y/= v2.y; return *this; }
+  vec2i &operator/=(const vec3i &v2);
+  //vec2i &operator/=(const vec4i &v2);
 
-  const vec3 operator+(float scalar)   const;
-  const vec3 operator+(const vec2 &v2) const;
-  const vec3 operator+(const vec3 &v2) const;
-  const vec3 operator+(const vec4 &v2) const;
-  const vec3 operator+(const float *arr) const;
+  inline const vec2i operator+(int32 n)         const { return vec2i(*this)+= n; }
+  inline const vec2i operator+(const int32 *n)  const { return vec2i(*this)+= n; }
+  inline const vec2i operator+(const vec2i &v2) const { return vec2i(*this)+= v2; }
+  const vec2i operator+(const vec3i &v2) const;
+  //const vec2i operator+(const vec4i &v2) const;
 
-  const vec3 operator-(float scalar)   const;
-  const vec3 operator-(const vec2 &v2) const;
-  const vec3 operator-(const vec3 &v2) const;
-  const vec3 operator-(const vec4 &v2) const;
-  const vec3 operator-(const float *arr) const;
+  inline const vec2i operator-(int32 n)         const { return vec2i(*this)-= n; }
+  inline const vec2i operator-(const int32 *n)  const { return vec2i(*this)-= n; }
+  inline const vec2i operator-(const vec2i &v2) const { return vec2i(*this)-= v2; }
+  const vec2i operator-(const vec3i &v2) const;
+  //const vec2i operator-(const vec4i &v2) const;
 
-  const vec3 operator*(float scalar)   const;
-  const vec3 operator*(const vec2 &v2) const;
-  const vec3 operator*(const vec3 &v2) const;
-  const vec3 operator*(const vec4 &v2) const;
-  const vec3 operator*(const float *arr) const;
+  inline const vec2i operator*(int32 n)         const { return vec2i(*this)*= n; }
+  inline const vec2i operator*(const int32 *n)  const { return vec2i(*this)*= n; }
+  inline const vec2i operator*(const vec2i &v2) const { return vec2i(*this)*= v2; }
+  const vec2i operator*(const vec3i &v2) const;
+  //const vec2i operator*(const vec4i &v2) const;
 
-  const vec3 operator/(float scalar)   const;
-  const vec3 operator/(const vec2 &v2) const;
-  const vec3 operator/(const vec3 &v2) const;
-  const vec3 operator/(const vec4 &v2) const;
-  const vec3 operator/(const float *arr) const;
+  inline const vec2i operator/(int32 n)         const { return vec2i(*this)/= n; }
+  inline const vec2i operator/(const int32 *n)  const { return vec2i(*this)/= n; }
+  inline const vec2i operator/(const vec2i &v2) const { return vec2i(*this)/= v2; }
+  const vec2i operator/(const vec3i &v2) const;
+  //const vec2i operator/(const vec4i &v2) const;
 
-  bool operator==(float n)       const; // this compares vector's length, not each element with n
-  bool operator==(const vec2 &o) const;
-  bool operator==(const vec3 &o) const;
-  bool operator==(const vec4 &o) const;
-  bool operator==(const float *n) const;
-
-  bool operator!=(float n)       const; // this compares vector's length, not each element with n
-  bool operator!=(const vec2 &o) const;
-  bool operator!=(const vec3 &o) const;
-  bool operator!=(const vec4 &o) const;
-  bool operator!=(const float *n) const;
+  inline bool operator==(int32 n)         const { return (n== length()); }   // this compares vector's length, not each element to n
+  inline bool operator==(const int32 *n)  const { return ((x== n[0]) && (y== n[1])); }
+  inline bool operator==(const vec2i &v2) const { return ((x== v2.x) && (y== v2.y)); }
+  bool operator==(const vec3i &v2) const;
+  //bool operator==(const vec4i &v2) const;
   
+  inline bool operator!=(int32 n)         const { return (n!= length()); }    // this compares vector's length, not each element to n
+  inline bool operator!=(const int32 *n)  const { return ((x!= n[0]) || (y!= n[1])); }
+  inline bool operator!=(const vec2i &v2) const { return ((x!= v2.x) || (y!= v2.y)); }
+  bool operator!=(const vec3i &v2) const;
+  //bool operator!=(const vec4i &v2) const;
 
-  bool operator!() const;
+  inline bool operator!() const { return (x== 0.0f) && (y== 0.0f); }
+  
+  inline const vec2i operator-() const { return vec2i(-x, -y); }
 
-  const vec3 operator-() const;
-
-  float &operator[](int i);
-  const float operator[](int i) const;
-  operator float* ();
-  operator const float *() const;
-  #ifdef MLIB_USE_INTRINSICS
-  operator const __m128() const;
-  #endif
+  //inline int32 &operator[](int i)            { return v[i]; }
+  inline const int32 operator[](int i) const { return v[i]; }
+  inline operator int32* ()                  { return v; }
+  inline operator const int32 *()      const { return v; }
 
   // dot product
 
-  float dot(const vec2 &o, float _z= 0.0f) const;
-  float dot(const vec3 &o)                 const;
-  float dot(const vec4 &o)                 const;
-  float dot(float _x, float _y, float _z)  const;
-  float dot(const float *n)                     const;
+  inline int32 dot(int32 _x, int32 _y) const { return (x* _x)+ (y* _y); }
+  inline int32 dot(const int32 *n)     const { return this->dot(n[0], n[1]); }
+  inline int32 dot(const vec2i &v2)     const { return this->dot(v2.x, v2.y); }
+  int32 dot(const vec3i &v2) const;
+  //int32 dot(const vec4i &v2) const;
+
+  // rest of funcs
+  inline vec2i &set(int32 in_x, int32 in_y) { x= in_x, y= in_y; return *this; }
+  inline vec2i &normalize() { int32 size= length(); if(size) this->operator/=(size); return *this; } // return vec* inversesqrt(dot(vec, vec)); - another option
+  inline int32 length() const { return roundf(sqrtf((float)((x* x)+ (y* y)))); }
+  inline int32 norm2() { return (x* x) + (y* y); }
+};
+
+
+inline const vec2i operator+(int32 n, const vec2i &v) { return vec2i(n+ v.x, n+ v.y); }
+inline const vec2i operator-(int32 n, const vec2i &v) { return vec2i(n- v.x, n- v.y); }
+inline const vec2i operator*(int32 n, const vec2i &v) { return vec2i(n* v.x, n* v.y); }
+inline const vec2i operator/(int32 n, const vec2i &v) { return vec2i(n/ v.x, n/ v.y); }
+
+
+
+
+
+
+
+
+// ========
+// = vec3 =---------------------------------------------------------------------
+// ========
+
+struct ALIGNED(4) vec3 {
+  union {
+    struct { float x, y, z; };
+    struct { float r, g, b; };
+    float v[3];
+  };
+  inline int getComponents() { return 3; } /// xyz
+
+  // constructors
+
+  inline vec3():                             x(0.0f), y(0.0f), z(0.0f) {}
+  inline vec3(float _x, float _y, float _z): x(_x),   y(_y),   z(_z)   {}
+  inline vec3(const float *n):               x(n[0]), y(n[1]), z(n[2]) {}
+  inline vec3(float n):                      x(n),    y(n),    z(n)    {}
+  inline vec3(const vec2 &v2, float _z= 0):  x(v2.x), y(v2.y), z(_z)   {}
+  inline vec3(const vec3 &v2):               x(v2.x), y(v2.y), z(v2.z) {}
+  vec3(const vec4 &v2);
+
+  // operators
+
+  inline vec3 &operator=(float n)        { x= y= z= n;                return *this; }
+  inline vec3 &operator=(const float *n) { x= n[0], y= n[1], z= n[2]; return *this; }
+  inline vec3 &operator=(const vec2 &v2) { x= v2.x, y= v2.y, z= 0.0f; return *this; }
+  inline vec3 &operator=(const vec3 &v2) { x= v2.x, y= v2.y, z= v2.z; return *this; }
+  vec3 &operator=(const vec4 &v2);
+
+  inline vec3 &operator+=(float n)        { x+= n, y+= n, z+= n;          return *this; }
+  inline vec3 &operator+=(const float *n) { x+= n[0], y+= n[1], z+= n[2]; return *this; }
+  inline vec3 &operator+=(const vec2 &v2) { x+= v2.x, y+= v2.y;           return *this; }
+  inline vec3 &operator+=(const vec3 &v2) { x+= v2.x, y+= v2.y, z+= v2.z; return *this; }
+  vec3 &operator+=(const vec4 &v2);
+
+  inline vec3 &operator-=(float n)        { x-= n, y-= n, z-= n;          return *this; }
+  inline vec3 &operator-=(const float *n) { x-= n[0], y-= n[1], z-= n[2]; return *this; }
+  inline vec3 &operator-=(const vec2 &v2) { x-= v2.x, y-= v2.y;           return *this; }
+  inline vec3 &operator-=(const vec3 &v2) { x-= v2.x, y-= v2.y, z-= v2.z; return *this; }
+  vec3 &operator-=(const vec4 &v2);
+
+  inline vec3 &operator*=(float n)        { x*= n, y*= n, z*= n;          return *this; }
+  inline vec3 &operator*=(const float *n) { x*= n[0], y*= n[1], z*= n[2]; return *this; }
+  inline vec3 &operator*=(const vec2 &v2) { x*= v2.x, y*= v2.y;           return *this; }
+  inline vec3 &operator*=(const vec3 &v2) { x*= v2.x, y*= v2.y, z*= v2.z; return *this; }
+  vec3 &operator*=(const vec4 &v2);
+  
+  inline vec3 &operator/=(float n)        { x/= n, y/= n, z/= n;          return *this; }
+  inline vec3 &operator/=(const float *n) { x/= n[0], y/= n[1], z/= n[2]; return *this; }
+  inline vec3 &operator/=(const vec2 &v2) { x/= v2.x, y/= v2.y;           return *this; }
+  inline vec3 &operator/=(const vec3 &v2) { x/= v2.x, y/= v2.y, z/= v2.z; return *this; }
+  vec3 &operator/=(const vec4 &v2);
+  
+  inline const vec3 operator+(float n)        const { return vec3(*this)+= n; }
+  inline const vec3 operator+(const float *n) const { return vec3(*this)+= n; }
+  inline const vec3 operator+(const vec2 &v2) const { return vec3(*this)+= v2; }
+  inline const vec3 operator+(const vec3 &v2) const { return vec3(*this)+= v2; }
+  const vec3 operator+(const vec4 &v2) const;
+  
+
+  inline const vec3 operator-(float n)        const { return vec3(*this)-= n; }
+  inline const vec3 operator-(const float *n) const { return vec3(*this)-= n; }
+  inline const vec3 operator-(const vec2 &v2) const { return vec3(*this)-= v2; }
+  inline const vec3 operator-(const vec3 &v2) const { return vec3(*this)-= v2; }
+  const vec3 operator-(const vec4 &v2) const;
+
+  inline const vec3 operator*(float n)        const { return vec3(*this)*= n; }
+  inline const vec3 operator*(const float *n) const { return vec3(*this)*= n; }
+  inline const vec3 operator*(const vec2 &v2) const { return vec3(*this)*= v2; }
+  inline const vec3 operator*(const vec3 &v2) const { return vec3(*this)*= v2; }
+  const vec3 operator*(const vec4 &v2) const;
+
+  inline const vec3 operator/(float n)        const { return vec3(*this)/= n; }
+  inline const vec3 operator/(const float *n) const { return vec3(*this)/= n; }
+  inline const vec3 operator/(const vec2 &v2) const { return vec3(*this)/= v2; }
+  inline const vec3 operator/(const vec3 &v2) const { return vec3(*this)/= v2; }
+  const vec3 operator/(const vec4 &v2) const;
+
+  inline bool operator==(float n)        const { return n== length(); } // this compares vector's length, not each element with n
+  inline bool operator==(const float *n) const { return ((x== n[0]) && (y== n[1]) && (z== n[2])); }
+  inline bool operator==(const vec2 &v2) const { return ((x== v2.x) && (y== v2.y)); }
+  inline bool operator==(const vec3 &v2) const { return ((x== v2.x) && (y== v2.y) && (z== v2.z)); }
+  bool operator==(const vec4 &v2) const;
+  
+  inline bool operator!=(float n)        const { return n!= length(); } // this compares vector's length, not each element with n
+  inline bool operator!=(const float *n) const { return ((x!= n[0]) || (y!= n[1]) || (z!= n[2])); }
+  inline bool operator!=(const vec2 &v2) const { return ((x!= v2.x) || (y!= v2.y)); }
+  inline bool operator!=(const vec3 &v2) const { return ((x!= v2.x) || (y!= v2.y) || (z!= v2.z)); }
+  bool operator!=(const vec4 &v2) const;
+  
+  inline bool operator!() const { return ((x== 0.0f) && (y== 0.0f) && (z== 0.0f)); }
+
+  inline const vec3 operator-() const { return vec3(-x, -y, -z); }
+
+  float &operator[](int i)            { return v[i]; }
+  const float operator[](int i) const { return v[i]; }
+  operator float* ()                  { return v; }
+  operator const float *() const      { return v; }
+
+  // dot product
+
+  inline float dot(float _x, float _y, float _z)   const { return (x* _x)+ (y* _y)+ (z* _z); }
+  inline float dot(const float *n)                 const { return this->dot(n[0], n[1], n[2]); }
+  inline float dot(const vec2 &v2, float _z= 0.0f) const { return this->dot(v2.x, v2.y, _z); }
+  inline float dot(const vec3 &v2)                 const { return this->dot(v2.x, v2.y, v2.z); }
+  float dot(const vec4 &v2) const;
 
   // cross product
 
-  vec3 cross(const vec2 &o, float _z)      const;
-  vec3 cross(const vec3 &o)                const;
-  vec3 cross(const vec4 &o)                const;
-  vec3 cross(float _x, float _y, float _z) const;
-
+  inline vec3 cross(float _x, float _y, float _z) const { return vec3((y* _z)- (z* _y), (z* _x)- (x* _z), (x* _y)- (y* _x)); }
+  inline vec3 cross(const vec2 &v2, float _z)     const { return this->cross(v2.x, v2.y,   _z); }
+  inline vec3 cross(const vec3 &v2)               const { return this->cross(v2.x, v2.y, v2.z); }
+  vec3 cross(const vec4 &v2) const;
+  
   // funcs - research: https://github.com/g-truc/glm/blob/master/glm/detail/func_geometric.inl
 
-  vec3 &normalize();
-  float length() const;
-  float norm2() const;
-  void addConstant(float n);
+  inline vec3 &normalize() { float size= length(); if(size) { this->operator/=(size); } return *this; } // return vec* inversesqrt(dot(vec, vec)); - another option
+  inline float length() const { return sqrtf((x* x)+ (y* y)+ (z* z)); };
+  inline float norm2() const { return (x* x) + (y* y) + (z* z); }
+
+  inline void addConstant(float n) {
+    float xx= x* x, yy= y* y, zz= z* z, size= length()+ n;
+    if(x!= 0.0f) x= (absf(x)/ x)* size/ sqrtf((yy/ xx)+ (zz/ xx)+ 1.0f);
+    if(y!= 0.0f) y= (absf(y)/ y)* size/ sqrtf((xx/ yy)+ (zz/ yy)+ 1.0f);
+    if(z!= 0.0f) z= (absf(z)/ z)* size/ sqrtf((xx/ zz)+ (yy/ zz)+ 1.0f);
+  };
 };
 
-const vec3 operator+(float scalar, const vec3 &v);
-const vec3 operator-(float scalar, const vec3 &v);
-const vec3 operator*(float scalar, const vec3 &v);
-const vec3 operator/(float scalar, const vec3 &v);
+inline const vec3 operator+(float n, const vec3 &v) { return vec3(n+ v.x, n+ v.y, n+ v.z); }
+inline const vec3 operator-(float n, const vec3 &v) { return vec3(n- v.x, n- v.y, n- v.z); }
+inline const vec3 operator*(float n, const vec3 &v) { return vec3(n* v.x, n* v.y, n* v.z); }
+inline const vec3 operator/(float n, const vec3 &v) { return vec3(n/ v.x, n/ v.y, n/ v.z); }
 
+
+
+
+
+
+
+
+
+///=========
+// = vec3i =--------------------------------------------------------------------
+///=========
 
 
 struct ALIGNED(4) vec3i {
@@ -445,324 +651,538 @@ struct ALIGNED(4) vec3i {
     struct { int32 r, g, b; };
     int32 v[3];
   };
-  int getComponents() { return 3; } /// xyz
+  inline int getComponents() { return 3; } /// xyz
 
   // constructors
 
-  vec3i();
-  //vec3i(const vec2i &o, int32 _z= 0);
-  vec3i(const vec3i &o);
-  //vec3i(const vec4i &o);
-  vec3i(int32 _x, int32 _y, int32 _z);
-  vec3i(const int32 *n);
-  vec3i(int32 n);
+  inline vec3i():                             x(0),    y(0),    z(0)    {}
+  inline vec3i(int32 _x, int32 _y, int32 _z): x(0),    y(0),    z(0)    {}
+  inline vec3i(const int32 *n):               x(n[0]), y(n[1]), z(n[2]) {}
+  inline vec3i(int32 n):                      x(n),    y(n),    z(n)    {}
+  inline vec3i(const vec2i &v2, int32 _z= 0): x(v2.x), y(v2.y), z(_z)   {}
+  inline vec3i(const vec3i &v2):              x(v2.x), y(v2.y), z(v2.z) {}
+  //vec3i(const vec4i &v2);
 
   // operators
 
-  vec3i &operator=(int32 n);
-  //vec3i &operator=(const vec2i &o);
-  vec3i &operator=(const vec3i &o);
-  //vec3i &operator=(const vec4i &o);
-  vec3i &operator=(const int32 *n);
-
+  inline vec3i &operator=(int32 n)         { x= y= z= n;                return *this; }
+  inline vec3i &operator=(const int32 *n)  { x= n[0], y= n[1], z= n[2]; return *this; }
+  inline vec3i &operator=(const vec2i &v2) { x= v2.x, y= v2.y;          return *this; }
+  inline vec3i &operator=(const vec3i &v2) { x= v2.x, y= v2.y, z= v2.y; return *this; }
+  //vec3i &operator=(const vec4i &v2);
+  
   inline vec3i &set(int32 in_x, int32 in_y, int32 in_z) { x= in_x, y= in_y, z= in_z; return *this; }
 
-
-  vec3i &operator+=(int32 scalar);
-  //vec3i &operator+=(const vec2i &v2);
-  vec3i &operator+=(const vec3i &v2);
+  inline vec3i &operator+=(int32 n)         { x+= n,    y+= n,    z+= n;    return *this; }
+  inline vec3i &operator+=(const int32 *n)  { x+= n[0], y+= n[1], z+= n[2]; return *this; }
+  inline vec3i &operator+=(const vec2i &v2) { x+= v2.x, y+= v2.y;           return *this; }
+  inline vec3i &operator+=(const vec3i &v2) { x+= v2.x, y+= v2.y, z+= v2.z; return *this; }
   //vec3i &operator+=(const vec4i &v2);
-  vec3i &operator+=(const int32 *arr);
-
-  vec3i &operator-=(int32 scalar);
-  //vec3i &operator-=(const vec2i &v2);
-  vec3i &operator-=(const vec3i &v2);
-  //vec3i &operator-=(const vec4i &v2);
-  vec3i &operator-=(const int32 *arr);
-
-  vec3i &operator*=(int32 scalar);
-  //vec3i &operator*=(const vec2i &v2);
-  vec3i &operator*=(const vec3i &v2);
-  //vec3i &operator*=(const vec4i &v2);
-  vec3i &operator*=(const int32 *arr);
-
-  vec3i &operator/=(int32 scalar);
-  //vec3i &operator/=(const vec2i &v2);
-  vec3i &operator/=(const vec3i &v2);
-  //vec3i &operator/=(const vec4i &v2);
-  vec3i &operator/=(const int32 *arr);
-
-  const vec3i operator+(int32 scalar)   const;
-  //const vec3i operator+(const vec2i &v2) const;
-  const vec3i operator+(const vec3i &v2) const;
-  //const vec3i operator+(const vec4i &v2) const;
-  const vec3i operator+(const int32 *arr) const;
-
-  const vec3i operator-(int32 scalar)   const;
-  //const vec3i operator-(const vec2i &v2) const;
-  const vec3i operator-(const vec3i &v2) const;
-  //const vec3i operator-(const vec4i &v2) const;
-  const vec3i operator-(const int32 *arr) const;
-
-  const vec3i operator*(int32 scalar)   const;
-  //const vec3i operator*(const vec2i &v2) const;
-  const vec3i operator*(const vec3i &v2) const;
-  //const vec3i operator*(const vec4i &v2) const;
-  const vec3i operator*(const int32 *arr) const;
-
-  const vec3i operator/(int32 scalar)   const;
-  //const vec3i operator/(const vec2i &v2) const;
-  const vec3i operator/(const vec3i &v2) const;
-  //const vec3i operator/(const vec4i &v2) const;
-  const vec3i operator/(const int32 *arr) const;
-
-  bool operator==(int32 n)       const; // this compares vector's length, not each element with n
-  //bool operator==(const vec2i &o) const;
-  bool operator==(const vec3i &o) const;
-  //bool operator==(const vec4i &o) const;
-  bool operator==(const int32 *n) const;
-
-  bool operator!=(int32 n)        const; // this compares vector's length, not each element with n
-  //bool operator!=(const vec2i &o)   const;
-  bool operator!=(const vec3i &o)   const;
-  //bool operator!=(const vec4i &o)   const;
-  bool operator!=(const int32 *n) const;
   
+  inline vec3i &operator-=(int32 n)         { x-= n,    y-= n,    z-= n;    return *this; }
+  inline vec3i &operator-=(const int32 *n)  { x-= n[0], y-= n[1], z-= n[2]; return *this; }
+  inline vec3i &operator-=(const vec2i &v2) { x-= v2.x, y-= v2.y;           return *this; }
+  inline vec3i &operator-=(const vec3i &v2) { x-= v2.x, y-= v2.y, z-= v2.z; return *this; }
+  //vec3i &operator-=(const vec4i &v2);
+  
+  inline vec3i &operator*=(int32 n)         { x*= n,    y*= n,    z*= n;    return *this; }
+  inline vec3i &operator*=(const int32 *n)  { x*= n[0], y*= n[1], z*= n[2]; return *this; }
+  inline vec3i &operator*=(const vec2i &v2) { x*= v2.x, y*= v2.y;           return *this; }
+  inline vec3i &operator*=(const vec3i &v2) { x*= v2.x, y*= v2.y, z*= v2.z; return *this; }
+  //vec3i &operator*=(const vec4i &v2);
 
-  bool operator!() const;
+  inline vec3i &operator/=(int32 n)         { x/= n,    y/= n,    z/= n;    return *this; }
+  inline vec3i &operator/=(const int32 *n)  { x/= n[0], y/= n[1], z/= n[2]; return *this; }
+  inline vec3i &operator/=(const vec2i &v2) { x/= v2.x, y/= v2.y;           return *this; }
+  inline vec3i &operator/=(const vec3i &v2) { x/= v2.x, y/= v2.y, z/= v2.z; return *this; }
+  //vec3i &operator/=(const vec4i &v2);
 
-  const vec3i operator-() const;
+  inline const vec3i operator+(int32 n)         const { return vec3i(*this)+= n; }
+  inline const vec3i operator+(const int32 *n)  const { return vec3i(*this)+= n; }
+  inline const vec3i operator+(const vec2i &v2) const { return vec3i(*this)+= v2; }
+  inline const vec3i operator+(const vec3i &v2) const { return vec3i(*this)+= v2; }
+  //const vec3i operator+(const vec4i &v2) const;
 
-  int32 &operator[](int i);
-  const int32 operator[](int i) const;
-  operator int32* ();
-  operator const int32 *() const;
+  inline const vec3i operator-(int32 n)         const { return vec3i(*this)-= n; }
+  inline const vec3i operator-(const int32 *n)  const { return vec3i(*this)-= n; }
+  inline const vec3i operator-(const vec2i &v2) const { return vec3i(*this)-= v2; }
+  inline const vec3i operator-(const vec3i &v2) const { return vec3i(*this)-= v2; }
+  //const vec3i operator-(const vec4i &v2) const;
+
+  inline const vec3i operator*(int32 n)         const { return vec3i(*this)*= n; }
+  inline const vec3i operator*(const int32 *n)  const { return vec3i(*this)*= n; }
+  inline const vec3i operator*(const vec2i &v2) const { return vec3i(*this)*= v2; }
+  inline const vec3i operator*(const vec3i &v2) const { return vec3i(*this)*= v2; }
+  //const vec3i operator*(const vec4i &v2) const;
+
+  inline const vec3i operator/(int32 n)         const { return vec3i(*this)/= n; }
+  inline const vec3i operator/(const int32 *n)  const { return vec3i(*this)/= n; }
+  inline const vec3i operator/(const vec2i &v2) const { return vec3i(*this)/= v2; }
+  inline const vec3i operator/(const vec3i &v2) const { return vec3i(*this)/= v2; }
+  //const vec3i operator/(const vec4i &v2) const;
+
+  inline bool operator==(int32 n)         const { return (n== length()); } // this compares vector's length, not each element with n
+  inline bool operator==(const int32 *n)  const { return ((x== n[0]) && (y== n[1]) && (z== n[2])); }
+  inline bool operator==(const vec2i &v2) const { return ((x== v2.x) && (y== v2.y)); }
+  inline bool operator==(const vec3i &v2) const { return ((x== v2.x) && (y== v2.y) && (z== v2.z)); }
+  //bool operator==(const vec4i &v2) const;
+
+  inline bool operator!=(int32 n)         const { return (n!= length());} // this compares vector's length, not each element with n
+  inline bool operator!=(const int32 *n)  const { return ((x!= n[0]) || (y!= n[1]) || (z!= n[2])); }
+  inline bool operator!=(const vec2i &v2) const { return ((x!= v2.x) || (y!= v2.y)); }
+  inline bool operator!=(const vec3i &v2) const { return ((x!= v2.x) || (y!= v2.y) || (z!= v2.z)); }
+  //bool operator!=(const vec4i &v2)   const;
+
+  inline bool operator!() const { return !(x && y); }
+
+  inline const vec3i operator-() const { return vec3i(-x, -y, -z); }
+
+  inline int32 &operator[](int i)            { return v[i]; }
+  inline const int32 operator[](int i) const { return v[i]; }
+  inline operator int32 *()                  { return v; }
+  inline operator const int32 *()      const { return v; }
 
   // dot product
 
-  //int32 dot(const vec2i &o, int32 _z= 0.0f)   const;
-  int32 dot(const vec3i &o)                     const;
-  //int32 dot(const vec4i &o)                     const;
-  int32 dot(int32 _x, int32 _y, int32 _z) const;
-  int32 dot(const int32 *n)                   const;
+  inline int32 dot(int32 _x, int32 _y, int32 _z) const { return (x* _x)+  (y* _y)+ (z* _z); }
+  inline int32 dot(const int32 *n)               const { return this->dot(n[0], n[1], n[2]); }
+  inline int32 dot(const vec2i &v2, int32 _z= 0) const { return this->dot(v2.x, v2.y, _z); }
+  inline int32 dot(const vec3i &v2)              const { return this->dot(v2.x, v2.y, v2.z); }
+  //inline int32 dot(const vec4i &v2)              const { return this->dot(v2.x, v2.y, v2.z); }
 
   // cross product
 
-  //vec3i cross(const vec2i &o, int32 _z)         const;
-  vec3i cross(const vec3i &o)                     const;
-  //vec3i cross(const vec4i &o)                     const;
-  vec3i cross(int32 _x, int32 _y, int32 _z) const;
+  inline vec3i cross(int32 _x, int32 _y, int32 _z) const { return vec3i((y* _z)- (z* _y),  (z* _x)- (x* _z), (x* _y)- (y* _x)); }
+  inline vec3i cross(const vec2i &v2, int32 _z)    const { return this->cross(v2.x, v2.y,   _z); }
+  inline vec3i cross(const vec3i &v2)              const { return this->cross(v2.x, v2.y, v2.z); }
+  //inline vec3i vec3i::cross(const vec4i &v2)              const { return this->cross(v2.x, v2.y, v2.z); }
 
   // funcs - research: https://github.com/g-truc/glm/blob/master/glm/detail/func_geometric.inl
 
-  vec3i &normalize();
-  int32 length() const;
-  int32 norm2() const;
-  void addConstant(int32 n);
+  inline vec3i &normalize() { int32 size= length(); if(size) this->operator/= (size); return *this; } // return vec* inversesqrt(dot(vec, vec)); - another option
+
+  inline int32 length() const { return roundf(sqrtf((float)((x* x)+ (y* y)+ (z* z)))); };
+  inline int32 norm2() const { return (x* x)+ (y* y)+ (z* z); }
+
+  inline void addConstant(int32 n) {
+    int32 xx= x* x, yy= y* y, zz= z* z, size= length()+ n;
+    if(x!= 0) x= (abs32(x)/ x)* size/ roundf(sqrtf(yy/ xx+ zz/ xx+ 1.0f));
+    if(y!= 0) y= (abs32(y)/ y)* size/ roundf(sqrtf(xx/ yy+ zz/ yy+ 1.0f));
+    if(z!= 0) z= (abs32(z)/ z)* size/ roundf(sqrtf(xx/ zz+ yy/ zz+ 1.0f));
+  };
 };
 
-const vec3i operator+(int32 scalar, const vec3i &v);
-const vec3i operator-(int32 scalar, const vec3i &v);
-const vec3i operator*(int32 scalar, const vec3i &v);
-const vec3i operator/(int32 scalar, const vec3i &v);
+
+inline const vec3i operator+(int32 n, const vec3i &v) { return vec3i(n+ v.x, n+ v.y, n+ v.z); }
+inline const vec3i operator-(int32 n, const vec3i &v) { return vec3i(n- v.x, n- v.y, n- v.z); }
+inline const vec3i operator*(int32 n, const vec3i &v) { return vec3i(n* v.x, n* v.y, n* v.z); }
+inline const vec3i operator/(int32 n, const vec3i &v) { return vec3i(n/ v.x, n/ v.y, n/ v.z); }
 
 
 
-#ifdef MLIB_USE_INTRINSICS
-struct ALIGNED(16) vec4 {    // alignment of 16 if in the future intrinsics will be used
-#else
+
+
+
+
+
+
+
+
+
+
+
+
+
+///========
+// = vec4 =---------------------------------------------------------------------
+///========
+
+
 struct ALIGNED(4) vec4 {    // alignment of 16 if in the future intrinsics will be used
-#endif
   union {
     struct { float x, y, z, w; };
     struct { float r, g, b, a; };
     float v[4];
   };
-  int getComponents() { return 4; } /// xyzw
+  inline int getComponents() { return 4; } /// xyzw
 
   // constructors
   
-  vec4();
-  vec4(float _x, float _y, float _z, float _w);
-  vec4(float n);
-  vec4(const vec2 &o, float _z= 0, float _w= 0);
-  vec4(const vec3 &o, float _w= 0);
-  vec4(const vec4 &o);
-  vec4(const float *n);
-  #ifdef MLIB_USE_INTRINSICS
-  vec4(__m128 n);
-  #endif
+  inline vec4():                                         x(0.0f), y(0.0f), z(0.0f), w(0.0f) {}
+  inline vec4(float _x, float _y, float _z, float _w):   x(_x),   y(_y),   z(_z),   w(_w)   {}
+  inline vec4(float n):                                  x(n),    y(n),    z(n),    w(n)    {}
+  inline vec4(const float *n):                           x(n[0]), y(n[1]), z(n[2]), w(n[3]) {}
+  inline vec4(const vec2 &v2, float _z= 0, float _w= 0): x(v2.x), y(v2.y), z(_z),   w(_w)   {}
+  inline vec4(const vec3 &v2, float _w= 0):              x(v2.x), y(v2.y), z(v2.z), w(_w)   {}
+  inline vec4(const vec4 &v2):                           x(v2.x), y(v2.y), z(v2.z), w(v2.w) {}
 
   // operators
 
-  vec4 &operator=(float n);
-  vec4 &operator=(const vec2 &o);
-  vec4 &operator=(const vec3 &o);
-  vec4 &operator=(const vec4 &o);
-  vec4 &operator=(const float *n);
-  #ifdef MLIB_USE_INTRINSICS
-  vec4 &operator= (__m128 n);
-  #endif
+  inline vec4 &operator=(float n)        { x= y= z= w= n;                      return *this; }
+  inline vec4 &operator=(const float *n) { x= n[0], y= n[1], z= n[2], w= n[3]; return *this; }
+  inline vec4 &operator=(const vec2 &v2) { x= v2.x, y= v2.y;                   return *this; }
+  inline vec4 &operator=(const vec3 &v2) { x= v2.x, y= v2.y, z= v2.z;          return *this; }
+  inline vec4 &operator=(const vec4 &v2) { x= v2.x, y= v2.y, z= v2.z, w= v2.w; return *this; }
+   
+  inline vec4 &operator+=(float n)        { x+= n,    y+= n,    z+= n,    w+= n;    return *this; }
+  inline vec4 &operator+=(const float *n) { x+= n[0], y+= n[1], z+= n[2], w+= n[3]; return *this; }
+  inline vec4 &operator+=(const vec2 &v2) { x+= v2.x, y+= v2.y;                     return *this; }
+  inline vec4 &operator+=(const vec3 &v2) { x+= v2.x, y+= v2.y, z+= v2.z;           return *this; }
+  inline vec4 &operator+=(const vec4 &v2) { x+= v2.x, y+= v2.y, z+= v2.z, w+= v2.w; return *this; }
 
-  vec4 &operator+=(float n);
-  vec4 &operator+=(const vec2 &o);
-  vec4 &operator+=(const vec3 &o);
-  vec4 &operator+=(const vec4 &o);
-  vec4 &operator+=(const float *n);
+  inline vec4 &operator-=(float n)        { x-= n,    y-= n,    z-= n,    w-= n;    return *this; }
+  inline vec4 &operator-=(const float *n) { x-= n[0], y-= n[1], z-= n[2], w-= n[3]; return *this; }
+  inline vec4 &operator-=(const vec2 &v2) { x-= v2.x, y-= v2.y;                     return *this; }
+  inline vec4 &operator-=(const vec3 &v2) { x-= v2.x, y-= v2.y, z-= v2.z;           return *this; }
+  inline vec4 &operator-=(const vec4 &v2) { x-= v2.x, y-= v2.y, z-= v2.z, w-= v2.w; return *this; }
 
-  vec4 &operator-=(float n);
-  vec4 &operator-=(const vec2 &o);
-  vec4 &operator-=(const vec3 &o);
-  vec4 &operator-=(const vec4 &o);
-  vec4 &operator-=(const float *n);
+  inline vec4 &operator*=(float n)        { x*= n,    y*= n,    z*= n,    w*= n;    return *this; }
+  inline vec4 &operator*=(const float *n) { x*= n[0], y*= n[1], z*= n[2], w*= n[3]; return *this; }
+  inline vec4 &operator*=(const vec2 &v2) { x*= v2.x, y*= v2.y;                     return *this; }
+  inline vec4 &operator*=(const vec3 &v2) { x*= v2.x, y*= v2.y, z*= v2.z;           return *this; }
+  inline vec4 &operator*=(const vec4 &v2) { x*= v2.x, y*= v2.y, z*= v2.z, w*= v2.w; return *this; }
 
-  vec4 &operator*=(float n);
-  vec4 &operator*=(const vec2 &o);
-  vec4 &operator*=(const vec3 &o);
-  vec4 &operator*=(const vec4 &o);
-  vec4 &operator*=(const float *n);
-
-  vec4 &operator/=(float n);
-  vec4 &operator/=(const vec2 &o);
-  vec4 &operator/=(const vec3 &o);
-  vec4 &operator/=(const vec4 &o);
-  vec4 &operator/=(const float *n);
+  inline vec4 &operator/=(float n)        { x/= n,    y/= n,    z/= n,    w/= n;    return *this; }
+  inline vec4 &operator/=(const float *n) { x/= n[0], y/= n[1], z/= n[2], w/= n[3]; return *this; }
+  inline vec4 &operator/=(const vec2 &v2) { x/= v2.x, y/= v2.y;                     return *this; }
+  inline vec4 &operator/=(const vec3 &v2) { x/= v2.x, y/= v2.y, z/= v2.z;           return *this; }
+  inline vec4 &operator/=(const vec4 &v2) { x/= v2.x, y/= v2.y, z/= v2.z, w/= v2.w; return *this; }
   
-  const vec4 operator+(float n)       const;
-  const vec4 operator+(const vec2 &o) const;
-  const vec4 operator+(const vec3 &o) const;
-  const vec4 operator+(const vec4 &o) const;
-  const vec4 operator+(const float *n)     const;
+  inline const vec4 operator+(float n)        const { return vec4(*this)+= n; }
+  inline const vec4 operator+(const float *n) const { return vec4(*this)+= n; }
+  inline const vec4 operator+(const vec2 &v2) const { return vec4(*this)+= v2; }
+  inline const vec4 operator+(const vec3 &v2) const { return vec4(*this)+= v2; }
+  inline const vec4 operator+(const vec4 &v2) const { return vec4(*this)+= v2; }
 
-  const vec4 operator-(float n)       const;
-  const vec4 operator-(const vec2 &o) const;
-  const vec4 operator-(const vec3 &o) const;
-  const vec4 operator-(const vec4 &o) const;
-  const vec4 operator-(const float *n)     const;
+  inline const vec4 operator-(float n)        const { return vec4(*this)-= n; }
+  inline const vec4 operator-(const float *n) const { return vec4(*this)-= n; }
+  inline const vec4 operator-(const vec2 &v2) const { return vec4(*this)-= v2; }
+  inline const vec4 operator-(const vec3 &v2) const { return vec4(*this)-= v2; }
+  inline const vec4 operator-(const vec4 &v2) const { return vec4(*this)-= v2; }
 
-  const vec4 operator*(float n)       const;
-  const vec4 operator*(const vec2 &o) const;
-  const vec4 operator*(const vec3 &o) const;
-  const vec4 operator*(const vec4 &o) const;
-  const vec4 operator*(const float *n)     const;
+  inline const vec4 operator*(float n)        const { return vec4(*this)*= n; }
+  inline const vec4 operator*(const float *n) const { return vec4(*this)*= n; }
+  inline const vec4 operator*(const vec2 &v2) const { return vec4(*this)*= v2; }
+  inline const vec4 operator*(const vec3 &v2) const { return vec4(*this)*= v2; }
+  inline const vec4 operator*(const vec4 &v2) const { return vec4(*this)*= v2; }
 
-  const vec4 operator/(float n)       const;
-  const vec4 operator/(const vec2 &o) const;
-  const vec4 operator/(const vec3 &o) const;
-  const vec4 operator/(const vec4 &o) const;
-  const vec4 operator/(const float *n)     const;
+  inline const vec4 operator/(float n)        const { return vec4(*this)/= n; }
+  inline const vec4 operator/(const float *n) const { return vec4(*this)/= n; }
+  inline const vec4 operator/(const vec2 &v2) const { return vec4(*this)/= v2; }
+  inline const vec4 operator/(const vec3 &v2) const { return vec4(*this)/= v2; }
+  inline const vec4 operator/(const vec4 &v2) const { return vec4(*this)/= v2; }
 
-  bool operator==(float n)       const;
-  bool operator==(const vec2 &o) const;
-  bool operator==(const vec3 &o) const;
-  bool operator==(const vec4 &o) const;
-  bool operator==(const float *n)     const;
+  inline bool operator==(float n)        const { return (n== length()); }
+  inline bool operator==(const vec2 &v2) const { return ((x== v2.x) && (y== v2.y)); }
+  inline bool operator==(const vec3 &v2) const { return ((x== v2.x) && (y== v2.y) && (z== v2.z)); }
+  inline bool operator==(const vec4 &v2) const { return ((x== v2.x) && (y== v2.y) && (z== v2.z) && (w== v2.w)); }
+  inline bool operator==(const float *n) const { return ((x== n[0]) && (y== n[1]) && (z== n[2]) && (w== n[3])); }
 
-  bool operator!=(const vec2 &o) const;
-  bool operator!=(const vec3 &o) const;
-  bool operator!=(const vec4 &o) const;
-  bool operator!=(const float *n)     const;
-  bool operator!=(float n)       const;
+  inline bool operator!=(float n)        const { return (n!= length()); }
+  inline bool operator!=(const float *n) const { return ((x!= n[0]) || (y!= n[1]) || (z!= n[2]) || (w!= n[3])); }
+  inline bool operator!=(const vec2 &v2) const { return ((x!= v2.x) || (y!= v2.y)); }
+  inline bool operator!=(const vec3 &v2) const { return ((x!= v2.x) || (y!= v2.y) || (z!= v2.z)); }
+  inline bool operator!=(const vec4 &v2) const { return ((x!= v2.x) || (y!= v2.y) || (z!= v2.z) || (w!= v2.w)); }
+  
+  inline bool operator!() const { return (x!= 0.0f) && (y!= 0.0f) && (z!= 0.0f) && (w!= 0.0f); }
 
-  bool operator!() const;
+  inline const vec4 operator-() const { return vec4(-x, -y, -z, -w); }
 
-  const vec4 operator-() const;
-
-  float &operator[](int i);
-  const float operator[](int i) const;
-  operator float* ();
-  operator const float *() const;
-  #ifdef MLIB_USE_INTRINSICS
-  operator const __m128() const;
-  #endif
+  inline float &operator[](int i)            { return v[i]; }
+  inline const float operator[](int i) const { return v[i]; }
+  inline operator float* ()                  { return v; }
+  inline operator const float *()      const { return v; }
 
   // dot product
 
-  float dot(const vec2 &o, float _z= 0.0f, float _w= 0.0f) const;
-  float dot(const vec3 &o, float _w= 0.0f)                 const;
-  float dot(const vec4 &o)                                 const;
-  float dot(float _x, float _y, float _z, float _w)        const;
-  float dot(const float *n)                                const;
+  inline float dot(float _x, float _y, float _z, float _w)         const { return (x* _x)+ (y* _y)+ (z* _z)+ (w* _w); }
+  inline float dot(const float *n)                                 const { return this->dot(n[0], n[1], n[2], n[3]); }
+  inline float dot(const vec2 &v2, float _z= 0.0f, float _w= 0.0f) const { return this->dot(v2.x, v2.y,   _z,   _w); }
+  inline float dot(const vec3 &v2, float _w= 0.0f)                 const { return this->dot(v2.x, v2.y, v2.z,   _w); }
+  inline float dot(const vec4 &v2)                                 const { return this->dot(v2.x, v2.y, v2.z, v2.w); }
 
   // funcs - research: https://github.com/g-truc/glm/blob/master/glm/detail/func_geometric.inl
 
-  vec4 &set(float, float, float, float);
-  vec4 &normalize();
-  float length() const;
-  float norm2() const;
+  inline vec4 &set(float _x, float _y, float _z, float _w) { x= _x, y= _y, z= _z, w= _w; return *this; }
+  inline vec4 &normalize() { float size= length(); if(size) { this->operator/=(size); } return *this; } // return vec* inversesqrt(dot(vec, vec)); - another option
+  inline float length() const { return sqrtf((x* x)+ (y* y)+ (z* z)+ (w* w)); };
+  inline float norm2() const { return (x* x)+ (y* y)+ (z* z)+ (w* w); }
 };
 
-const vec4 operator+(float scalar, const vec4 &v);
-const vec4 operator-(float scalar, const vec4 &v);
-const vec4 operator*(float scalar, const vec4 &v);
-const vec4 operator/(float scalar, const vec4 &v);
+inline const vec4 operator+(float n, const vec4 &v) { return vec4(n+ v.x, n+ v.y, n+ v.z, n+ v.w); }
+inline const vec4 operator-(float n, const vec4 &v) { return vec4(n- v.x, n- v.y, n- v.z, n- v.w); }
+inline const vec4 operator*(float n, const vec4 &v) { return vec4(n* v.x, n* v.y, n* v.z, n* v.w); }
+inline const vec4 operator/(float n, const vec4 &v) { return vec4(n/ v.x, n/ v.y, n/ v.z, n/ v.w); }
 
 
 
 
-#ifdef MLIB_USE_INTRINSICS
-struct ALIGNED(16) mat4 {
-#else
+
+
+
+
+
+
+
+
+
+
+
+
+///========
+// = mat4 =---------------------------------------------------------------------
+///========
+
+
 struct ALIGNED(4) mat4 {
-#endif
   float v[16];
-
+  
   // constructors
 
-  mat4();
-  mat4(const mat4 &o);
-  mat4(float n00, float n01, float n02, float n03, float n10, float n11, float n12, float n13, float n20, float n21, float n22, float n23, float n30, float n31, float n32, float n33);
-  mat4(float *o);
+  inline mat4() { identity(); };
+  inline mat4(const mat4 &o) {	
+    v[0]= o[0];   v[4]= o[4];   v[8]=  o[8];    v[12]= o[12];
+    v[1]= o[1];   v[5]= o[5];   v[9]=  o[9];    v[13]= o[13];
+    v[2]= o[2];   v[6]= o[6];   v[10]= o[10];   v[14]= o[14];
+    v[3]= o[3];   v[7]= o[7];   v[11]= o[11];   v[15]= o[15];
+  };
+  inline mat4(float n00, float n01, float n02, float n03, float n10, float n11, float n12, float n13, float n20, float n21, float n22, float n23, float n30, float n31, float n32, float n33) {
+    v[0]= n00;   v[4]= n10;   v[8]=  n20;   v[12]= n30;
+    v[1]= n01;   v[5]= n11;   v[9]=  n21;   v[13]= n31;
+    v[2]= n02;   v[6]= n12;   v[10]= n22;   v[14]= n32;
+    v[3]= n03;   v[7]= n13;   v[11]= n23;   v[15]= n33;
+  }
+  inline mat4(float *o) {
+    v[0]= o[0];   v[4]= o[4];   v[8]=  o[8];    v[12]= o[12];
+    v[1]= o[1];   v[5]= o[5];   v[9]=  o[9];    v[13]= o[13];
+    v[2]= o[2];   v[6]= o[6];   v[10]= o[10];   v[14]= o[14];
+    v[3]= o[3];   v[7]= o[7];   v[11]= o[11];   v[15]= o[15];
+  };
+  
 
   // various matrix types
-
-  mat4 &identity();
-  mat4 &zero();
+  
+  inline mat4 &identity() {
+    v[0]= 1.0f; v[4]= 0.0f; v[8]=  0.0f; v[12]= 0.0f;
+    v[1]= 0.0f; v[5]= 1.0f; v[9]=  0.0f; v[13]= 0.0f;
+    v[2]= 0.0f; v[6]= 0.0f; v[10]= 1.0f; v[14]= 0.0f;
+    v[3]= 0.0f; v[7]= 0.0f; v[11]= 0.0f; v[15]= 1.0f;
+    return *this;
+  }
+  inline mat4 &zero() { v[0]= v[4]= v[8]= v[12]= v[1]= v[5]= v[9]= v[13]= v[2]= v[6]= v[10]= v[14]= v[3]= v[7]= v[11]= v[15]= 0.0f; return *this; };
 
   // rotation functions
 
   // see http://www.khronos.org/opengles/documentation/html/glRotate.html if there are any bugs :)
 
-  mat4 &rotate(float angle, const vec3 &axis);
-  mat4 &rotate(float angle, float x, float y, float z);
-  mat4 &rotateX(float angle);     /// uses fewer computations than rotate
-  mat4 &rotateY(float angle);     /// uses fewer computations than rotate
-  mat4 &rotateZ(float angle);     /// uses fewer computations than rotate
+  inline mat4 &rotate(float angle, const vec3 &axis) { // axis to rotate about, angle = angle in degrees
+    vec3 a= axis;
+    a.normalize();
 
-  mat4 &translate(const vec3 &o);
-  mat4 &translate(float x,float y, float z);
+    float s= sinf(angle* DEG2RAD);
+    float c= cosf(angle* DEG2RAD);
+    float c1= 1- c;
+    float x1c= a.x* c1;
+    float y1c= a.y* c1;
+    float z1c= a.z* c1;
+
+    v[0]=  a.x*  x1c+ c;       v[4]=  a.x*  y1c- a.z* s;  v[8]=  a.x*  z1c+ a.y* s;  v[12]= 0.0f;
+    v[1]=  a.x*  y1c+ a.z* s;  v[5]=  a.y*  y1c+ c;       v[9]=  a.y*  z1c- a.x* s;  v[13]= 0.0f;
+    v[2]=  a.x*  z1c- a.y* s;  v[6]=  a.y*  y1c+ a.x* s;  v[10]= a.z*  z1c+ c;       v[14]= 0.0f;
+    v[3]=  0.0f;               v[7]=  0.0f;               v[11]= 0.0f;               v[15]= 1.0f;
+    
+    return *this;
+  }
+
+  inline mat4 &rotate(float angle, float x, float y, float z) { return rotate(angle, vec3(x, y, z)); }
+
+  /// uses fewer computations than rotate
+  inline mat4 &rotateX(float angle) {
+    float c= cosf(angle* DEG2RAD);
+    float s= sinf(angle* DEG2RAD);
+
+    v[0]= 1.0f;   v[4]= 0.0f;   v[8]=  0.0f;   v[12]= 0.0f;
+    v[1]= 0.0f;   v[5]= c;      v[9]=  -s;     v[13]= 0.0f;
+    v[2]= 0.0f;   v[6]= s;      v[10]= c;      v[14]= 0.0f;
+    v[3]= 0.0f;   v[7]= 0.0f;   v[11]= 0.0f;   v[15]= 1.0f;
+    return *this;
+  }
+
+  /// uses fewer computations than rotate
+  inline mat4 &rotateY(float angle) {
+    float c= cosf(angle* DEG2RAD);
+    float s= sinf(angle* DEG2RAD);
+
+    v[0]= c;      v[4]= 0.0f;   v[8]=  s;      v[12]= 0.0f;
+    v[1]= 0.0f;   v[5]= 1.0f;   v[9]=  0.0f;   v[13]= 0.0f;
+    v[2]= -s;     v[6]= 0.0f;   v[10]= c;      v[14]= 0.0f;
+    v[3]= 0.0f;   v[7]= 0.0f;   v[11]= 0.0f;   v[15]= 1.0f;
+    return *this;
+  }
+
+  /// uses fewer computations than rotate
+  inline mat4 &rotateZ(float angle) {
+    float c= cosf(angle* DEG2RAD);
+    float s= sinf(angle* DEG2RAD);
+
+    v[0]= c;      v[4]= -s;     v[8]=  0.0f;   v[12]= 0.0f;
+    v[1]= s;      v[5]= c;      v[9]=  0.0f;   v[13]= 0.0f;
+    v[2]= 0.0f;   v[6]= 0.0f;   v[10]= 1.0f;   v[14]= 0.0f;
+    v[3]= 0.0f;   v[7]= 0.0f;   v[11]= 0.0f;   v[15]= 1.0f;
+    return *this;
+  }
+
+  inline mat4 &translate(const vec3 &o) {
+    v[0]= 1.0f; v[4]= 0.0f; v[8]=  0.0f; v[12]= o[0];
+    v[1]= 0.0f; v[5]= 1.0f; v[9]=  0.0f; v[13]= o[1];
+    v[2]= 0.0f; v[6]= 0.0f; v[10]= 1.0f; v[14]= o[2];
+    v[3]= 0.0f; v[7]= 0.0f; v[11]= 0.0f; v[15]= 1.0f;
+    return *this;
+  } 
+
+  inline mat4 &translate(float x, float y, float z) { return translate(vec3(x, y, z)); }
   
-  mat4 &scale(const vec3 &o);
-  mat4 &scale(float x,float y,float z);
+  inline mat4 &scale(const vec3 &o) {
+    v[0]= o[0];   v[4]= 0.0f;   v[8]= 0.0f;    v[12]= 0.0f;
+    v[1]= 0.0f;   v[5]= o[1];   v[9]= 0.0f;    v[13]= 0.0f;
+    v[2]= 0.0f;   v[6]= 0.0f;   v[10]= o[2];   v[14]= 0.0f;
+    v[3]= 0.0f;   v[7]= 0.0f;   v[11]= 0.0f;   v[15]= 1.0f;
+    return *this;
+  }
+  
+  inline mat4 &scale(float x, float y, float z) { return scale(vec3(x, y, z)); } 
 
   // operators
+  
+  inline operator float *() { return v; }
+  inline operator const float *() const { return v; }
+  //inline const float operator[](int i) const { return v[i]; } // might not be needed (further thinking needed)
+  //inline float &operator[](int i) { return v[i]; }            // might not be needed (further thinking needed)
 
-  operator float *();
-  operator const float *() const;
-  //const float operator[](int i) const { return v[i]; } // might not be needed (further thinking needed)
-  //float &operator[](int i) { return v[i]; }            // might not be needed (further thinking needed)
+  inline mat4 operator+(const mat4 &o) {
+    return mat4(v[0]+  o[0],   v[1]+  o[1],   v[2]+  o[2],    v[3]+  o[3],
+                v[4]+  o[4],   v[5]+  o[5],   v[6]+  o[6],    v[7]+  o[7],
+                v[8]+  o[8],   v[9]+  o[9],   v[10]+ o[10],   v[11]+ o[11],
+                v[12]+ o[12],  v[13]+ o[13],  v[14]+ o[14],   v[15]+ o[15]);
+  }
 
-  mat4 operator+(const mat4 &o);
-  mat4 operator+(float n);
-  mat4 operator-(const mat4 &o);
-  mat4 operator-(float n);
-  mat4 operator*(const mat4 &o);
+  inline mat4 operator+(float n) {
+    return mat4(v[0]+  n,   v[1]+  n,   v[2]+  n,    v[3]+  n,
+                v[4]+  n,   v[5]+  n,   v[6]+  n,    v[7]+  n,
+                v[8]+  n,   v[9]+  n,   v[10]+ n,    v[11]+ n,
+                v[12]+ n,   v[13]+ n,   v[14]+ n,    v[15]+ n);
+  }
+
+  inline mat4 operator-(const mat4 &o) {
+    return mat4(v[0]-  o[0],   v[1]-  o[1],   v[2]-  o[2],    v[3]-  o[3],
+                v[4]-  o[4],   v[5]-  o[5],   v[6]-  o[6],    v[7]-  o[7],
+                v[8]-  o[8],   v[9]-  o[9],   v[10]- o[10],   v[11]- o[11],
+                v[12]- o[12],  v[13]- o[13],  v[14]- o[14],   v[15]- o[15]);
+  }
+
+  inline mat4 operator-(float n) {
+    return mat4(v[0]-  n,   v[1]-  n,   v[2]-  n,    v[3]-  n,
+                v[4]-  n,   v[5]-  n,   v[6]-  n,    v[7]-  n,
+                v[8]-  n,   v[9]-  n,   v[10]- n,    v[11]- n,
+                v[12]- n,   v[13]- n,   v[14]- n,    v[15]- n);
+  }
+
+  inline mat4 operator*(const mat4 &o) {
+                  /// first column
+    return mat4(v[0]* o[0]+  v[4]* o[1]+  v[8]*  o[2]+  v[12]* o[3],
+                v[1]* o[0]+  v[5]* o[1]+  v[9]*  o[2]+  v[13]* o[3],
+                v[2]* o[0]+  v[6]* o[1]+  v[10]* o[2]+  v[14]* o[3],
+                v[3]* o[0]+  v[7]* o[1]+  v[11]* o[2]+  v[15]* o[3],
+                /// second column
+                v[0]* o[4]+  v[4]* o[5]+  v[8]*  o[6]+  v[12]* o[7],
+                v[1]* o[4]+  v[5]* o[5]+  v[9]*  o[6]+  v[13]* o[7],
+                v[2]* o[4]+  v[6]* o[5]+  v[10]* o[6]+  v[14]* o[7],
+                v[3]* o[4]+  v[7]* o[5]+  v[11]* o[6]+  v[15]* o[7],
+                /// third column
+                v[0]* o[8]+  v[4]* o[9]+  v[8]*  o[10]+ v[12]* o[11],
+                v[1]* o[8]+  v[5]* o[9]+  v[9]*  o[10]+ v[13]* o[11],
+                v[2]* o[8]+  v[6]* o[9]+  v[10]* o[10]+ v[14]* o[11],
+                v[3]* o[8]+  v[7]* o[9]+  v[11]* o[10]+ v[15]* o[11],
+                /// fourth column
+                v[0]* o[12]+ v[4]* o[13]+ v[8]*  o[14]+ v[12]* o[15],
+                v[1]* o[12]+ v[5]* o[13]+ v[9]*  o[14]+ v[13]* o[15],
+                v[2]* o[12]+ v[6]* o[13]+ v[10]* o[14]+ v[14]* o[15],
+                v[3]* o[12]+ v[7]* o[13]+ v[11]* o[14]+ v[15]* o[15]);
+                /// wheew. done.
+  }
 
   // assume the vectors are padded with a 1 (homogenous coordinates)
-  vec2 operator*(const vec2 &o);
-  vec3 operator*(const vec3 &o);
-  vec4 operator*(const vec4 &o);
+  inline vec2 operator*(const vec2 &o) {
+    return vec3(v[0]* o[0]+ v[4]* o[1]+ v[8]*  o[2]+ v[12],
+                v[1]* o[0]+ v[5]* o[1]+ v[9]*  o[2]+ v[13]);
+  }
 
-  mat4& operator*=(const mat4 &o);
-  mat4& operator+=(const mat4 &o);
-  mat4& operator-=(const mat4 &o);
+  inline vec3 operator*(const vec3 &o) {
+    return vec3(v[0]* o[0]+ v[4]* o[1]+ v[8]*  o[2]+ v[12],
+                v[1]* o[0]+ v[5]* o[1]+ v[9]*  o[2]+ v[13],
+                v[2]* o[0]+ v[6]* o[1]+ v[10]* o[2]+ v[14]);
+  }
+
+  inline vec4 operator*(const vec4 &o) {
+    return vec4(v[0]* o[0]+ v[4]* o[1]+ v[8]*  o[2]+ v[12],
+                v[1]* o[0]+ v[5]* o[1]+ v[9]*  o[2]+ v[13],
+                v[2]* o[0]+ v[6]* o[1]+ v[10]* o[2]+ v[14],
+                v[3]* o[0]+ v[7]* o[1]+ v[11]* o[2]+ v[15]);
+  }
+
+  inline mat4 &operator*=(const mat4 &o) { return *this= *this* o; }
+  inline mat4 &operator+=(const mat4 &o) { return *this= *this+ o; }
+  inline mat4 &operator-=(const mat4 &o) { return *this= *this- o; }
+
 
   // funcs
 
-  mat4 &ortho(float left, float right, float bottom, float top, float znear, float zfar);
-  mat4 &frustrum(float left, float right, float bottom, float top, float znear, float zfar);
-  mat4 &perspective(float fovy, float aspect, float znear, float zfar);
-  mat4 &lookAt(const vec3 &eye, const vec3 &center, const vec3 &up);
+  // l= left, r= right, b= bottom, t= top, zn= z coord near, zf= z coord far
+  inline mat4 &ortho(float l, float r, float b, float t, float zn, float zf) {
+    float dx= r- l, dy= t- b, dz= zf- zn;
+
+    v[0]= 2.0f/ dx;   v[4]= 0.0f;       v[8]=   0.0f;       v[12]= -(r+ l)/ dx;
+    v[1]= 0.0f;       v[5]= 2.0f/ dy;   v[9]=   0.0f;       v[13]= -(t+ b)/ dy;
+    v[2]= 0.0f;       v[6]= 0.0f;       v[10]= -2.0f/ dz;   v[14]= -(zf+ zn)/ dz;
+    v[3]= 0.0f;       v[7]= 0.0f;       v[11]=  0.0f;       v[15]= 1.0f;
+    return *this;
+  }
+
+  inline mat4 &frustrum(float l, float r, float b, float t, float zn, float zf) {
+    float dx= r- l, dy= t- b, dz= zf- zn;
+
+    v[0]= (2.0f* zn)/ dx;   v[4]= 0.0f;             v[8]=  0.0f;            v[12]= 0.0f;
+    v[1]= 0.0f;             v[5]= (2.0f* zn)/ dy;   v[9]=  (t+ b)/ dy;      v[13]= 0.0f;
+    v[2]= 0.0f;             v[6]= 0.0f;             v[10]= -(zf+ zn)/ dz;   v[14]= -(2.0f* zf* zn)/ dz;
+    v[3]= 0.0f;             v[7]= 0.0f;             v[11]= -1.0f;           v[15]= 1.0f;
+    return *this;
+  }
+
+  inline mat4 &perspective(float fovy, float aspect, float znear, float zfar) {
+    if((!fovy) || (absf(fovy)== 360.0f) || (!(zfar- znear)) || (!aspect))
+      return *this;
+
+    float dz= zfar- znear;
+    float ctg= 1.0f/ tanf(fovy/ 2.0f* DEG2RAD);
+  
+    v[0]= ctg/ aspect;  v[4]= 0.0f;   v[8]= 0;                    v[12]= 0.0f;
+    v[1]= 0.0f;         v[5]= ctg;    v[9]= 0;                    v[13]= 0.0f;
+    v[3]= 0.0f;         v[6]= 0.0f;   v[10]= -(zfar+ znear)/ dz;  v[14]= -2.0f* znear* zfar/ dz;
+    v[2]= 0.0f;         v[7]= 0.0f;   v[11]= -1.0f;               v[15]= 1.0f;
+    return *this;
+  }
+
+  inline mat4 &lookAt(const vec3 &eye, const vec3 &center, const vec3 &up) {
+    vec3 f(center- eye);  f.normalize();
+    vec3 s(cross(f, up)); s.normalize();
+    vec3 u(cross(s, f));
+  
+    v[0]=  s.x;   v[4]=  s.y;   v[8]=   s.z;   v[12]= -dot(s, eye);
+    v[1]=  u.x;   v[5]=  u.y;   v[9]=   u.z;   v[13]= -dot(u, eye);
+    v[2]= -f.x;   v[6]= -f.y;   v[10]= -f.z;   v[14]=  dot(f, eye);
+    v[3]= 0.0f;   v[7]= 0.0f;   v[11]= 0.0f;   v[15]=  1.0f;
+    return *this;
+  }
 
   // vector operations
 
@@ -772,7 +1192,6 @@ struct ALIGNED(4) mat4 {
 
 
 };
-//typedef mat4 mat4;
 
 
 
@@ -781,9 +1200,18 @@ struct ALIGNED(4) mat4 {
 
 
 
-///============///
-// DECLARATIONS //
-///============///
+
+
+
+
+
+
+
+///================
+// = DECLARATIONS =-------------------------------------------------------------
+///================
+
+
 
 inline bool isNAN(const vec2 &o) { return isNANv(o.v, 2); }
 inline bool isNAN(const vec3 &o) { return isNANv(o.v, 3); }
@@ -791,24 +1219,6 @@ inline bool isNAN(const vec4 &o) { return isNANv(o.v, 4); }
 inline bool isNAN(const mat4 &o) { return isNANv(o.v, 16); }
 
 
-/*
-#ifdef MLIB_USE_INTRINSICS
-float length(const vec2 &o) { float ret; _mm_store_ss(&ret, lengthSSE(o)); return ret; } 
-float length(const vec3 &o) { float ret; _mm_store_ss(&ret, lengthSSE(o)); return ret; } 
-float length(const vec4 &o) { float ret; _mm_store_ss(&ret, lengthSSE(o)); return ret; } 
-float distance(const vec2 &v1, const vec2 &v2) { float ret; _mm_store_ss(&ret, distanceSSE(v1, v2)); return ret; }
-float distance(const vec3 &v1, const vec3 &v2) { float ret; _mm_store_ss(&ret, distanceSSE(v1, v2)); return ret; }
-float distance(const vec4 &v1, const vec4 &v2) { float ret; _mm_store_ss(&ret, distanceSSE(v1, v2)); return ret; }
-const vec2 &normalize(vec2 *inout_v) { *inout_v= normalizeSSE(*inout_v); return *inout_v; }
-const vec3 &normalize(vec3 *inout_v) { *inout_v= normalizeSSE(*inout_v); return *inout_v; }
-const vec4 &normalize(vec4 *inout_v) { *inout_v= normalizeSSE(*inout_v); return *inout_v; }
-float dot(const vec2 &v1, const vec2 &v2) { float ret; _mm_store_ss(&ret, dotSSE(v1, v2)); return ret; }
-float dot(const vec3 &v1, const vec3 &v2) { float ret; _mm_store_ss(&ret, dotSSE(v1, v2)); return ret; }
-float dot(const vec4 &v1, const vec4 &v2) { float ret; _mm_store_ss(&ret, dotSSE(v1, v2)); return ret; }
-const vec3 cross(const vec3 &v1, const vec3 &v2) { return vec3(crossSSE(v1, v2)); }
-const vec3 faceForward(const vec3 *v1, const vec3 &v2, const vec3 &v3) { return dot(v3, v2)< 0.0f? *v1: -(*v1); }  // <<<< NO SSE
-#else
-*/
 inline float length(const vec2 &o) { return sqrtf(o.x* o.x+ o.y* o.y); }
 inline float length(const vec3 &o) { return sqrtf(o.x* o.x+ o.y* o.y+ o.z* o.z); }
 inline float length(const vec4 &o) { return sqrtf(o.x* o.x+ o.y* o.y+ o.z* o.z+ o.w* o.w); }
@@ -823,73 +1233,9 @@ inline float dot(const vec3 &v1, const vec3 &v2) { return v1.x* v2.x+ v1.y* v2.y
 inline float dot(const vec4 &v1, const vec4 &v2) { return v1.x* v2.x+ v1.y* v2.y+ v1.z* v2.z+ v1.w* v2.w; }
 inline const vec3 cross(const vec3 &v1, const vec3 &v2) { return vec3(v1.y* v2.z- v1.z* v2.y, v1.z* v2.x- v1.x* v2.z, v1.x* v2.y- v1.y* v2.x); }
 inline const vec3 faceForward(vec3 *out_v1, const vec3 &v2, const vec3 &v3) { return dot(v3, v2)< 0.0f? *out_v1: -(*out_v1); }  // <<<< NO SSE
-//#endif
 
 
-#ifdef MLIB_USE_INTRINSICS
-inline const __m128 dotSSE(const __m128 &v1, const __m128 &v2) {
-  /* method 1 - shuffles - SSE1
-  __m128 reg1= _mm_mul_ps(v1, v2);                                  // reg1(WZYX)
-  __m128 reg2= _mm_shuffle_ps(reg1, reg1, _MM_SHUFFLE(2, 1, 0, 3)); // reg2(XWZY)
-  __m128 reg3= _mm_add_ps(reg1, reg2);                              // reg3(W+X, Z+W, Y+Z, X+Y)
-  __m128 reg2= _mm_shuffle_ps(reg3, reg3, _MM_SHUFFLE(1, 3, 2, 0)); // reg2(bla, bla, bla, Z+W)
-  return _mm_add_ss(reg3, reg2);                                    //  ret(bla, bla, bla, X+Y+Z+W)
-  */
-  // _MM_SHUFFLE macro:
-  // shuffle(3,2,1,0) on same m128 will do nothing
-  // shuffle(0,1,2,3) on same m128 will invert all the floats
-  // therefore: the first var in _MM_SHUFFLE will be placed last (or first on the hiest byte order)
-  // the first two vars are from m128_1, the last two from m128_2 ??? this is never trully explained (from what positions, what order what way etc)
-  // m1(abcd) m2(efgh)   m3= _mm_shuffle_ps(m1, m2, __MMSHUFFLE(1,0,3,2)) -> m3(ghab)
-  //    0123 ?   0123 ? is this the notation? HOPEFULLY YEA!
 
-  // method 1.1:
-  // v1(ABCD)+ v2(BADC) = add(A+B,     B+A,     C+D,     D+C)
-  // v2 swap(0123)=        v2(D+C,     C+D,     B+A,     A+B)
-  //                      add(A+B+D+C, B+A+C+D, C+D+B+A, D+C+A+B)
-
-  // method 2: - SSE3
-  __m128 reg1= _mm_mul_ps(v1, v2);
-  __m128 reg2= _mm_hadd_ps(reg1, reg1);
-  return _mm_hadd_ps(reg2, reg2);
-}
-
-inline const __m128 lengthSSE(const __m128 &v) {
-  return _mm_sqrt_ss(dotSSE(v, v));
-}
-
-inline const __m128 distanceSSE(const __m128 &v1, const __m128 &v2) {
-  return lengthSSE(_mm_sub_ps(v2, v1));
-}
-
-inline const __m128 crossSSE(const __m128 &v1, const __m128 &v2) {
-                                                                // 0 1 2 3
-                                                                // W Z Y X
-                                                                // v1(WZYX), v2(WZYX)
-  __m128 reg1= _mm_shuffle_ps(v1, v1, _MM_SHUFFLE(2, 1, 3, 0)); // reg1(v1.WXZY)
-  __m128 reg2= _mm_shuffle_ps(v2, v2, _MM_SHUFFLE(1, 3, 2, 0)); // reg2(v2.WYXZ)
-  __m128 reg3= _mm_mul_ps(reg1, reg2);
-         reg1= _mm_shuffle_ps(v1, v1, _MM_SHUFFLE(1, 3, 2, 0)); // reg1(v1.WYXZ)
-         reg2= _mm_shuffle_ps(v2, v2, _MM_SHUFFLE(2, 1, 3, 0)); // reg2(v2.WXZY)
-  __m128 reg4= _mm_mul_ps(reg1, reg2);
-  return _mm_sub_ps(reg3, reg4);
-}
-
-inline const __m128 normalizeSSE(const __m128 &v) {
-  __m128 size= lengthSSE(v);
-  
-  if(!(_mm_cmpeq_ss(size, _mm_setzero_ps()).m128_u8[0])) {
-    size.m128_f32[3]= size.m128_f32[2]= size.m128_f32[1]= size.m128_f32[0];
-    return _mm_div_ps(v, size);
-    
-  }
-  return v;
-}
-
-inline const __m128 norm2SSE(const __m128 &v) {
-  return dotSSE(v, v);
-}
-#endif
 
 
 
@@ -901,120 +1247,107 @@ inline const __m128 norm2SSE(const __m128 &v) {
 
 // constructors
 
-inline vec2::vec2():                   x(0),    y(0)    {}
-inline vec2::vec2(const vec2 &o):      x(o.x),  y(o.y)  {}
+
 inline vec2::vec2(const vec3 &o):      x(o.x),  y(o.y)  {}
 inline vec2::vec2(const vec4 &o):      x(o.x),  y(o.y)  {}
-inline vec2::vec2(float _x, float _y): x(_x),   y(_y)   {}
-inline vec2::vec2(const float *n):     x(n[0]), y(n[1]) {}
-inline vec2::vec2(float n):            x(n),    y(n)    {}
-#ifdef MLIB_USE_INTRINSICS
-inline vec2::vec2(__m128 n) { *this= vec4(n); }
-#endif
 
 // operators
 
-inline vec2 &vec2::operator=(float n)        { x= n;    y= n;    return *this; }
-inline vec2 &vec2::operator=(const vec2 &o)  { x= o.x;  y= o.y;  return *this; }
 inline vec2 &vec2::operator=(const vec3 &o)  { x= o.x;  y= o.y;  return *this; }
 inline vec2 &vec2::operator=(const vec4 &o)  { x= o.x;  y= o.y;  return *this; }
-inline vec2 &vec2::operator=(const float *n) { x= n[0]; y= n[1]; return *this; }
-#ifdef MLIB_USE_INTRINSICS
-inline vec2 &vec2::operator=(const __m128 &n) { return *this= vec4(n); }
-#endif
 
-
-inline vec2 &vec2::operator+=(float n)        { x+= n;    y+= n;    return *this; }
-inline vec2 &vec2::operator+=(const vec2 &o)  { x+= o.x;  y+= o.y;  return *this; }
 inline vec2 &vec2::operator+=(const vec3 &o)  { x+= o.x;  y+= o.y;  return *this; }
 inline vec2 &vec2::operator+=(const vec4 &o)  { x+= o.x;  y+= o.y;  return *this; }
-inline vec2 &vec2::operator+=(const float *n) { x+= n[0]; y+= n[1]; return *this; }
 
-inline vec2 &vec2::operator-=(float n)        { x-= n;    y-= n;    return *this; }
-inline vec2 &vec2::operator-=(const vec2 &o)  { x-= o.x;  y-= o.y;  return *this; }
 inline vec2 &vec2::operator-=(const vec3 &o)  { x-= o.x;  y-= o.y;  return *this; }
 inline vec2 &vec2::operator-=(const vec4 &o)  { x-= o.x;  y-= o.y;  return *this; }
-inline vec2 &vec2::operator-=(const float *n) { x-= n[0]; y-= n[1]; return *this; }
 
-inline vec2 &vec2::operator*=(float n)        { x*= n;    y*= n;    return *this; }
-inline vec2 &vec2::operator*=(const vec2 &o)  { x*= o.x;  y*= o.y;  return *this; }
 inline vec2 &vec2::operator*=(const vec3 &o)  { x*= o.x;  y*= o.y;  return *this; }
 inline vec2 &vec2::operator*=(const vec4 &o)  { x*= o.x;  y*= o.y;  return *this; }
-inline vec2 &vec2::operator*=(const float *n) { x*= n[0]; y*= n[1]; return *this; }
 
-inline vec2 &vec2::operator/=(float n)        { x/= n;    y/= n;    return *this; }
-inline vec2 &vec2::operator/=(const vec2 &o)  { x/= o.x;  y/= o.y;  return *this; }
 inline vec2 &vec2::operator/=(const vec3 &o)  { x/= o.x;  y/= o.y;  return *this; }
 inline vec2 &vec2::operator/=(const vec4 &o)  { x/= o.x;  y/= o.y;  return *this; }
-inline vec2 &vec2::operator/=(const float *n) { x/= n[0]; y/= n[1]; return *this; }
 
-inline const vec2 vec2::operator+(float n)        const { return vec2(*this)+= n; }
-inline const vec2 vec2::operator+(const vec2 &o)  const { return vec2(*this)+= o; }
 inline const vec2 vec2::operator+(const vec3 &o)  const { return vec2(*this)+= o; }
 inline const vec2 vec2::operator+(const vec4 &o)  const { return vec2(*this)+= o; }
-inline const vec2 vec2::operator+(const float *n) const { return vec2(*this)+= n; }
 
-inline const vec2 vec2::operator-(float n)        const { return vec2(*this)-= n; }
-inline const vec2 vec2::operator-(const vec2 &o)  const { return vec2(*this)-= o; }
 inline const vec2 vec2::operator-(const vec3 &o)  const { return vec2(*this)-= o; }
 inline const vec2 vec2::operator-(const vec4 &o)  const { return vec2(*this)-= o; }
-inline const vec2 vec2::operator-(const float *n) const { return vec2(*this)-= n; }
 
-inline const vec2 vec2::operator*(float n)        const { return vec2(*this)*= n; }
-inline const vec2 vec2::operator*(const vec2 &o)  const { return vec2(*this)*= o; }
 inline const vec2 vec2::operator*(const vec3 &o)  const { return vec2(*this)*= o; }
 inline const vec2 vec2::operator*(const vec4 &o)  const { return vec2(*this)*= o; }
-inline const vec2 vec2::operator*(const float *n) const { return vec2(*this)*= n; }
 
-inline const vec2 vec2::operator/(float n)        const { return vec2(*this)/= n; }
-inline const vec2 vec2::operator/(const vec2 &o)  const { return vec2(*this)/= o; }
 inline const vec2 vec2::operator/(const vec3 &o)  const { return vec2(*this)/= o; }
 inline const vec2 vec2::operator/(const vec4 &o)  const { return vec2(*this)/= o; }
-inline const vec2 vec2::operator/(const float *n) const { return vec2(*this)/= n; }
 
-inline const vec2 operator+(float scalar, const vec2 &v) { return vec2(scalar+ v.x, scalar+ v.y); }
-inline const vec2 operator-(float scalar, const vec2 &v) { return vec2(scalar- v.x, scalar- v.y); }
-inline const vec2 operator*(float scalar, const vec2 &v) { return vec2(scalar* v.x, scalar* v.y); }
-inline const vec2 operator/(float scalar, const vec2 &v) { return vec2(scalar/ v.x, scalar/ v.y); }
-
-inline bool vec2::operator==(float n)        const { return (n== length()); }
-inline bool vec2::operator==(const vec2 &o)  const { return ((x== o.x)  && (y== o.y)); }
 inline bool vec2::operator==(const vec3 &o)  const { return ((x== o.x)  && (y== o.y)); }
 inline bool vec2::operator==(const vec4 &o)  const { return ((x== o.x)  && (y== o.y)); }
-inline bool vec2::operator==(const float *n) const { return ((x== n[0]) && (y== n[1])); }
 
-inline bool vec2::operator!=(float n)        const { return (n!= length()); }
-inline bool vec2::operator!=(const vec2 &o)  const { return ((x!= o.x)  || (y!= o.y)); }
 inline bool vec2::operator!=(const vec3 &o)  const { return ((x!= o.x)  || (y!= o.y)); }
 inline bool vec2::operator!=(const vec4 &o)  const { return ((x!= o.x)  || (y!= o.y)); }
-inline bool vec2::operator!=(const float *n) const { return ((x!= n[0]) || (y!= n[1])); }
-
-inline bool vec2::operator!() const { return ((x || y)? false: true); }
-
-inline const vec2 vec2::operator-() const { return vec2(-x, -y); }
-
-inline float &vec2::operator[](int i)            { return v[i]; }
-inline const float vec2::operator[](int i) const { return v[i]; }
-inline vec2::operator float* ()             { return v; }
-inline vec2::operator const float *() const { return v; }
-#ifdef MLIB_USE_INTRINSICS
-inline vec2::operator const __m128() const { return _mm_set_ps(0.0f, 0.0f, y, x); }
-#endif
 
 // dot product
 
-inline float vec2::dot(const vec2 &o) const { return this->dot(o.x,  o.y); }
 inline float vec2::dot(const vec3 &o) const { return this->dot(o.x,  o.y); }
 inline float vec2::dot(const vec4 &o) const { return this->dot(o.x,  o.y); }
-inline float vec2::dot(const float *n)     const { return this->dot(n[0], n[1]); }
-inline float vec2::dot(float _x, float _y) const { return x* _x+    y* _y; }
 
-// rest of funcs
 
-inline vec2 &vec2::normalize() { float size= length(); if(size) { this->operator/=(size); } return *this; } // return vec* inversesqrt(dot(vec, vec)); - another option
 
-inline float vec2::length() const { return sqrtf(x* x+ y* y); }
-inline float vec2::norm2() { return x* x + y* y; }
+
+///=========================================///
+// vec2i ================------------------- //
+///=========================================///
+
+// constructors
+
+
+inline vec2i::vec2i(const vec3i &o):      x(o.x),  y(o.y)  {}
+//inline vec2i::vec2i(const vec4i &o):      x(o.x),  y(o.y)  {}
+
+// operators
+
+inline vec2i &vec2i::operator=(const vec3i &o)  { x= o.x;  y= o.y;  return *this; }
+//inline vec2i &vec2i::operator=(const vec4i &o)  { x= o.x;  y= o.y;  return *this; }
+
+inline vec2i &vec2i::operator+=(const vec3i &o)  { x+= o.x;  y+= o.y;  return *this; }
+//inline vec2i &vec2i::operator+=(const vec4i &o)  { x+= o.x;  y+= o.y;  return *this; }
+
+inline vec2i &vec2i::operator-=(const vec3i &o)  { x-= o.x;  y-= o.y;  return *this; }
+//inline vec2i &vec2i::operator-=(const vec4i &o)  { x-= o.x;  y-= o.y;  return *this; }
+
+inline vec2i &vec2i::operator*=(const vec3i &o)  { x*= o.x;  y*= o.y;  return *this; }
+//inline vec2i &vec2i::operator*=(const vec4i &o)  { x*= o.x;  y*= o.y;  return *this; }
+
+inline vec2i &vec2i::operator/=(const vec3i &o)  { x/= o.x;  y/= o.y;  return *this; }
+//inline vec2i &vec2i::operator/=(const vec4i &o)  { x/= o.x;  y/= o.y;  return *this; }
+
+inline const vec2i vec2i::operator+(const vec3i &o)  const { return vec2i(*this)+= o; }
+//inline const vec2i vec2i::operator+(const vec4i &o)  const { return vec2i(*this)+= o; }
+
+inline const vec2i vec2i::operator-(const vec3i &o)  const { return vec2i(*this)-= o; }
+//inline const vec2i vec2i::operator-(const vec4i &o)  const { return vec2i(*this)-= o; }
+
+inline const vec2i vec2i::operator*(const vec3i &o)  const { return vec2i(*this)*= o; }
+//inline const vec2i vec2i::operator*(const vec4i &o)  const { return vec2i(*this)*= o; }
+
+inline const vec2i vec2i::operator/(const vec3i &o)  const { return vec2i(*this)/= o; }
+//inline const vec2i vec2i::operator/(const vec4i &o)  const { return vec2i(*this)/= o; }
+
+inline bool vec2i::operator==(const vec3i &o)  const { return ((x== o.x)  && (y== o.y)); }
+//inline bool vec2i::operator==(const vec4i &o)  const { return ((x== o.x)  && (y== o.y)); }
+
+inline bool vec2i::operator!=(const vec3i &o)  const { return ((x!= o.x)  || (y!= o.y)); }
+//inline bool vec2i::operator!=(const vec4i &o)  const { return ((x!= o.x)  || (y!= o.y)); }
+
+// dot product
+
+inline int32 vec2i::dot(const vec3i &o) const { return this->dot(o.x,  o.y); }
+//inline int32 vec2i::dot(const vec4i &o) const { return this->dot(o.x,  o.y); }
+
+
+
+
+
 
 
 
@@ -1024,135 +1357,40 @@ inline float vec2::norm2() { return x* x + y* y; }
 ///=========================================///
 
 // constructors
-inline vec3::vec3():                             x(0.0f), y(0.0f), z(0.0f) {}
-inline vec3::vec3(const vec2 &o, float _z):      x(o.x),  y(o.y),  z(_z)   {}
-inline vec3::vec3(const vec3 &o):                x(o.x),  y(o.y),  z(o.z)  {}
+
 inline vec3::vec3(const vec4 &o):                x(o.x),  y(o.y),  z(o.z)  {}
-inline vec3::vec3(float _x, float _y, float _z): x(_x),   y(_y),   z(_z)   {}
-inline vec3::vec3(const float *n):               x(n[0]), y(n[1]), z(n[2]) {}
-inline vec3::vec3(float n):                      x(n),    y(n),    z(n)    {}
-#ifdef MLIB_USE_INTRINSICS
-inline vec3::vec3(const __m128 &n) { *this= vec4(n); }
-#endif
 
 // operators
 
-inline vec3 &vec3::operator=(float n)        { x= n;    y= n;    z= n;    return *this; }
-inline vec3 &vec3::operator=(const vec2 &o)  { x= o.x;  y= o.y;           return *this; }
-inline vec3 &vec3::operator=(const vec3 &o)  { x= o.x;  y= o.y;  z= o.z;  return *this; }
 inline vec3 &vec3::operator=(const vec4 &o)  { x= o.x;  y= o.y;  z= o.z;  return *this; }
-inline vec3 &vec3::operator=(const float *n) { x= n[0]; y= n[1]; z= n[2]; return *this; }
-#ifdef MLIB_USE_INTRINSICS
-inline vec3 &vec3::operator=(const __m128 &n) { return *this= vec4(n); }
-#endif
 
-inline vec3 &vec3::operator+=(float n)        { x+= n;    y+= n;    z+= n;    return *this; }
-inline vec3 &vec3::operator+=(const vec2 &o)  { x+= o.x;  y+= o.y;            return *this; }
-inline vec3 &vec3::operator+=(const vec3 &o)  { x+= o.x;  y+= o.y;  z+= o.z;  return *this; }
 inline vec3 &vec3::operator+=(const vec4 &o)  { x+= o.x;  y+= o.y;  z+= o.z;  return *this; }
-inline vec3 &vec3::operator+=(const float *n) { x+= n[0]; y+= n[1]; z+= n[2]; return *this; }
 
-inline vec3 &vec3::operator-=(float n)        { x-= n;    y-= n;    z-= n;    return *this; }
-inline vec3 &vec3::operator-=(const vec2 &o)  { x-= o.x;  y-= o.y;            return *this; }
-inline vec3 &vec3::operator-=(const vec3 &o)  { x-= o.x;  y-= o.y;  z-= o.z;  return *this; }
 inline vec3 &vec3::operator-=(const vec4 &o)  { x-= o.x;  y-= o.y;  z-= o.z;  return *this; }
-inline vec3 &vec3::operator-=(const float *n) { x-= n[0]; y-= n[1]; z-= n[2]; return *this; }
 
-inline vec3 &vec3::operator*=(float n)        { x*= n;    y*= n;    z*= n;    return *this; }
-inline vec3 &vec3::operator*=(const vec2 &o)  { x*= o.x;  y*= o.y;            return *this; }
-inline vec3 &vec3::operator*=(const vec3 &o)  { x*= o.x;  y*= o.y;  z*= o.z;  return *this; }
 inline vec3 &vec3::operator*=(const vec4 &o)  { x*= o.x;  y*= o.y;  z*= o.z;  return *this; }
-inline vec3 &vec3::operator*=(const float *n) { x*= n[0]; y*= n[1]; z*= n[2]; return *this; }
 
-inline vec3 &vec3::operator/=(float n)        { x/= n;    y/= n;    z/= n;    return *this; }
-inline vec3 &vec3::operator/=(const vec2 &o)  { x/= o.x;  y/= o.y;            return *this; }
-inline vec3 &vec3::operator/=(const vec3 &o)  { x/= o.x;  y/= o.y;  z/= o.z;  return *this; }
 inline vec3 &vec3::operator/=(const vec4 &o)  { x/= o.x;  y/= o.y;  z/= o.z;  return *this; }
-inline vec3 &vec3::operator/=(const float *n) { x/= n[0]; y/= n[1]; z/= n[2]; return *this; }
 
-inline const vec3 vec3::operator+(float n)        const { return vec3(*this)+= n; }
-inline const vec3 vec3::operator+(const vec2 &o)  const { return vec3(*this)+= o; }
-inline const vec3 vec3::operator+(const vec3 &o)  const { return vec3(*this)+= o; }
 inline const vec3 vec3::operator+(const vec4 &o)  const { return vec3(*this)+= o; }
-inline const vec3 vec3::operator+(const float *n) const { return vec3(*this)+= n; }
 
-inline const vec3 vec3::operator-(float n)        const { return vec3(*this)-= n; }
-inline const vec3 vec3::operator-(const vec2 &o)  const { return vec3(*this)-= o; }
-inline const vec3 vec3::operator-(const vec3 &o)  const { return vec3(*this)-= o; }
 inline const vec3 vec3::operator-(const vec4 &o)  const { return vec3(*this)-= o; }
-inline const vec3 vec3::operator-(const float *n) const { return vec3(*this)-= n; }
 
-inline const vec3 vec3::operator*(float n)        const { return vec3(*this)*= n; }
-inline const vec3 vec3::operator*(const vec2 &o)  const { return vec3(*this)*= o; }
-inline const vec3 vec3::operator*(const vec3 &o)  const { return vec3(*this)*= o; }
 inline const vec3 vec3::operator*(const vec4 &o)  const { return vec3(*this)*= o; }
-inline const vec3 vec3::operator*(const float *n) const { return vec3(*this)*= n; }
 
-inline const vec3 vec3::operator/(float n)        const { return vec3(*this)/= n; }
-inline const vec3 vec3::operator/(const vec2 &o)  const { return vec3(*this)/= o; }
-inline const vec3 vec3::operator/(const vec3 &o)  const { return vec3(*this)/= o; }
 inline const vec3 vec3::operator/(const vec4 &o)  const { return vec3(*this)/= o; }
-inline const vec3 vec3::operator/(const float *n) const { return vec3(*this)/= n; }
 
-inline const vec3 operator+(float scalar, const vec3 &v) { return vec3(scalar+ v.x, scalar+ v.y, scalar+ v.z); }
-inline const vec3 operator-(float scalar, const vec3 &v) { return vec3(scalar- v.x, scalar- v.y, scalar- v.z); }
-inline const vec3 operator*(float scalar, const vec3 &v) { return vec3(scalar* v.x, scalar* v.y, scalar* v.z); }
-inline const vec3 operator/(float scalar, const vec3 &v) { return vec3(scalar/ v.x, scalar/ v.y, scalar/ v.z); }
-
-inline bool vec3::operator==(float n)        const { return (n== length()); }
-inline bool vec3::operator==(const vec2 &o)  const { return ((x== o.x)  && (y== o.y)); }
-inline bool vec3::operator==(const vec3 &o)  const { return ((x== o.x)  && (y== o.y)  && (z== o.z)); }
 inline bool vec3::operator==(const vec4 &o)  const { return ((x== o.x)  && (y== o.y)  && (z== o.z)); }
-inline bool vec3::operator==(const float *n) const { return ((x== n[0]) && (y== n[1]) && (z== n[2])); }
 
-inline bool vec3::operator!=(float n)        const { return (n!= length()); }
-inline bool vec3::operator!=(const vec2 &o)  const { return ((x!= o.x)  || (y!= o.y)); }
-inline bool vec3::operator!=(const vec3 &o)  const { return ((x!= o.x)  || (y!= o.y)  || (z!= o.z)); }
 inline bool vec3::operator!=(const vec4 &o)  const { return ((x!= o.x)  || (y!= o.y)  || (z!= o.z)); }
-inline bool vec3::operator!=(const float *n) const { return ((x!= n[0]) || (y!= n[1]) || (z!= n[2])); }
-
-inline bool vec3::operator!() const { return ((x || y || z)? false: true); }
-
-inline const vec3 vec3::operator-() const { return vec3(-x, -y, -z); }
-
-inline float &vec3::operator[](int i)            { return v[i]; }
-inline const float vec3::operator[](int i) const { return v[i]; }
-inline vec3::operator float* ()             { return v; }
-inline vec3::operator const float *() const { return v; }
-#ifdef MLIB_USE_INTRINSICS
-vec3::operator const __m128() const { return _mm_set_ps(0.0f, z, y, x); }
-#endif
 
 // dot product
 
-inline float vec3::dot(const vec2 &o, float _z)      const { return x* o.x+   y* o.y+  z* _z; }
-inline float vec3::dot(const vec3 &o)                const { return x* o.x+   y* o.y+  z* o.z; }
-inline float vec3::dot(const vec4 &o)                const { return x* o.x+   y* o.y+  z* o.z; }
-inline float vec3::dot(float _x, float _y, float _z) const { return x* _x+    y* _y+   z* _z; }
-inline float vec3::dot(const float *n)               const { return x* n[0] + y* n[1]+ z* n[2]; }
+inline float vec3::dot(const vec4 &o)           const { return this->dot(o.x, o.y, o.z); }
 
 // cross product
 
-//vec3 vec3::cross(const vec3 &o)                       const { return vec3(crossSSE(*this, o)); }
-inline vec3 vec3::cross(const vec2 &o, float _z)      const { return vec3(y* _z-  z* o.y, z* o.x- x* _z,  x* o.y- y* o.x); }
-inline vec3 vec3::cross(const vec3 &o)                const { return vec3(y* o.z- z* o.y, z* o.x- x* o.z, x* o.y- y* o.x); }
-inline vec3 vec3::cross(const vec4 &o)                const { return vec3(y* o.z- z* o.y, z* o.x- x* o.z, x* o.y- y* o.x); }
-inline vec3 vec3::cross(float _x, float _y, float _z) const { return vec3(y* _z-  z* _y,  z* _x-  x* _z,  x* _y-  y* _x); }
-
-// funcs - research: https://github.com/g-truc/glm/blob/master/glm/detail/func_geometric.inl
-
-inline vec3 &vec3::normalize() { float size= length(); if(size) { this->operator/=(size); } return *this; } // return vec* inversesqrt(dot(vec, vec)); - another option
-
-inline float vec3::length() const { return sqrtf(x* x+ y* y+ z* z); };
-inline float vec3::norm2() const { return x* x + y* y + z* z; }
-
-inline void vec3::addConstant(float n) {
-  float xx= x* x, yy= y* y, zz= z* z, size= length()+ n;
-  if(x!= 0.0f) x= (fabsf(x)/ x)* size/ sqrtf(yy/ xx+ zz/ xx+ 1.0f);
-  if(y!= 0.0f) y= (fabsf(y)/ y)* size/ sqrtf(xx/ yy+ zz/ yy+ 1.0f);
-  if(z!= 0.0f) z= (fabsf(z)/ z)* size/ sqrtf(xx/ zz+ yy/ zz+ 1.0f);
-};
-  
+inline vec3 vec3::cross(const vec4 &o)          const { return vec3((y* o.z)- (z* o.y), (z* o.x)- (x* o.z), (x* o.y)- (y* o.x)); }
 
 
 
@@ -1163,124 +1401,42 @@ inline void vec3::addConstant(float n) {
 ///==========================================///
 
 // constructors
-inline vec3i::vec3i():                             x(0), y(0), z(0) {}
-//inline vec3i::vec3i(const vec2i &o, int32 _z):     x(o.x),  y(o.y),  z(_z)   {}
-inline vec3i::vec3i(const vec3i &o):               x(o.x),  y(o.y),  z(o.z)  {}
 //inline vec3i::vec3i(const vec4i &o):               x(o.x),  y(o.y),  z(o.z)  {}
-inline vec3i::vec3i(int32 _x, int32 _y, int32 _z): x(_x),   y(_y),   z(_z)   {}
-inline vec3i::vec3i(const int32 *n):               x(n[0]), y(n[1]), z(n[2]) {}
-inline vec3i::vec3i(int32 n):                      x(n),    y(n),    z(n)    {}
 
 // operators
 
-inline vec3i &vec3i::operator=(int32 n)        { x= n;    y= n;    z= n;    return *this; }
-//inline vec3i &vec3i::operator=(const vec2i &o) { x= o.x;  y= o.y;           return *this; }
-inline vec3i &vec3i::operator=(const vec3i &o) { x= o.x;  y= o.y;  z= o.z;  return *this; }
 //inline vec3i &vec3i::operator=(const vec4i &o) { x= o.x;  y= o.y;  z= o.z;  return *this; }
-inline vec3i &vec3i::operator=(const int32 *n) { x= n[0]; y= n[1]; z= n[2]; return *this; }
 
-inline vec3i &vec3i::operator+=(int32 n)        { x+= n;    y+= n;    z+= n;    return *this; }
-//inline vec3i &vec3i::operator+=(const vec2i &o) { x+= o.x;  y+= o.y;            return *this; }
-inline vec3i &vec3i::operator+=(const vec3i &o) { x+= o.x;  y+= o.y;  z+= o.z;  return *this; }
 //inline vec3i &vec3i::operator+=(const vec4i &o) { x+= o.x;  y+= o.y;  z+= o.z;  return *this; }
-inline vec3i &vec3i::operator+=(const int32 *n) { x+= n[0]; y+= n[1]; z+= n[2]; return *this; }
 
-inline vec3i &vec3i::operator-=(int32 n)        { x-= n;    y-= n;    z-= n;    return *this; }
-//inline vec3i &vec3i::operator-=(const vec2i &o)   { x-= o.x;  y-= o.y;            return *this; }
-inline vec3i &vec3i::operator-=(const vec3i &o)   { x-= o.x;  y-= o.y;  z-= o.z;  return *this; }
 //inline vec3i &vec3i::operator-=(const vec4i &o)   { x-= o.x;  y-= o.y;  z-= o.z;  return *this; }
-inline vec3i &vec3i::operator-=(const int32 *n) { x-= n[0]; y-= n[1]; z-= n[2]; return *this; }
 
-inline vec3i &vec3i::operator*=(int32 n)        { x*= n;    y*= n;    z*= n;    return *this; }
-//inline vec3i &vec3i::operator*=(const vec2i &o)   { x*= o.x;  y*= o.y;            return *this; }
-inline vec3i &vec3i::operator*=(const vec3i &o)   { x*= o.x;  y*= o.y;  z*= o.z;  return *this; }
 //inline vec3i &vec3i::operator*=(const vec4i &o)   { x*= o.x;  y*= o.y;  z*= o.z;  return *this; }
-inline vec3i &vec3i::operator*=(const int32 *n) { x*= n[0]; y*= n[1]; z*= n[2]; return *this; }
 
-inline vec3i &vec3i::operator/=(int32 n)        { x/= n;    y/= n;    z/= n;    return *this; }
-//inline vec3i &vec3i::operator/=(const vec2i &o)   { x/= o.x;  y/= o.y;            return *this; }
-inline vec3i &vec3i::operator/=(const vec3i &o)   { x/= o.x;  y/= o.y;  z/= o.z;  return *this; }
 //inline vec3i &vec3i::operator/=(const vec4i &o)   { x/= o.x;  y/= o.y;  z/= o.z;  return *this; }
-inline vec3i &vec3i::operator/=(const int32 *n) { x/= n[0]; y/= n[1]; z/= n[2]; return *this; }
 
-inline const vec3i vec3i::operator+(int32 n)        const { return vec3i(*this)+= n; }
-//inline const vec3i vec3i::operator+(const vec2i &o)   const { return vec3i(*this)+= o; }
-inline const vec3i vec3i::operator+(const vec3i &o)   const { return vec3i(*this)+= o; }
 //inline const vec3i vec3i::operator+(const vec4i &o)   const { return vec3i(*this)+= o; }
-inline const vec3i vec3i::operator+(const int32 *n) const { return vec3i(*this)+= n; }
 
-inline const vec3i vec3i::operator-(int32 n)        const { return vec3i(*this)-= n; }
-//inline const vec3i vec3i::operator-(const vec2i &o)   const { return vec3i(*this)-= o; }
-inline const vec3i vec3i::operator-(const vec3i &o)   const { return vec3i(*this)-= o; }
 //inline const vec3i vec3i::operator-(const vec4i &o)   const { return vec3i(*this)-= o; }
-inline const vec3i vec3i::operator-(const int32 *n) const { return vec3i(*this)-= n; }
 
-inline const vec3i vec3i::operator*(int32 n)        const { return vec3i(*this)*= n; }
-//inline const vec3i vec3i::operator*(const vec2i &o)   const { return vec3i(*this)*= o; }
-inline const vec3i vec3i::operator*(const vec3i &o)   const { return vec3i(*this)*= o; }
 //inline const vec3i vec3i::operator*(const vec4i &o)   const { return vec3i(*this)*= o; }
-inline const vec3i vec3i::operator*(const int32 *n) const { return vec3i(*this)*= n; }
 
-inline const vec3i vec3i::operator/(int32 n)        const { return vec3i(*this)/= n; }
-//inline const vec3i vec3i::operator/(const vec2i &o)   const { return vec3i(*this)/= o; }
-inline const vec3i vec3i::operator/(const vec3i &o)   const { return vec3i(*this)/= o; }
 //inline const vec3i vec3i::operator/(const vec4i &o)   const { return vec3i(*this)/= o; }
-inline const vec3i vec3i::operator/(const int32 *n) const { return vec3i(*this)/= n; }
 
-inline const vec3i operator+(int32 scalar, const vec3i &v) { return vec3i(scalar+ v.x, scalar+ v.y, scalar+ v.z); }
-inline const vec3i operator-(int32 scalar, const vec3i &v) { return vec3i(scalar- v.x, scalar- v.y, scalar- v.z); }
-inline const vec3i operator*(int32 scalar, const vec3i &v) { return vec3i(scalar* v.x, scalar* v.y, scalar* v.z); }
-inline const vec3i operator/(int32 scalar, const vec3i &v) { return vec3i(scalar/ v.x, scalar/ v.y, scalar/ v.z); }
 
-inline bool vec3i::operator==(int32 n)        const { return (n== length()); }
-//inline bool vec3i::operator==(const vec2i &o)   const { return ((x== o.x)  && (y== o.y)); }
-inline bool vec3i::operator==(const vec3i &o)   const { return ((x== o.x)  && (y== o.y)  && (z== o.z)); }
 //inline bool vec3i::operator==(const vec4i &o)   const { return ((x== o.x)  && (y== o.y)  && (z== o.z)); }
-inline bool vec3i::operator==(const int32 *n) const { return ((x== n[0]) && (y== n[1]) && (z== n[2])); }
 
-inline bool vec3i::operator!=(int32 n)        const { return (n!= length()); }
-//inline bool vec3i::operator!=(const vec2i &o)   const { return ((x!= o.x)  || (y!= o.y)); }
-inline bool vec3i::operator!=(const vec3i &o)   const { return ((x!= o.x)  || (y!= o.y)  || (z!= o.z)); }
 //inline bool vec3i::operator!=(const vec4i &o)   const { return ((x!= o.x)  || (y!= o.y)  || (z!= o.z)); }
-inline bool vec3i::operator!=(const int32 *n) const { return ((x!= n[0]) || (y!= n[1]) || (z!= n[2])); }
-
-inline bool vec3i::operator!() const { return ((x || y || z)? false: true); }
-
-inline const vec3i vec3i::operator-() const { return vec3i(-x, -y, -z); }
-
-inline int32 &vec3i::operator[](int i)            { return v[i]; }
-inline const int32 vec3i::operator[](int i) const { return v[i]; }
-inline vec3i::operator int32* ()             { return v; }
-inline vec3i::operator const int32 *() const { return v; }
 
 // dot product
 
-//inline int32 vec3i::dot(const vec2i &o, int32 _z)         const { return x* o.x+   y* o.y+  z* _z; }
-inline int32 vec3i::dot(const vec3i &o)                     const { return x* o.x+   y* o.y+  z* o.z; }
 //inline int32 vec3i::dot(const vec4i &o)                     const { return x* o.x+   y* o.y+  z* o.z; }
-inline int32 vec3i::dot(int32 _x, int32 _y, int32 _z) const { return x* _x+    y* _y+   z* _z; }
-inline int32 vec3i::dot(const int32 *n)                   const { return x* n[0] + y* n[1]+ z* n[2]; }
 
 // cross product
 
-//vec3i vec3i::cross(const vec3i &o)                            const { return vec3i(crossSSE(*this, o)); }
-//inline vec3i vec3i::cross(const vec2i &o, int32 _z)         const { return vec3i(y* _z-  z* o.y, z* o.x- x* _z,  x* o.y- y* o.x); }
-inline vec3i vec3i::cross(const vec3i &o)                     const { return vec3i(y* o.z- z* o.y, z* o.x- x* o.z, x* o.y- y* o.x); }
 //inline vec3i vec3i::cross(const vec4i &o)                     const { return vec3i(y* o.z- z* o.y, z* o.x- x* o.z, x* o.y- y* o.x); }
-inline vec3i vec3i::cross(int32 _x, int32 _y, int32 _z) const { return vec3i(y* _z-  z* _y,  z* _x-  x* _z,  x* _y-  y* _x); }
 
 
-inline vec3i &vec3i::normalize() { int32 size= length(); if(size) { this->operator/=(size); } return *this; } // return vec* inversesqrt(dot(vec, vec)); - another option
-
-inline int32 vec3i::length() const { return roundf(sqrtf((float)(x* x+ y* y+ z* z))); };
-inline int32 vec3i::norm2() const { return x* x + y* y + z* z; }
-
-inline void vec3i::addConstant(int32 n) {
-  int32 xx= x* x, yy= y* y, zz= z* z, size= length()+ n;
-  if(x!= 0) x= (abs32(x)/ x)* size/ roundf(sqrtf(yy/ xx+ zz/ xx+ 1.0f));
-  if(y!= 0) y= (abs32(y)/ y)* size/ roundf(sqrtf(xx/ yy+ zz/ yy+ 1.0f));
-  if(z!= 0) z= (abs32(z)/ z)* size/ roundf(sqrtf(xx/ zz+ yy/ zz+ 1.0f));
-};
 
 
 
@@ -1290,168 +1446,6 @@ inline void vec3i::addConstant(int32 n) {
 ///=========================================///
 // vec4 ================-------------------- //
 ///=========================================///
-
-
-// constructors
-
-inline vec4::vec4():                                        x(0),    y(0),    z(0),    w(0)    {}
-inline vec4::vec4(float _x, float _y, float _z, float _w):  x(_x),   y(_y),   z(_z),   w(_w)   {}
-inline vec4::vec4(float n):                                 x(n),    y(n),    z(n),    w(n)    {}
-inline vec4::vec4(const vec2 &o, float _z, float _w):       x(o.x),  y(o.y),  z(_z),   w(_w)   {}
-inline vec4::vec4(const vec3 &o, float _w):                 x(o.x),  y(o.y),  z(o.z),  w(_w)   {}
-inline vec4::vec4(const vec4 &o):                           x(o.x),  y(o.y),  z(o.z),  w(o.w)  {}
-inline vec4::vec4(const float *n):                          x(n[0]), y(n[1]), z(n[2]), w(n[3]) {}
-#ifdef MLIB_USE_INTRINSICS // this might be useless - MUST TEST THIS - SPEEDS
-inline vec4::vec4(__m128 n)                                { _mm_store_ps(v, n); }
-#endif
-
-// operators
-
-#ifdef MLIB_USE_INTRINSICS
-inline vec4 &vec4::operator=(__m128 n)      { _mm_store_ps(v, n); return *this; }
-#endif
-inline vec4 &vec4::operator=(float n)        { x= n;    y= n;    z= n;    w= n;    return *this; }
-inline vec4 &vec4::operator=(const vec2 &o)  { x= o.x;  y= o.y;                    return *this; }
-inline vec4 &vec4::operator=(const vec3 &o)  { x= o.x;  y= o.y;  z= o.z;           return *this; }
-inline vec4 &vec4::operator=(const vec4 &o)  { x= o.x;  y= o.y;  z= o.z;  w= o.w;  return *this; }
-inline vec4 &vec4::operator=(const float *n) { x= n[0]; y= n[1]; z= n[2]; w= n[3]; return *this; }
-
-
-/*#ifdef MLIB_USE_INTRINSICS -slower -.-
-inline vec4 &vec4::operator+=(float n)        { return *this= _mm_add_ps(*this, _mm_set_ps1(n)); }
-inline vec4 &vec4::operator+=(const vec2 &o)  { return *this= _mm_add_ps(*this, o); }
-inline vec4 &vec4::operator+=(const vec3 &o)  { return *this= _mm_add_ps(*this, o); }
-inline vec4 &vec4::operator+=(const vec4 &o)  { return *this= _mm_add_ps(*this, o); } // this is faster, it should be the same: { _mm_store_ps(v, _mm_add_ps(_mm_load_ps(v), _mm_load_ps(o.v))); return *this; }
-inline vec4 &vec4::operator+=(const float *n) { return *this= _mm_add_ps(*this, _mm_load_ps(n)); }
-
-inline vec4 &vec4::operator-=(float n)        { return *this= _mm_sub_ps(*this, _mm_set_ps1(n)); }
-inline vec4 &vec4::operator-=(const vec2 &o)  { return *this= _mm_sub_ps(*this, o); }
-inline vec4 &vec4::operator-=(const vec3 &o)  { return *this= _mm_sub_ps(*this, o); }
-inline vec4 &vec4::operator-=(const vec4 &o)  { return *this= _mm_sub_ps(*this, o); }
-inline vec4 &vec4::operator-=(const float *n) { return *this= _mm_sub_ps(*this, _mm_load_ps(n)); }
-
-inline vec4 &vec4::operator*=(float n)        { return *this= _mm_mul_ps(*this, _mm_set_ps1(n)); }
-inline vec4 &vec4::operator*=(const vec2 &o)  { return *this= _mm_mul_ps(*this, o); }
-inline vec4 &vec4::operator*=(const vec3 &o)  { return *this= _mm_mul_ps(*this, o); }
-inline vec4 &vec4::operator*=(const vec4 &o)  { return *this= _mm_mul_ps(*this, o); }
-inline vec4 &vec4::operator*=(const float *n) { return *this= _mm_mul_ps(*this, _mm_load_ps(n)); }
-
-inline vec4 &vec4::operator/=(float n)        { return *this= _mm_div_ps(*this, _mm_set_ps1(n)); }
-inline vec4 &vec4::operator/=(const vec2 &o)  { return *this= _mm_div_ps(*this, o); }
-inline vec4 &vec4::operator/=(const vec3 &o)  { return *this= _mm_div_ps(*this, o); }
-inline vec4 &vec4::operator/=(const vec4 &o)  { return *this= _mm_div_ps(*this, o); }
-inline vec4 &vec4::operator/=(const float *n) { return *this= _mm_div_ps(*this, _mm_load_ps(n)); }
-#else */
-inline vec4 &vec4::operator+=(float n)        { x+= n;    y+= n;    z+= n;    w+= n;    return *this; }
-inline vec4 &vec4::operator+=(const vec2 &o)  { x+= o.x;  y+= o.y;                      return *this; }
-inline vec4 &vec4::operator+=(const vec3 &o)  { x+= o.x;  y+= o.y;  z+= o.z;            return *this; }
-inline vec4 &vec4::operator+=(const vec4 &o)  { x+= o.x;  y+= o.y;  z+= o.z;  w+= o.w;  return *this; }
-inline vec4 &vec4::operator+=(const float *n) { x+= n[0]; y+= n[1]; z+= n[2]; w+= n[3]; return *this; }  
-
-inline vec4 &vec4::operator-=(float n)        { x-= n;    y-= n;    z-= n;    w-= n;    return *this; }
-inline vec4 &vec4::operator-=(const vec2 &o)  { x-= o.x;  y-= o.y;                      return *this; }
-inline vec4 &vec4::operator-=(const vec3 &o)  { x-= o.x;  y-= o.y;  z-= o.z;            return *this; }
-inline vec4 &vec4::operator-=(const vec4 &o)  { x-= o.x;  y-= o.y;  z-= o.z;  w-= o.w;  return *this; }
-inline vec4 &vec4::operator-=(const float *n) { x-= n[0]; y-= n[1]; z-= n[2]; w-= n[3]; return *this; }
-
-inline vec4 &vec4::operator*=(float n)        { x*= n;    y*= n;    z*= n;    w*= n;    return *this; }
-inline vec4 &vec4::operator*=(const vec2 &o)  { x*= o.x;  y*= o.y;                      return *this; }
-inline vec4 &vec4::operator*=(const vec3 &o)  { x*= o.x;  y*= o.y;  z*= o.z;            return *this; }
-inline vec4 &vec4::operator*=(const vec4 &o)  { x*= o.x;  y*= o.y;  z*= o.z;  w*= o.w;  return *this; }
-inline vec4 &vec4::operator*=(const float *n) { x*= n[0]; y*= n[1]; z*= n[2]; w*= n[3]; return *this; }
-
-inline vec4 &vec4::operator/=(float n)        { x/= n;    y/= n;    z/= n;    w/= n;    return *this; }
-inline vec4 &vec4::operator/=(const vec2 &o)  { x/= o.x;  y/= o.y;                      return *this; }
-inline vec4 &vec4::operator/=(const vec3 &o)  { x/= o.x;  y/= o.y;  z/= o.z;            return *this; }
-inline vec4 &vec4::operator/=(const vec4 &o)  { x/= o.x;  y/= o.y;  z/= o.z;  w/= o.w;  return *this; }
-inline vec4 &vec4::operator/=(const float *n) { x/= n[0]; y/= n[1]; z/= n[2]; w/= n[3]; return *this; }
-//#endif
-
-inline const vec4 vec4::operator+(float n)        const { return vec4(*this)+= n; }
-inline const vec4 vec4::operator+(const vec2 &o)  const { return vec4(*this)+= o; }
-inline const vec4 vec4::operator+(const vec3 &o)  const { return vec4(*this)+= o; }
-inline const vec4 vec4::operator+(const vec4 &o)  const { return vec4(*this)+= o; }
-inline const vec4 vec4::operator+(const float *n) const { return vec4(*this)+= n; }
-
-inline const vec4 vec4::operator-(float n)        const { return vec4(*this)-= n; }
-inline const vec4 vec4::operator-(const vec2 &o)  const { return vec4(*this)-= o; }
-inline const vec4 vec4::operator-(const vec3 &o)  const { return vec4(*this)-= o; }
-inline const vec4 vec4::operator-(const vec4 &o)  const { return vec4(*this)-= o; }
-inline const vec4 vec4::operator-(const float *n) const { return vec4(*this)-= n; }
-
-inline const vec4 vec4::operator*(float n)        const { return vec4(*this)*= n; }
-inline const vec4 vec4::operator*(const vec2 &o)  const { return vec4(*this)*= o; }
-inline const vec4 vec4::operator*(const vec3 &o)  const { return vec4(*this)*= o; }
-inline const vec4 vec4::operator*(const vec4 &o)  const { return vec4(*this)*= o; }
-inline const vec4 vec4::operator*(const float *n) const { return vec4(*this)*= n; }
-
-inline const vec4 vec4::operator/(float n)        const { return vec4(*this)/= n; }
-inline const vec4 vec4::operator/(const vec2 &o)  const { return vec4(*this)/= o; }
-inline const vec4 vec4::operator/(const vec3 &o)  const { return vec4(*this)/= o; }
-inline const vec4 vec4::operator/(const vec4 &o)  const { return vec4(*this)/= o; }
-inline const vec4 vec4::operator/(const float *n) const { return vec4(*this)/= n; }
-
-/*#ifdef MLIB_USE_INTRINSICS - slower -.-
-inline const vec4 operator+(float scalar, const vec4 &v) { return vec4(_mm_add_ps(_mm_set_ps1(scalar), v)); }
-inline const vec4 operator-(float scalar, const vec4 &v) { return vec4(_mm_sub_ps(_mm_set_ps1(scalar), v)); }
-inline const vec4 operator*(float scalar, const vec4 &v) { return vec4(_mm_mul_ps(_mm_set_ps1(scalar), v)); }
-inline const vec4 operator/(float scalar, const vec4 &v) { return vec4(_mm_div_ps(_mm_set_ps1(scalar), v)); }
-#else */
-inline const vec4 operator+(float scalar, const vec4 &v) { return vec4(scalar+ v.x, scalar+ v.y, scalar+ v.z, scalar+ v.w); }
-inline const vec4 operator-(float scalar, const vec4 &v) { return vec4(scalar- v.x, scalar- v.y, scalar- v.z, scalar- v.w); }
-inline const vec4 operator*(float scalar, const vec4 &v) { return vec4(scalar* v.x, scalar* v.y, scalar* v.z, scalar* v.w); }
-inline const vec4 operator/(float scalar, const vec4 &v) { return vec4(scalar/ v.x, scalar/ v.y, scalar/ v.z, scalar/ v.w); }
-//#endif
-
-inline bool vec4::operator==(float n)        const { return (n== length()); }
-inline bool vec4::operator==(const vec2 &o)  const { return ((x== o.x)  && (y== o.y)); }
-inline bool vec4::operator==(const vec3 &o)  const { return ((x== o.x)  && (y== o.y)  && (z== o.z)); }
-inline bool vec4::operator==(const vec4 &o)  const { return ((x== o.x)  && (y== o.y)  && (z== o.z)  && (w== o.w)); }
-inline bool vec4::operator==(const float *n) const { return ((x== n[0]) && (y== n[1]) && (z== n[2]) && (w== n[3])); }
-
-inline bool vec4::operator!=(const vec2 &o)  const { return ((x!= o.x)  || (y!= o.y)); }
-inline bool vec4::operator!=(const vec3 &o)  const { return ((x!= o.x)  || (y!= o.y)  || (z!= o.z)); }
-inline bool vec4::operator!=(const vec4 &o)  const { return ((x!= o.x)  || (y!= o.y)  || (z!= o.z)  || (w!= o.w)); }
-inline bool vec4::operator!=(const float *n) const { return ((x!= n[0]) || (y!= n[1]) || (z!= n[2]) || (w!= n[3])); }
-inline bool vec4::operator!=(float n)        const { return (n!= length()); }
-
-inline bool vec4::operator!() const { return ((x || y || z || w)? false: true); }
-
-inline const vec4 vec4::operator-() const { return vec4(-x, -y, -z, -w); }
-
-inline float &vec4::operator[](int i)            { return v[i]; }
-inline const float vec4::operator[](int i) const { return v[i]; }
-inline vec4::operator float* ()             { return v; }
-inline vec4::operator const float *() const { return v; }
-#ifdef MLIB_USE_INTRINSICS
-inline vec4::operator const __m128() const { return _mm_load_ps(v); }
-#endif
-
-// dot product
-
-inline float vec4::dot(const vec2 &o, float _z, float _w) const { return this->dot(o.x,  o.y,  _z,   _w); }
-inline float vec4::dot(const vec3 &o, float _w)           const { return this->dot(o.x,  o.y,  o.z,  _w); }
-inline float vec4::dot(const vec4 &o)                     const { return this->dot(o.x,  o.y,  o.z,  o.w); }
-inline float vec4::dot(const float *n)                    const { return this->dot(n[0], n[1], n[2], n[3]); }
-//#ifdef MLIB_USE_INTRINSICS
-//inline float vec4::dot(float _x, float _y, float _z, float _w) const { float ret; _mm_store_ss(&ret, dotSSE(*this, _mm_set_ps(_w, _z, _y, _x))); return ret; }
-//#else
-inline float vec4::dot(float _x, float _y, float _z, float _w) const { return x* _x+   y* _y+   z* _z+   w* _w; }
-//#endif
-
-  
-
-// funcs - research: https://github.com/g-truc/glm/blob/master/glm/detail/func_geometric.inl
-inline vec4 &vec4::set(float _x, float _y, float _z, float _w) { x= _x; y= _y; z= _z; w= _w; return *this; }
-inline vec4 &vec4::normalize() { float size= length(); if(size) { this->operator/=(size); } return *this; } // return vec* inversesqrt(dot(vec, vec)); - another option
-
-//#ifdef MLIB_USE_INTRINSICS 2.5x times slower
-//inline float vec4::length() const { float ret; _mm_store_ss(&ret, lengthSSE(*this)); return ret; };
-//inline float vec4::norm2() const { float ret; _mm_store_ss(&ret, norm2SSE(*this)); return ret; }
-//#else
-inline float vec4::length() const { return sqrtf(x* x+ y* y+ z* z+ w* w); };
-inline float vec4::norm2() const { return x* x+ y* y+ z* z+ w* w; }
-//#endif
 
 
 
@@ -1464,322 +1458,24 @@ inline float vec4::norm2() const { return x* x+ y* y+ z* z+ w* w; }
 
 // constructors
 
-inline mat4::mat4() { identity(); };
 
-inline mat4::mat4(const mat4 &o) {	
-  v[0]= o[0];   v[4]= o[4];   v[8]=  o[8];    v[12]= o[12];
-  v[1]= o[1];   v[5]= o[5];   v[9]=  o[9];    v[13]= o[13];
-  v[2]= o[2];   v[6]= o[6];   v[10]= o[10];   v[14]= o[14];
-  v[3]= o[3];   v[7]= o[7];   v[11]= o[11];   v[15]= o[15];
-};
-
-inline mat4::mat4(float n00, float n01, float n02, float n03, float n10, float n11, float n12, float n13, float n20, float n21, float n22, float n23, float n30, float n31, float n32, float n33) {
-  v[0]= n00;   v[4]= n10;   v[8]=  n20;   v[12]= n30;
-  v[1]= n01;   v[5]= n11;   v[9]=  n21;   v[13]= n31;
-  v[2]= n02;   v[6]= n12;   v[10]= n22;   v[14]= n32;
-  v[3]= n03;   v[7]= n13;   v[11]= n23;   v[15]= n33;
-}
-
-inline mat4::mat4(float *o) {
-  v[0]= o[0];   v[4]= o[4];   v[8]=  o[8];    v[12]= o[12];
-  v[1]= o[1];   v[5]= o[5];   v[9]=  o[9];    v[13]= o[13];
-  v[2]= o[2];   v[6]= o[6];   v[10]= o[10];   v[14]= o[14];
-  v[3]= o[3];   v[7]= o[7];   v[11]= o[11];   v[15]= o[15];
-};
-  
 
 
 // various matrix types
 
-inline mat4 &mat4::identity() {
-  v[0]= 1.0f; v[4]= 0.0f; v[8]=  0.0f; v[12]= 0.0f;
-  v[1]= 0.0f; v[5]= 1.0f; v[9]=  0.0f; v[13]= 0.0f;
-  v[2]= 0.0f; v[6]= 0.0f; v[10]= 1.0f; v[14]= 0.0f;
-  v[3]= 0.0f; v[7]= 0.0f; v[11]= 0.0f; v[15]= 1.0f;
-  return *this;
-}
-
-inline mat4 &mat4::zero() {
-  v[0]= v[4]= v[8]=  v[12]= 
-  v[1]= v[5]= v[9]=  v[13]= 
-  v[2]= v[6]= v[10]= v[14]= 
-  v[3]= v[7]= v[11]= v[15]= 0.0f;
-  return *this;
-};
 
 // rotation functions
-
-// see http://www.khronos.org/opengles/documentation/html/glRotate.html if there are any bugs :)
-
-inline mat4 &mat4::rotate(float angle, const vec3 &axis) { // axis to rotate about, angle = angle in degrees
-  vec3 a= axis;
-  a.normalize();
-
-  float s= sinf(angle* DEG2RAD);
-  float c= cosf(angle* DEG2RAD);
-  float c1= 1- c;
-  float x1c= a.x* c1;
-  float y1c= a.y* c1;
-  float z1c= a.z* c1;
-
-  v[0]=  a.x*  x1c+ c;
-  v[1]=  a.x*  y1c+ a.z* s;
-  v[2]=  a.x*  z1c- a.y* s;
-  v[3]=  0.0f;
-
-  v[4]=  a.x*  y1c- a.z* s;
-  v[5]=  a.y*  y1c+ c;
-  v[6]=  a.y*  y1c+ a.x* s;
-  v[7]=  0.0f;
-
-  v[8]=  a.x*  z1c+ a.y* s;
-  v[9]=  a.y*  z1c- a.x* s;
-  v[10]= a.z*  z1c+ c;
-  v[11]= 0.0f;
-
-  v[12]= 0.0f;
-  v[13]= 0.0f;
-  v[14]= 0.0f;
-  v[15]= 1.0f;
-  return *this;
-}
-
-inline mat4 &mat4::rotate(float angle, float x, float y, float z) { return rotate(angle, vec3(x, y, z)); }
-
-/// uses fewer computations than rotate
-inline mat4 &mat4::rotateX(float angle) {
-  float c= cosf(angle* DEG2RAD);
-  float s= sinf(angle* DEG2RAD);
-
-  v[0]= 1.0f;   v[4]= 0.0f;   v[8]=  0.0f;   v[12]= 0.0f;
-  v[1]= 0.0f;   v[5]= c;      v[9]=  -s;     v[13]= 0.0f;
-  v[2]= 0.0f;   v[6]= s;      v[10]= c;      v[14]= 0.0f;
-  v[3]= 0.0f;   v[7]= 0.0f;   v[11]= 0.0f;   v[15]= 1.0f;
-  return *this;
-}
-
-/// uses fewer computations than rotate
-inline mat4 &mat4::rotateY(float angle) {
-  float c= cosf(angle* DEG2RAD);
-  float s= sinf(angle* DEG2RAD);
-
-  v[0]= c;      v[4]= 0.0f;   v[8]=  s;      v[12]= 0.0f;
-  v[1]= 0.0f;   v[5]= 1.0f;   v[9]=  0.0f;   v[13]= 0.0f;
-  v[2]= -s;     v[6]= 0.0f;   v[10]= c;      v[14]= 0.0f;
-  v[3]= 0.0f;   v[7]= 0.0f;   v[11]= 0.0f;   v[15]= 1.0f;
-  return *this;
-}
-
-/// uses fewer computations than rotate
-inline mat4 &mat4::rotateZ(float angle) {
-  float c= cosf(angle* DEG2RAD);
-  float s= sinf(angle* DEG2RAD);
-
-  v[0]= c;      v[4]= -s;     v[8]=  0.0f;   v[12]= 0.0f;
-  v[1]= s;      v[5]= c;      v[9]=  0.0f;   v[13]= 0.0f;
-  v[2]= 0.0f;   v[6]= 0.0f;   v[10]= 1.0f;   v[14]= 0.0f;
-  v[3]= 0.0f;   v[7]= 0.0f;   v[11]= 0.0f;   v[15]= 1.0f;
-  return *this;
-}
-
-inline mat4 &mat4::translate(const vec3 &o) {
-  v[0]= 1.0f; v[4]= 0.0f; v[8]=  0.0f; v[12]= o[0];
-  v[1]= 0.0f; v[5]= 1.0f; v[9]=  0.0f; v[13]= o[1];
-  v[2]= 0.0f; v[6]= 0.0f; v[10]= 1.0f; v[14]= o[2];
-  v[3]= 0.0f; v[7]= 0.0f; v[11]= 0.0f; v[15]= 1.0f;
-  return *this;
-} 
-
-inline mat4 &mat4::translate(float x,float y, float z) { return translate(vec3(x, y, z)); }
-  
-inline mat4 &mat4::scale(const vec3 &o) {
-  v[0]= o[0];   v[4]= 0.0f;   v[8]= 0.0f;    v[12]= 0.0f;
-  v[1]= 0.0f;   v[5]= o[1];   v[9]= 0.0f;    v[13]= 0.0f;
-  v[2]= 0.0f;   v[6]= 0.0f;   v[10]= o[2];   v[14]= 0.0f;
-  v[3]= 0.0f;   v[7]= 0.0f;   v[11]= 0.0f;   v[15]= 1.0f;
-  return *this;
-}
-  
-inline mat4 &mat4::scale(float x,float y,float z) { return scale(vec3(x, y, z)); } 
-
-
 
 
 
 
 // operators
 
-inline mat4::operator float *() { return v; }
-inline mat4::operator const float *() const { return v; }
-//inline const float operator[](int i) const { return v[i]; } // might not be needed (further thinking needed)
-//inline float &operator[](int i) { return v[i]; }            // might not be needed (further thinking needed)
-
-inline mat4 mat4::operator+(const mat4 &o) {
-  return mat4(v[0]+  o[0],   v[1]+  o[1],   v[2]+  o[2],    v[3]+  o[3],
-              v[4]+  o[4],   v[5]+  o[5],   v[6]+  o[6],    v[7]+  o[7],
-              v[8]+  o[8],   v[9]+  o[9],   v[10]+ o[10],   v[11]+ o[11],
-              v[12]+ o[12],  v[13]+ o[13],  v[14]+ o[14],   v[15]+ o[15]);
-}
-
-inline mat4 mat4::operator+(float n) {
-  return mat4(v[0]+  n,   v[1]+  n,   v[2]+  n,    v[3]+  n,
-              v[4]+  n,   v[5]+  n,   v[6]+  n,    v[7]+  n,
-              v[8]+  n,   v[9]+  n,   v[10]+ n,    v[11]+ n,
-              v[12]+ n,   v[13]+ n,   v[14]+ n,    v[15]+ n);
-}
-
-inline mat4 mat4::operator-(const mat4 &o) {
-  return mat4(v[0]-  o[0],   v[1]-  o[1],   v[2]-  o[2],    v[3]-  o[3],
-              v[4]-  o[4],   v[5]-  o[5],   v[6]-  o[6],    v[7]-  o[7],
-              v[8]-  o[8],   v[9]-  o[9],   v[10]- o[10],   v[11]- o[11],
-              v[12]- o[12],  v[13]- o[13],  v[14]- o[14],   v[15]- o[15]);
-}
-
-inline mat4 mat4::operator-(float n) {
-  return mat4(v[0]-  n,   v[1]-  n,   v[2]-  n,    v[3]-  n,
-              v[4]-  n,   v[5]-  n,   v[6]-  n,    v[7]-  n,
-              v[8]-  n,   v[9]-  n,   v[10]- n,    v[11]- n,
-              v[12]- n,   v[13]- n,   v[14]- n,    v[15]- n);
-}
-
-inline mat4 mat4::operator*(const mat4 &o) {
-                /// first column
-  return mat4(v[0]* o[0]+  v[4]* o[1]+  v[8]*  o[2]+  v[12]* o[3],
-              v[1]* o[0]+  v[5]* o[1]+  v[9]*  o[2]+  v[13]* o[3],
-              v[2]* o[0]+  v[6]* o[1]+  v[10]* o[2]+  v[14]* o[3],
-              v[3]* o[0]+  v[7]* o[1]+  v[11]* o[2]+  v[15]* o[3],
-              /// second column
-              v[0]* o[4]+  v[4]* o[5]+  v[8]*  o[6]+  v[12]* o[7],
-              v[1]* o[4]+  v[5]* o[5]+  v[9]*  o[6]+  v[13]* o[7],
-              v[2]* o[4]+  v[6]* o[5]+  v[10]* o[6]+  v[14]* o[7],
-              v[3]* o[4]+  v[7]* o[5]+  v[11]* o[6]+  v[15]* o[7],
-              /// third column
-              v[0]* o[8]+  v[4]* o[9]+  v[8]*  o[10]+ v[12]* o[11],
-              v[1]* o[8]+  v[5]* o[9]+  v[9]*  o[10]+ v[13]* o[11],
-              v[2]* o[8]+  v[6]* o[9]+  v[10]* o[10]+ v[14]* o[11],
-              v[3]* o[8]+  v[7]* o[9]+  v[11]* o[10]+ v[15]* o[11],
-              /// fourth column
-              v[0]* o[12]+ v[4]* o[13]+ v[8]*  o[14]+ v[12]* o[15],
-              v[1]* o[12]+ v[5]* o[13]+ v[9]*  o[14]+ v[13]* o[15],
-              v[2]* o[12]+ v[6]* o[13]+ v[10]* o[14]+ v[14]* o[15],
-              v[3]* o[12]+ v[7]* o[13]+ v[11]* o[14]+ v[15]* o[15]);
-              /// wheew. done.
-}
-
-// intrinsic multiply - yes, slower -.-
-/*
-inline mat4 mat4::operator*(const mat4 &o) {
-  __m128 reg1, reg2;
-  vec4 tmp;
-  mat4 ret;
-
-  for(int a= 0; a< 4; a++) {
-    reg1= _mm_load_ps(v+ a* 4);
-    reg2= _mm_set_ps(o[0+ a], o[4+ a], o[8+ a], o[12+ a]);
-  
-    tmp= _mm_mul_ss(reg1, reg2);
-    ret[0]+= tmp.x; ret[1]+= tmp.y; ret[2]+= tmp.z; ret[3]+= tmp.w;
-
-    _mm_shuffle_ps(reg2, reg2, _MM_SHUFFLE(2, 3, 1, 0));
-    tmp= _mm_mul_ss(reg1, reg2);
-    ret[4]+= tmp.x; ret[5]+= tmp.y; ret[6]+= tmp.z; ret[7]+= tmp.w;
-
-    _mm_shuffle_ps(reg2, reg2, _MM_SHUFFLE(1, 0, 2, 3));
-    tmp= _mm_mul_ss(reg1, reg2);
-    ret[8]+= tmp.x; ret[9]+= tmp.y; ret[10]+= tmp.z; ret[11]+= tmp.w;
-
-    _mm_shuffle_ps(reg2, reg2, _MM_SHUFFLE(2, 3, 1, 0));
-    tmp= _mm_mul_ss(reg1, reg2);
-    ret[12]+= tmp.x; ret[13]+= tmp.y; ret[14]+= tmp.z; ret[15]+= tmp.w;
-  }
-
-  return ret;
-}
-*/
-
-
-// assume the vectors are padded with a 1 (homogenous coordinates)
-inline vec2 mat4::operator*(const vec2 &o) {
-  return vec3(v[0]* o[0]+ v[4]* o[1]+ v[8]*  o[2]+ v[12],
-              v[1]* o[0]+ v[5]* o[1]+ v[9]*  o[2]+ v[13]);
-}
-
-inline vec3 mat4::operator*(const vec3 &o) {
-  return vec3(v[0]* o[0]+ v[4]* o[1]+ v[8]*  o[2]+ v[12],
-              v[1]* o[0]+ v[5]* o[1]+ v[9]*  o[2]+ v[13],
-              v[2]* o[0]+ v[6]* o[1]+ v[10]* o[2]+ v[14]);
-}
-
-inline vec4 mat4::operator*(const vec4 &o) {
-  return vec4(v[0]* o[0]+ v[4]* o[1]+ v[8]*  o[2]+ v[12],
-              v[1]* o[0]+ v[5]* o[1]+ v[9]*  o[2]+ v[13],
-              v[2]* o[0]+ v[6]* o[1]+ v[10]* o[2]+ v[14],
-              v[3]* o[0]+ v[7]* o[1]+ v[11]* o[2]+ v[15]);
-}
-
-inline mat4& mat4::operator*=(const mat4 &o) { return *this= *this* o; }
-inline mat4& mat4::operator+=(const mat4 &o) { return *this= *this+ o; }
-inline mat4& mat4::operator-=(const mat4 &o) { return *this= *this- o; }
-
-
 // vector operations
 
 
 
 // funcs
-
-inline mat4 &mat4::ortho(float l, float r, float b, float t, float zn, float zf) {
-  float dx= r- l, dy= t- b, dz= zf- zn;
-
-  v[0]= 2.0f/ dx;   v[4]= 0.0f;       v[8]=   0.0f;       v[12]= -(r+ l)/ dx;
-  v[1]= 0.0f;       v[5]= 2.0f/ dy;   v[9]=   0.0f;       v[13]= -(t+ b)/ dy;
-  v[2]= 0.0f;       v[6]= 0.0f;       v[10]= -2.0f/ dz;   v[14]= -(zf+ zn)/ dz;
-  v[3]= 0.0f;       v[7]= 0.0f;       v[11]=  0.0f;       v[15]= 1.0f;
-
-  return *this;
-}
-
-
-inline mat4 &mat4::frustrum(float l, float r, float b, float t, float zn, float zf) {
-  float dx= r- l, dy= t- b, dz= zf- zn;
-
-  v[0]= (2.0f* zn)/ dx;   v[4]= 0.0f;             v[8]=  0.0f;            v[12]= 0.0f;
-  v[1]= 0.0f;             v[5]= (2.0f* zn)/ dy;   v[9]=  (t+ b)/ dy;      v[13]= 0.0f;
-  v[2]= 0.0f;             v[6]= 0.0f;             v[10]= -(zf+ zn)/ dz;   v[14]= -(2.0f* zf* zn)/ dz;
-  v[3]= 0.0f;             v[7]= 0.0f;             v[11]= -1.0f;           v[15]= 1.0f;
-
-  return *this;
-}
-
-
-inline mat4 &mat4::perspective(float fovy, float aspect, float znear, float zfar) {
-  if((!fovy) || (fabsf(fovy)== 360.0f) || (!(zfar- znear)) || (!aspect))
-    return *this;
-
-  float dz= zfar- znear;
-  float ctg= 1.0f/ tanf(fovy/ 2.0f* DEG2RAD);
-  
-  v[0]= ctg/ aspect;  v[4]= 0.0f;   v[8]= 0;                    v[12]= 0.0f;
-  v[1]= 0.0f;         v[5]= ctg;    v[9]= 0;                    v[13]= 0.0f;
-  v[3]= 0.0f;         v[6]= 0.0f;   v[10]= -(zfar+ znear)/ dz;  v[14]= -2.0f* znear* zfar/ dz;
-  v[2]= 0.0f;         v[7]= 0.0f;   v[11]= -1.0f;               v[15]= 1.0f;
-
-  return *this;
-}
-
-
-inline mat4 &mat4::lookAt(const vec3 &eye, const vec3 &center, const vec3 &up) {
-  vec3 f(center- eye);  f.normalize();
-  vec3 s(cross(f, up)); s.normalize();
-  vec3 u(cross(s, f));
-  
-  v[0]=  s.x;   v[4]=  s.y;   v[8]=   s.z;   v[12]= -dot(s, eye);
-  v[1]=  u.x;   v[5]=  u.y;   v[9]=   u.z;   v[13]= -dot(u, eye);
-  v[2]= -f.x;   v[6]= -f.y;   v[10]= -f.z;   v[14]=  dot(f, eye);
-  v[3]= 0.0f;   v[7]= 0.0f;   v[11]= 0.0f;   v[15]=  1.0f;
-
-  return *this;
-}
 
 
 
@@ -1871,6 +1567,163 @@ static const uint64_t pow10ui[]= {
             0Ull, 1Ull, 10Ull, 100Ull, 1000Ull, 10000Ull, 100000Ull, 1000000Ull, 10000000Ull,
             100000000Ull, 1000000000Ull, 10000000000Ull, 100000000000Ull, 1000000000000Ull, 10000000000000Ull, 100000000000000Ull,
             1000000000000000Ull, 10000000000000000Ull, 100000000000000000Ull, 1000000000000000000Ull, 10000000000000000000Ull };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// =========================================================
+// = DOCUMENTATION PURPOSES, VARIOUS INTERESTING FUNCTIONS ===================================================
+// =========================================================
+
+
+
+
+
+// ZX Spectrum method, Chebyshev polynomials:
+// https://albertveli.wordpress.com/2015/01/10/zx-sine/
+// http://www.ams.org/journals/mcom/1954-08-047/S0025-5718-1954-0063487-2/S0025-5718-1954-0063487-2.pdf
+// This method is extreem acurate, but twice as slow, unfortunately. I left it here just for documentation purposes
+
+#define T0 (1)
+#define T1 (b)
+#define T2 ((2*  b2)- 1)
+#define T3 ((4*  b3)- (3*  b))
+#define T4 ((8*  b4)- (8*  b2)+ 1)
+#define T5 ((16* b5)- (20* b3)+ (5* b))
+
+#define C0  1.276278962f
+#define C1 -0.285261569f
+#define C2  0.009118016f
+#define C3 -0.000136587f
+#define C4  0.000001185f
+#define C5 -0.000000007f
+ 
+inline float sinf_ZXSpectrum(float n) {
+  
+  /// make n -PI to +PI
+  if(n> PI)
+    n-= ((int32)((n+ PI)* FPII))* PI_DBL;         /// n-= ((int32)((n+ PI)/ PI_DBL))* PI_DBL;   OR  if(n> PI) while(n> PI) n-= PI_DBL;
+  else if(n< -PI)
+    n+= ((int32)((-n+ PI)* FPII))* PI_DBL;        /// n+= ((int32)((-n+ PI)/ PI_DBL))* PI_DBL;  OR  if(n< -PI) while(n< -PI) n+= PI_DBL;
+
+  /// make n -PI/2 to +PI/2
+  if(n> PI/ 2)
+    n= PI- n;   
+  else if(n< -PI/ 2)
+    n= -PI- n;
+
+  // convert n from -PI/2 -> +PI/2 to -0.25 -> +0.25 range
+  n= (n* 0.25f)* II_PI;   // n= (n* 0.25f)/ (PI/ 2.0f);
+  
+  float a= 4* n;
+  float b= (2* a* a)- 1;
+  float b2= b* b;
+  float b3= b2* b;
+  float b4= b3* b;
+  float b5= b4* b;
+  
+  return (((C0* T0)+ (C1* T1)+ (C2* T2)+ (C3* T3)+ (C4* T4)+ (C5* T5))* a);
+}
+
+inline float cosf_ZXSpectrum(float n) { return sinf_ZXSpectrum(n+ PI_HALF); }
+
+#undef T0
+#undef T1
+#undef T2
+#undef T3
+#undef T4
+#undef T5
+#undef C0
+#undef C1
+#undef C2
+#undef C3
+#undef C4
+#undef C5
+
+
+
+
+// Taylor series TAN
+// x+ (1/3)*x^3 + (2/15)* x^5 + (17/315)* x^7,   x must be -PI/2 +PI/2
+// this method works accurately and speedy for -PI/4 -> +PI/4
+// the accuracy drops to the extreem - with angles more than 75degrees, you need like 50 computations to do anything close to accurate
+// and not even then. The speed is too slow for that many computations, so taylor for tan is out of the picture
+// for -PI/4 to +PI/4, it's _the fastest function_, good acuracy
+inline float tanf_Taylor(float n) {
+  /// adjust n to -PI -> +PI
+  n-= mlib::floorf((n+ PI)* FPII)* PI_DBL;
+
+  /// adjust n to -PI/2 -> +PI/2
+  if(n> PI_HALF)       n-= PI;
+  else if(n< -PI_HALF) n+= PI;
+
+  const float c1= 1.0f/ 3.0f;
+  const float c2= 2.0f/ 15.0f;
+  const float c3= 17.0f/ 315.0f;
+
+  //const float c4= 62.0f/ 2835.0f;
+  //const float c5= 1382.0f/ 155925.0f;
+  //const float c6= 0.00359212803657248101692546136991f;   // 21844/ 6081075;
+  //const float c7= 0.0014558343870513182682494851807f;    // 929569/ 638512875
+  //const float c8= 5.9002744094558598137807599370002e-4f; // 6404582/ 10854718875
+  //const float c9= 2.3912911424355248148573145888511e-4f; // 443861162/ 1856156927625
+
+  float n2=  n* n;
+  float n3=  n* n2,    n5=  n3*  n2,  n7=  n5*  n2;
+  //float n9=  n7* n2,   n11= n9*  n2,  n13= n11* n2;
+  //float n15= n13* n2,  n17= n15* n2,  n19= n17* n2;
+
+  return n+ (c1* n3)+ (c2* n5)+ (c3* n7);
+  //return n+ (c1* n3)+ (c2* n5)+ (c3* n7)+ (c4* n9);
+  //return n+ (c1* n3)+ (c2* n5)+ (c3* n7)+ (c4* n9)+ (c5* n11);
+  //return n+ (c1* n3)+ (c2* n5)+ (c3* n7)+ (c4* n9)+ (c5* n11)+ (c6* n13);
+
+  // not even with these many computations, anyhting over PI/4 is extreem inacurate
+  //return n+ (c1* n3)+ (c2* n5)+ (c3* n7)+ (c4* n9)+ (c5* n11)+ (c6* n13)+ (c7* n15)+ (c8* n17)+ (c9* n19);
+}
+
+
+// you need more computations to achieve the same amount of precision like the sin version
+// also, using only the cos or the sin version is better
+// left this here just for documentation purposes
+inline float cosf_Taylor(float n) {
+  // the func runs on -PI to +PI. <n> must be adjusted to this boundary
+  n-= mlib::floorf((n+ PI)* FPII)* PI_DBL;
+
+  constexpr float f2=  0.5f;                                    // 1/ 2!
+  constexpr float f4=  0.04166666666666666666666666666667f;     // 1/ 4!  0.0416666679f
+  constexpr float f6=  0.00138888888888888888888888888889f;     // 1/ 6!  0.00138888892f
+  constexpr float f8=  2.4801587301587301587301587301587e-5f;   // 1/ 8!  2.48015876e-05f
+  constexpr float f10= 2.755731922398589e-7f;                   // 1/ 10! 2.75573200e-07f
+  //constexpr float f12= 2.0876756987868098979210090321201e-9f;   // 1/ 12!
+
+  float n2= n* n, n4= n2* n2, n6= n4* n2;
+  float n8= n6* n2;
+  float n10= n8* n2;
+  //float n12= n10* n2;
+
+  // cos(x)= 1- x^2/ 2! + x^4/ 4! - x^6/ 6! + ...
+  //return 1.0f- (n2* f2)+ (n4* f4)- (n6* f6);                                    // ~0.002 accuracy, extreem fast
+  //return 1.0f- (n2* f2)+ (n4* f4)- (n6* f6)+ (n8* f8);                          // ~0.0001 accuracy, way faster than std
+  return 1.0f- (n2* f2)+ (n4* f4)- (n6* f6)+ (n8* f8)- (n10* f10);              // ~0.000001 accuracy, faster than std
+  //return 1.0f- (n2* f2)+ (n4* f4)- (n6* f6)+ (n8* f8)- (n10* f10)+ (n12* f12);  // extreem acurate, slower than std
+}
+
+
+
+
+
+
 
 }; // namespace mlib
 

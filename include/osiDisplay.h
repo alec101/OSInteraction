@@ -7,7 +7,6 @@ struct osiMonitor;
 struct osiGPU;
 class osinteraction;
 class osiWindow;
-class osiRenderer;
 
 
 
@@ -15,7 +14,7 @@ class osiRenderer;
 ///--------------------------------------------------------------------------///
 class osiDisplay {
 public:
-  void populate();                       // this is auto-called on osi constructor; can be called multiple times to rescan the displays
+  void populate(bool onlyVulkan= false); // this is auto-called on osi constructor; can be called multiple times to rescan the displays. after vulkan is initialized, it should be called to further populate everything vulkan can find. if <onlyVulkan> is true, only the vulkan part will populate
   
   int16_t nrMonitors;                   /// nr of active monitors connected to the system
   int32_t vx0, vy0, vdx, vdy;           /// VIRTUAL DESKTOP size (all monitors are placed inside this virtual desktop/ fullscreen virtual desktop mode, uses these)
@@ -51,26 +50,27 @@ public:
   #endif /// OS_LINUX
 
 private:
+  void _vkPopulate();
   friend class osinteraction;
 };
 
 
 // --------------======== osiResolution =======-----------------------
 struct osiResolution {
-  int32_t dx, dy;             /// resolution size
-  int32_t nrFreq;             /// nr of frequencies supported
-  int16_t *freq;              /// list of supported frequencies in this resolution
-  /// bpp is ignored ATM, as 32bpp is default, and i don't think anything else will be used
+  int32_t dx, dy;             // resolution size
+  int32_t nrFreq;             // nr of frequencies supported
+  int16_t *freq;              // list of supported frequencies in this resolution
+  /// bpp is ignored ATM, as 32bpp is default, and i don't think anything else will be ever used
   
-  osiResolution();            /// set everything to 0 (needed)
-  ~osiResolution();           /// calls delData()
-  void delData();             /// clears data/ deallocs everything
+  osiResolution();            // set everything to 0 (needed)
+  ~osiResolution();           // calls delData()
+  void delData();             // clears data/ deallocs everything
 
   // private stuff from here 
 
   #ifdef OS_LINUX
-  Rotation _rotation;         /// [internal] X if it is used...
-  RRMode *_resID;             /// [internal] it is tied with frequency (RRMode[nrFreq])
+  Rotation _rotation;         // [internal] X if it is used...
+  RRMode *_resID;             // [internal] it is tied with frequency (RRMode[nrFreq])
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
@@ -84,25 +84,27 @@ struct osiResolution {
 // -------------========= osiMonitor =======------------------
 struct osiMonitor {
 
-  str8 name;                /// monitor name (product description or something that can identify it)
+  str8 name;                // monitor name (product description or something that can identify it)
 
-  int32_t x0, y0;           /// position on the VIRTUAL DESKTOP
-  int32_t dx, dy;           /// current size (resolution size)
+  int32_t x0, y0;           // position on the VIRTUAL DESKTOP
+  int32_t dx, dy;           // current size (resolution size)
   
-  bool primary;             /// is it the primary display 
-  osiGPU *GPU;              /// on what GPU is attached
-  osiWindow *win;           /// the window that is on this monitor (if there is one)
+  bool primary;             // is it the primary display 
+  osiGPU *GPU;              // on what GPU is attached
+  osiWindow *win;           // the window that is on this monitor (if there is one)
   
 
-  int16_t nrRes;            /// nr of resolutions monitor can handle
-  osiResolution *res;       /// all resolutions the display supports (res[nrRes])
+  int16_t nrRes;            // nr of resolutions monitor can handle
+  osiResolution *res;       // all resolutions the display supports (res[nrRes])
   
+  
+
   // the next vars are kinda internal stuff
 
-  bool inOriginal;          /// monitor is in original resolution (false= in program resolution)
-  osiResolution original;   /// original resolution @ program start (freq[0] is ID, not hertz)
-  osiResolution progRes;    /// program resolution. original&program used to detect a resolution CHANGE, and ignore multiple resolution changes if already in requested resolution (freq[0] is ID, not hertz)
-  osiRenderer *glr;
+  bool inOriginal;          // monitor is in original resolution (false= in program resolution)
+  osiResolution original;   // original resolution @ program start (freq[0] is ID, not hertz)
+  osiResolution progRes;    // program resolution. original&program used to detect a resolution CHANGE, and ignore multiple resolution changes if already in requested resolution (freq[0] is ID, not hertz)
+  void *renderer;           // first renderer that was created on this monitor
 
   osiMonitor();
   ~osiMonitor();
@@ -111,56 +113,63 @@ struct osiMonitor {
   // internals from here on - these are not made private, because they might be useful
 
   #ifdef OS_WIN
-  str8 _id;                 /// [internal] win- display ID
-  //str8 name;                /// [internal] display's card name
-  str8 _monitorID;          /// [internal] monitor id (NOT USED FOR ANYTHING?... wincrap rulz)
-  str8 _monitorName;        /// [internal] monitor description (did not find any use for it ina ANY windows function)
+  str8 _id;                 // [internal] win- display ID
+  //str8 name;                // [internal] display's card name
+  str8 _monitorID;          // [internal] monitor id (NOT USED FOR ANYTHING?... wincrap rulz)
+  str8 _monitorName;        // [internal] monitor description (did not find any use for it ina ANY windows function)
   // if a monitor is set to duplicate another monitor, windows returns only one display,
   // with combined resolution options, and monitorID+monitorName for each. Can't do anything with any of them, so im not storing them anywhere.
   friend LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam);
   #endif /// OS_WIN
   
   #ifdef OS_LINUX
-  int _screen;              /// [internal] monitor id (number)
-  Window _root;             /// [internal] root window of screen (monitor)
-  RROutput _outID;          /// [internal] xrandr output (phisical out that a monitor can be attached to; this output holds connected monitor info/supported modes too)
-  RRCrtc _crtcID;           /// [internal] xrandr crtc (some internal graphics card thingie that handles pixels sent to outputs->monitors)
-  int _XineramaID;          /// [internal] used only for _NET_WM_FULLSCREEN_MONITORS, it is found in display.populate() @ end of linux part
-  osiMonitor *_right;       /// [internal] points to a monitor next to this one, to the right, or NULL
-  osiMonitor *_bottom;      /// [internal] points to a monitor next to this one, to the bottom, or NULL
+  int _screen;              // [internal] monitor id (number)
+  Window _root;             // [internal] root window of screen (monitor)
+  RROutput _outID;          // [internal] xrandr output (phisical out that a monitor can be attached to; this output holds connected monitor info/supported modes too)
+  RRCrtc _crtcID;           // [internal] xrandr crtc (some internal graphics card thingie that handles pixels sent to outputs->monitors)
+  int _XineramaID;          // [internal] used only for _NET_WM_FULLSCREEN_MONITORS, it is found in display.populate() @ end of linux part
+  osiMonitor *_right;       // [internal] points to a monitor next to this one, to the right, or NULL
+  osiMonitor *_bottom;      // [internal] points to a monitor next to this one, to the bottom, or NULL
   #endif /// OS_LINUX
   
   #ifdef OS_MAC
-  unsigned int _id;         /// [internal] quartz monitor id
-  str8 _GPUinfo;            /// [internal] GPU info string, should be unique for each GPU
-  uint32_t _oglDisplayMask; /// [internal] OpenGL Display Mask. each monitor have a place in this mask
+  unsigned int _id;         // [internal] quartz monitor id
+  str8 _GPUinfo;            // [internal] GPU info string, should be unique for each GPU
+  uint32_t _oglDisplayMask; // [internal] OpenGL Display Mask. each monitor have a place in this mask
   #endif /// OS_MAC
 
 private:
-  bool _inProgRes;          /// [internal] flag used for res changes
+  bool _inProgRes;          // [internal] flag used for res changes
+  int32_t _y0;              // not changed, os specific, monitor position on the y axis
+
+
   friend class osiDisplay;
-  friend void getMonitorPos(osiMonitor *m);
-  friend void updateVirtualDesktop();
-  friend bool doChange(osiMonitor *, osiResolution *, int16_t);
-  friend void _populateGrCards(osiDisplay *);
-    
-  int32_t _y0;                /// not changed, os specific, monitor position on the y axis
+  friend void _osiGetMonitorPos(osiMonitor *m);
+  friend void _osiUpdateVirtualDesktop();
+  friend bool _osiDoChange(osiMonitor *, osiResolution *, int16_t);
+  friend void _osiPopulateGrCards(osiDisplay *);
 };
 
 
 
 struct osiGPU {
-  str8 name;                /// GPU description
+  str8 name;                // GPU description
 
-  bool primary;             /// primary GPU has the primary monitor
+  bool primary;             // primary GPU has the primary monitor
 
-  int16_t nrMonitors;       /// nr monitors attached
-  osiMonitor **monitor;     /// array with all attached monitors; [nrMonitors] in size
+  int16_t nrMonitors;       // nr monitors attached
+  osiMonitor **monitor;     // array with all attached monitors; [nrMonitors] in size
 
   int32_t ram;      // WIP
   int32_t clock;    // WIP
 
-  osiGPU() { ram= clock= 0; nrMonitors= 0; monitor= NULL; primary= false; }
+  void *vkGPU;      // if vulkan is on the system, this is the link to the VkPhysicalDevice
+  
+  uint64_t LUID;    // LUID of the graphics card;
+
+  osiGPU() { ram= clock= 0; nrMonitors= 0; monitor= NULL; primary= false; vkGPU= NULL; }
+
   void delData() { if(nrMonitors) { delete[] monitor; nrMonitors= 0; monitor= NULL; } primary= false; name.delData(); ram= clock= 0; }
+
   ~osiGPU() { delData(); }
 };

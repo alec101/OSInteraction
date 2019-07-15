@@ -1,3 +1,6 @@
+#include "osinteraction.h"
+#ifdef OSI_USE_OPENGL
+
 /* 
 This file tryes to solve the mess that is opengl header files:
 -gl.h on windows is oGL1.1
@@ -12,7 +15,7 @@ You can figure out how hard is to put an order in all this !!!
 
 */
 
-
+/*
 
 // standard osi current system define
 #ifdef _WIN32
@@ -61,7 +64,7 @@ You can figure out how hard is to put an order in all this !!!
 #define OSI_USE_OPENGL_LEGACY 1
 #define OSI_DISABLE_GL_DISABLE 1
 
-#include <stdio.h>
+//#include <stdio.h>
 #include <stdint.h>
 
 
@@ -70,9 +73,9 @@ You can figure out how hard is to put an order in all this !!!
 #include "util/str8.h"
 #include "osiDisplay.h"
 #include "osiGlExt.h"
-#include "osiRenderer.h"
+#include "osiGlRenderer.h"
 #include "osiWindow.h"
-
+*/
 
 
 
@@ -93,18 +96,22 @@ You can figure out how hard is to put an order in all this !!!
 #include "osiGlExt.h"
 */
 
+#include "util/typeShortcuts.h"
+
+
+
 /// one single struct that holds all the gl extensions, for LINUX and MAC
 /// under windows, each renderer must have it's own functions
 
 #ifndef OS_WIN
-GlExtFuncs glExt;
+osiGlExtFuncs glExt;
 #endif /// OS_MAC or OS_LINUX
 
 
 
 
 
-bool getGlProc(const char *name, void **addr) {
+bool _osiGetGlProc(const char *name, void **addr) {
   //bool chatty= false;
   if(!addr) return false;
   void *tmp= null;
@@ -114,9 +121,10 @@ bool getGlProc(const char *name, void **addr) {
 
   // wgl can fail for old funcs, and GetProcAddress must be used instead https://www.opengl.org/wiki/Load_OpenGL_Functions
   if(tmp== 0 || (tmp== (void*)0x1) || (tmp== (void*)0x2) || (tmp== (void*)0x3) || (tmp== (void*)-1)) {
-    HMODULE module= LoadLibraryA("opengl32.dll");
-    if(module!= null)
-      tmp= (void *)GetProcAddress(module, name);
+    if(_osiOpenGLlib== null)
+      _osiOpenGLlib= LoadLibrary(str8("opengl32.dll"));
+    if(_osiOpenGLlib!= null)
+      tmp= (void *)GetProcAddress((HMODULE)_osiOpenGLlib, name);
   }
   #endif /// OS_WIN
   
@@ -137,14 +145,14 @@ bool getGlProc(const char *name, void **addr) {
 
 
 
-#define GETGLPROCMACRO(_x_x) getGlProc(#_x_x,  (void **)&r->glExt. _x_x  );
+#define GETGLPROCMACRO(_x_x) _osiGetGlProc(#_x_x,  (void **)&r->glExt. _x_x  );
 
 
 ///=============================///
 // OpenGL version funcs aquiring //
 ///=============================///
 
-void getVERfuncs(osiRenderer *r, int major, int minor) {
+void _osiGetVERfuncs(osiGlRenderer *r, int major, int minor) {
   
   #ifndef OS_MAC
   
@@ -991,10 +999,10 @@ void getVERfuncs(osiRenderer *r, int major, int minor) {
 ///=================================///
 // extensions not in ARB or EXT list //
 ///=================================///
-void getOTHERfuncs(osiRenderer *r) {
+void _osiGetOTHERfuncs(osiGlRenderer *r) {
   #ifndef OS_MAC
 
-  #ifdef OS_WIN // this is windows only, linux already got this funcs
+  #ifdef OS_WIN // this is windows only, linux already got these funcs
   ///#if(GL_ARB_imaging== 1)
   if(r->glOTHERlist[0].avaible) {
     GETGLPROCMACRO(glColorTable)
@@ -1109,7 +1117,7 @@ void getOTHERfuncs(osiRenderer *r) {
 ///=============================///
 // ARB extensions funcs aquiring //
 ///=============================///
-void getARBfuncs(osiRenderer *r) {
+void _osiGetARBfuncs(osiGlRenderer *r) {
   #ifndef OS_MAC
 
   ///#if(GL_ARB_multitexture== 1)
@@ -1521,7 +1529,7 @@ void getARBfuncs(osiRenderer *r) {
 ///=============================///
 // EXT and vendor funcs aquiring //
 ///=============================///
-void getEXTfuncs(osiRenderer *r) {
+void _osiGetEXTfuncs(osiGlRenderer *r) {
   #ifndef OS_MAC
   
   ///#if(GL_EXT_blend_color== 1)
@@ -2661,7 +2669,7 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glPointSizexOES)
     GETGLPROCMACRO(glPolygonOffsetxOES)
     GETGLPROCMACRO(glRotatexOES)
-    GETGLPROCMACRO(glSampleCoverageOES)
+    //GETGLPROCMACRO(glSampleCoverageOES)
     GETGLPROCMACRO(glScalexOES)
     GETGLPROCMACRO(glTexEnvxOES)
     GETGLPROCMACRO(glTexEnvxvOES)
@@ -3618,9 +3626,6 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glStencilFillPathInstancedNV)
     GETGLPROCMACRO(glStencilStrokePathInstancedNV)
     GETGLPROCMACRO(glPathCoverDepthFuncNV)
-    GETGLPROCMACRO(glPathColorGenNV)
-    GETGLPROCMACRO(glPathTexGenNV)
-    GETGLPROCMACRO(glPathFogGenNV)
     GETGLPROCMACRO(glCoverFillPathNV)
     GETGLPROCMACRO(glCoverStrokePathNV)
     GETGLPROCMACRO(glCoverFillPathInstancedNV)
@@ -3633,14 +3638,32 @@ void getEXTfuncs(osiRenderer *r) {
     GETGLPROCMACRO(glGetPathMetricsNV)
     GETGLPROCMACRO(glGetPathMetricRangeNV)
     GETGLPROCMACRO(glGetPathSpacingNV)
-    GETGLPROCMACRO(glGetPathColorGenivNV)
-    GETGLPROCMACRO(glGetPathColorGenfvNV)
-    GETGLPROCMACRO(glGetPathTexGenivNV)
-    GETGLPROCMACRO(glGetPathTexGenfvNV)
     GETGLPROCMACRO(glIsPointInFillPathNV)
     GETGLPROCMACRO(glIsPointInStrokePathNV)
     GETGLPROCMACRO(glGetPathLengthNV)
     GETGLPROCMACRO(glPointAlongPathNV)
+    GETGLPROCMACRO(glMatrixLoad3x2fNV)
+    GETGLPROCMACRO(glMatrixLoad3x3fNV)
+    GETGLPROCMACRO(glMatrixLoadTranspose3x3fNV)
+    GETGLPROCMACRO(glMatrixMult3x2fNV)
+    GETGLPROCMACRO(glMatrixMult3x3fNV)
+    GETGLPROCMACRO(glMatrixMultTranspose3x3fNV)
+    GETGLPROCMACRO(glStencilThenCoverFillPathNV)
+    GETGLPROCMACRO(glStencilThenCoverStrokePathNV)
+    GETGLPROCMACRO(glStencilThenCoverFillPathInstancedNV)
+    GETGLPROCMACRO(glStencilThenCoverStrokePathInstancedNV)
+    GETGLPROCMACRO(glPathGlyphIndexRangeNV)
+    GETGLPROCMACRO(glPathGlyphIndexArrayNV)
+    GETGLPROCMACRO(glPathMemoryGlyphIndexArrayNV)
+    GETGLPROCMACRO(glProgramPathFragmentInputGenNV)
+    GETGLPROCMACRO(glGetProgramResourcefvNV)
+    GETGLPROCMACRO(glPathColorGenNV)
+    GETGLPROCMACRO(glPathTexGenNV)
+    GETGLPROCMACRO(glPathFogGenNV)
+    GETGLPROCMACRO(glGetPathColorGenivNV)
+    GETGLPROCMACRO(glGetPathColorGenfvNV)
+    GETGLPROCMACRO(glGetPathTexGenivNV)
+    GETGLPROCMACRO(glGetPathTexGenfvNV)
   }
   ///#if(GL_AMD_stencil_operation_extended== 1)
   if(r->glEXTlist[412].avaible) {    /// #413  http://www.opengl.org/registry/specs/AMD/stencil_operation_extended.txt
@@ -3783,7 +3806,7 @@ void getEXTfuncs(osiRenderer *r) {
 
 
 
-GlExt _glOTHERlistEmpty[]= {
+osiGlExt _glOTHERlistEmpty[]= {
   {"GL_ARB_imaging",              0},
   {"GL_ARB_bindless_texture",     0},
   {"GL_INGR_blend_func_separate", 0},
@@ -3796,7 +3819,7 @@ GlExt _glOTHERlistEmpty[]= {
 };
 
 // ARB list ===================-------------------------------------------
-GlExt _glARBlistEmpty[]= {
+osiGlExt _glARBlistEmpty[]= {
   {"GL_ARB_multitexture",            0}, // http://www.opengl.org/registry/specs/ARB/multitexture.txt
   {"GLX_ARB_get_proc_address",       0}, // http://www.opengl.org/registry/specs/ARB/get_proc_address.txt
   {"GL_ARB_transpose_matrix",        0}, // http://www.opengl.org/registry/specs/ARB/transpose_matrix.txt
@@ -3975,7 +3998,7 @@ GlExt _glARBlistEmpty[]= {
 
 
 // EXT & vendor list ===================-------------------------------------------
-GlExt _glEXTlistEmpty[]= {
+osiGlExt _glEXTlistEmpty[]= {
   {"GL_EXT_abgr", 0},               // #1 http://www.opengl.org/registry/specs/EXT/abgr.txt
   {"GL_EXT_blend_color", 0},        // http://www.opengl.org/registry/specs/EXT/blend_color.txt
   {"GL_EXT_polygon_offset", 0},     // http://www.opengl.org/registry/specs/EXT/polygon_offset.txt
@@ -4439,6 +4462,8 @@ GlExt _glEXTlistEmpty[]= {
 
 
 
+
+#endif /// OSI_USE_OPENGL
 
 
 

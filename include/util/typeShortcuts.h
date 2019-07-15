@@ -93,7 +93,7 @@
 
 
 
-#define null NULL               // i just like the null without the yelling (don't think anyone would use smallcase null for anything else)
+#define null NULL
 
 #define wchar wchar_t           // this is 16bit under windows, 32bit under linux, so... i would recommand against using this
 

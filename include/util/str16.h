@@ -7,13 +7,6 @@
 //  correct number set, so it doesn't recalculate it @ every string operation
 //  (SPEED is favoured)
 
-// -this class is not using any c/c++ string function. At this moment with the windows/linux war...
-//  setting locale& other stuff is just not possible as everything differs.
-
-// -fopen knows of utf-8 but the win version wants to put a BOM in the file,
-//  wich cause problems in linux, so a file should be opened as pure binary (at
-//  least when writing). This should avoid fseek problems too (fseek is used internally)
-
 
 // NOTES:
 // -character              - char - usually what every program knows about a character
@@ -90,7 +83,7 @@ public:
   // character or string insertion / deletion from a string
 
   void insert(char32_t in_unicode,       int32_t in_pos= -1);  // <in_unicode>- unicode to insert; <in_pos>- insert position (-1= insert at the end of str)
-  void insertStr(const char16_t *in_str, int32_t n, int32_t in_pos= -1);  // <in_str>- str(UTF-16) to insert; <in_pos>- insert position (-1= at the end of the str)
+  void insertStr(const char16_t *in_str, int32_t n= -1, int32_t in_pos= -1);  // <in_str>- str(UTF-16) to insert; <in_pos>- insert position (-1= at the end of the str)
   void del(int32_t in_nUnicodesToDel= 1, int32_t in_pos= -1);  // <in_nrToDel>- number of unicode values to delete; <in_pos>- delete position - (del at the left, -1= end of string);
 
   // search in string funcs

@@ -9,6 +9,11 @@
 #include <time.h>
 #endif
 
+// dynamic library link
+#if defined(OS_LINUX) || defined(OS_MAC)
+#include <dlfcn.h>
+#endif
+
 
 
 /* TODO:
@@ -143,6 +148,7 @@ _NET_CLOSE_WINDOW
 #ifdef OS_WIN
 /// NVidia optimus http://developer.download.nvidia.com/devzone/devcenter/gamegraphics/files/OptimusRenderingPolicies.pdf
 extern "C" { _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001; }
+
 #endif
 
 /* SCRAPE
@@ -168,27 +174,31 @@ extern "C" { _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001; }
 // >>> OBJECTS CREATION <<< //
 ///========================///
 
-
 ErrorHandling error;
+#ifdef OSI_USE_OPENGL
+void *_osiOpenGLlib= null;
+#endif
+#ifdef OS_MAC
+mach_timebase_info_data_t _machInfo; /// [internal] mac variant of a performance timer. this var holds cpu frequencies & stuff (similar to QuerryPerformance... in win)
+osiCocoa cocoa;
+#endif
+//_osiVkFuncs vk;
 osinteraction osi;
 osiInput in;
 
 
-#ifdef OS_MAC
-mach_timebase_info_data_t _machInfo; /// [internal] mac variant of a performance timer. this var holds cpu frequencies & stuff (similar to QuerryPerformance... in win)
-#endif
-
-void _parseCmdLine(osinteraction *o);
+void _osiParseCmdLine(osinteraction *o);
 
 
 osinteraction::osinteraction() {
+  #ifdef OSI_USE_OPENGL
   // default settings values
-  settings.renderer.minVerMajor= 0;           /// highest on the system
-  settings.renderer.minVerMinor= 0;           /// highest on the system
-  settings.renderer.setOneRendererPerGPU();
-  settings.renderer.legacyCompatibility= false;
-  settings.renderer.debugRenderer= false;
-  settings.renderer.shareGroup= null;
+  settings.glRenderer.minVerMajor= 0;           /// highest on the system
+  settings.glRenderer.minVerMinor= 0;           /// highest on the system
+  settings.setOneRenderer();
+  settings.glRenderer.legacyCompatibility= false;
+  settings.glRenderer.debugRenderer= false;
+  settings.glRenderer.shareGroup= null;
   settings.pixelFormat.renderOnWindow= true;
   settings.pixelFormat.renderOnBitmap= false;
   settings.pixelFormat.renderOnPBuffer= false;
@@ -208,6 +218,9 @@ osinteraction::osinteraction() {
   settings.pixelFormat.transparentGreenSize= 8;
   settings.pixelFormat.transparentBlueSize= 8;
   settings.pixelFormat.transparentAlphaSize= 8;
+  #endif
+
+  // flags struct
 
   flags.exit= false;
   flags.haveFocus= false;
@@ -220,10 +233,14 @@ osinteraction::osinteraction() {
 
   primWin= null;
   
+  #ifdef OSI_USE_OPENGL
   glr= null;
   glrWin= null;
+  #endif
+
   argv= null;
   argc= 0;
+
 
   #ifdef OS_WIN
   QueryPerformanceFrequency(&_timerFreq);   /// read cpu frequency. used for high performance timer (querryPerformanceBlaBla)
@@ -241,8 +258,6 @@ osinteraction::osinteraction() {
 /// printf won't work without setlocale. but hopefully it won't be needed.
 //    setlocale(LC_ALL, ""); // can't rely on setlocale. everything is different on each os. rely on StringClass32/8 and that's that.
 //  setlocale(LC_CTYPE, "");
-  
-  
   
   
   if(!(_dis= XOpenDisplay(null)))          // DISPLAY CONNECTION TO XSERVER can be something like ":0.0" :displayNr.screenNr
@@ -288,7 +303,8 @@ osinteraction::osinteraction() {
     delete[] buf;
   }
   #endif /// OS_LINUX
-
+  
+  
   #ifdef OS_MAC
   mach_timebase_info(&_machInfo);     /// read cpu frequency & stuff; used for high performance timer (mac variant, named mach)
   cocoa.setProgramPath();             /// program path (osi.path stores the string afterwards)
@@ -297,11 +313,12 @@ osinteraction::osinteraction() {
 
   setProgramIcon(OSI_PROGRAM_ICON);
 
-  _parseCmdLine(this);                /// creates argc & argv
+  _osiParseCmdLine(this);                /// creates argc & argv
   getNanosecs(&present);              /// start with updated present time variable
   display.populate();                 /// populate monitors / grcards info
   if(!display.bGPUinfoAvaible)
-    settings.renderer.setOneRendererPerMonitor();
+    settings.setOneRendererPerMonitor();
+
 }
 
 
@@ -317,6 +334,17 @@ osinteraction::~osinteraction() {
   argv= null;
   argc= 0;
 
+  // destroy all vulkan devices / etc
+  vkDestroyAllSurfaces();
+
+  #ifdef OSI_USE_OPENGL
+  #ifdef OS_WIN
+  if(_osiOpenGLlib!= null)
+    FreeLibrary((HMODULE)_osiOpenGLlib);
+  _osiOpenGLlib= null;
+  #endif
+  #endif
+
   #ifdef OS_LINUX
 // it seems system already destroys the display/windows and calling any of these causes segmentation error
 // maybe put them in a program exit function that might be called by the program.
@@ -324,20 +352,36 @@ osinteraction::~osinteraction() {
   // XSync(primWin->dis, False);
   // delData();
   // XCloseDisplay(primWin->dis);             // DISPLAY CONNECTION TERMINATION
+
+  /* vulkan stuff moved to VKO
+  if(_osiVulkanLib!= null)
+    dlclose(_osiVulkanLib);
+  _osiVulkanLib= null;
+  */
   #endif
+
+  
+  #ifdef OS_MAC
+  /* vulkan stuff moved to VKO
+  if(_osiVulkanLib!= null)
+    dlclose(_osiVulkanLib);
+  _osiVulkanLib= null;
+  */
+  #endif
+  
 }
 
 
 void osinteraction::delData() {
   /// destroy every window. kinda useless...
-  //for(short a= 0; a< MAX_WINDOWS; a++)
+  //for(short a= 0; a< OSI_MAX_WINDOWS; a++)
     //if(win[a].isCreated) win[a].delData();
 }
 
 
 
 
-void _parseCmdLine(osinteraction *o) {
+void _osiParseCmdLine(osinteraction *o) {
   str32 s, s2;
   if(!o->cmdLine.d) return;
   s= o->cmdLine.convert32();
@@ -442,40 +486,464 @@ void _parseCmdLine(osinteraction *o) {
 
 // SIMPLE WINDOW CREATION FUNCS. they all call createGLWindow()
 
-// create just a single 'primary' window on 'primary' monitor
-bool osinteraction::primaryGLWindow(cchar *name, int32 dx, int32 dy, int8 mode, int16 freq) {
-  if(primWin) return false;               /// primary window already created
-  int a;
-  for(a= 0; a< MAX_WINDOWS; a++)
-    if(!win[a].isCreated)
-      break;
-  if(a== MAX_WINDOWS) return false;       /// weird case, but it can happen
-  
-  return createGLWindow(&win[a], display.primary, name, dx, dy, mode, freq);
-}
 
-// create a fullscreen (mode 3) primary window
-bool osinteraction::primaryGLWindow() {
-  if(primWin) return false;
-  int a;
-  for(a= 0; a< MAX_WINDOWS; a++) 
-    if(!win[a].isCreated)
-      break;
-  if(a== MAX_WINDOWS) return false;       /// weird case, but it can happen
-  
-  win[a].mode= 3;
-  win[a].name= "Primary Program Window";
-  win[a].freq= 0;
-  
-  return createGLWindow(&win[a], display.primary, win[a].name, win[a].dx, win[a].dy, win[a].mode, win[a].freq);
-}
+
+
+
+
+
+
+
+
+//
+//// MAIN CREATE WINDOW FUNC. has every customisation
+//bool osinteraction::glCreateWindowOLD(osiWindow *w, osiMonitor *m, cchar *name, int32 dx, int32 dy, int8 mode, int16 freq, cchar *iconFile) {
+//  bool chatty= false;
+//
+//  str8 func= "osinteraction::createGLWindow: ";
+//  w->name= name;
+//  w->monitor= m;
+//
+//  /// window position
+//  if(mode== 1) {                                    /// windowed position
+//    int tx= m->x0+ (m->original.dx/ 2)- (dx/ 2);
+//    int ty= m->y0+ (m->original.dy/ 2)- (dy/ 2);
+//    w->x0= (tx< m->x0)? m->x0: tx;
+//    w->y0= (ty< m->y0)? m->y0: ty;
+//  } else if((mode == 2) || (mode == 3)) {           /// fullscreen/ fullscreen window position
+//    w->x0= m->x0;
+//    w->y0= m->y0;
+//  } else if (mode== 4) {                            /// full virtual screen
+//    w->x0= display.vx0;
+//    w->y0= display.vy0;
+//  }
+//  /// fullscreen window size set to monitor resolution size - else use them passed vars
+//  if(mode == 3) {                                   /// fullscreen window
+//    w->dx= m->original.dx;
+//    w->dy= m->original.dy;
+//  } else if(mode == 4) {                            /// full virtual screen
+//    w->dx= display.vdx;
+//    w->dy= display.vdy;
+//  } else {
+//    w->dx= (dx> 1)? dx: 1;
+//    w->dy= (dy> 1)? dy: 1;
+//  }
+//  
+//  w->mode= mode;
+//  w->freq= freq;
+//  if(!primWin) primWin= w;                          /// if no primary window is set, this will be the primary
+//  
+//  if(chatty) printf("win x[%d] y[%d], monitor x[%d] y[%d]\n", w->x0, w->y0, m->x0, m->y0);
+//  
+//  #ifdef OS_WIN
+//  
+//          
+////  GLuint PixelFormat;   // Holds The Results After Searching For A Match
+//  WNDCLASS wc;          // Windows Class Structure
+//  DWORD dwExStyle= 0;   // Window Extended Style
+//  DWORD dwStyle= 0;     // Window Style
+//  RECT rect;            // Grabs Rectangle Upper Left / Lower Right Values
+//
+//  /// fullscreen resolution change
+//  if(mode== 2) {
+//    if(!display.changeRes(m, w->dx, w->dy, w->freq)) {
+//      mode= 1;                            // if it fails, set mode to windowed <<--- ???
+//      w->mode= 1;
+//    }
+//    w->x0= m->x0;
+//    w->y0= m->y0;
+//  }
+//
+//  rect.left=   w->x0;
+//  rect.right=  w->x0+ w->dx;
+//  rect.top=    display.vdy- display.vy0- (w->y0+ w->dy);  /// coordonate unification changed
+//  rect.bottom= display.vdy- display.vy0- w->y0;           /// coordonate unification changed
+//
+//  w->_hInstance =   GetModuleHandle(NULL);                /// grab an instance for window
+//  wc.style=         CS_HREDRAW | CS_VREDRAW | CS_OWNDC;   /// Redraw On Size, And Own DC For Window.
+//  wc.lpfnWndProc=   (WNDPROC) _processMSG;                 // _processMSG handles messages
+//  wc.cbClsExtra=    0;                                    /// no extra
+//  wc.cbWndExtra=    0;                                    /// no extra
+//  wc.hInstance=     w->_hInstance;                        /// set the aquired instance
+//  wc.hIcon=         LoadIcon(NULL, IDI_WINLOGO);          // load default icon <<<<<<<<<<<<<<<<<<<<<< ICON WORKS MUST BE MADE
+//  wc.hCursor=       LoadCursor(NULL, IDC_ARROW);          /// load arrow pointer
+//  wc.hbrBackground= NULL;                                 /// no backgraound required when using opengl
+//  wc.lpszMenuName=  NULL;                                 /// no menus
+//  wc.lpszClassName= w->name;                              /// class name... dunno for shure what this is
+//
+//  if (!RegisterClass(&wc)) {                        /// register the window class
+//    error.simple(func+ "Failed to register wc");
+//    return false;
+//  }
+//
+//  if(mode== 1) {                                    // windowed
+//    if(w == primWin) {                             /// if it's primWin, it's the primary window - if not it's a child window
+//      dwExStyle= WS_EX_APPWINDOW| WS_EX_WINDOWEDGE;
+//      dwStyle= WS_OVERLAPPEDWINDOW;
+//    } else {
+//      dwExStyle= WS_EX_TOOLWINDOW| WS_EX_WINDOWEDGE;
+//      dwStyle= WS_OVERLAPPEDWINDOW;                 /// WS_CHILD is out of the equation (these are windows in windows)
+//    }
+//  } else if(mode== 2) {                             // fullscreen
+//    if(w == primWin) {
+//      dwExStyle= WS_EX_APPWINDOW;
+//      dwStyle= WS_POPUP;
+//      ShowCursor(FALSE);
+//    } else {
+//      dwExStyle= 0;
+//      dwStyle= WS_POPUP;//WS_CHILD;//WS_OVERLAPPED;// WS_POPUP;//| WS_CHILD;  // <<< wschild???
+//      ShowCursor(FALSE);
+//    }
+//  } else if((mode== 3) || (mode== 4)) {             // fullscreen window
+//    if(w == primWin) {
+//      dwExStyle= WS_EX_APPWINDOW;
+//      dwStyle= WS_POPUP;
+//    }	else {
+//      dwExStyle= 0;
+//      dwStyle= WS_POPUP;//| WS_CHILD; // <<< wschild???
+//    }
+//  }
+//
+//  AdjustWindowRectEx(&rect, dwStyle, FALSE, dwExStyle); // Adjust Window To True Requested Size
+//
+//  str8 className= w->name;
+//
+//  // Create The Window
+//  if (!(w->_hWnd= CreateWindowEx(
+//                dwExStyle,              // Extended Style For The Window
+//                className,              // class name           <--- might want a different class name?
+//                w->name,                /// window title
+//                dwStyle |               /// defined window style
+//                WS_CLIPSIBLINGS |       /// Required Window Style ?? not shure
+//                WS_CLIPCHILDREN,        /// Required Window Style ?? not shure
+//                w->x0, (display.vdy- display.vy0)- (w->y0+ w->dy), /// window position (coord unification fixed)
+//                rect.right- rect.left,  /// dx
+//                rect.bottom- rect.top,  /// dy
+//                primWin->_hWnd,         /// parent window
+//                NULL,                   /// no menu
+//                w->_hInstance,          /// instance
+//                NULL)))                 /// don't pass anything to WM_CREATE
+//  {
+//    glKillWindow(w);                    // Reset The Display
+//    error.simple(func+ "Window creation error.");
+//    return false;
+//  }
+//
+//  if (!(w->_hDC= GetDC(w->_hWnd))) {                /// get a device context
+//    glKillWindow(w);
+//    error.simple(func+ "Can't create a GL DC");
+//    return false;
+//  }
+//  
+//  // enable WM_UNICHAR messages - TO BE OR NOT TO BE
+//  SendMessage(w->_hWnd, UNICODE_NOCHAR, 0, 0);
+//
+//
+//  /*
+//  /// pixel format - MORE TESTING NEEDED HERE. screen blacks out on mode 3 - it shouldn't
+//  static PIXELFORMATDESCRIPTOR pfd;
+//  /*
+//  pfd.nSize= sizeof(PIXELFORMATDESCRIPTOR);
+//  pfd.nVersion= 1;
+//  pfd.dwFlags= PFD_DRAW_TO_WINDOW| PFD_DRAW_TO_BITMAP| PFD_SUPPORT_OPENGL| PFD_DOUBLEBUFFER| PFD_STEREO_DONTCARE; //| PFD_SWAP_EXCHANGE;//| PFD_NEED_PALETTE;
+//  pfd.iPixelType= PFD_TYPE_RGBA;
+//  pfd.cColorBits= w->bpp;
+//  pfd.cRedBits= 8;
+//  pfd.cRedShift= 0;
+//  pfd.cGreenBits= 8;
+//  pfd.cGreenShift= 0;
+//  pfd.cBlueBits= 8;
+//  pfd.cBlueShift= 0;
+//  pfd.cAlphaBits= 0;
+//  pfd.cAlphaShift= 0;
+//  pfd.cAccumBits= 32;
+//  pfd.cAccumRedBits= 8;
+//  pfd.cAccumGreenBits= 8;
+//  pfd.cAccumBlueBits= 8;
+//  pfd.cAccumAlphaBits= 8;
+//  pfd.cDepthBits= 32;
+//  pfd.cStencilBits= 8;
+//  pfd.cAuxBuffers= 0;
+//  pfd.iLayerType= PFD_MAIN_PLANE;
+//  pfd.bReserved= 0;
+//  pfd.dwLayerMask= 0;
+//  pfd.dwVisibleMask= 0;
+//  pfd.dwDamageMask= 0;
+//  * / <<<<
+//
+//
+//
+//  /// get the current pixel format index  
+//  int pixelf= GetPixelFormat(w->_hDC); 
+//  if(chatty) printf("pixelf= %d\n", pixelf);
+//
+//  /// obtain a detailed description of that pixel format  
+//  DescribePixelFormat(w->_hDC, pixelf, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
+//  if(chatty) {
+//    printf("Current pixel format descriptor:\n");
+//    printf("  pfd.nVersion= %d\n",        pfd.nVersion);
+//    printf("  pfd.iPixelType= %d\n",      pfd.iPixelType);
+//    printf("  pfd.cColorBits= %d\n",      pfd.cColorBits);
+//    printf("  pfd.cRedBits= %d\n",        pfd.cRedBits);
+//    printf("  pfd.cRedShift= %d\n",       pfd.cRedShift);
+//    printf("  pfd.cGreenBits= %d\n",      pfd.cGreenBits);
+//    printf("  pfd.cGreenShift= %d\n",     pfd.cGreenShift);
+//    printf("  pfd.cBlueBits= %d\n",       pfd.cBlueBits);
+//    printf("  pfd.cBlueShift= %d\n",      pfd.cBlueShift);
+//    printf("  pfd.cAlphaBits= %d\n",      pfd.cAlphaBits);
+//    printf("  pfd.cAlphaShift= %d\n",     pfd.cAlphaShift);
+//    printf("  pfd.cAccumBits= %d\n",      pfd.cAccumBits);
+//    printf("  pfd.cAccumRedBits= %d\n",   pfd.cAccumRedBits);
+//    printf("  pfd.cAccumGreenBits= %d\n", pfd.cAccumGreenBits);
+//    printf("  pfd.cAccumBlueBits= %d\n",  pfd.cAccumBlueBits);
+//    printf("  pfd.cAccumAlphaBits= %d\n", pfd.cAccumAlphaBits);
+//    printf("  pfd.cDepthBits= %d\n",      pfd.cDepthBits);
+//    printf("  pfd.cStencilBits= %d\n",    pfd.cStencilBits);
+//    printf("  pfd.cAuxBuffers= %d\n",     pfd.cAuxBuffers);
+//    printf("  pfd.iLayerType= %d\n",      pfd.iLayerType);
+//    printf("  pfd.bReserved= %d\n",       pfd.bReserved);
+//    printf("  pfd.dwLayerMask= %d\n",     pfd.dwLayerMask);
+//    printf("  pfd.dwVisibleMask= %d\n",   pfd.dwVisibleMask);
+//    printf("  pfd.dwDamageMask= %d\n",    pfd.dwDamageMask);
+//  }
+//
+//
+//  /// setup pixel format
+//  pfd.dwFlags= pfd.dwFlags| PFD_DRAW_TO_WINDOW| PFD_DRAW_TO_BITMAP| PFD_SUPPORT_OPENGL| PFD_STEREO_DONTCARE; //| PFD_SWAP_EXCHANGE;//| PFD_NEED_PALETTE;
+//
+//  if(osi.settings.frontBuffer.dblBuffer) pfd.dwFlags|= PFD_DOUBLEBUFFER;
+//  pfd.cRedBits=     osi.settings.frontBuffer.redSize;
+//  pfd.cGreenBits=   osi.settings.frontBuffer.greenSize;
+//  pfd.cBlueBits=    osi.settings.frontBuffer.blueSize;
+//  pfd.cAlphaBits=   osi.settings.frontBuffer.alphaSize;
+//  pfd.cDepthBits=   osi.settings.frontBuffer.depth;
+//  pfd.cStencilBits= osi.settings.frontBuffer.stencilSize;
+//
+//
+//  // MORE TESTS NEEDED. it seems, when everything is 0, some 'default' current mode is in use; can't know for shure until using a more complex opengl scene
+//
+//
+//  // NEED TO USE THIS INSTEAD, i think
+//  //BOOL wglChoosePixelFormatARB(HDC hdc, const int *piAttribIList, const FLOAT *pfAttribFList, UINT nMaxFormats, int *piFormats, UINT *nNumFormats);
+//
+//  if (!(PixelFormat= ChoosePixelFormat(w->_hDC, &pfd))) {  /// lots of checks, don't think any needed
+//    killGLWindow(w);
+//    error.simple(func+ "Can't aquire a PixelFormat");
+//    return false;
+//  }
+//
+//  if(!SetPixelFormat(w->_hDC, PixelFormat, &pfd)) {        /// lots of checks, don't think any needed
+//    killGLWindow(w);
+//    error.simple(func+ "Can't set PixelFormat");
+//    return false;
+//  }
+//  */
+//
+//  // THIS WAS AFTER SHOW WINDOW
+//  if(!glAssignRenderer(w)) {
+//    glKillWindow(w);
+//    error.simple(func+ "Cannot create oGL renderer (context)");
+//    return false;
+//  }
+//
+//  w->setIcon(iconFile? iconFile: _iconFile);
+//  
+//  ShowWindow(w->_hWnd, SW_SHOW);  /// Show The Window
+//  SetForegroundWindow(w->_hWnd);  /// Slightly Higher Priority
+//
+//  SetFocus(w->_hWnd);             /// Sets Keyboard Focus To The Window
+//
+//
+//  if(!glMakeCurrent(w->glr, w)) {
+//    glKillWindow(w);
+//    error.simple(func+ "Can't activate GL RC");
+//    return false;
+//  }
+//
+//
+//
+//  w->isCreated= true;
+//  m->win= w;
+//
+//  w->glr->checkExt();
+//  w->glr->getExtFuncs();          /// once a window is created, getExtensions() aquires oGL extensions functions
+//  return true;
+//  #endif /// OS_WIN
+//
+//  
+//  #ifdef OS_LINUX //                <---------------------------LINUX
+//
+//  Colormap cmap;
+//  XSetWindowAttributes swa;
+//
+//  /// need glx version 1.3 for front buffers managing
+//  int glxMajor= 0, glxMinor= 0;
+//  glXQueryVersion(osi._dis, &glxMajor, &glxMinor );
+//  if((glxMajor< 1) || ((glxMajor== 1) && (glxMinor< 3))) {
+//    error.simple(func+ "GLX version too low");
+//    return false;
+//  }
+//
+//  if(!w->_createFBandVisual()) {
+//    return false;
+//  }
+//
+//  w->_root= m->_root;                                        // 'desktop window'
+//  w->_dis= _dis;                                           // XServer connection
+//  
+//  if(mode == 2)
+//    if(!display.changeRes(m, dx, dy, freq)) {
+//      error.simple("osi:createGLwindow: cant change to selected resolution");
+//      w->dx= m->dx;
+//      w->dy= m->dy;
+//      mode= 3;
+//    }
+//  
+//  w->mode= mode;
+//
+//
+//  cmap= XCreateColormap(w->_dis, w->_root, w->_vi->visual, AllocNone);
+//  swa.colormap= cmap;
+//  
+//  swa.event_mask= ExposureMask|                       // redraw events
+////                ((w== primWin)? StructureNotifyMask: SubstructureNotifyMask)|     // NOT SHURE
+////                SubstructureNotifyMask|             // send msgs only to parent ? // NOT SHURE
+//                  StructureNotifyMask|                // probly the default, a parent must have this I THINK
+//                  EnterWindowMask| LeaveWindowMask|   // mouse enters window &other stuff like this
+//                  FocusChangeMask|                    // gain/lose focus
+//                  KeyPressMask| KeyReleaseMask|       // keyboard
+//                  ButtonPressMask| ButtonReleaseMask| // mouse buttons
+//                  PointerMotionMask;                  // mouse motion
+//    
+//  swa.override_redirect= 0;                             // this is very hard to handle if true
+//  
+//  w->_win= XCreateWindow(w->_dis, w->_root,
+//                        w->x0, display.vdy- display.vy0- (w->y0+ w->dy), w->dx, w->dy,     // position & size (coord unification fixed)
+//                        0,                              // border size
+//                        w->_vi->depth,                  // depth can be CopyFromParent
+//                        InputOutput,                    // InputOnly/ InputOutput/ CopyFromParent
+//                        w->_vi->visual,                 // can be CopyFromParent
+//                        CWColormap| CWEventMask| CWOverrideRedirect,       // tied with &swa
+//                        &swa);                          //
+//
+//
+//// tring to see what this group hint is
+///*
+//  XWMHints *wh= XAllocWMHints();
+//  wh->window_group= 1;
+//  wh->flags= WindowGroupHint;
+//  XSetWMHints(w->_dis, w->_win, wh);
+//  XFree(wh);
+// */
+//// ^^^^^^^^ after testing, still dunno what the group does... auto it does nothing
+//
+//  
+//  
+//  // _NET_WM_STATE with_NET_WM_STATE_ABOVE gain focus
+//  // _NET_WM_STATE with_NET_WM_STATE_BELOW lose focus
+//
+//  if(w== primWin) {
+//    
+//  } else {
+//    /// rest of windows have no taskbar icons
+//    w->_setWMstate(1, "_NET_WM_STATE_SKIP_TASKBAR");
+//    
+//    /// transient windows still have a taskbar icon, but it's over the primary window - STILL AN OPTION
+//    //XSetTransientForHint(_dis, w->_win, primWin->_win); // it seems transientFor is the only thing needed (no taskbar icon)
+//  }
+//  
+//  /// fullscreen mode linux specific msgs settings
+//  if((mode== 2) || (mode== 3) || (mode== 4)) {
+//    w->_setWMstate(1, "_NET_WM_STATE_FULLSCREEN");
+//  }
+//  
+//  /// Fullscreen window on all monitors - MODE 4. Needs XInerama only for monitor IDs (wich sucks, as Xrandr should handle this little aspect)
+//  if(mode== 4) {
+//    Atom fullmons = XInternAtom(w->_dis, "_NET_WM_FULLSCREEN_MONITORS", False);
+//    XEvent xev;
+//    for(short a= 0; a< sizeof(xev); a++) ((char*)&xev)[a]= 0;
+//    xev.type = ClientMessage;
+//    xev.xclient.window= w->_win;
+//    xev.xclient.message_type = fullmons;
+//    xev.xclient.format = 32;
+//    
+//    /// the next values are found in OSdisplay.cpp, updateVirtualDesktop() (back of file)
+//    /// Xinerama IDs are found in display.populate(), linux part, at the end
+//    xev.xclient.data.l[0]= display._top;     /// topmost monitor number (Xinerama monitor ID)
+//    xev.xclient.data.l[1]= display._bottom;  /// bottommost
+//    xev.xclient.data.l[2]= display._left;    /// leftmost
+//    xev.xclient.data.l[3]= display._right;   /// rightmost
+//    if(chatty) printf("top[%d] left[%d] bottom[%d] right[%d]\n", display._top, display._left, display._bottom, display._right);
+//    xev.xclient.data.l[4]= 1;                /// source indication (1 for normal applications, 2 for pagers and other Clients that represent direct user actions)
+//    
+//    XSendEvent (w->_dis, DefaultRootWindow(w->_dis), False,
+//                    SubstructureRedirectMask | SubstructureNotifyMask, &xev);
+//  }
+//  
+//  if(w->mode!= 1)                            /// in all other modes but 1, make window 'on top'
+//    w->_setWMstate(1, "_NET_WM_STATE_ABOVE");
+//
+//  /// window name and icon
+//  if(iconFile) w->setIcon(iconFile);
+//  else         w->setIcon(_iconFile);
+//  XStoreName(w->_dis, w->_win, name);         /// window name (top bar description/name)
+//  
+//  /// create / assign existing renderer 
+//  if(!glAssignRenderer(w)) {
+//    glKillWindow(w);
+//    error.simple("FATAL ERROR: Cannot create oGL renderer (context)");
+//    return false;
+//  }
+//
+//  
+//  glMakeCurrent(w->glr, w);                         // osi variant. works on every OS
+//
+//  ///  handle the close button WM
+//  if(w== primWin) {
+//    Atom wmDelete= XInternAtom(w->_dis, "WM_DELETE_WINDOW", True);
+//    XSetWMProtocols(w->_dis, w->_win, &wmDelete, 1);
+//  }
+//
+//  w->monitor= m;
+//  w->isCreated= true;
+//  m->win= w;
+//  
+//  w->glr->checkExt();           /// checks for extension avaibility on this oGL renderer
+//  w->glr->getExtFuncs();        /// once a window is created, getExtensions() aquires oGL extensions functions
+//  
+//  
+//  w->show();                    /// map window= finish creation/ show window
+//  w->move(w->x0, w->y0);
+//
+//  return true;
+//
+//  #endif /// OS_LINUX
+//
+//  #ifdef OS_MAC // <<<<<<<<<<<<<< MAC >>>>>>>>>>>>>>>
+//  
+//  /// window creation is in OScocoa.mm due to Abjective-C
+//  bool b= cocoa.createWindow(w, (iconFile? (cchar *)iconFile: (cchar *)_iconFile.d));  /// all window vars are set, just create the window.
+//  return b;
+//  #endif /// OS_MAC
+//  
+//  error.simple(func+ "no OS_XXXX specified?");
+//  return false;
+//} // osinteraction::createGLWindow END <<<
+//
+//
+
+
+
+
+
+
 
 
 // MAIN CREATE WINDOW FUNC. has every customisation
-bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int32 dx, int32 dy, int8 mode, int16 freq, cchar *iconFile) {
+bool osinteraction::createWindow(osiWindow *w, osiMonitor *m, const char *name, int32_t dx, int32_t dy, int8_t mode, int16_t freq, const char *iconFile) {
   bool chatty= false;
 
-  str8 func= "osinteraction::createGLWindow: ";
+  str8 func= "osinteraction::createWindow(): ";
   w->name= name;
   w->monitor= m;
 
@@ -599,13 +1067,13 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
                 w->_hInstance,          /// instance
                 NULL)))                 /// don't pass anything to WM_CREATE
   {
-    killGLWindow(w);                    // Reset The Display
+    destroyWindow(w);                    // Reset The Display
     error.simple(func+ "Window creation error.");
     return false;
   }
 
   if (!(w->_hDC= GetDC(w->_hWnd))) {                /// get a device context
-    killGLWindow(w);
+    destroyWindow(w);
     error.simple(func+ "Can't create a GL DC");
     return false;
   }
@@ -614,112 +1082,16 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
   SendMessage(w->_hWnd, UNICODE_NOCHAR, 0, 0);
 
 
-  /*
-  /// pixel format - MORE TESTING NEEDED HERE. screen blacks out on mode 3 - it shouldn't
-  static PIXELFORMATDESCRIPTOR pfd;
-  /*
-  pfd.nSize= sizeof(PIXELFORMATDESCRIPTOR);
-  pfd.nVersion= 1;
-  pfd.dwFlags= PFD_DRAW_TO_WINDOW| PFD_DRAW_TO_BITMAP| PFD_SUPPORT_OPENGL| PFD_DOUBLEBUFFER| PFD_STEREO_DONTCARE; //| PFD_SWAP_EXCHANGE;//| PFD_NEED_PALETTE;
-  pfd.iPixelType= PFD_TYPE_RGBA;
-  pfd.cColorBits= w->bpp;
-  pfd.cRedBits= 8;
-  pfd.cRedShift= 0;
-  pfd.cGreenBits= 8;
-  pfd.cGreenShift= 0;
-  pfd.cBlueBits= 8;
-  pfd.cBlueShift= 0;
-  pfd.cAlphaBits= 0;
-  pfd.cAlphaShift= 0;
-  pfd.cAccumBits= 32;
-  pfd.cAccumRedBits= 8;
-  pfd.cAccumGreenBits= 8;
-  pfd.cAccumBlueBits= 8;
-  pfd.cAccumAlphaBits= 8;
-  pfd.cDepthBits= 32;
-  pfd.cStencilBits= 8;
-  pfd.cAuxBuffers= 0;
-  pfd.iLayerType= PFD_MAIN_PLANE;
-  pfd.bReserved= 0;
-  pfd.dwLayerMask= 0;
-  pfd.dwVisibleMask= 0;
-  pfd.dwDamageMask= 0;
-  * / <<<<
 
-
-
-  /// get the current pixel format index  
-  int pixelf= GetPixelFormat(w->_hDC); 
-  if(chatty) printf("pixelf= %d\n", pixelf);
-
-  /// obtain a detailed description of that pixel format  
-  DescribePixelFormat(w->_hDC, pixelf, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
-  if(chatty) {
-    printf("Current pixel format descriptor:\n");
-    printf("  pfd.nVersion= %d\n",        pfd.nVersion);
-    printf("  pfd.iPixelType= %d\n",      pfd.iPixelType);
-    printf("  pfd.cColorBits= %d\n",      pfd.cColorBits);
-    printf("  pfd.cRedBits= %d\n",        pfd.cRedBits);
-    printf("  pfd.cRedShift= %d\n",       pfd.cRedShift);
-    printf("  pfd.cGreenBits= %d\n",      pfd.cGreenBits);
-    printf("  pfd.cGreenShift= %d\n",     pfd.cGreenShift);
-    printf("  pfd.cBlueBits= %d\n",       pfd.cBlueBits);
-    printf("  pfd.cBlueShift= %d\n",      pfd.cBlueShift);
-    printf("  pfd.cAlphaBits= %d\n",      pfd.cAlphaBits);
-    printf("  pfd.cAlphaShift= %d\n",     pfd.cAlphaShift);
-    printf("  pfd.cAccumBits= %d\n",      pfd.cAccumBits);
-    printf("  pfd.cAccumRedBits= %d\n",   pfd.cAccumRedBits);
-    printf("  pfd.cAccumGreenBits= %d\n", pfd.cAccumGreenBits);
-    printf("  pfd.cAccumBlueBits= %d\n",  pfd.cAccumBlueBits);
-    printf("  pfd.cAccumAlphaBits= %d\n", pfd.cAccumAlphaBits);
-    printf("  pfd.cDepthBits= %d\n",      pfd.cDepthBits);
-    printf("  pfd.cStencilBits= %d\n",    pfd.cStencilBits);
-    printf("  pfd.cAuxBuffers= %d\n",     pfd.cAuxBuffers);
-    printf("  pfd.iLayerType= %d\n",      pfd.iLayerType);
-    printf("  pfd.bReserved= %d\n",       pfd.bReserved);
-    printf("  pfd.dwLayerMask= %d\n",     pfd.dwLayerMask);
-    printf("  pfd.dwVisibleMask= %d\n",   pfd.dwVisibleMask);
-    printf("  pfd.dwDamageMask= %d\n",    pfd.dwDamageMask);
-  }
-
-
-  /// setup pixel format
-  pfd.dwFlags= pfd.dwFlags| PFD_DRAW_TO_WINDOW| PFD_DRAW_TO_BITMAP| PFD_SUPPORT_OPENGL| PFD_STEREO_DONTCARE; //| PFD_SWAP_EXCHANGE;//| PFD_NEED_PALETTE;
-
-  if(osi.settings.frontBuffer.dblBuffer) pfd.dwFlags|= PFD_DOUBLEBUFFER;
-  pfd.cRedBits=     osi.settings.frontBuffer.redSize;
-  pfd.cGreenBits=   osi.settings.frontBuffer.greenSize;
-  pfd.cBlueBits=    osi.settings.frontBuffer.blueSize;
-  pfd.cAlphaBits=   osi.settings.frontBuffer.alphaSize;
-  pfd.cDepthBits=   osi.settings.frontBuffer.depth;
-  pfd.cStencilBits= osi.settings.frontBuffer.stencilSize;
-
-
-  // MORE TESTS NEEDED. it seems, when everything is 0, some 'default' current mode is in use; can't know for shure until using a more complex opengl scene
-
-
-  // NEED TO USE THIS INSTEAD, i think
-  //BOOL wglChoosePixelFormatARB(HDC hdc, const int *piAttribIList, const FLOAT *pfAttribFList, UINT nMaxFormats, int *piFormats, UINT *nNumFormats);
-
-  if (!(PixelFormat= ChoosePixelFormat(w->_hDC, &pfd))) {  /// lots of checks, don't think any needed
-    killGLWindow(w);
-    error.simple(func+ "Can't aquire a PixelFormat");
-    return false;
-  }
-
-  if(!SetPixelFormat(w->_hDC, PixelFormat, &pfd)) {        /// lots of checks, don't think any needed
-    killGLWindow(w);
-    error.simple(func+ "Can't set PixelFormat");
-    return false;
-  }
-  */
+  /* REMOVED 1
 
   // THIS WAS AFTER SHOW WINDOW
-  if(!assignRenderer(w)) {
-    osi.killGLWindow(w);
+  if(!glAssignRenderer(w)) {
+    glKillWindow(w);
     error.simple(func+ "Cannot create oGL renderer (context)");
     return false;
   }
+  */
 
   w->setIcon(iconFile? iconFile: _iconFile);
   
@@ -728,20 +1100,22 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
 
   SetFocus(w->_hWnd);             /// Sets Keyboard Focus To The Window
 
-
+  /* REMOVED 2
   if(!glMakeCurrent(w->glr, w)) {
-    killGLWindow(w);
+    glKillWindow(w);
     error.simple(func+ "Can't activate GL RC");
     return false;
   }
-
+  */
 
 
   w->isCreated= true;
   m->win= w;
 
+  /* REMOVED 3
   w->glr->checkExt();
   w->glr->getExtFuncs();          /// once a window is created, getExtensions() aquires oGL extensions functions
+  */
   return true;
   #endif /// OS_WIN
 
@@ -751,6 +1125,7 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
   Colormap cmap;
   XSetWindowAttributes swa;
 
+  /* REMOVED 1
   /// need glx version 1.3 for front buffers managing
   int glxMajor= 0, glxMinor= 0;
   glXQueryVersion(osi._dis, &glxMajor, &glxMinor );
@@ -758,6 +1133,7 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
     error.simple(func+ "GLX version too low");
     return false;
   }
+  */
 
   if(!w->_createFBandVisual()) {
     return false;
@@ -863,15 +1239,18 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
   else         w->setIcon(_iconFile);
   XStoreName(w->_dis, w->_win, name);         /// window name (top bar description/name)
   
+
+  /* REMOVED 2
   /// create / assign existing renderer 
-  if(!assignRenderer(w)) {
-    osi.killGLWindow(w);
+  if(!glAssignRenderer(w)) {
+    glKillWindow(w);
     error.simple("FATAL ERROR: Cannot create oGL renderer (context)");
     return false;
   }
 
   
   glMakeCurrent(w->glr, w);                         // osi variant. works on every OS
+  */
 
   ///  handle the close button WM
   if(w== primWin) {
@@ -883,9 +1262,10 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
   w->isCreated= true;
   m->win= w;
   
+  /* REMOVED 3
   w->glr->checkExt();           /// checks for extension avaibility on this oGL renderer
   w->glr->getExtFuncs();        /// once a window is created, getExtensions() aquires oGL extensions functions
-  
+  */
   
   w->show();                    /// map window= finish creation/ show window
   w->move(w->x0, w->y0);
@@ -909,14 +1289,35 @@ bool osinteraction::createGLWindow(osiWindow *w, osiMonitor *m, cchar *name, int
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // ----------------============= GLWINDOW DELETION ==============-------------
-bool osinteraction::killPrimaryGLWindow() {
+bool osinteraction::destroyPrimaryWindow() {
   if(!primWin) return false;
-  return killGLWindow(primWin);
+  return destroyWindow(primWin);
 }
 
 
-bool osinteraction::killGLWindow(osiWindow *w) {
+bool osinteraction::destroyWindow(osiWindow *w) {
   bool newPrimWin= (w== primWin? true: false);
   
   if(w->mode== 2)
@@ -929,7 +1330,7 @@ bool osinteraction::killGLWindow(osiWindow *w) {
   
   /// a new primary window is needed (primWin)
   if(newPrimWin)
-    for(short a= 0; a< MAX_WINDOWS; a++)
+    for(short a= 0; a< OSI_MAX_WINDOWS; a++)
       if(win[a].isCreated) {
         primWin= &win[a];
         break;
@@ -941,7 +1342,7 @@ bool osinteraction::killGLWindow(osiWindow *w) {
 
 
 
-bool osinteraction::createSplashWindow(osiWindow *w, osiMonitor *m, cchar *file) {
+bool osinteraction::createSplashWindow(osiWindow *w, osiMonitor *m, const char *file) {
   if((!w) || (!m) || (!file)) return false;
   // image loading
   /// s will hold the file extension to be loaded, in lowercase
@@ -1323,14 +1724,14 @@ Fail:
 
 #ifdef OS_WIN
 char *osinteraction::_getWinName(HWND h) {
-  for(int a= 0; a< MAX_WINDOWS; a++)
+  for(int a= 0; a< OSI_MAX_WINDOWS; a++)
     if(win[a]._hWnd== h)
       return (char *)win[a].name.d;
   return "unknown window";
 }
 
 osiWindow *osinteraction::_getWin(HWND h) {
-  for(int a= 0; a< MAX_WINDOWS; a++)
+  for(int a= 0; a< OSI_MAX_WINDOWS; a++)
     if(win[a]._hWnd== h)
       return &win[a];
   return null;
@@ -1339,7 +1740,7 @@ osiWindow *osinteraction::_getWin(HWND h) {
 
 #ifdef OS_LINUX
 osiWindow *osinteraction::_getWin(Window *w) {
-  for(short a= 0; a< MAX_WINDOWS; a++)
+  for(short a= 0; a< OSI_MAX_WINDOWS; a++)
     if(win[a]._win== *w)
       return &win[a];
   return null;
@@ -1348,7 +1749,7 @@ osiWindow *osinteraction::_getWin(Window *w) {
 
 #ifdef OS_MAC
 osiWindow *osinteraction::_getWin(void *w) {
-  for(short a= 0; a< MAX_WINDOWS; a++)
+  for(short a= 0; a< OSI_MAX_WINDOWS; a++)
     if(win[a]._win== w)
       return &win[a];
   return null;
@@ -1631,13 +2032,13 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 
 
         /// change resolution in case of fullscreen
-        for(short a= 0; a< MAX_WINDOWS; a++) 
+        for(short a= 0; a< OSI_MAX_WINDOWS; a++) 
           if(osi.win[a].isCreated)
             if(osi.win[a].mode== 2)
               osi.display.changeRes(osi.win[a].monitor, osi.win[a].dx, osi.win[a].dy, osi.win[a].freq);
 
         /// show windows in case they are minimized
-        for(short a= 0; a< MAX_WINDOWS; a++) 
+        for(short a= 0; a< OSI_MAX_WINDOWS; a++) 
           if(osi.win[a].isCreated)
             if(osi.win[a].mode== 2) {
               ShowWindow(osi.win[a]._hWnd, SW_RESTORE);
@@ -1671,7 +2072,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         in.resetAxis();
 
         /// minimize windows in case of fullscreen
-        for(short a= 0; a< MAX_WINDOWS; a++) 
+        for(short a= 0; a< OSI_MAX_WINDOWS; a++) 
           if(osi.win[a].isCreated)
             if(osi.win[a].mode== 2) {
               if(&osi.win[a]== osi.primWin) /// main window gets minimized
@@ -1682,7 +2083,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
             }
 
         /// change back original monitors resolutions in case of fullscreen
-        for(short a= 0; a< MAX_WINDOWS; a++) 
+        for(short a= 0; a< OSI_MAX_WINDOWS; a++) 
           if(osi.win[a].isCreated)
             if(osi.win[a].mode== 2)
               osi.display.restoreRes(osi.win[a].monitor);
@@ -2166,12 +2567,12 @@ bool osinteraction::_processMSG()  {
         
         
         /// fullscreen only: change all monitors resolutions to program resolutions
-        for(short a= 0; a< MAX_WINDOWS; a++)
+        for(short a= 0; a< OSI_MAX_WINDOWS; a++)
           if(win[a].isCreated && win[a].mode== 2)
             display.changeRes(win[a].monitor, win[a].dx, win[a].dy, win[a].freq);
         
         /// fullscreen only: set all windows in front of everything
-        for(short a= 0; a< MAX_WINDOWS; a++)
+        for(short a= 0; a< OSI_MAX_WINDOWS; a++)
           if(win[a].isCreated)
             if(win[a].mode== 2 || win[a].mode== 3 || win[a].mode== 4) {
               if(win[a].mode== 2) win[a].move(win[a].x0, win[a].y0);              // maybe this might be needed
@@ -2227,7 +2628,7 @@ bool osinteraction::_processMSG()  {
         */
         
         /// fullscreen only: minimize window / set it to below every other window 
-        for(short a= 0; a< MAX_WINDOWS; a++)
+        for(short a= 0; a< OSI_MAX_WINDOWS; a++)
           if(win[a].isCreated) {
             if(win[a].mode== 2) {
               XIconifyWindow(_dis, win[a]._win, win[a].monitor->_screen); /// the only way so far to put fullscreen windows to the background
@@ -2242,7 +2643,7 @@ bool osinteraction::_processMSG()  {
           }
         
         /// fullscreen only: restore monitor resolutions (in case of mode 2)
-        for(short a= 0; a< MAX_WINDOWS; a++)
+        for(short a= 0; a< OSI_MAX_WINDOWS; a++)
           if(win[a].isCreated && win[a].mode== 2) {
             display.restoreAllRes();
             break;
@@ -2368,7 +2769,7 @@ bool osinteraction::checkMSG() {
 
 
 
-void osinteraction::getNanosecs(uint64 *out) {
+void osinteraction::getNanosecs(uint64_t *out) {
   #ifdef OS_WIN
   LARGE_INTEGER t;
   QueryPerformanceCounter(&t);
@@ -2396,7 +2797,7 @@ void osinteraction::getNanosecs(uint64 *out) {
 }
 
 
-void osinteraction::getMicrosecs(uint64 *out) {
+void osinteraction::getMicrosecs(uint64_t *out) {
   #ifdef OS_WIN
   LARGE_INTEGER t;
   QueryPerformanceCounter(&t);
@@ -2425,7 +2826,7 @@ void osinteraction::getMicrosecs(uint64 *out) {
 }
 
 
-void osinteraction::getMillisecs(uint64 *out) {
+void osinteraction::getMillisecs(uint64_t *out) {
   #ifdef OS_WIN
   LARGE_INTEGER t;
   QueryPerformanceCounter(&t);
@@ -2444,7 +2845,7 @@ void osinteraction::getMillisecs(uint64 *out) {
 }
 
 // WIP - linux problems
-void osinteraction::getClocks(uint64 *out) {
+void osinteraction::getClocks(uint64_t *out) {
   #ifdef OS_WIN
   QueryPerformanceCounter((LARGE_INTEGER*)out);
   #endif /// OS_WIN
@@ -2464,7 +2865,7 @@ void osinteraction::getClocks(uint64 *out) {
 }
 
 // WIP - linux problems
-void osinteraction::clocks2nanosecs(uint64 *out) {
+void osinteraction::clocks2nanosecs(uint64_t *out) {
   #ifdef OS_WIN
   /// there has to be a split because ((*out)* 1000000000)/ timerFreq.QuadPart reaches uint64 limit
   uint64 hi= *out/ 10000000;
@@ -2488,7 +2889,7 @@ void osinteraction::clocks2nanosecs(uint64 *out) {
 }
 
 // WIP - linux problems
-void osinteraction::clocks2microsecs(uint64 *out) {
+void osinteraction::clocks2microsecs(uint64_t *out) {
   #ifdef OS_WIN
   *out= (*out* 1000000)/ _timerFreq.QuadPart;
   #endif /// OS_WIN
@@ -2508,7 +2909,7 @@ void osinteraction::clocks2microsecs(uint64 *out) {
 }
 
 // WIP - linux problems
-void osinteraction::clocks2millisecs(uint64 *out) {
+void osinteraction::clocks2millisecs(uint64_t *out) {
   #ifdef OS_WIN
   *out= (*out* 1000)/ _timerFreq.QuadPart;
   #endif /// OS_WIN
@@ -2528,7 +2929,7 @@ void osinteraction::clocks2millisecs(uint64 *out) {
 }
 
 
-void osinteraction::sleep(uint64 millisecs) {
+void osinteraction::sleep(uint64_t millisecs) {
   #ifdef OS_WIN
   Sleep((DWORD)millisecs);
   #endif /// OS_WIN
@@ -2563,13 +2964,13 @@ void osinteraction::exit(int retVal) {
 }
 
 
-void osinteraction::setProgramIcon(cchar *fileName) {
+void osinteraction::setProgramIcon(const char *fileName) {
   _iconFile= fileName;
 }
 
 
 // sends text to the clipboard/pasteboard - used for copy/paste operations between programs
-void osinteraction::setClipboard(cchar *in_text) {
+void osinteraction::setClipboard(const char *in_text) {
   #ifdef OS_WIN
   str16 s(in_text);
 
@@ -2664,13 +3065,13 @@ bool osinteraction::getClipboard(char **out_text) {
         str32 s32;
         s32.secureUTF32((char32_t *)buf);
         str8 ret(s32.d);
-        *out_text= (const char *)ret.d;
+        *out_text= (char *)ret.d;
         ret.d= null; ret.updateLen();   /// trick str8 into not deleting it's bufer, because it's used
       }
 
     /// this seems to be a utf8 string
     } else {
-      *out_text= (const char *)s8.d;
+      *out_text= (char *)s8.d;
       s8.d= null; s8.updateLen();       /// trick str8 into not deleting it's bufer, because it's used
     }
     XFree(xdata);
@@ -2716,9 +3117,104 @@ int64_t osinteraction::ftell64(FILE *in_file) {
 
 
 
+
 ///-------------=======================-------------///
 // ============= OPENGL SPECIFIC STUFF ============= //
 ///-------------=======================-------------///
+
+
+#ifdef OSI_USE_OPENGL
+bool osinteraction::glCreateWindow(osiWindow *w, osiMonitor *m, const char *name, int32_t dx, int32_t dy, int8_t mode, int16_t freq, const char *iconFile) {
+  str8 func= "osi::glCreateWindow(): ";
+  if(!createWindow(w, m, name, dx, dy, mode, freq, iconFile))
+    return false;
+
+  #ifdef OS_WIN
+  if(!glAssignRenderer(w)) {
+    destroyWindow(w);
+    error.simple(func+ "Cannot create oGL renderer (context)");
+    return false;
+  }
+
+  if(!glMakeCurrent(w->renderer, w)) {
+    destroyWindow(w);
+    error.simple(func+ "Can't activate GL RC");
+    return false;
+  }
+
+  ((osiGlRenderer *)w->renderer)->checkExt();
+  ((osiGlRenderer *)w->renderer)->getExtFuncs();          /// once a window is created, getExtensions() aquires oGL extensions functions
+  #endif
+
+  #ifdef OS_LINUX
+  /// need glx version 1.3 for front buffers managing
+  int glxMajor= 0, glxMinor= 0;
+  glXQueryVersion(osi._dis, &glxMajor, &glxMinor );
+  if((glxMajor< 1) || ((glxMajor== 1) && (glxMinor< 3))) {
+    destroyWindow(w);
+    error.simple(func+ "GLX version too low");
+    return false;
+  }
+
+  
+  /// create / assign existing renderer 
+  if(!glAssignRenderer(w)) {
+    destroyWindow(w);
+    error.simple("FATAL ERROR: Cannot create oGL renderer (context)");
+    return false;
+  }
+
+  
+  glMakeCurrent(((osiGlRenderer *)w->renderer), w);                         // osi variant. works on every OS
+
+  ((osiGlRenderer *)w->renderer)->checkExt();           /// checks for extension avaibility on this oGL renderer
+  ((osiGlRenderer *)w->renderer)->getExtFuncs();        /// once a window is created, getExtensions() aquires oGL extensions functions
+  #endif
+
+  #ifdef OS_MAC
+  if(!cocoa.glCreateWindow(w, (iconFile? (cchar *)iconFile: (cchar *)_iconFile.d)))  /// all window vars are set, just create the window.
+    return false;
+  #endif
+
+  return true;
+}
+
+
+
+
+
+
+// create just a single 'primary' window on 'primary' monitor
+bool osinteraction::glPrimaryWindow(const char *name, int32_t dx, int32_t dy, int8_t mode, int16_t freq) {
+  if(primWin) return false;               /// primary window already created
+  int a;
+  for(a= 0; a< OSI_MAX_WINDOWS; a++)
+    if(!win[a].isCreated)
+      break;
+  if(a== OSI_MAX_WINDOWS) return false;       /// weird case, but it can happen
+  
+  return glCreateWindow(&win[a], display.primary, name, dx, dy, mode, freq);
+}
+
+
+
+
+
+// create a fullscreen (mode 3) primary window
+bool osinteraction::glPrimaryWindow() {
+  if(primWin) return false;
+  int a;
+  for(a= 0; a< OSI_MAX_WINDOWS; a++) 
+    if(!win[a].isCreated)
+      break;
+  if(a== OSI_MAX_WINDOWS) return false;       /// weird case, but it can happen
+  
+  win[a].mode= 3;
+  win[a].name= "Primary Program Window";
+  win[a].freq= 0;
+  
+  return glCreateWindow(&win[a], display.primary, win[a].name, win[a].dx, win[a].dy, win[a].mode, win[a].freq);
+}
 
 
 
@@ -2730,13 +3226,13 @@ int64_t osinteraction::ftell64(FILE *in_file) {
 ///--------------------------------------///
 
 // SWAP BUFFERS
-void osinteraction::swapPrimaryBuffers() {
+void osinteraction::glSwapPrimaryBuffers() {
   if(primWin)
-    swapBuffers(primWin);
+    glSwapBuffers(primWin);
 }
 
 
-void osinteraction::swapBuffers(osiWindow *w) {
+void osinteraction::glSwapBuffers(osiWindow *w) {
   #ifdef OS_WIN
   //SwapBuffers(w->hDC);      /// standard; the wgl one has more possibilities
   wglSwapLayerBuffers(w->_hDC, WGL_SWAP_MAIN_PLANE);
@@ -2752,7 +3248,8 @@ void osinteraction::swapBuffers(osiWindow *w) {
 } // osinteraction::swapBuffers
 
 
-bool osinteraction::glMakeCurrent(osiRenderer *r, osiWindow *w) {
+bool osinteraction::glMakeCurrent(osiRenderer *in_renderer, osiWindow *w) {
+  osiGlRenderer *r= (osiGlRenderer *)in_renderer;
   if(glr) glr->isActive= false;     /// set not active flag for current renderer
   if(_glr) _glr->isActive= false;   /// set not active flag for current renderer
 
@@ -2763,7 +3260,7 @@ bool osinteraction::glMakeCurrent(osiRenderer *r, osiWindow *w) {
 
     /// set the VAO current renderer variable
     _VAOrenderer= 0;
-    for(osiRenderer *p= (osiRenderer *)glRenderers.first; p; p= (osiRenderer *)p->next)
+    for(osiGlRenderer *p= (osiGlRenderer *)glRenderers.first; p; p= (osiGlRenderer *)p->next)
       if(p== r)
         break;
       else
@@ -2826,6 +3323,7 @@ void osinteraction::glGetVersion(int *outMajor, int *outMinor) {
   }
 }
 
+#endif /// OSI_USE_OPENGL
 
 
 
@@ -2834,6 +3332,77 @@ void osinteraction::glGetVersion(int *outMajor, int *outMinor) {
 
 
 
+
+
+
+
+///==================================================///
+// VULKAN funcs --------------------------------------//
+///==================================================///
+
+
+
+
+
+bool osinteraction::vkCreateWindow(osiWindow *w, osiMonitor *m, const char *name, int32_t dx, int32_t dy, int8_t mode, int16_t freq, const char *iconFile) {
+  if(!createWindow(w, m, name, dx, dy, mode, freq, iconFile))
+    return false;
+  /*
+  // vkAssignRenderer() will create or assign an already created renderer to the window, based on osi.settings
+  if(!osiVk::_assignRenderer(w)) {
+    destroyWindow(w);
+    error.simple(__FUNCTION__": failed to assign renderer to the window");
+    return false;
+  }
+  */
+
+  if(!osiVk::createSurface(vk, w)) {
+    destroyWindow(w);
+    return false;
+  }
+
+  return true;
+}
+  
+
+bool osinteraction::vkPrimaryWindow(const char *name, int32_t dx, int32_t dy, int8_t mode, int16_t freq) {
+  if(primWin) return false;               /// primary window already created
+  int a;
+  for(a= 0; a< OSI_MAX_WINDOWS; a++)
+    if(!win[a].isCreated)
+      break;
+  if(a== OSI_MAX_WINDOWS) return false;       /// weird case, but it can happen
+  
+  return vkCreateWindow(&win[a], display.primary, name, dx, dy, mode, freq);
+}
+
+
+
+
+
+// create a fullscreen (mode 3) primary window
+bool osinteraction::vkPrimaryWindow() {
+  if(primWin) return false;
+  int a;
+  for(a= 0; a< OSI_MAX_WINDOWS; a++) 
+    if(!win[a].isCreated)
+      break;
+  if(a== OSI_MAX_WINDOWS) return false;       /// weird case, but it can happen
+  
+  win[a].mode= 3;
+  win[a].name= "Primary Program Window";
+  win[a].freq= 0;
+  
+  return vkCreateWindow(&win[a], display.primary, win[a].name, win[a].dx, win[a].dy, win[a].mode, win[a].freq);
+}
+
+
+
+void osinteraction::vkDestroyAllSurfaces() {
+  for(uint a= 0; a< OSI_MAX_WINDOWS; a++)
+    if(win[a].vkSurface!= nullptr)
+      osiVk::destroySurface(vk, &win[a]);
+}
 
 
 

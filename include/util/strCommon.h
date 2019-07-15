@@ -38,8 +38,8 @@
 
 namespace Str {
   const uint32_t UNICODE_MAX= 0x10FFFF;
-  const uint32_t UTF16_LEAD_OFFSET= 0xD800- (0x10000>> 10);               // #define UTF16_LEAD_OFFSET 55232U
-  const uint32_t UTF16_SURROGATE_OFFSET= 0x10000- (0xD800<< 10)- 0xDC00;  // #define UTF16_SURROGATE_OFFSET 4238353408U
+  const uint32_t UTF16_LEAD_OFFSET= 55232U;           // 0xD800-  (0x10000>> 10);
+  const uint32_t UTF16_SURROGATE_OFFSET= 4238353408U; // 0x10000- (0xD800<< 10)- 0xDC00;
 
   int32_t strlen8(const char *);          // size in BYTES of a UTF-8 string  (includes str terminator)
   int32_t strlen16(const char16_t *);     // size in BYTES of a UTF-16 string (includes str terminator)
@@ -264,7 +264,7 @@ namespace Str {
 
   //inline void memcpy(void *dst, const void *src, uint64_t n) { for(uint64_t a= 0; a< n; a++) ((int8_t *)dst)[a]= ((int8_t *)src)[a]; }
   //inline void memcpy(void *dst, const void *src, uint64_t n) { int8_t *p1= (int8_t *)dst, *p2= (int8_t *)src; for(uint64_t a= 0; a< n; a++, p1++, p2++) *p1= *p2; }
-}
+} /// namespace Str
 
 
 

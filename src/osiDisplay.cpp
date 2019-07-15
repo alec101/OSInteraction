@@ -33,6 +33,7 @@
  * [all]: possible bug: res change with only frequency change
  * [linux] restore mouse cursor for change res... ?
  * xrand has some event handling, must be checked
+ * [win]: check on the d3d linking, maybe link/unlink if possible just to read grcard info
  */
 
 
@@ -59,16 +60,16 @@
 
 // small internal funcs i think i will not add to the class anymore; scrap everything private ???
 // check end of file for source
-void updateVirtualDesktop(); 
-void getMonitorPos(osiMonitor *m); // SCRAPED I THINK (it still helped, tho, many months later, so do not be hasty in deleting stuff)
-osiResolution *getResolution(int dx, int dy, osiMonitor *gr);
-int16 getFreq(int16 freq, osiResolution *r);
+void _osiUpdateVirtualDesktop(); 
+void _osiGetMonitorPos(osiMonitor *m); // SCRAPED I THINK (it still helped, tho, many months later, so do not be hasty in deleting stuff)
+osiResolution *_osiGetResolution(int dx, int dy, osiMonitor *gr);
+int16 _osiGetFreq(int16 freq, osiResolution *r);
 
 #ifdef OS_LINUX
-XRRModeInfo *getMode(XRRScreenResources* s, RRMode id);
-bool _xrrAvaible= false;
-bool _xiAvaible= false;
-int _xrrMajor, _xrrMinor;
+XRRModeInfo *_osiGetMode(XRRScreenResources* s, RRMode id);
+bool _osiXrrAvaible= false;
+bool _osiXiAvaible= false;
+int _osiXrrMajor, _osiXrrMinor;
 #endif /// OS_LINUX
   
   
@@ -126,12 +127,13 @@ osiMonitor::osiMonitor() {
   nrRes= 0;
   res= null;
   primary= false;
-  glr= null;
+  renderer= null;
   inOriginal= true;     /// start in original resolution... right?
   _inProgRes= false;
   x0= y0= _y0= dx= dy= 0;
   win= null;
-
+  GPU= null;
+  
   /// original & program resolutions
   original.nrFreq= 1;
   original.freq= new int16[1];
@@ -185,7 +187,8 @@ void osiMonitor::delData() {
   progRes.dx= 0;
   progRes.dy= 0;
   progRes.freq[0]= 0;
-  
+  GPU= null;
+
   #ifdef OS_WIN
   _id= "";
   #endif /// OS_WIN
@@ -278,7 +281,7 @@ bool osiDisplay::changePrimary(int32 dx, int32 dy, int16 freq) {      // change 
 
 // doChange is doing the actual resolution change, whitout any checks. safety/ rest of handling is in osiDisplay::changeRes
 // doChange is private, no need to put it in osiDisplay, as calling it won't do anything
-bool doChange(osiMonitor *m, osiResolution *r, int16 freq);
+bool _osiDoChange(osiMonitor *m, osiResolution *r, int16_t freq);
 
 bool osiDisplay::changeRes(osiMonitor *m, int32 dx, int32 dy, int16 freq) {
   bool chatty= false;
@@ -300,7 +303,7 @@ bool osiDisplay::changeRes(osiMonitor *m, int32 dx, int32 dy, int16 freq) {
 
 
   /// search in data for requested resolution (hope populate() was called first)
-  osiResolution *r= getResolution(dx, dy, m);
+  osiResolution *r= _osiGetResolution(dx, dy, m);
   
   if(r == null) {
     error.simple("osi:changeRes: Can't find requested resolution size");
@@ -309,21 +312,21 @@ bool osiDisplay::changeRes(osiMonitor *m, int32 dx, int32 dy, int16 freq) {
   if(chatty) printf("requested RESOLUTION CHANGE: %dx%d %dHz (%s)\n", r->dx, r->dy, freq, m->name.d);
   
   /// if a frequency is provided, get it's ID from databanks
-  int16 fID= 0, tfreq;                       /// this will help with frequencyes
+  int16 fID= 0, tfreq= 0;            /// this will help with frequencyes
   
   /// in case a frequency is supplied
   if(freq)
-    fID= getFreq(freq, r);
+    fID= _osiGetFreq(freq, r);
   /// if frequency is not supplied, use defaults
   else {
-    fID= getFreq(60, r);        // try 60hz
+    fID= _osiGetFreq(60, r);        // try 60hz
     if(fID== -1)
-      fID= getFreq(59, r);      // try 59hz
+      fID= _osiGetFreq(59, r);      // try 59hz
     if(fID== -1)
-      fID= 0;                   // just get the first freq in list (there has to be 1)
+      fID= 0;                       // just get the first freq in list (there has to be 1)
   }
   
-  if(fID== -1) {               /// getFreq returns -1 if none found
+  if(fID== -1) {                    /// getFreq returns -1 if none found
     error.simple("osi:changeRes: Requested frequency not found");
     return false;
   }
@@ -355,9 +358,9 @@ bool osiDisplay::changeRes(osiMonitor *m, int32 dx, int32 dy, int16 freq) {
       /// per OS resolution change
       bool b;
       #ifdef OS_WIN
-      b= doChange(m, r, freq);
+      b= _osiDoChange(m, r, freq);
       #else /// OS_LINUX & OS_MAC
-      b= doChange(m, r, fID);
+      b= _osiDoChange(m, r, fID);
       #endif /// OS_LINUX & OS_MAC 
 
       if(!b) { // could not change resolution
@@ -402,9 +405,9 @@ bool osiDisplay::changeRes(osiMonitor *m, int32 dx, int32 dy, int16 freq) {
   // RESOLUTION CHANGE
   bool b;
   #ifdef OS_WIN
-  b= doChange(m, r, freq);
+  b= _osiDoChange(m, r, freq);
   #else /// OS_LINUX & OS_MAC
-  b= doChange(m, r, fID);
+  b= _osiDoChange(m, r, fID);
   #endif /// OS_LINUX & OS_MAC 
 
   if(!b) { // could not change resolution
@@ -478,7 +481,7 @@ void osiDisplay::restoreRes(osiMonitor *m) {
   #endif
 
   #ifdef OS_LINUX
-  if(!doChange(m, &m->original, 0)) {
+  if(!_osiDoChange(m, &m->original, 0)) {
     error.simple("ERROR: can't change back to original monitor resolution");
     osi.flags.exit= true;                   // EXIT PROGRAM IF CAN'T CHANGE BACK RESOLUTION... can't do much at this point
   }
@@ -535,7 +538,7 @@ void osiDisplay::restoreRes(osiMonitor *m) {
 
   /// update monitors positions after resolution change
   for(short a= 0; a< osi.display.nrMonitors; a++)
-    getMonitorPos(&osi.display.monitor[a]);
+    _osiGetMonitorPos(&osi.display.monitor[a]);
 
   /* WINDOW'S SIZE DOESN'T CHANGE! AND IT CAN BE USED TO RESTORE FROM A FOCUS OUT
   /// update monitor's window (if there is one)
@@ -569,7 +572,7 @@ void osiDisplay::restoreRes(osiMonitor *m) {
 // ----->>>>> doChange - actual per OS steps to change the resolution <<<<<----- //
 ///-----------------------------------------------------------------------------///
 
-bool doChange(osiMonitor *m, osiResolution *r, int16 freq) {
+bool _osiDoChange(osiMonitor *m, osiResolution *r, int16_t freq) {
   bool chatty= false;
   #ifdef OS_WIN
   DEVMODE dm;
@@ -590,7 +593,7 @@ bool doChange(osiMonitor *m, osiResolution *r, int16 freq) {
 
   /// update monitors positions after resolution change
   for(short a= 0; a< osi.display.nrMonitors; a++)
-    getMonitorPos(&osi.display.monitor[a]);
+    _osiGetMonitorPos(&osi.display.monitor[a]);
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
@@ -607,7 +610,7 @@ bool doChange(osiMonitor *m, osiResolution *r, int16 freq) {
    * http://cgit.freedesktop.org/xorg/app/xrandr/tree/xrandr.c?id=9887ed4989e0abd48004598be0eb5cb06fa40bd1
    * 
   */
-  if(!_xrrAvaible) return false;
+  if(!_osiXrrAvaible) return false;
   
   bool change= true;                        // actually do change resolution (DEBUG)
   bool grab= true;                          // grab the server <- there are apps that need to be on hold for this
@@ -706,7 +709,7 @@ bool doChange(osiMonitor *m, osiResolution *r, int16 freq) {
   }
   
   /// change the virtual desktop size
-  updateVirtualDesktop();               /// updates all virtual desktop vars (atm not mm)
+  _osiUpdateVirtualDesktop();               /// updates all virtual desktop vars (atm not mm)
   // this can be avoided, and changex & changey used to update virtual desktop!!!
   if(chatty) printf("virtual desktop UPDATE: x[%d], y[%d] (monitor change delta x[%d], y[%d])\n", osi.display.vdx, osi.display.vdy, changex, changey);
   
@@ -807,7 +810,7 @@ bool doChange(osiMonitor *m, osiResolution *r, int16 freq) {
         m->dy= tmpy;
       
         if(chatty) printf("error: XRRSetCrtcConfig not sucessful\n");
-        error.simple("doChange: Critical error while changing monitor resolution"); // , true); DISABLED QUIT, do something in other funcs
+        error.simple("osiDoChange: Critical error while changing monitor resolution"); // , true); DISABLED QUIT, do something in other funcs
         return false;
       } /// if changing res isn't successful
     } /// for each monitor -> reactivate all
@@ -821,7 +824,7 @@ bool doChange(osiMonitor *m, osiResolution *r, int16 freq) {
 
   for(short a= 0; a< osi.display.nrMonitors; a++) {
     delete[] outs[a];
-    getMonitorPos(&osi.display.monitor[a]); /// updates y0, from _y0
+    _osiGetMonitorPos(&osi.display.monitor[a]); /// updates y0, from _y0
   }
         
   delete[] outs;
@@ -849,7 +852,7 @@ bool doChange(osiMonitor *m, osiResolution *r, int16 freq) {
   
   /// update monitors positions after resolution change
   for(short a= 0; a< osi.display.nrMonitors; a++)
-    getMonitorPos(&osi.display.monitor[a]);
+    _osiGetMonitorPos(&osi.display.monitor[a]);
   #endif /// OS_MAC
 
   return true;
@@ -880,10 +883,16 @@ bool doChange(osiMonitor *m, osiResolution *r, int16 freq) {
 // -------------->>>>>>>>>>>>>>> POPULATE <<<<<<<<<<<<<<<--------------- //
 ///---------------------------------------------------------------------///
 
-void _populateGrCards(osiDisplay *);
+void _osiPopulateGrCards(osiDisplay *);
 
-void osiDisplay::populate() {
-  bool chatty= false;
+void osiDisplay::populate(bool in_onlyVulkan) {
+  bool chatty= true;
+
+  if(in_onlyVulkan) {
+    _vkPopulate();
+    return;
+  }
+
   delData();
   
   #ifdef OS_WIN
@@ -967,6 +976,7 @@ void osiDisplay::populate() {
     if(EnumDisplayDevices(monitor[id]._id, 0, &dd, null)) {     /// >>> FOR EACH MONITOR ON THAT DISPLAY ADAPTER <<<<
       monitor[id]._monitorID= dd.DeviceName;                  // currently i cant find any use for this
       monitor[id]._monitorName= dd.DeviceString;            //<<<<<<<<<<<<<<<<<<<<<<<<<<<
+      
     }
 
     if(chatty) printf("%s (%s)\n", monitor[id]._monitorID.d, monitor[id]._monitorName.d);
@@ -1110,41 +1120,41 @@ void osiDisplay::populate() {
   osiResolution *p;
   
   /// check XRandR extension
-  _xrrAvaible= true;
+  _osiXrrAvaible= true;
   int evBase= -1, err= -1;
   
   if(!XRRQueryExtension(osi._dis, &evBase, &err))
-    _xrrAvaible= false;
+    _osiXrrAvaible= false;
   
-  if(_xrrAvaible) 
-    if(!XRRQueryVersion(osi._dis, &_xrrMajor, &_xrrMinor))
-      _xrrAvaible= false;                            /// can't check version- something wrong
+  if(_osiXrrAvaible) 
+    if(!XRRQueryVersion(osi._dis, &_osiXrrMajor, &_osiXrrMinor))
+      _osiXrrAvaible= false;                            /// can't check version- something wrong
   
-  if(_xrrAvaible)
-    if(_xrrMajor< 1 || (_xrrMajor== 1 && _xrrMinor< 3))
-      _xrrAvaible= false;                            /// work with v1.3+
-  if(_xrrAvaible) {
+  if(_osiXrrAvaible)
+    if(_osiXrrMajor< 1 || (_osiXrrMajor== 1 && _osiXrrMinor< 3))
+      _osiXrrAvaible= false;                            /// work with v1.3+
+  if(_osiXrrAvaible) {
     bResCanBeChanged= true;
     bResCanBeChangedReason= "";
   }
   
   
   /// check Xinerama extension
-  _xiAvaible= true;
+  _osiXiAvaible= true;
   int xiMajor, xiMinor;
   
   if(!XineramaQueryExtension(osi._dis, &xiMajor, &xiMinor)) 
-    _xiAvaible= false;
+    _osiXiAvaible= false;
   
-  if(_xiAvaible)
+  if(_osiXiAvaible)
     if(!XineramaIsActive(osi._dis))
-      _xiAvaible= false;
+      _osiXiAvaible= false;
   
   
   // POPULATE VIA XRANDR ============---------------------
-  if(_xrrAvaible) {
+  if(_osiXrrAvaible) {
     
-    if(chatty) printf("XRandR: version[%d.%d] querry[%d] err[%d]\n", _xrrMajor, _xrrMinor, evBase, err);
+    if(chatty) printf("XRandR: version[%d.%d] querry[%d] err[%d]\n", _osiXrrMajor, _osiXrrMinor, evBase, err);
     
     XRROutputInfo *out, *out2;
     XRRCrtcInfo *crtc;
@@ -1290,8 +1300,8 @@ void osiDisplay::populate() {
       for(c= 0; c< tmpSize; c++) {              // for each element in tmp (eliminate duplicate sizes)
         if(c!= 0) {
           /// if last res size was the same as this one, skip it
-          i= getMode(scr, tmp[c]);
-          j= getMode(scr, tmp2[tmp2Size- 1]);
+          i= _osiGetMode(scr, tmp[c]);
+          j= _osiGetMode(scr, tmp2[tmp2Size- 1]);
           if((i->height == j->height) && (i->width  == j->width))
             continue;
         }
@@ -1305,7 +1315,7 @@ void osiDisplay::populate() {
 
       for(c= 0; c< monitor[b].nrRes; c++) {       // for each res the monitor supports
         /// find the id in all the screen modes (hopefully this is the place all modes are dumped)
-        i= getMode(scr, tmp2[c]);
+        i= _osiGetMode(scr, tmp2[c]);
 
         /// finally populate the rest of the stuff
         monitor[b].res[c].dx= i->width;
@@ -1321,9 +1331,9 @@ void osiDisplay::populate() {
 
         /// find out how many frequencies this resolution has
         e= 0;
-        i= getMode(scr, tmp2[c]);
+        i= _osiGetMode(scr, tmp2[c]);
         for(d= 0; d< tmpSize; d++) {
-          j= getMode(scr, tmp[d]);
+          j= _osiGetMode(scr, tmp[d]);
           if((i->width== j->width) && (i->height== j->height))
             e++;
         }
@@ -1334,7 +1344,7 @@ void osiDisplay::populate() {
         /// populate both frequencies & resolutionIDs
         e= 0;
         for(d= 0; d< tmpSize; d++) {
-          j= getMode(scr, tmp[d]);
+          j= _osiGetMode(scr, tmp[d]);
           if((i->width== j->width) && (i->height== j->height)) {
             monitor[b].res[c].freq[e]= (j->dotClock? (j->dotClock/ (j->hTotal* j->vTotal)): 0);
             
@@ -1416,13 +1426,13 @@ void osiDisplay::populate() {
   
   if(!XineramaQueryExtension(osi._dis, &dummy1, &dummy2)) {
     error.console("No Xinerama extension", false, null);
-    _populateGrCards(this);
+    _osiPopulateGrCards(this);
     return;
   }
   
   if(!XineramaIsActive(osi._dis)) {
     error.console("Xinerama not active", false, null);
-    _populateGrCards(this);
+    _osiPopulateGrCards(this);
     return;
   }
 
@@ -1440,7 +1450,7 @@ void osiDisplay::populate() {
   
   XFree(xi);
   
-  updateVirtualDesktop();               /// update virtual desktop size
+  _osiUpdateVirtualDesktop();               /// update virtual desktop size
 
   /// coordonate unification (must be placed after the virtual desktop size is found)
   for(a= 0; a< nrMonitors; a++)
@@ -1469,7 +1479,7 @@ void osiDisplay::populate() {
   for(short a= 0; a< nrMonitors; a++) {             // for each monitor (screen)
     monitor[a].screen= a;
     monitor[a].root= RootWindow(t->primWin->display, a);
-    getMonitorPos(&monitor[a]);
+    _osiGetMonitorPos(&monitor[a]);
     if(chatty) printf("monitor %d: root %lx mon pos NOT DONE\n", a, monitor[a].root);
 
     printf("mon1 %dx%d\n", XDisplayWidth(t->primWin->display, 0), XDisplayHeight(t->primWin->display, 0));
@@ -1620,8 +1630,8 @@ void osiDisplay::populate() {
         double freq=    CGDisplayModeGetRefreshRate(    (CGDisplayModeRef)resid);
         uint idt=       CGDisplayModeGetIODisplayModeID((CGDisplayModeRef)resid);
         uint32_t flags= CGDisplayModeGetIOFlags(        (CGDisplayModeRef)resid);
-        CFStringRef st= CGDisplayModeCopyPixelEncoding( (CGDisplayModeRef)resid);
-        CFStringGetCString(st, (char *)buf, 512, CFStringGetSystemEncoding());
+        //CFStringRef st= CGDisplayModeCopyPixelEncoding( (CGDisplayModeRef)resid);
+        //CFStringGetCString(st, (char *)buf, 512, CFStringGetSystemEncoding());
       
         printf("   %02d [%dx%d] id[%d] freq[%f] flags[%x] pixel[%s]\n", a, tx, ty, idt, freq, flags, buf);
 
@@ -1647,7 +1657,7 @@ void osiDisplay::populate() {
         if(flags& kDisplayModeDefaultFlag)            printf("Default ");
         printf("\n");
         
-        CFRelease(st); /// "caller is responsible for releasing the string"
+        //CFRelease(st); /// "caller is responsible for releasing the string"
       }
 
     
@@ -1687,7 +1697,7 @@ void osiDisplay::populate() {
         monitor[d].nrRes++;
       }
       CFRelease(st);
-    } /// for each vommit element
+    } /// for each vomit element
     
     n= monitor[d].nrRes;                  /// n= name shortcut
     
@@ -1818,20 +1828,21 @@ void osiDisplay::populate() {
     delete[] tmp;
   } /// displays loop
   
-  updateVirtualDesktop();
+  _osiUpdateVirtualDesktop();
   
   delete[] dis;
   
 // IT'S OVERRRRR ... 
   #endif /// OS_MAC
 
-  _populateGrCards(this);
+  _osiPopulateGrCards(this);
+  _vkPopulate();
 }
 
 
 
-void _populateGrCards(osiDisplay *display) {
-  bool chatty= false;
+void _osiPopulateGrCards(osiDisplay *display) {
+  bool chatty= true;
   
   #ifdef OS_WIN
 
@@ -1846,40 +1857,40 @@ void _populateGrCards(osiDisplay *display) {
   display->bGPUinfoAvaibleReason= "";
   
   D3DADAPTER_IDENTIFIER9 *disList= null;    /// this will store GPU/adapter/display information (term is foggy for microsoft, it's just one of these)
-  IDirect3D9 *d3d;                          /// pointer to the direct3d object
-
-  d3d= Direct3DCreate9(D3D_SDK_VERSION);    /// direct3d 'creation' (probly this just returns a pointer to the d3d main object)
+  //IDirect3D9 *d3d;                          /// pointer to the direct3d object
+  IDirect3D9Ex *d3d;
   
+  //d3d= Direct3DCreate9(D3D_SDK_VERSION);    /// direct3d 'creation' (probly this just returns a pointer to the d3d main object)
+  Direct3DCreate9Ex(D3D_SDK_VERSION, &d3d);    /// direct3d 'creation' (probly this just returns a pointer to the d3d main object)
 
   /// find out how many 'displays' are on the system
-  int nrDis= d3d->GetAdapterCount();
-  if(!nrDis) { error.console("osiDisplay::populateGrCards(): Direct3D found 0 displays", false, null); return; }
+  int nrAda= (int)d3d->GetAdapterCount();
+  if(nrAda<= 0) { error.console("osiDisplay::populateGrCards(): Direct3D found 0 adapters", false, null); return; }
 
   // populate disList
-  disList= new D3DADAPTER_IDENTIFIER9[nrDis];
+  disList= new D3DADAPTER_IDENTIFIER9[nrAda];
   
   D3DCAPS9 caps;
-  int *masterAdapterID= new int[nrDis];
+  UINT *masterAdapterID= new UINT[nrAda];
   
-  for(short a= 0; a< nrDis; a++) {
+  for(int a= 0; a< nrAda; a++) {
     d3d->GetAdapterIdentifier(a, null, &disList[a]);
     d3d->GetDeviceCaps(a, D3DDEVTYPE_HAL, &caps);
     // monitors that are part of a gr card have THE SAME masterAdapterOrdinal. MasterAdapterOrdinal can be any number, as i saw id1 was just gone once
     masterAdapterID[a]= caps.MasterAdapterOrdinal;
   }
 
- 
   // find out how many GPUs are on the system
-  int *gpuID= new int[nrDis];       /// this list stores id's of grcards found (yes, it's very cryptic, but everything in windows is)
+  UINT *gpuID= new UINT[nrAda];       /// this list stores id's of grcards found (yes, it's very cryptic, but everything in windows is)
 
   /// the first card
   int nrCards= 1;
   gpuID[0]= masterAdapterID[0];
 
-  /// search the rest of 'displays' to see if any belong where... (/cry)
-  for(short a= 1; a< nrDis; a++) {
+  /// search the rest of adapters to see if any belong here...
+  for(int a= 1; a< nrAda; a++) {
     bool found= false;
-    for(short b= 0; b< nrCards; b++)
+    for(int b= 0; b< nrCards; b++)
       if(masterAdapterID[a]== gpuID[b]) found= true;
 
     if(!found)  // a new id is found, belonging to another card
@@ -1891,18 +1902,24 @@ void _populateGrCards(osiDisplay *display) {
   display->GPU= new osiGPU[nrCards];
 
   /// populate osiDisplay's GPU array
-  for(short a= 0; a< display->nrGPUs; a++) {
-    int c;
-    for(c= 0; c< nrDis; c++)
+  for(int16_t a= 0; a< display->nrGPUs; a++) {
+    int c; 
+    for(c= 0; c< nrAda; c++)
       if(masterAdapterID[c]== gpuID[a])
         break;
+    
+    LUID l;
+    d3d->GetAdapterLUID(c, &l);
 
     display->GPU[a].name= disList[c].Description;
-    if(chatty) printf("Found GPU [%d]: %s\n", a, display->GPU[a].name.d);
+    display->GPU[a].LUID= ((uint64_t) l.HighPart<< 32)+ (uint64_t)l.LowPart;
+
+    if(chatty) printf("Found GPU [%d]: [%s] LUID[%llu]\n", a, display->GPU[a].name.d, display->GPU[a].LUID);
+    
   }
     
   /// populate osiDisplay::monitor->GPU - each monitor belongs on what GPU
-  for(short a= 0; a< nrDis; a++) {              /// pass thru all d3d's 'displays'
+  for(short a= 0; a< nrAda; a++) {              /// pass thru all d3d's adapters
 
     /// [a] coresponds to what osiDisplay::GPU [n]
     short n;
@@ -1914,7 +1931,7 @@ void _populateGrCards(osiDisplay *display) {
     MONITORINFOEX mon;                          /// monitor info struct
     mon.cbSize= sizeof(mon);                    /// mark struct's size (windows standard recognition procedure)
     GetMonitorInfo(hmon, &mon);                 /// populate mon
-
+    
     /// search thru all osiDisplay's monitors, to find this [mon] (identify by position on virtual desktop)
     for(short b= 0; b< display->nrMonitors; b++)
       if(display->monitor[b].x0== mon.rcMonitor.left)
@@ -1939,7 +1956,7 @@ void _populateGrCards(osiDisplay *display) {
     printf("WHQLLevel [%u]\n", disList[a].WHQLLevel);
     printf("=========================================\n");
     */
-  } /// for each d3d 'display'
+  } /// for each d3d adapter
 
 
   /// populate each osiDisplay::GPU[].monitor - array of monitors that belong to this GPU
@@ -1973,14 +1990,22 @@ void _populateGrCards(osiDisplay *display) {
 
   #ifdef OS_LINUX
 
-  if(!_xrrAvaible) {
+  /*
+  https://www.khronos.org/registry/vulkan/specs/1.0-extensions/html/vkspec.html
+
+        vkGetRandROutputDisplayEXT
+        "If there is no VkDisplayKHR corresponding to rrOutput on physicalDevice, VK_NULL_HANDLE must be returned in pDisplay."
+          so you get all the monitors tied to the gr card here, you get all the tie-ings this way.
+  */
+
+  if(!_osiXrrAvaible) {
     display->bGPUinfoAvaible= false;
     display->bGPUinfoAvaibleReason= "XRandR extension needed for GPU info";
     return;
   }
-  if(_xrrMajor< 1 || (_xrrMajor== 1 && _xrrMinor< 4)) {
+  if(_osiXrrMajor< 1 || (_osiXrrMajor== 1 && _osiXrrMinor< 4)) {
     display->bGPUinfoAvaible= false;
-    display->bGPUinfoAvaibleReason.f("XRandr v1.4 needed. Current version is %d.%d", _xrrMajor, _xrrMinor);
+    display->bGPUinfoAvaibleReason.f("XRandr v1.4 needed. Current version is %d.%d", _osiXrrMajor, _osiXrrMinor);
     return;
   }
          
@@ -2090,7 +2115,9 @@ void _populateGrCards(osiDisplay *display) {
   return 0;
   }
   */
-  
+
+https://stackoverflow.com/questions/20025868/cgdisplayioserviceport-is-deprecated-in-os-x-10-9-how-to-replace
+
   if(chatty) printf("searching for GPU(s)...");
   display->nrGPUs= 0;
   if(!display->nrMonitors) return;
@@ -2145,7 +2172,167 @@ void _populateGrCards(osiDisplay *display) {
 
 
 
+void osiDisplay::_vkPopulate() {
+  // in order for vkPopulate to work:
+  // requires vulkan 1.1 OR vk_KHR_get_physical_device_properties2
+  // requires vk_EXT_acquire_xlib_display for LINUX (this requires the next 2 extensions)
+  // requires vk_EXT_direct_mode_display  for LINUX
+  // requires vk_KHR_display              for LINUX
+  // all these extensions are enabled by default, but if you make your own instance, these extensions should be enabled in order for osi to work properly
 
+  if(this->bGPUinfoAvaible== false) return;
+  if(osi.vk== null) return;
+
+  /// check if vulkan is present and functions are got
+  if(!osi.vk->EnumeratePhysicalDevices) return;
+  #ifdef OS_LINUX
+  if(!osi.vk->GetRandROutputDisplayEXT) return;
+  #endif
+  
+  bool chatty= true;
+        
+  /// tmp vars
+  uint32_t nrPDev= 0;                     /// nr graphics cards
+  VkPhysicalDevice *pd= null;           /// array with all vulkan graphics cards
+  VkPhysicalDeviceProperties prop;      /// vulkan 1.0 properties
+  VkPhysicalDeviceProperties2 prop2;    /// GPU propreties, needs vulkan 1.1, the normal props won't help
+  VkPhysicalDeviceIDProperties propID;  /// GPU id props
+  
+  prop2.sType= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+  prop2.pNext= &propID;
+  
+  propID.sType= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES;
+  propID.pNext= null;
+
+  osi.vk->EnumeratePhysicalDevices(osi.vk->instance, &nrPDev, null);
+  if(!nrPDev) return;
+
+  pd= new VkPhysicalDevice[nrPDev];
+  osi.vk->EnumeratePhysicalDevices(osi.vk->instance, &nrPDev, pd); 
+
+
+
+  #ifdef OS_WIN
+  if(osi.vk->GetPhysicalDeviceProperties2 || osi.vk->GetPhysicalDeviceProperties2KHR) {
+    /// each osiGPU has LLUID from d3d, so matching LLUID will link osiGPU to vkPhysicalDevice
+
+    // loop thru all vulkan physical devices
+    for(uint32 a= 0; a< nrPDev; a++) {
+
+      // get physicalDevice properties
+      if(osi.vk->GetPhysicalDeviceProperties2)
+        osi.vk->GetPhysicalDeviceProperties2(pd[a], &prop2);       // vulkan 1.1
+      else
+        osi.vk->GetPhysicalDeviceProperties2KHR(pd[a], &prop2);    // vulkan 1.0 + extension
+
+      if(!propID.deviceLUIDValid) continue;           // no valid device LUID, skip
+      if(chatty) printf("Vulkan LUID[%llu]\n", *((uint64 *)propID.deviceLUID));
+
+      // loop thru currently known osiGPU's
+      for(int b= 0; b< osi.display.nrGPUs; b++) {
+        if(!osi.display.GPU[b].LUID) continue;
+        osiGPU *gpu= &osi.display.GPU[b];
+
+        // propID.deviceNodeMask identifies the Direct3D 12 node corresponding to physicalDevice
+
+
+        // found a match
+        if(gpu->LUID== *((uint64 *)propID.deviceLUID)) {
+          gpu->vkGPU= pd[a];
+          if(chatty) printf("found vulkan-d3d match thru LUID: [%s]\n", gpu->name.d);
+          // could populate with more info here
+        }
+      }
+    }
+  }
+  #endif
+
+
+  #ifdef OS_LINUX
+  if(osi.vk->GetRandROutputDisplayEXT) {
+    // - pass thru all vkGPUs, see if they match any RROutput - match by monitor connected
+    // - GPUs that are not connected with any monitor, will be matched by name, nothing else needed.
+    //   NEED xrandr working
+  
+    ok it seems only like 2 instance funcs are on this system, and xrandr one is not one of them, must further test this
+            
+    
+    VkDisplayKHR vkMonitor;
+  
+    for(int a= 0; a< nrPDev; a++) {           // loop thru all vkPhysicalDevices
+      for(int b= 0; b< nrMonitors; b++) {     // loop thru all osiMonitors
+      
+        osi.vk->GetRandROutputDisplayEXT(pd[a], osi._dis, monitor[b]._outID, &vkMonitor);
+        if(vkMonitor== VK_NULL_HANDLE) continue;    // vkGetRandROutputDisplay MUST return VK_NULL_HANDLE if that output has no monitor
+      
+        // reached this point == this monitor belongs to this GPU
+        if(monitor[b].GPU) {
+          monitor[b].GPU->vkGPU= pd[a];
+          if(chatty) printf("Found Vulkan - RROutput match [%s]\n", monitor[b].GPU->name.d);
+          // COULD POPULATE WITH MORE DATA
+        }
+      } /// loop thru all osiMonitors
+    } /// loop thru all vkPhysicalDevices
+  }
+  #endif
+  
+
+
+  #ifdef OS_MAC
+  /*
+    MAC: well, the suport for vulkan is almost nil, but to be fair atm, macs with multiple graphics cards... ye... lol
+    mac needs research. need a LUID or UUID tied to the gr card
+    mac research: https://stackoverflow.com/questions/7793971/how-can-you-get-the-display-adapter-used-for-a-particular-monitor-in-windows
+      so he got the adapter description there, but maybe more than that can be got, need either UUID or LUID
+        and to be fair, ... well maybe on mac you can have more than 1 ... who knows
+        2x same gr cards can be a thing
+
+        replace for the deprecated func in mac:
+        https://github.com/glfw/glfw/blob/e0a6772e5e4c672179fc69a90bcda3369792ed1f/src/cocoa_monitor.m
+        */
+
+
+  /*
+      i think link only thru name, and nothing more
+      */
+
+
+  #endif
+  
+  if(osi.vk->GetPhysicalDeviceProperties) {
+    // -a second pass for the GPUs that don't have any monitor attached
+    //  these GPUs will just be matched by name. if 2 grcards have the same name, it won't matter,
+    //    a vkPhysicalDevice will be linked to each, and that will define the difference
+  
+    for(int a= 0; a< nrGPUs; a++) {         // loop thru all osiGPUs
+      if(GPU[a].vkGPU== NULL) {
+        for(uint32_t b= 0; b< nrPDev; b++) {     // loop thru all vkPhysicalDevices
+        
+          // make sure this vkPDev is not already tied to any osiGPU
+          bool found= false;
+          for(int c= 0; c< nrGPUs; c++)
+            if(pd[b] && (pd[b]== GPU[c].vkGPU)) { found= true; break; }
+        
+          // the vkPhysicalDevice is not tied to any osiGPU
+          if(!found) {
+            osi.vk->GetPhysicalDeviceProperties(pd[b], &prop);  // get physicalDevice properties
+            if(GPU[a].name.operator== (prop.deviceName)) {
+              GPU[a].vkGPU= pd[b];
+              if(chatty) printf("Found Vulkan - osiGPU name match [%s]\n", monitor[b].GPU->name.d);
+            
+              // COULD POPULATE WITH MORE DATA
+            }
+          }
+        } /// loop thru all vkPhysicalDevices
+      } 
+    } /// loop thru all osiGPUs
+  }
+  
+  if(pd) {
+    delete[] pd;
+    pd= null;
+  }
+}
 
 
 
@@ -2156,7 +2343,7 @@ void _populateGrCards(osiDisplay *display) {
 // -----------------------------------------------------------------------------
 
 // after each resolution change, this shuld be called; it works in populate() too
-void getMonitorPos(osiMonitor *m) {
+void _osiGetMonitorPos(osiMonitor *m) {
   #ifdef OS_WIN
   DEVMODE dm= { 0 };
   dm.dmSize= sizeof(dm);
@@ -2184,7 +2371,7 @@ void getMonitorPos(osiMonitor *m) {
 
 
 #ifdef OS_LINUX
-XRRModeInfo *getMode(XRRScreenResources* s, RRMode id) {
+XRRModeInfo *_osiGetMode(XRRScreenResources* s, RRMode id) {
   for(short a= 0; a< s->nmode; a++)
     if(s->modes[a].id== id)
       return &s->modes[a];
@@ -2193,7 +2380,7 @@ XRRModeInfo *getMode(XRRScreenResources* s, RRMode id) {
 #endif /// OS_LINUX
 
 
-osiResolution *getResolution(int dx, int dy, osiMonitor *gr) {
+osiResolution *_osiGetResolution(int dx, int dy, osiMonitor *gr) {
   for(short a= 0; a< gr->nrRes; a++) {
     osiResolution *p= &gr->res[a];
     if((dx == p->dx) && (dy == p->dy))
@@ -2204,7 +2391,7 @@ osiResolution *getResolution(int dx, int dy, osiMonitor *gr) {
 }
 
 
-int16 getFreq(int16 freq, osiResolution *r) {
+int16 _osiGetFreq(int16 freq, osiResolution *r) {
   for(short a= 0; a< r->nrFreq; a++)
     if(freq == r->freq[a])
       return a;
@@ -2214,7 +2401,7 @@ int16 getFreq(int16 freq, osiResolution *r) {
 
 
 /// virtual desktop resize
-void updateVirtualDesktop() {
+void _osiUpdateVirtualDesktop() {
   osi.display.vx0= osi.display.primary->x0;
   osi.display.vy0= osi.display.primary->_y0;
   osi.display.vdx= osi.display.primary->dx;

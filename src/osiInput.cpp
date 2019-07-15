@@ -1098,7 +1098,6 @@ void osiMouse::update() {
   
   static int tx= 0, ty= 0;      /// temporary vars, used in mouse positioning and the wheel
 
-
   uint64 present= osi.present/ 1000000;
 
   if(mode== 1) {

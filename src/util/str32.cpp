@@ -4,62 +4,12 @@
 #endif
 #endif
 
-//#include <stdio.h> // not needed anymore
 #include "util/strCommon.h"
 #include "util/str8.h"
 #include "util/str16.h"
 #include "util/str32.h"
 
 
-/* UTF 8 research
-  -they say to start a file with a ZERO WIDTH NOBREAK SPACE (U+FEFF), which is
-    in this role also referred to as the �signature� or �byte-order mark (BOM)�
-  -linux avoids BOM, so i don't think there's gonna be any testing using BOM.
-    only to ignore a BOM if the file starts with it
-
-  -The following byte sequences are used to represent a character.
-    The sequence to be used depends on the Unicode number of the character:
-    U-00000000 � U-0000007F:  0xxxxxxx
-    U-00000080 � U-000007FF:  110xxxxx 10xxxxxx
-    U-00000800 � U-0000FFFF:  1110xxxx 10xxxxxx 10xxxxxx
-    U-00010000 � U-001FFFFF:  11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
-    U-00200000 � U-03FFFFFF:  111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
-    U-04000000 � U-7FFFFFFF:  1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
-
-  -0300-036F Combining Diacritical Marks, since version 1.0, with modifications in subsequent versions down to 4.1
-   1DC0-1DFF Combining Diacritical Marks Supplement, versions 4.1 to 5.2
-   20D0-20FF Combining Diacritical Marks for Symbols, since version 1.0, with modifications in subsequent versions down to 5.1
-   FE20-FE2F Combining Half Marks, versions 1.0, updates in 5.2
-
-  -An important note for developers of UTF-8 decoding routines: For security reasons,
-    a UTF-8 decoder must not accept UTF-8 sequences that are longer than necessary
-    to encode a character. For example, the character U+000A (line feed) must be
-    accepted from a UTF-8 stream only in the form 0x0A, but not in any of the
-    following five possible overlong forms:
-    0xC0 0x8A
-    0xE0 0x80 0x8A
-    0xF0 0x80 0x80 0x8A
-    0xF8 0x80 0x80 0x80 0x8A
-    0xFC 0x80 0x80 0x80 0x80 0x8A
-
-   Any overlong UTF-8 sequence could be abused to bypass UTF-8 substr32 tests
-     that look only for the shortest possible encoding.
-   All overlong UTF-8 sequences start with one of the following byte patterns:
-
-    1100000x (10xxxxxx)
-    11100000 100xxxxx (10xxxxxx)
-    11110000 1000xxxx (10xxxxxx 10xxxxxx)
-    11111000 10000xxx (10xxxxxx 10xxxxxx 10xxxxxx)
-    11111100 100000xx (10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx)
-
-  -Also note that the code positions U+D800 to U+DFFF (UTF-16 surrogates) as well
-   as U+FFFE and U+FFFF must not occur in normal UTF-8 or UCS-4 data.
-   UTF-8 decoders should treat them like malformed or overlong sequences for safety reasons.
-
-  -Markus Kuhn�s UTF-8 decoder stress test file contains a systematic collection of
-   malformed and overlong UTF-8 sequences and will help you to verify the robustness of your decoder.
-   http://www.cl.cam.ac.uk/~mgk25/ucs/examples/UTF-8-test.txt
-*/
 
 
 //using namespace Str;

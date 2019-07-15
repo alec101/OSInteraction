@@ -25,8 +25,12 @@ osiWindow::osiWindow() {
   _isSplashWindow= false;
   
   monitor= null;
-  glr= null;
-  
+  renderer= null;
+
+  #ifdef OSI_USE_VKO
+  vkSurface= null;
+  #endif
+
   #ifdef OS_WIN
   _hDC= NULL;
   _hInstance= NULL;
@@ -136,7 +140,7 @@ void osiWindow::delData() {
   this->dx= 0;
   this->dy= 0;
   this->freq= 0;
-  this->glr= null;
+  this->renderer= null;
   this->monitor= null;
   this->name.delData();
   this->x0= 0;
@@ -185,9 +189,9 @@ void osiWindow::_setWMtype(cchar *wmType) {
 }
 
 
-extern bool _createFrontBuffer(osiWindow *w, osiRenderer *r);
+extern bool _osiCreateFrontBuffer(osiWindow *w, osiGlRenderer *r);
 bool osiWindow::_createFBandVisual() {
-  return _createFrontBuffer(this, null);
+  return _osiCreateFrontBuffer(this, null);
 }
 
 #endif /// OS_LINUX

@@ -1,3 +1,5 @@
+#ifdef OSI_USE_OPENGL
+
 #ifndef OSI_DISABLE_GL_DISABLE
 #ifndef OSI_GL_DISABLE
 #define OSI_GL_DISABLE 1
@@ -770,7 +772,7 @@ DECLARE_HANDLE(HPBUFFERARB);
 #endif /// OSI_DISABLE_GL_DISABLE
 
 
-
+#endif /// OSI_USE_OPENGL
 
 
 

@@ -87,13 +87,30 @@ void ErrorHandling::simple(const char *txt, bool exit, void (*exitFunc)(void)) {
 
 void ErrorHandling::detail(const char *txt, const char *func, int line, bool exit, void (*exitFunc)(void)) {
   str8 s;
-  if(func)    s+= str8().f("f[%s] ", func);
-  if(line> 0) s+= str8().f("l[%d] ", line);
-  if(txt)     s+= txt;
+  if(func)     s+= str8().f("f[%s] ", func);
+  if(line>= 0) s+= str8().f("l[%d] ", line);
+  if(txt)      s+= txt;
 
   simple(s, exit, exitFunc);
 }
 
+
+void ErrorHandling::makeme(const char *func, int line, bool exit, void (*exitFunc)(void)) {
+  str8 s= "MAKEME encountered";
+  if(func)     s+= str8().f(" f[%s]", func);
+  if(line>= 0) s+= str8().f(" l[%d]");
+
+  simple(s, exit, exitFunc);
+}
+
+void ErrorHandling::alloc(const char *func, int line, bool exit, void (*exitFunc)(void)) {
+  str8 s;
+  if(func)     s+= str8().f("f[%s] ", func);
+  if(line>= 0) s+= str8().f("l[%d] ", line);
+  s+= "Memory Allocation FAILED.";
+
+  simple(s, exit, exitFunc);
+}
 
 void _consoleFunc_notLoaded(const char *txt, bool exit, void (*exitFunc)(void)) {
   // same as the terminal func

@@ -7,13 +7,6 @@
 //  correct number set, so it doesn't recalculate it @ every string operation
 //  (SPEED is favoured)
 
-// -this class is not using any c/c++ string function. At this moment with the windows/linux war...
-//  setting locale& other stuff is just not possible as everything differs.
-
-// -fopen knows of utf-8 but the win version wants to put a BOM in the file,
-//  wich cause problems in linux, so a file should be opened as pure binary (at
-//  least when writing). This should avoid fseek problems too (fseek is used internally)
-
 
 // NOTES:
 // -character              - char - usually what every program knows about a character

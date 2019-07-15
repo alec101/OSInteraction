@@ -3,8 +3,8 @@
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 #endif
-
-//#include <stdio.h>            // only for file handling... this might go
+//#include "stdafx.h"
+#include <stdio.h>            // NEEDED ONLY FOR THE STD FORMATING
 #include <stdarg.h>
 #include "util/strCommon.h"
 #include "util/str32.h"
@@ -13,7 +13,7 @@
 
 // lower+upper can be done for chars that expand into multiple chars and vice-versa, easily
 //       (2 funcs to check for these few cases, when counting how big the str is)
-// there's another case that i think another word change when lowercasing/uppercasing...
+// there's another case... a word changes into another totaly different word when lowercasing/uppercasing...
 //       this... i don't think is done easily... actually very hard
 
 
@@ -157,17 +157,12 @@ void str8::updateLen() {
 //#undef uint
 //#undef ushort
 //#undef ulong
-#include <mutex>
-std::mutex m;
-uint8_t fBuf[2048];
 
 
-
-// waaait a minute, this format works now, but... locales? what happens in other os'es?
-// a custom formatted IS REQUIRED, the std format just will not work
 
 str8 &str8::f(const char *format, ...) {
-  //m.lock();
+  uint8_t fBuf[2048];
+
 	int32_t l= Str::strlen8(format);
 	if(l> 2048) {
 		*this= "TOO BIG, FORMAT FAILED";
@@ -181,7 +176,6 @@ str8 &str8::f(const char *format, ...) {
   va_end(args);
 
 	return *this= (char *)fBuf;     // WRAP SAFE, BECAUSE OF operator=
-  //m.unlock();
 }
 
 
@@ -1621,7 +1615,7 @@ str8 &str8::secureUTF8(const char *s, int32_t in_len) {
   int32_t n= 0;
   const uint8_t *p= (const uint8_t *)s;
   bool bad, usingLimit= false;
-  int32_t limit;
+  int32_t limit= in_len;
 
   if(in_len) {
     usingLimit= true;
