@@ -21,7 +21,7 @@ FC=gfortran
 AS=as
 
 # Macros
-CND_PLATFORM=GNU-Linux-x86
+CND_PLATFORM=GNU-Linux
 CND_DLIB_EXT=so
 CND_CONF=linux32R
 CND_DISTDIR=dist
@@ -35,23 +35,23 @@ OBJECTDIR=${CND_BUILDDIR}/${CND_CONF}/${CND_PLATFORM}
 
 # Object Files
 OBJECTFILES= \
-	${OBJECTDIR}/_ext/1360937237/osiChar.o \
-	${OBJECTDIR}/_ext/1360937237/osiCocoa.o \
-	${OBJECTDIR}/_ext/1360937237/osiDisplay.o \
-	${OBJECTDIR}/_ext/1360937237/osiGlExt.o \
-	${OBJECTDIR}/_ext/1360937237/osiInput.o \
-	${OBJECTDIR}/_ext/1360937237/osiRenderer.o \
-	${OBJECTDIR}/_ext/1360937237/osiWindow.o \
-	${OBJECTDIR}/_ext/1360937237/osinteraction.o \
-	${OBJECTDIR}/_ext/1018862404/chainList.o \
-	${OBJECTDIR}/_ext/1018862404/errorHandling.o \
-	${OBJECTDIR}/_ext/1018862404/filePNG.o \
-	${OBJECTDIR}/_ext/1018862404/fileTGA.o \
-	${OBJECTDIR}/_ext/1018862404/mzPacker.o \
-	${OBJECTDIR}/_ext/1018862404/segList.o \
-	${OBJECTDIR}/_ext/1018862404/str32.o \
-	${OBJECTDIR}/_ext/1018862404/str8.o \
-	${OBJECTDIR}/_ext/1018862404/strCommon.o
+	${OBJECTDIR}/_ext/511e4115/osiChar.o \
+	${OBJECTDIR}/_ext/511e4115/osiCocoa.o \
+	${OBJECTDIR}/_ext/511e4115/osiDisplay.o \
+	${OBJECTDIR}/_ext/511e4115/osiGlExt.o \
+	${OBJECTDIR}/_ext/511e4115/osiInput.o \
+	${OBJECTDIR}/_ext/511e4115/osiRenderer.o \
+	${OBJECTDIR}/_ext/511e4115/osiWindow.o \
+	${OBJECTDIR}/_ext/511e4115/osinteraction.o \
+	${OBJECTDIR}/_ext/c34564bc/chainList.o \
+	${OBJECTDIR}/_ext/c34564bc/errorHandling.o \
+	${OBJECTDIR}/_ext/c34564bc/filePNG.o \
+	${OBJECTDIR}/_ext/c34564bc/fileTGA.o \
+	${OBJECTDIR}/_ext/c34564bc/mzPacker.o \
+	${OBJECTDIR}/_ext/c34564bc/segList.o \
+	${OBJECTDIR}/_ext/c34564bc/str32.o \
+	${OBJECTDIR}/_ext/c34564bc/str8.o \
+	${OBJECTDIR}/_ext/c34564bc/strCommon.o
 
 
 # C Compiler Flags
@@ -80,90 +80,90 @@ LDLIBSOPTIONS=
 	${AR} -rv ../lib/osi32lin.so ${OBJECTFILES} 
 	$(RANLIB) ../lib/osi32lin.so
 
-${OBJECTDIR}/_ext/1360937237/osiChar.o: ../src/osiChar.cpp 
-	${MKDIR} -p ${OBJECTDIR}/_ext/1360937237
+${OBJECTDIR}/_ext/511e4115/osiChar.o: ../src/osiChar.cpp
+	${MKDIR} -p ${OBJECTDIR}/_ext/511e4115
 	${RM} "$@.d"
-	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/1360937237/osiChar.o ../src/osiChar.cpp
+	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/511e4115/osiChar.o ../src/osiChar.cpp
 
-${OBJECTDIR}/_ext/1360937237/osiCocoa.o: ../src/osiCocoa.mm 
-	${MKDIR} -p ${OBJECTDIR}/_ext/1360937237
+${OBJECTDIR}/_ext/511e4115/osiCocoa.o: ../src/osiCocoa.mm
+	${MKDIR} -p ${OBJECTDIR}/_ext/511e4115
 	${RM} "$@.d"
-	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/1360937237/osiCocoa.o ../src/osiCocoa.mm
+	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/511e4115/osiCocoa.o ../src/osiCocoa.mm
 
-${OBJECTDIR}/_ext/1360937237/osiDisplay.o: ../src/osiDisplay.cpp 
-	${MKDIR} -p ${OBJECTDIR}/_ext/1360937237
+${OBJECTDIR}/_ext/511e4115/osiDisplay.o: ../src/osiDisplay.cpp
+	${MKDIR} -p ${OBJECTDIR}/_ext/511e4115
 	${RM} "$@.d"
-	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/1360937237/osiDisplay.o ../src/osiDisplay.cpp
+	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/511e4115/osiDisplay.o ../src/osiDisplay.cpp
 
-${OBJECTDIR}/_ext/1360937237/osiGlExt.o: ../src/osiGlExt.cpp 
-	${MKDIR} -p ${OBJECTDIR}/_ext/1360937237
+${OBJECTDIR}/_ext/511e4115/osiGlExt.o: ../src/osiGlExt.cpp
+	${MKDIR} -p ${OBJECTDIR}/_ext/511e4115
 	${RM} "$@.d"
-	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/1360937237/osiGlExt.o ../src/osiGlExt.cpp
+	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/511e4115/osiGlExt.o ../src/osiGlExt.cpp
 
-${OBJECTDIR}/_ext/1360937237/osiInput.o: ../src/osiInput.cpp 
-	${MKDIR} -p ${OBJECTDIR}/_ext/1360937237
+${OBJECTDIR}/_ext/511e4115/osiInput.o: ../src/osiInput.cpp
+	${MKDIR} -p ${OBJECTDIR}/_ext/511e4115
 	${RM} "$@.d"
-	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/1360937237/osiInput.o ../src/osiInput.cpp
+	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/511e4115/osiInput.o ../src/osiInput.cpp
 
-${OBJECTDIR}/_ext/1360937237/osiRenderer.o: ../src/osiRenderer.cpp 
-	${MKDIR} -p ${OBJECTDIR}/_ext/1360937237
+${OBJECTDIR}/_ext/511e4115/osiRenderer.o: ../src/osiRenderer.cpp
+	${MKDIR} -p ${OBJECTDIR}/_ext/511e4115
 	${RM} "$@.d"
-	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/1360937237/osiRenderer.o ../src/osiRenderer.cpp
+	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/511e4115/osiRenderer.o ../src/osiRenderer.cpp
 
-${OBJECTDIR}/_ext/1360937237/osiWindow.o: ../src/osiWindow.cpp 
-	${MKDIR} -p ${OBJECTDIR}/_ext/1360937237
+${OBJECTDIR}/_ext/511e4115/osiWindow.o: ../src/osiWindow.cpp
+	${MKDIR} -p ${OBJECTDIR}/_ext/511e4115
 	${RM} "$@.d"
-	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/1360937237/osiWindow.o ../src/osiWindow.cpp
+	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/511e4115/osiWindow.o ../src/osiWindow.cpp
 
-${OBJECTDIR}/_ext/1360937237/osinteraction.o: ../src/osinteraction.cpp 
-	${MKDIR} -p ${OBJECTDIR}/_ext/1360937237
+${OBJECTDIR}/_ext/511e4115/osinteraction.o: ../src/osinteraction.cpp
+	${MKDIR} -p ${OBJECTDIR}/_ext/511e4115
 	${RM} "$@.d"
-	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/1360937237/osinteraction.o ../src/osinteraction.cpp
+	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/511e4115/osinteraction.o ../src/osinteraction.cpp
 
-${OBJECTDIR}/_ext/1018862404/chainList.o: ../src/util/chainList.cpp 
-	${MKDIR} -p ${OBJECTDIR}/_ext/1018862404
+${OBJECTDIR}/_ext/c34564bc/chainList.o: ../src/util/chainList.cpp
+	${MKDIR} -p ${OBJECTDIR}/_ext/c34564bc
 	${RM} "$@.d"
-	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/1018862404/chainList.o ../src/util/chainList.cpp
+	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/c34564bc/chainList.o ../src/util/chainList.cpp
 
-${OBJECTDIR}/_ext/1018862404/errorHandling.o: ../src/util/errorHandling.cpp 
-	${MKDIR} -p ${OBJECTDIR}/_ext/1018862404
+${OBJECTDIR}/_ext/c34564bc/errorHandling.o: ../src/util/errorHandling.cpp
+	${MKDIR} -p ${OBJECTDIR}/_ext/c34564bc
 	${RM} "$@.d"
-	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/1018862404/errorHandling.o ../src/util/errorHandling.cpp
+	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/c34564bc/errorHandling.o ../src/util/errorHandling.cpp
 
-${OBJECTDIR}/_ext/1018862404/filePNG.o: ../src/util/filePNG.cpp 
-	${MKDIR} -p ${OBJECTDIR}/_ext/1018862404
+${OBJECTDIR}/_ext/c34564bc/filePNG.o: ../src/util/filePNG.cpp
+	${MKDIR} -p ${OBJECTDIR}/_ext/c34564bc
 	${RM} "$@.d"
-	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/1018862404/filePNG.o ../src/util/filePNG.cpp
+	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/c34564bc/filePNG.o ../src/util/filePNG.cpp
 
-${OBJECTDIR}/_ext/1018862404/fileTGA.o: ../src/util/fileTGA.cpp 
-	${MKDIR} -p ${OBJECTDIR}/_ext/1018862404
+${OBJECTDIR}/_ext/c34564bc/fileTGA.o: ../src/util/fileTGA.cpp
+	${MKDIR} -p ${OBJECTDIR}/_ext/c34564bc
 	${RM} "$@.d"
-	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/1018862404/fileTGA.o ../src/util/fileTGA.cpp
+	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/c34564bc/fileTGA.o ../src/util/fileTGA.cpp
 
-${OBJECTDIR}/_ext/1018862404/mzPacker.o: ../src/util/mzPacker.cpp 
-	${MKDIR} -p ${OBJECTDIR}/_ext/1018862404
+${OBJECTDIR}/_ext/c34564bc/mzPacker.o: ../src/util/mzPacker.cpp
+	${MKDIR} -p ${OBJECTDIR}/_ext/c34564bc
 	${RM} "$@.d"
-	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/1018862404/mzPacker.o ../src/util/mzPacker.cpp
+	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/c34564bc/mzPacker.o ../src/util/mzPacker.cpp
 
-${OBJECTDIR}/_ext/1018862404/segList.o: ../src/util/segList.cpp 
-	${MKDIR} -p ${OBJECTDIR}/_ext/1018862404
+${OBJECTDIR}/_ext/c34564bc/segList.o: ../src/util/segList.cpp
+	${MKDIR} -p ${OBJECTDIR}/_ext/c34564bc
 	${RM} "$@.d"
-	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/1018862404/segList.o ../src/util/segList.cpp
+	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/c34564bc/segList.o ../src/util/segList.cpp
 
-${OBJECTDIR}/_ext/1018862404/str32.o: ../src/util/str32.cpp 
-	${MKDIR} -p ${OBJECTDIR}/_ext/1018862404
+${OBJECTDIR}/_ext/c34564bc/str32.o: ../src/util/str32.cpp
+	${MKDIR} -p ${OBJECTDIR}/_ext/c34564bc
 	${RM} "$@.d"
-	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/1018862404/str32.o ../src/util/str32.cpp
+	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/c34564bc/str32.o ../src/util/str32.cpp
 
-${OBJECTDIR}/_ext/1018862404/str8.o: ../src/util/str8.cpp 
-	${MKDIR} -p ${OBJECTDIR}/_ext/1018862404
+${OBJECTDIR}/_ext/c34564bc/str8.o: ../src/util/str8.cpp
+	${MKDIR} -p ${OBJECTDIR}/_ext/c34564bc
 	${RM} "$@.d"
-	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/1018862404/str8.o ../src/util/str8.cpp
+	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/c34564bc/str8.o ../src/util/str8.cpp
 
-${OBJECTDIR}/_ext/1018862404/strCommon.o: ../src/util/strCommon.cpp 
-	${MKDIR} -p ${OBJECTDIR}/_ext/1018862404
+${OBJECTDIR}/_ext/c34564bc/strCommon.o: ../src/util/strCommon.cpp
+	${MKDIR} -p ${OBJECTDIR}/_ext/c34564bc
 	${RM} "$@.d"
-	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/1018862404/strCommon.o ../src/util/strCommon.cpp
+	$(COMPILE.cc) -O2 -I../include -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/_ext/c34564bc/strCommon.o ../src/util/strCommon.cpp
 
 # Subprojects
 .build-subprojects:
@@ -171,7 +171,6 @@ ${OBJECTDIR}/_ext/1018862404/strCommon.o: ../src/util/strCommon.cpp
 # Clean Targets
 .clean-conf: ${CLEAN_SUBPROJECTS}
 	${RM} -r ${CND_BUILDDIR}/${CND_CONF}
-	${RM} ../lib/osi32lin.so
 
 # Subprojects
 .clean-subprojects:

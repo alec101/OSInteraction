@@ -2180,6 +2180,7 @@ void osiDisplay::_vkPopulate() {
   // requires vk_KHR_display              for LINUX
   // all these extensions are enabled by default, but if you make your own instance, these extensions should be enabled in order for osi to work properly
 
+  #ifdef OSI_USE_VKO
   if(this->bGPUinfoAvaible== false) return;
   if(osi.vk== null) return;
 
@@ -2332,6 +2333,7 @@ void osiDisplay::_vkPopulate() {
     delete[] pd;
     pd= null;
   }
+  #endif // OSI_USE_VKO
 }
 
 

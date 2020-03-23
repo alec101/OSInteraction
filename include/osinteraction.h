@@ -5,7 +5,7 @@
 // you can define OSI_USE_OPENGL_EXOTIC_EXT before including this file, to signal osi to use exotic extensions when in core ARB mode
 
 #define OSI_USE_OPENGL 1        // <<< enable/disalbe all opengl functionability
-#define OSI_USE_VKO 1           // <<< enable/disable all Vulkan object functionability
+//#define OSI_USE_VKO 1           // <<< enable/disable all Vulkan object functionability
 
 // !!!
 // any comment starting with '<<<' marks a setting that can / SHOULD be changed for your project
@@ -151,14 +151,14 @@ main() {
 #define XINPUTINCLUDE "../extlib/directx/include/XInput.h"    // <<< xinput header file & directory location, if used - manually set this if using other
 #define DINPUTINCLUDE "../extlib/directx/include/dinput.h"    // <<< dinput header file & directory location, if used - manually set this if using other
 #define D3DINCLUDE    "../extlib/directx/include/d3d9.h"      // <<< direct3D9 header file & direcotry location, if used - manually set this if using other
-#define XINPUTLIB32 "directx/lib/XInput_32.lib"         // <<< xinput 32bit library file & directory location, if used
-#define XINPUTLIB64 "directx/lib/XInput_64.lib"         // <<< xinput 64bit library file & directory location, if used
-#define DINPUTLIB32 "directx/lib/dinput8_32.lib"        // <<< dinput 32bit library file & directory location, if used
-#define DINPUTLIB64 "directx/lib/dinput8_64.lib"        // <<< dinput 64bit library file & directory location, if used
-#define DXGUIDLIB32 "directx/lib/dxguid_32.lib"         // <<< direct input guid 32bit library file & directory location, if dinput is used
-#define DXGUIDLIB64 "directx/lib/dxguid_64.lib"         // <<< direct input guid 64bit library file & directory location, if dinput is used
-#define D3D9LIB32   "directx/lib/d3d9_32.lib"           // <<< direct3D9 32bit library file & directory location, if it is used
-#define D3D9LIB64   "directx/lib/d3d9_64.lib"           // <<< direct3D9 64bit library file & directory location, if it is used
+#define XINPUTLIB32 "extlib/directx/lib/XInput_32.lib"         // <<< xinput 32bit library file & directory location, if used
+#define XINPUTLIB64 "extlib/directx/lib/XInput_64.lib"         // <<< xinput 64bit library file & directory location, if used
+#define DINPUTLIB32 "extlib/directx/lib/dinput8_32.lib"        // <<< dinput 32bit library file & directory location, if used
+#define DINPUTLIB64 "extlib/directx/lib/dinput8_64.lib"        // <<< dinput 64bit library file & directory location, if used
+#define DXGUIDLIB32 "extlib/directx/lib/dxguid_32.lib"         // <<< direct input guid 32bit library file & directory location, if dinput is used
+#define DXGUIDLIB64 "extlib/directx/lib/dxguid_64.lib"         // <<< direct input guid 64bit library file & directory location, if dinput is used
+#define D3D9LIB32   "extlib/directx/lib/d3d9_32.lib"           // <<< direct3D9 32bit library file & directory location, if it is used
+#define D3D9LIB64   "extlib/directx/lib/d3d9_64.lib"           // <<< direct3D9 64bit library file & directory location, if it is used
 
 // WINDOWS SETTINGS / DIRECTORIES ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #ifndef _CRT_SECURE_NO_WARNINGS
@@ -318,11 +318,6 @@ main() {
 #include "util/errorHandling.h"
 #include "util/chainList.hpp"
 #include "util/segList.h"
-
-
-//#include "util/filePNG.h"
-//#include "util/fileTGA.h"
-
 
 
 // osi headers
@@ -549,7 +544,7 @@ public:
   // makes sure there's a vkSurface created on that window
   //inline bool vkLinkRendererToWindow(osiWindow *in_window, osiVkRenderer *in_renderer) { return osiVkRenderer::vkLinkRendererToWindow(in_window, in_renderer); }
 
-  //chainList vkRenderers;        // chainlist with all the vulkan renderers active
+  chainList vkRenderers;        // chainlist with all the vulkan renderers active; PURELY INFORMATIONAL / one per window
   //VkInstance vkInstance;        // Vulkan instance handle assigned to this app
   //uint32_t vkApiVersion;        // OS installed Vulkan api version, on the instance level at least; use VK_VERSION_MAJOR(vkApiVersion) VK_VERSION_MINOR(vkApiVersion) VK_VERSION_PATCH(vkApiVersion) to extract the version
 

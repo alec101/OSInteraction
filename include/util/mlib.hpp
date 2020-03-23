@@ -1,6 +1,6 @@
 #pragma once
 #define MLIB_INCLUDED 1
-#include "util/typeShortcuts.h"
+#include "typeShortcuts.h"
 
 
 /* TODO:

@@ -1,10 +1,10 @@
 #pragma once
 
 #define FILEPNG_INCLUDED
-
-#ifndef IMG_TYPE_DEFINED
-#define IMG_TYPE_DEFINED
-enum ImageType {      // notice first 4, most important img types also have the number of channels in the enum value
+/*
+#ifndef IMG_FORMAT_DEFINED
+#define IMG_FORMAT_DEFINED
+enum ImageFormat {      // notice first 4, most important img types also have the number of channels in the enum value
   // the major image types first
   IMG_NONE= 0,        /// default - image not initialized / everything is empty
   IMG_GREY= 1,        /// 8bit greyscale /             1 channel
@@ -46,35 +46,36 @@ enum ImageType {      // notice first 4, most important img types also have the 
 struct Adam7 {
   int8 x0, y0, xnext, ynext;
 };
-#endif /// IMG_TYPE_DEFINED
+#endif /// IMG_FORMAT_DEFINED
 
 #include "mzPacker.h"
-
+*/
+/*
 class PNG {
   
-  mzPacker pack;        /// miniz packer class
+  mzPacker pack;        // miniz packer class
 public:
   
-  void *bitmap;         /// raw data
-  int32_t dx, dy;       /// image size
-  int8_t bpp, bpc;      /// bits per pixel / bits per channel
-  ImageType type;       /// image type - check ImageType enum
+  void *bitmap;         // raw data
+  int32_t dx, dy;       // image size
+  int8_t bpp, bpc;      // bits per pixel / bits per channel
+  ImageFormat format;   // image format - check ImageFormat enum
 
-  uint8_t *cmap;        /// color map palette
-  int8_t cmapBpp;       /// color palette bits per color (16 / 24 / 32)
+  uint8_t *cmap;        // color map palette
+  int8_t cmapBpp;       // color palette bits per color (16 / 24 / 32)
 
-  bool hasTrnCol;       /// indicates that the image uses the transparent (trnCol);
-  struct { uint16_t r, g, b; } trnCol;  /// the transparent color, can be used in RGB / GREY image types
+  bool hasTrnCol;       // indicates that the image uses the transparent (trnCol);
+  struct { uint16_t r, g, b; } trnCol;  // the transparent color, can be used in RGB / GREY image types
 
   // saving / loading
 
-  bool load(const char *);  /// loads a PNG, about any kind
-  bool save(const char *);  /// saves a PNG, fill in dx/dy/type/bpp, bitmap should hold raw data before saving
+  bool load(const char *);  // loads a PNG, about any kind
+  bool save(const char *);  // saves a PNG, fill in dx/dy/type/bpp, bitmap should hold raw data before saving
   
   // error handling
 
-  uint16_t err;             /// error number - 0= no errors
-  const char *getError();   /// returns error as text
+  uint32_t err;             // error number - 0= no errors
+  const char *getError();   // returns error as text
 
   // constructor / destructor
 
@@ -87,7 +88,7 @@ public:
   // bool loadPalette(cchar *);
   // bool savePalette(cchar *);
 };
-
+*/
 
 
 

@@ -4,60 +4,51 @@
 #endif
 #endif
 
-
-//#include "OSinteraction.h"
 #include <stdio.h>
 
 #include "util/typeShortcuts.h"
-#include "util/fileTGA.h"
+#include "util/imgClass.h"
 
 /* TODO:
 */
 
-// TGA file header
-struct TGAH {
-  uint8 idlen;      // 1B imgDesc size
-  uint8 cmapFlag;   // 1B tga has a cmap (true/false)
-  uint8 imgType;    // 1B RGB/GREY/INDEX/ compressed(for all prev types)
-  int16 cmapOrig;   // 2B should always be 0; other values not handled / not shure why this even exists
-  int16 cmapLen;    // 2B pal size should be 256 only. bigger than this, just do a rgb16 image ffs
-  int8 cmapBpc;     // 1B bits per color 16 / 24 / 32 (512-1024 pal size)
-  uint16 x0;        // 2B image x origin ... not shure if ever used
-  uint16 y0;        // 2B image y origin ... not shure if ever used
-  uint16 dx;        // 2B image width
-  uint16 dy;        // 2B image height
-  uint8 bpp;        // 1B 16 / 24 / 32
-  uint8 imgDesc;    // 1B   TOTAl 18 + idlen
-  int8 *id;         // idlen
 
-  TGAH() { id= null; delData(); }
-  ~TGAH() { delData(); }
-  void delData() { if(id) delete[] id; id= null; idlen= cmapFlag= imgType= 0; cmapOrig= cmapLen= 0; cmapBpc= 0; x0= y0= dx= dy= 0; bpp= imgDesc= 0; }
-};
+class _ImgTGA {
+  // TGA header // http://www.paulbourke.net/dataformats/tga/
+  ///==========
+  struct TGAH {
+    uint8 idlen;      // 1B imgDesc size
+    uint8 cmapFlag;   // 1B tga has a cmap (true/false)
+    uint8 imgType;    // 1B RGB/GREY/INDEX/ compressed(for all prev types)
+    int16 cmapOrig;   // 2B should always be 0; other values not handled / not shure why this even exists
+    int16 cmapLen;    // 2B pal size should be 256 only. bigger than this, just do a rgb16 image ffs
+    int8 cmapBpc;     // 1B bits per color 16 / 24 / 32 (512-1024 pal size)
+    uint16 x0;        // 2B image x origin ... not shure if ever used
+    uint16 y0;        // 2B image y origin ... not shure if ever used
+    uint16 dx;        // 2B image width
+    uint16 dy;        // 2B image height
+    uint8 bpp;        // 1B 16 / 24 / 32
+    uint8 imgDesc;    // 1B 0000xxxx = alpha/attrib size, xxxx0000 one is reserved, one is origin, 2 are interleaving flag
+    // TOTAl 18 + idlen
+    int8 *id;         // idlen
+
+    TGAH() { id= null; delData(); }
+    ~TGAH() { delData(); }
+    void delData() { if(id) delete[] id; id= null; idlen= cmapFlag= imgType= 0; cmapOrig= cmapLen= 0; cmapBpc= 0; x0= y0= dx= dy= 0; bpp= imgDesc= 0; }
+  };
+
+  friend class Img;
+}; /// Img TGA private
 
 
-TGA::TGA() {
-  bitmap= NULL;
-  cmap= NULL;
-
-  delData();
-}
 
 
-void TGA::delData() {
-  if(bitmap) delete[] (int8 *)bitmap; bitmap= NULL;
-  if(cmap)   delete[] cmap;           cmap= NULL;
-  
-  type= IMG_NONE;
-  dx= dy= 0;
-  bpp= bpc= cmapBpp= 0;
+///=========================================///
+// TGA LOAD func ================----------- //
+///=========================================///
 
-  err= 0;
-}
-
-// TARGA LOAD func, uncompressed only
-bool TGA::load(cchar *filename) {
-  delData();
+bool Img::_loadTGA(const char *filename, Img *i) {
+  i->delData();
 
   bool compressed= false;
   bool swap= false;
@@ -65,13 +56,18 @@ bool TGA::load(cchar *filename) {
   uint8 *tb= null;
   uint8 t[4];
   uint8 h, n, c, swp;
-  int16 i;
-  TGAH tgah;
-  err= 0;
+  int16 j;
+  _ImgTGA::TGAH tgah;
+  uint8 *bitmap= null;
+  i->err= 0;
+  uint cmapBpp= 0;
+
+  i->fileName= filename;
+  i->fileType= 1;
 
   FILE *f= fopen(filename, "rb");
   if(f==NULL) {
-    err= 1;
+    i->err= 8;
     return false;
   }
 
@@ -90,7 +86,7 @@ bool TGA::load(cchar *filename) {
 
   if(tgah.idlen> 0) {
     tgah.id= new int8[tgah.idlen+ 1];
-    if(!tgah.id) { err= 4; delData(); fclose(f); return false; } // alloc failed
+    if(!tgah.id) { i->err= 12; i->delData(); fclose(f); return false; } // alloc failed
     if(fread(tgah.id, tgah.idlen, 1, f)!= 1)   /// tgah.idlen in size
       goto ReadError;
   }
@@ -100,90 +96,110 @@ bool TGA::load(cchar *filename) {
   if(tgah.cmapBpc!= 16)
     if(tgah.cmapBpc!= 24)
       if(tgah.cmapBpc!= 32) {
-        err= 6; // cmap palette not supported
+        i->err= 13; // cmap palette not supported
         fclose(f);
         return false;
       }
 
   if((!tgah.dy)|| (!tgah.dx)) {
-    err= 2;
+    i->err= 2;
     fclose(f);
-    delData();
+    i->delData();
     return false;
   }
   
   /// fill in various vars
-  bpp= tgah.bpp;
+  //i->bpp= tgah.bpp;
   cmapBpp= tgah.cmapBpc;
-  dx= tgah.dx;
-  dy= tgah.dy;
+  i->dx= tgah.dx;
+  i->dy= tgah.dy;
   if(tgah.imgType>= 9)
-    compressed= true;     /// flag TGA file as compressed
-  c= bpp/ 8;              /// c will hold the number of pixel channels or 2 for 16bit BGRA
+    compressed= true;         /// flag TGA file as compressed
+  c= tgah.bpp/ 8;             /// c will hold the number of pixel channels or 2 for 16bit BGRA
 
-  if((tgah.imgType== 2)&& (tgah.bpp== 32))       type= IMG_RGBA;
-  else if((tgah.imgType== 2)&& (tgah.bpp== 16))  type= IMG_RGBA16;
-  else if((tgah.imgType== 2)&& (tgah.bpp== 24))  type= IMG_RGB;
-  else if((tgah.imgType== 2)&& (tgah.bpp== 16))  type= IMG_RGB16;
-  else if((tgah.imgType== 1)&& (tgah.bpp== 8))   type= IMG_CMAP;
-  else if((tgah.imgType== 3)&& (tgah.bpp== 8))   type= IMG_GREY;
-  else if((tgah.imgType== 3)&& (tgah.bpp== 16))  type= IMG_GREY_ALPHA;
-  else if((tgah.imgType== 9)&& (tgah.bpp== 8))   type= IMG_CMAP;
-  else if((tgah.imgType== 10)&& (tgah.bpp== 32)) type= IMG_RGBA;
-  else if((tgah.imgType== 10)&& (tgah.bpp== 16)) type= IMG_RGBA16;
-  else if((tgah.imgType== 10)&& (tgah.bpp== 24)) type= IMG_RGB;
-  else if((tgah.imgType== 10)&& (tgah.bpp== 16)) type= IMG_RGB16;
-  else if((tgah.imgType== 11)&& (tgah.bpp== 8))  type= IMG_GREY;
-  else if((tgah.imgType== 11)&& (tgah.bpp== 16)) type= IMG_GREY_ALPHA;
+  if((tgah.imgType== 2)&& (tgah.bpp== 32))      i->_set(ImgFormat::R8G8B8A8_UNORM);
+  else if((tgah.imgType== 2)&& (tgah.bpp== 16)) i->_set(ImgFormat::R5G5B5A1_UNORM_PACK16);
+  else if((tgah.imgType== 2)&& (tgah.bpp== 24)) i->_set(ImgFormat::R8G8B8_UNORM);
+  //else if((tgah.imgType== 2)&& (tgah.bpp== 16))  i->format= IMG_RGB16;
+  else if((tgah.imgType== 1)&& (tgah.cmapBpc== 16)) i->_set(ImgFormat::CMAP_RGBA);     //IMG_CMAP;
+  else if((tgah.imgType== 1)&& (tgah.cmapBpc== 24)) i->_set(ImgFormat::CMAP_RGB);      //IMG_CMAP;
+  else if((tgah.imgType== 1)&& (tgah.cmapBpc== 32)) i->_set(ImgFormat::CMAP_RGBA);     //IMG_CMAP;
+  else if((tgah.imgType== 3)&& (tgah.bpp== 8))   i->_set(ImgFormat::R8_UNORM);              //IMG_GREY;
+  else if((tgah.imgType== 3)&& (tgah.bpp== 16))  i->_set(ImgFormat::R8G8_UNORM);            //IMG_GREY_ALPHA;
+  else if((tgah.imgType== 9)&& (tgah.bpp== 8))   i->_set(ImgFormat::CMAP_RGB);              //IMG_CMAP;
+  else if((tgah.imgType== 10)&& (tgah.bpp== 32)) i->_set(ImgFormat::R8G8B8A8_UNORM);        //IMG_RGBA;
+  else if((tgah.imgType== 10)&& (tgah.bpp== 16)) i->_set(ImgFormat::R5G5B5A1_UNORM_PACK16); //IMG_RGBA16;
+  else if((tgah.imgType== 10)&& (tgah.bpp== 24)) i->_set(ImgFormat::R8G8B8_UNORM);          //IMG_RGB;
+  //else if((tgah.imgType== 10)&& (tgah.bpp== 16)) i->_set(ImgFormat::R5G6B5_UNORM_PACK16);   //IMG_RGB16;
+  else if((tgah.imgType== 11)&& (tgah.bpp== 8))  i->_set(ImgFormat::R8_UNORM);              //IMG_GREY;
+  else if((tgah.imgType== 11)&& (tgah.bpp== 16)) i->_set(ImgFormat::R8G8_UNORM);            //IMG_GREY_ALPHA;
   else {
-    err= 7; // unsupported TGA
+    i->err= 14; // unsupported TGA
     fclose(f);
     return false;
   }
 
   /// flag to swap TGA's internal format of BGR to RGB
-  if(type== IMG_RGBA|| type== IMG_RGB|| type== IMG_RGB16|| type== IMG_RGBA16)
+  if(i->format== ImgFormat::R8G8B8A8_UNORM || i->format== ImgFormat::R8G8B8_UNORM || i->format== ImgFormat::R5G5B5A1_UNORM_PACK16)
     swap= true;
 
   /// load palette for CMAP (color map palette)
-  if(type== IMG_CMAP) {
+  if(i->format== ImgFormat::CMAP_RGB) {
     uint8 *tp;
     uint8 t[4];
-    
-    cmap= new uint8[768]; if(!cmap) {err= 4; delData(); fclose(f); return false;}
-    cmapBpp= 24;
+    uint32 tmp;
 
-    tp= cmap;
+    i->cmap= new uint8[256* (cmapBpp/ 8)];
+    //cmapBpp= 24;
+
+    tp= i->cmap;
     for(int16 a= 0; a< 256; a++) {
-      if(fread(t, cmapBpp/ 8, 1, f)!= 1)  /// read color value to be multiplied
+      if(fread(t, 1, cmapBpp/ 8, f)!= cmapBpp/ 8)  /// read color value to be multiplied
         goto ReadError;
 
       if(cmapBpp== 16) {                  /// 16 bpcolor
-        tp[0]= t[0]; tp[1]= t[1];
+        //GGGBBBBB ARRRRRGG  << tga 16bit storage
+        tmp= (t[1]>> 2)& 0x1F;               tp[0]= (uint8)((uint32)((tmp* 0xFF)/ 0x1F));
+        tmp= ((t[1]& 0x03)<< 3)+ (t[0]>> 5); tp[1]= (uint8)((uint32)((tmp* 0xFF)/ 0x1F));
+        tmp= t[0]& 0x1F;                     tp[2]= (uint8)((uint32)((tmp* 0xFF)/ 0x1F));
+        tmp= t[1]>> 7;                       tp[3]= (tmp? 0xFF: 0);
+
       } else if(cmapBpp== 24) {           /// 24 bpc
-        tp[0]= t[2]; tp[1]= t[1]; tp[2]= t[0];              /// BGR to RGB
+        /// BGR to RGB
+        tp[0]= t[2];
+        tp[1]= t[1];
+        tp[2]= t[0];
       } else {                            /// 32 bpc
-        tp[0]= t[2]; tp[1]= t[1]; tp[2]= t[0]; tp[3]= t[3]; /// BGRA to RGBA
+        /// BGRA to RGBA
+        tp[0]= t[2];
+        tp[1]= t[1];
+        tp[2]= t[0];
+        tp[3]= t[3];
       }
       tp+= cmapBpp/ 8;                    /// advance pointer
     }
   }
-  
     
   /// bitmap memory alloc
-  bitmap= new int8[dx* dy* c];
-  if(!bitmap) { err= 4; delData(); fclose(f); return false;}
-  tb= (uint8 *)bitmap;                    /// tb will 'walk' the bitmap
+  bitmap= new uint8[(uint64)(i->dx* i->dy* c)];
 
+  if(i->_wrap)
+    *i->wrapBitmap= bitmap;
+  i->bitmap= bitmap;
+
+  if(!bitmap) { i->err= 12; i->delData(); fclose(f); return false;}
+  tb= (uint8 *)bitmap;                    /// tb will 'walk' the bitmap
+  
   // not compressed TGA image
   if(!compressed) {
-    if(type== IMG_RGBA|| type== IMG_RGB|| type== IMG_RGB16|| type== IMG_RGBA16) {
-      for(int64 a= 0; a< dx* dy; a++, tb+= c) {
+    if(i->format== ImgFormat::R8G8B8A8_UNORM || i->format== ImgFormat::R8G8B8_UNORM ||
+       i->format== ImgFormat::R5G5B5A1_UNORM_PACK16 || i->format== ImgFormat::R5G6B5_UNORM_PACK16) {
+      for(uint64 a= 0, s= i->dx* i->dy; a< s; a++, tb+= c) {
         if(fread(tb, c, 1, f)!= 1)        /// read BGR
           goto ReadError;
 
         /// BGR to RGB
-        if(bpp== 16) {                    /// 16Bpp
+        if(i->bpp== 16) {                    /// 16Bpp
           // convert from [GGGBBBBB ARRRRRGG] to [RRRRRGGG GGBBBBBA]
           t[0]= (tb[1]<< 1)+ (tb[0]>> 7); /// t[0]= RRRRRGG0+ 0000000G= RRRRRGGG
           t[1]= (tb[0]<< 1)+ (tb[1]>> 7); /// t[1]= GGBBBBB0+ 0000000A= GGBBBBBA
@@ -195,18 +211,18 @@ bool TGA::load(cchar *filename) {
           tb[2]= swp;
         }
       }
-    } else if(type== IMG_CMAP|| type== IMG_GREY|| type== IMG_GREY_ALPHA) {
-      if(fread(bitmap, dx* dy, 1, f)!= 1)
+    } else if(i->format== ImgFormat::CMAP_RGB || i->format== ImgFormat::CMAP_RGBA || i->format== ImgFormat::R8_UNORM) {
+      if(fread(bitmap, 1, i->dx* i->dy, f)!= i->dx* i->dy)
         goto ReadError;
-    } else if(type== IMG_GREY_ALPHA) {
-      if(fread(bitmap, dx* dy, 2, f)!= 2)
+    } else if(i->format== ImgFormat::R8G8_UNORM) {
+      if(fread(bitmap, 1, i->dx* i->dy* 2, f)!= i->dx* i->dy* 2)
         goto ReadError;
     }
 
 
   // compressed TGA image
   } else {
-    for(int64 a= 0; a< dx* dy;) {
+    for(uint64 a= 0; a< i->dx* i->dy;) {
       if(fread(&h, 1, 1, f)!= 1)         // read chunk header
         goto ReadError;
 
@@ -220,22 +236,22 @@ bool TGA::load(cchar *filename) {
 
         /// assign t to n pixels
         for(int16 b= 0; b< n; b++) {
-          i= b* c;
+          j= b* c;
           for(int16 x= 0; x< c; x++)    /// for each pixel channel
-            tb[i+ x]= t[x];
+            tb[j+ x]= t[x];
 
           /// swap BGR to RGB if neccesary
           if(swap) {
-            if(bpp== 16) {
+            if(i->bpp== 16) {
               // convert from [GGGBBBBB ARRRRRGG] to [RRRRRGGG GGBBBBBA]
-              uint8 b1= (tb[i+ 1]<< 1)+ (tb[i]>> 7);  /// t[0]= RRRRRGG0+ 0000000G= RRRRRGGG
-              uint8 b2= (tb[i]<< 1)+ (tb[i+ 1]>> 7);  /// t[1]= GGBBBBB0+ 0000000A= GGBBBBBA
-              tb[i]= b1;
-              tb[i+ 1]= b2;
+              uint8 b1= (tb[j+ 1]<< 1)+ (tb[j]>> 7);  /// t[0]= RRRRRGG0+ 0000000G= RRRRRGGG
+              uint8 b2= (tb[j]<< 1)+ (tb[j+ 1]>> 7);  /// t[1]= GGBBBBB0+ 0000000A= GGBBBBBA
+              tb[j]= b1;
+              tb[j+ 1]= b2;
             } else {
-              swp= tb[i];
-              tb[i]= tb[i+ 2];
-              tb[i+ 2]= swp;
+              swp= tb[j];
+              tb[j]= tb[j+ 2];
+              tb[j+ 2]= swp;
             }
           }
         } /// assign same color for n pixels
@@ -249,23 +265,21 @@ bool TGA::load(cchar *filename) {
 
         /// swap BGR to RBG
         if(swap) {
-          if(bpp== 16) {
-            for(int16 x= 0; x< n; x++) {
-              i= x* c;
+          if(i->bpp== 16) {
+            for(uint16 x= 0; x< n; x++) {
+              j= x* c;
               // convert from [GGGBBBBB ARRRRRGG] to [RRRRRGGG GGBBBBBA]
-              t[0]= (tb[i+ 1]<< 1)+ (tb[i]>> 7); /// t[0]= RRRRRGG0+ 0000000G= RRRRRGGG
-              t[1]= (tb[i]<< 1)+ (tb[i+ 1]>> 7); /// t[1]= GGBBBBB0+ 0000000A= GGBBBBBA
-              //t[0]= tb[i+ 1];
-              //t[1]= tb[i];
-              tb[i]= t[0];
-              tb[i+ 1]= t[1];
+              t[0]= (tb[j+ 1]<< 1)+ (tb[j]>> 7); /// t[0]= RRRRRGG0+ 0000000G= RRRRRGGG
+              t[1]= (tb[j]<< 1)+ (tb[j+ 1]>> 7); /// t[1]= GGBBBBB0+ 0000000A= GGBBBBBA
+              tb[j]= t[0];
+              tb[j+ 1]= t[1];
             }
           } else {
-            for(int16 x= 0; x< n; x++) {
-              i= x* c;
-              swp= tb[i];
-              tb[i]= tb[i+ 2];
-              tb[i+ 2]= swp;
+            for(uint16 x= 0; x< n; x++) {
+              j= x* c;
+              swp= tb[j];
+              tb[j]= tb[j+ 2];
+              tb[j+ 2]= swp;
             }
           }
         }
@@ -283,61 +297,83 @@ bool TGA::load(cchar *filename) {
   return true;
 
 ReadError:
-  err= 8;
+  i->err= 9;
   fclose(f);
-  delData();
+  i->delData();
   return false;
 }
 
 
-bool TGA::save(cchar *filename) {
-  if((bpp!= 8) && (bpp!= 24) && (bpp!= 32) && (bpp!= 16)) {
-    err= 5;
-    return false;
-  }
-  if(!bitmap) return false;
-  
-  if((!dy) || (!dx)) {
-    err= 2;
-    return false;
-  }
 
-  TGAH tgah;
+
+
+
+
+///=========================================///
+// TGA SAVE func ================----------- //
+///=========================================///
+
+bool Img::_saveTGA(const char *filename, Img *i) {
+  if((i->bpp!= 8) && (i->bpp!= 24) && (i->bpp!= 32) && (i->bpp!= 16)) {
+    i->err= 3;
+    return false;
+  }
+  if(i->compressed) { i->err= 14; return false; }
+  if((!i->dy) || (!i->dx)) { i->err= 2; return false; }
+
+  void *bitmap= (i->_wrap? *i->wrapBitmap: i->bitmap);
+  if(!bitmap) { i->err= 1; return false; }
+
+  _ImgTGA::TGAH tgah;
+
+  tgah.idlen= 0;            // 1B imgDesc size
+  tgah.cmapOrig= 0;         // 2B
+  tgah.cmapLen= 0;          // 2B pal size should be 256 only. bigger than this, just do a rgb16 image ffs
+  tgah.cmapBpc= 0;          // 1B bits per color 16 / 24 / 32 (512-1024 pal size)
+  tgah.x0= 0;               // 2B image x origin ... not shure if ever used
+  tgah.y0= 0;               // 2B image y origin ... not shure if ever used
+  tgah.dx= i->dx;           // 2B image width
+  tgah.dy= i->dy;           // 2B image height
+  tgah.bpp= (uint8)i->bpp;  // 1B 16 / 24 / 32
+
+  if(i->format>= ImgFormat::R8G8B8A8_UNORM && i->format<= ImgFormat::R8G8B8A8_SRGB) {
+    tgah.cmapFlag= 0;      /// cmap (true/false)
+    tgah.imgType= 2;       /// 1/2/3 - uncompressed; 9/10/11 - RLE compression
+    tgah.imgDesc= 8;        // 8 bit alpha, no other flags
+  } else if(i->format>= ImgFormat::R8G8B8_UNORM && i->format<= ImgFormat::R8G8B8_SRGB) {
+    tgah.cmapFlag= 0;      /// cmap (true/false)
+    tgah.imgType= 2;       /// 1/2/3 - uncompressed; 9/10/11 - RLE compression
+    tgah.imgDesc= 0;        // 0 bit alpha, no other flags
+  } else if(i->format== ImgFormat::R5G5B5A1_UNORM_PACK16) {
+    tgah.cmapFlag= 0;      /// cmap (true/false)
+    tgah.imgType= 2;       /// 1/2/3 - uncompressed; 9/10/11 - RLE compression
+    tgah.imgDesc= 1;        // 1 bit alpha, no other flags
+  } else if(i->format== ImgFormat::CMAP_RGB) {
+    tgah.cmapFlag= 1;      /// cmap (true/false)
+    tgah.imgType= 1;       /// 1/2/3 - uncompressed, 9/10/11 - RLE compression
+    tgah.imgDesc= 0;        // 0 bit alpha, no other flags
+  } else if(i->format== ImgFormat::CMAP_RGBA) {
+    tgah.cmapFlag= 1;      /// cmap (true/false)
+    tgah.imgType= 1;       /// 1/2/3 - uncompressed, 9/10/11 - RLE compression
+    tgah.imgDesc= 8;        // 8 bit alpha, no other flags
+  } else if(i->format>= ImgFormat::R8_UNORM && i->format<= ImgFormat::R8_SRGB) {
+    tgah.cmapFlag= 0;      /// cmap (true/false)
+    tgah.imgType= 3;       /// 1/2/3 - uncompressed, 9/10/11 - RLE compression
+    tgah.imgDesc= 0;        // 0 bit alpha, no other flags
+  } else if(i->format>= ImgFormat::R8G8_UNORM && i->format<= ImgFormat::R8G8_SRGB) {
+    tgah.cmapFlag= 0;      /// cmap (true/false)
+    tgah.imgType= 3;       /// 1/2/3 - uncompressed, 9/10/11 - RLE compression
+    tgah.imgDesc= 8;        // 8 bit alpha, no other flags
+  } else {
+    i->err= 14;
+    return false;
+  }
 
   FILE *f= fopen(filename,"wb");
   if(!f) {
-    err= 1;
+    i->err= 8;
     return false;
   }
-
-  tgah.idlen= 0;      // 1B imgDesc size
-  tgah.cmapOrig= 0;   // 2B
-  tgah.cmapLen= 0;    // 2B pal size should be 256 only. bigger than this, just do a rgb16 image ffs
-  tgah.cmapBpc= 0;    // 1B bits per color 16 / 24 / 32 (512-1024 pal size)
-  tgah.x0= 0;         // 2B image x origin ... not shure if ever used
-  tgah.y0= 0;         // 2B image y origin ... not shure if ever used
-  tgah.dx= dx;        // 2B image width
-  tgah.dy= dy;        // 2B image height
-  tgah.bpp= bpp;      // 1B 16 / 24 / 32
-
-  if(type== IMG_RGBA|| type== IMG_RGBA16) {
-    tgah.cmapFlag= 0;      /// cmap (true/false)
-    tgah.imgType= 2;       /// 1/2/3 - uncompressed; 9/10/11 - RLE compression
-    tgah.imgDesc= 8;        // ??
-  } else if(type== IMG_RGB|| type== IMG_RGB16) {
-    tgah.cmapFlag= 0;      /// cmap (true/false)
-    tgah.imgType= 2;       /// 1/2/3 - uncompressed; 9/10/11 - RLE compression
-    tgah.imgDesc= 0;        // ??
-  } else if(type== IMG_CMAP) {
-    tgah.cmapFlag= 1;      /// cmap (true/false)
-    tgah.imgType= 1;       /// 1/2/3 - uncompressed, 9/10/11 - RLE compression
-    tgah.imgDesc= 8;        // ??
-  } else if(type== IMG_GREY) {
-    tgah.cmapFlag= 0;      /// cmap (true/false)
-    tgah.imgType= 3;       /// 1/2/3 - uncompressed, 9/10/11 - RLE compression
-    tgah.imgDesc= 8;        // ??
-  }
-
   fwrite(&tgah.idlen,     1, 1, f);	/// 1B
   fwrite(&tgah.cmapFlag,  1, 1, f);	/// 1B
   fwrite(&tgah.imgType,   1, 1, f);	/// 1B
@@ -351,100 +387,58 @@ bool TGA::save(cchar *filename) {
   fwrite(&tgah.bpp,       1, 1, f);	/// 1B
   fwrite(&tgah.imgDesc,   1, 1, f);	/// 1B    TOTAl 18 + idlen
   
-  
-
-  if(type== IMG_CMAP) {             /// write palette
-    uint8 *t= cmap;
+  if(i->format== ImgFormat::CMAP_RGB || i->format== ImgFormat::CMAP_RGBA) {          /// write palette
+    uint8 *t= i->cmap;
     for(uint a= 0; a< 256; a++)	{
       for(int b= 0; b< 3; b++)
-        fwrite(&t[2- b], 1, 1, f);  /// convert to BGR
-      t+= 3;
+        fwrite(&t[2- b], 1, 1, f);    /// convert to BGR
+      if(i->bpp== 32)
+        fwrite(&t[3], 1, 1, f);       /// alpha channel
+      t+= i->bpp/ 8;
     }
   }
 
   uint8 *t= (uint8 *)bitmap;
+  // 8 bpp
+  if(i->bpp== 8)
+    fwrite(bitmap, 1, i->dx* i->dy, f);
 
-  if(bpp== 8)
-    fwrite(bitmap, dx* dy, 1, f);
-
-  /// 16 bpp
-  else if(bpp== 16) {
+  // 16 bpp
+  else if(i->bpp== 16) {
     uint8 b1, b2;
-    for(int64 a= 0; a< dx* dy; a++) {
+    for(uint64 a= i->dx* i->dy; a> 0; a--) {
       // [RRRRRGGG GGBBBBBA] -> [GGGBBBBB ARRRRRGG]
       b1= (t[1]>> 1)+ (t[0]<< 7);
       b2= (t[0]>> 1)+ (t[1]<< 7);
-      //b1= t[1];
-      //b2= t[0];
       fwrite(&b1, 1, 1, f);
       fwrite(&b2, 1, 1, f);
       t+= 2;               /// advance t   
     }
-  /// 24 & 32 bpp
-  } else if(bpp== 24|| bpp== 32) {
-    for(int64 a= 0; a< dx* dy; a++) {
-      for(int b= 0; b< 3; b++)
-        fwrite(&t[2- b], 1, 1, f);  /// convert RGB to BGR
-      if(bpp== 32)                  /// write alpha channel if there is one
+
+  // 24 & 32 bpp
+  } else if(i->bpp== 24|| i->bpp== 32) {
+    for(uint64 a= i->dx* i->dy; a> 0; a--) {
+      for(uint b= 0; b< 3; b++)
+        fwrite(&t[2- b], 1, 1, f);      /// convert RGB to BGR
+      if(i->bpp== 32)                   /// write alpha channel if there is one
         fwrite(&t[3], 1, 1, f);
-      t+= bpp/ 8;
+      t+= i->bpp/ 8;
     }
   }
 
   fclose(f);
-  err= 0;
+
+  i->fileName= filename;
+  i->fileType= 1;
+  i->err= 0;
   return true;
 }
 
-
-cchar *TGA::getError() {
-  if(err== 0) return "TGA ok";
-  if(err== 1) return "TGA ERROR: file not found";
-  if(err== 2) return "TGA ERROR: bitmap size";
-  if(err== 3) return "TGA ERROR: palette is empty";
-  if(err== 4) return "TGA ERROR: allocation error";
-  if(err== 5) return "TGA ERROR: invalid BPP";
-  if(err== 6) return "TGA ERROR: cmap palette not suported";
-  if(err== 7) return "TGA ERROR: unknown / unsupported image type";
-  if(err== 8) return "TGA ERROR: file read error";
-  return "TGA UNKNOWN";
-}
+//} // namespace _Img
 
 
-bool TGA::loadPalette(cchar *name) {
-  if(cmap==NULL) cmap= new uint8[768];
-
-  FILE *f= fopen(name,"rb");
-  if(!f) {
-    delete[] cmap;
-    cmap= NULL;
-    err= 1;
-    return false;
-  }
-  if(fread(cmap, 768, 1, f)!= 768) {
-    delete[] cmap;
-    cmap= null;
-    fclose(f);
-    err= 8;
-    return false;
-  }
-    
-  fclose(f);
-  err= 0;
-  return true;
-}
 
 
-bool TGA::savePalette(cchar *name) {
-  if(cmap== NULL) { err= 3; return false; }
-  FILE *f= fopen(name, "wb");
-  if(!f)
-    return false;
-  fwrite(cmap, 768, 1, f);
-  fclose(f);
-  err= 0;
-  return true;
-}
 
 
 

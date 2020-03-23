@@ -1,15 +1,6 @@
 #pragma once
 #include <stdint.h>
 
-// Rant:
-//   I used to always count on the long to have 32bits, did lots of coding based on that.
-// Never do this. 'long' under win32/64 is 32bit, under linux64 _64bit_. This caused crc32 funcs to fail, etc.
-// int8_t, int16_t, int32_t, int64_t are the only guaranteed integer types to have 8, 16, 32 and 64bit lengths
-
-// NEVER COUNT ON int/short/long TO HAVE A FIXED VALUES.
-//  The only guaranteed size is their MINIMUM size that they can have (this is noted after each).
-
-
 
 // these will always have 8/16/32/64 bits - fixed sizes (NO MORE, NO LESS)
 

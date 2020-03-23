@@ -22,14 +22,16 @@
     <ClCompile Include="..\src\osiChar.cpp" />
     <ClCompile Include="..\src\osiDisplay.cpp" />
     <ClCompile Include="..\src\osiGlExt.cpp" />
+    <ClCompile Include="..\src\osiGlRenderer.cpp" />
     <ClCompile Include="..\src\osiInput.cpp" />
     <ClCompile Include="..\src\osinteraction.cpp" />
-    <ClCompile Include="..\src\osiRenderer.cpp" />
+    <ClCompile Include="..\src\osiVulkan.cpp" />
     <ClCompile Include="..\src\osiWindow.cpp" />
-    <ClCompile Include="..\src\util\chainList.cpp" />
     <ClCompile Include="..\src\util\errorHandling.cpp" />
+    <ClCompile Include="..\src\util\fileOp.cpp" />
     <ClCompile Include="..\src\util\filePNG.cpp" />
     <ClCompile Include="..\src\util\fileTGA.cpp" />
+    <ClCompile Include="..\src\util\imgClass.cpp" />
     <ClCompile Include="..\src\util\mzPacker.cpp" />
     <ClCompile Include="..\src\util\segList.cpp" />
     <ClCompile Include="..\src\util\str16.cpp" />
@@ -51,12 +53,16 @@
     <ClInclude Include="..\include\osinteraction.h" />
     <ClInclude Include="..\include\osiRenderer.h" />
     <ClInclude Include="..\include\osiWindow.h" />
-    <ClInclude Include="..\include\util\chainList.h" />
+    <ClInclude Include="..\include\util\chainList.hpp" />
+    <ClInclude Include="..\include\util\circleList.hpp" />
     <ClInclude Include="..\include\util\errorHandling.h" />
+    <ClInclude Include="..\include\util\fileOp.h" />
     <ClInclude Include="..\include\util\filePNG.h" />
     <ClInclude Include="..\include\util\fileTGA.h" />
+    <ClInclude Include="..\include\util\imgClass.h" />
     <ClInclude Include="..\include\util\mlib.hpp" />
     <ClInclude Include="..\include\util\mzPacker.h" />
+    <ClInclude Include="..\include\util\rgb.hpp" />
     <ClInclude Include="..\include\util\segList.h" />
     <ClInclude Include="..\include\util\str16.h" />
     <ClInclude Include="..\include\util\str32.h" />
@@ -72,33 +78,34 @@
     <ProjectGuid>{00A87F24-CF13-4904-858D-783E5154643B}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>OSInteraction</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='winDebug|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v140_xp</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='winDebug|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v140_xp</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='winRelease|x64'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v140_xp</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='winRelease|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v140_xp</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v142</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">

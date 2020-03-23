@@ -24,89 +24,65 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\util\chainList.cpp">
-      <Filter>Source Files\util</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\util\errorHandling.cpp">
-      <Filter>Source Files\util</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\util\filePNG.cpp">
-      <Filter>Source Files\util</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\util\fileTGA.cpp">
-      <Filter>Source Files\util</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\util\mzPacker.cpp">
-      <Filter>Source Files\util</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\util\segList.cpp">
-      <Filter>Source Files\util</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\util\str32.cpp">
-      <Filter>Source Files\util</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\util\str8.cpp">
-      <Filter>Source Files\util</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\util\strCommon.cpp">
-      <Filter>Source Files\util</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\osiChar.cpp">
+    <ClCompile Include="..\src\osiWindow.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\osiDisplay.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\osiGlExt.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\src\osiInput.cpp">
+    <ClCompile Include="..\src\osiVulkan.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\src\osinteraction.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\osiRenderer.cpp">
+    <ClCompile Include="..\src\osiInput.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\src\osiWindow.cpp">
+    <ClCompile Include="..\src\osiGlRenderer.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\osiGlExt.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\osiDisplay.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\osiChar.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\util\strCommon.cpp">
+      <Filter>Source Files\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\util\str8.cpp">
+      <Filter>Source Files\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\util\str32.cpp">
+      <Filter>Source Files\util</Filter>
     </ClCompile>
     <ClCompile Include="..\src\util\str16.cpp">
       <Filter>Source Files\util</Filter>
     </ClCompile>
+    <ClCompile Include="..\src\util\segList.cpp">
+      <Filter>Source Files\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\util\mzPacker.cpp">
+      <Filter>Source Files\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\util\imgClass.cpp">
+      <Filter>Source Files\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\util\fileTGA.cpp">
+      <Filter>Source Files\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\util\filePNG.cpp">
+      <Filter>Source Files\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\util\fileOp.cpp">
+      <Filter>Source Files\util</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\util\errorHandling.cpp">
+      <Filter>Source Files\util</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\include\util\chainList.h">
-      <Filter>Header Files\util</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\util\errorHandling.h">
-      <Filter>Header Files\util</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\util\filePNG.h">
-      <Filter>Header Files\util</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\util\fileTGA.h">
-      <Filter>Header Files\util</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\util\mzPacker.h">
-      <Filter>Header Files\util</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\util\segList.h">
-      <Filter>Header Files\util</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\util\str32.h">
-      <Filter>Header Files\util</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\util\str8.h">
-      <Filter>Header Files\util</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\util\strCommon.h">
-      <Filter>Header Files\util</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\util\typeShortcuts.h">
-      <Filter>Header Files\util</Filter>
-    </ClInclude>
     <ClInclude Include="..\include\osiChar.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -146,17 +122,59 @@
     <ClInclude Include="..\extlib\oGL\include\glcorearb.h">
       <Filter>Header Files\oGL</Filter>
     </ClInclude>
-    <ClInclude Include="..\include\util\mlib.hpp">
-      <Filter>Source Files\util</Filter>
+    <ClInclude Include="..\include\util\typeShortcuts.h">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\util\strCommon.h">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\util\str8.h">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\util\str32.h">
+      <Filter>Header Files\util</Filter>
     </ClInclude>
     <ClInclude Include="..\include\util\str16.h">
       <Filter>Header Files\util</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\util\segList.h">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\util\rgb.hpp">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\util\mzPacker.h">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\util\mlib.hpp">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\util\imgClass.h">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\util\fileTGA.h">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\util\filePNG.h">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\util\fileOp.h">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\util\errorHandling.h">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\util\circleList.hpp">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\util\chainList.hpp">
+      <Filter>Header Files\util</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
+    <None Include="..\README.md" />
     <None Include="..\src\osiCocoa.mm">
       <Filter>Source Files</Filter>
     </None>
-    <None Include="..\README.md" />
   </ItemGroup>
 </Project>

@@ -1,7 +1,6 @@
 #include "osinteraction.h"
 #include "util/typeShortcuts.h"
-#include "util/filePNG.h"
-#include "util/fileTGA.h"
+#include "util/imgClass.h"
 
 #ifdef OS_LINUX
 #include <unistd.h>
@@ -335,7 +334,9 @@ osinteraction::~osinteraction() {
   argc= 0;
 
   // destroy all vulkan devices / etc
+  #ifdef OSI_USE_VKO
   vkDestroyAllSurfaces();
+  #endif
 
   #ifdef OSI_USE_OPENGL
   #ifdef OS_WIN
@@ -1093,7 +1094,7 @@ bool osinteraction::createWindow(osiWindow *w, osiMonitor *m, const char *name, 
   }
   */
 
-  w->setIcon(iconFile? iconFile: _iconFile);
+  w->setIcon(iconFile? iconFile: _iconFile.d);
   
   ShowWindow(w->_hWnd, SW_SHOW);  /// Show The Window
   SetForegroundWindow(w->_hWnd);  /// Slightly Higher Priority
@@ -1346,55 +1347,23 @@ bool osinteraction::createSplashWindow(osiWindow *w, osiMonitor *m, const char *
   if((!w) || (!m) || (!file)) return false;
   // image loading
   /// s will hold the file extension to be loaded, in lowercase
-  str8 s("   ");
-  int32 len= Str::strlen8(file)- 1;
-  if(len< 3) return false;         /// at least 3 character filename
+  uint8 *p= null;                         /// this will point to the bitmap's internal data
+  uint8 garbage;
+  int32 y0;
 
-  for(char a= 0; a< 3; a++)
-    s.d[a]= file[len- 3+ a];
-
-  s.lower();
-
-  PNG png;
-  TGA tga;
-
-  uint8 *bitmap= null;            /// bitmap will hold the image raw data (either kind of filetype, will be the same)
-  int32 dx, dy;                   /// loaded image size
+  Img img;
   int8 depth;                     /// byte depth - either 3 or 4 bytes (with or without alpha)
-  int8 bpc;
-  int8 bpp;
   str8 className;
 
-  /// check the file extension
-  if(s== "png") {
-    png.load(file);
-    if(png.type!= IMG_RGB && png.type!= IMG_RGBA) {
-      return false;
-    }
-
-    depth= png.bpp/ png.bpc;
-    dx= png.dx;
-    dy= png.dy;
-    bitmap= (uint8 *)png.bitmap;
-    bpc= png.bpc;
-    bpp= png.bpp;
-  } else if(s== "tga") {
-    tga.load(file);
-    if(tga.type!= IMG_RGB && tga.type!= IMG_RGBA) {
-      return false;
-    }
-
-    depth= tga.bpp/ tga.bpc;
-    dx= tga.dx;
-    dy= tga.dy;
-    bitmap= (uint8 *)tga.bitmap;
-    bpc= tga.bpc;
-    bpp= tga.bpp;
-  } else return false;
+  img.load(file);
+  if((img.format!= ImgFormat::R8G8B8_UNORM) || (img.format!= ImgFormat::R8G8B8A8_UNORM))
+    return false;
   
+  depth= img.bpp/ img.nchannels;
+
   /// window attributes
-  w->dx= dx+ 20;
-  w->dy= dy+ 20;
+  w->dx= (int32)img.dx+ 20;
+  w->dy= (int32)img.dy+ 20;
   w->x0= m->x0+ ((m->dx- w->dx)/ 2);
   w->y0= m->y0+ ((m->dy- w->dy)/ 2);
   w->name= "Splash Window";
@@ -1426,7 +1395,7 @@ bool osinteraction::createSplashWindow(osiWindow *w, osiMonitor *m, const char *
 
   if(!RegisterClassEx(&wc)) { error.simple("osi::createSplashWindow(): RegisterClassEx failed"); goto Fail; }
   
-  int32 y0= display.vdy- display.vy0- (w->y0+ w->dy);             /// coordonate unification changed y0
+  y0= display.vdy- display.vy0- (w->y0+ w->dy);             /// coordonate unification changed y0
   className= w->name;
   w->_hWnd= CreateWindowEx(WS_EX_LAYERED, className, w->name,     /// type & name
                            WS_VISIBLE| WS_POPUP,                  /// more attribs
@@ -1442,44 +1411,44 @@ bool osinteraction::createSplashWindow(osiWindow *w, osiMonitor *m, const char *
   /// create a bitmap - needs a hdc + HBITMAP handle
   w->_imgDC= CreateCompatibleDC(w->_hDC);
 
-  uint8 garbage= (dx% 4? 4- (dx% 4): 0);  /// bitmap (windows bmp's) scanlines must be divisible by 4, if they ain't, garbage is added at the end
+  garbage= (img.dx% 4? 4- (img.dx% 4): 0);        /// bitmap (windows bmp's) scanlines must be divisible by 4, if they ain't, garbage is added at the end
   BITMAPINFO b;
   ZeroMemory(&b, sizeof(BITMAPINFO));
   b.bmiHeader.biSize= sizeof(BITMAPINFOHEADER);
-  b.bmiHeader.biWidth= dx+ garbage;
-  b.bmiHeader.biHeight= dy;
+  b.bmiHeader.biWidth= (int32)img.dx+ garbage;
+  b.bmiHeader.biHeight= (int32)img.dy;
   b.bmiHeader.biPlanes= 1;                /// there are 4 planes, kinda, but msdn says only place 1 here... very professional
-  b.bmiHeader.biBitCount= bpp;            /// four 8-bit components 
+  b.bmiHeader.biBitCount= img.bpp;            /// four 8-bit components 
   b.bmiHeader.biCompression= BI_RGB;
-  b.bmiHeader.biSizeImage= dx* dy* depth;
+  b.bmiHeader.biSizeImage= img.dx* img.dy* depth;
 
-  uint8 *p= null;                         /// this will point to the bitmap's internal data
+  
 
   w->_imgBM= CreateDIBSection(w->_imgDC, &b, DIB_RGB_COLORS, (void **)&p, null, 0); /// CreateDIBitmap failed for me, unfortunately, probly there's a way
   if(p== null) { error.window("osi::createSplashWindow: CreateDIBSection failed"); goto Fail; }
   if(!SelectObject(w->_imgDC, w->_imgBM))     { error.window("osi::createSplashWindow: SelectObject() failed"); goto Fail; }
 
   /// RGBA top to bottom-> BGRA bottom to top
-  for(int32 a= 0; a< dy; a++)
-    for(int32 b= 0; b< dx; b++) {
-      int32 pos1= (a* (dx+ garbage)* depth)+ (b* depth);
-      int32 pos2= ((dy- a- 1)* dx* depth)+   (b* depth);
-      p[pos1+ 0]= bitmap[pos2+ 2];
-      p[pos1+ 1]= bitmap[pos2+ 1];
-      p[pos1+ 2]= bitmap[pos2+ 0];
-      if(bpp== 32) p[pos1+ 3]= bitmap[pos2+ 3];
+  for(uint32 a= 0; a< img.dy; a++)
+    for(uint32 b= 0; b< img.dx; b++) {
+      uint32 pos1= (a* (img.dx+ garbage)* depth)+   (b* depth);
+      uint32 pos2= ((img.dy- a- 1)* img.dx* depth)+ (b* depth);
+      p[pos1+ 0]= img.bitmap[pos2+ 2];
+      p[pos1+ 1]= img.bitmap[pos2+ 1];
+      p[pos1+ 2]= img.bitmap[pos2+ 0];
+      if(img.bpp== 32) p[pos1+ 3]= img.bitmap[pos2+ 3];
     }
 
-  if(bpp== 32) {
+  if(img.bpp== 32) {
     /// alpha blending / blend func
     BLENDFUNCTION blend;
     blend.BlendOp= AC_SRC_OVER;
     blend.BlendFlags= 0;
     blend.SourceConstantAlpha= 255;
     blend.AlphaFormat= AC_SRC_ALPHA;
-    if(!GdiAlphaBlend(w->_hDC, 0, 0, w->dx, w->dy, w->_imgDC, 0, 0, dx, dy, blend)) { error.window("osi::createSplashWindow: GdiAlphaBlend failed"); goto Fail; }
+    if(!GdiAlphaBlend(w->_hDC, 0, 0, (int)w->dx, (int)w->dy, w->_imgDC, 0, 0, (int)img.dx, (int)img.dy, blend)) { error.window("osi::createSplashWindow: GdiAlphaBlend failed"); goto Fail; }
   } else {
-    if(!BitBlt(w->_hDC, 0, 0, dx, dy, w->_imgDC, 0, 0, SRCCOPY)) { error.simple("osi::createSplashWindow: BitBlt failed"); goto Fail; }
+    if(!BitBlt(w->_hDC, 0, 0, (int)img.dx, (int)img.dy, w->_imgDC, 0, 0, SRCCOPY)) { error.simple("osi::createSplashWindow: BitBlt failed"); goto Fail; }
   }
   
   ShowWindow(w->_hWnd, SW_SHOW);
@@ -1727,7 +1696,7 @@ char *osinteraction::_getWinName(HWND h) {
   for(int a= 0; a< OSI_MAX_WINDOWS; a++)
     if(win[a]._hWnd== h)
       return (char *)win[a].name.d;
-  return "unknown window";
+  return (char *)"unknown window";
 }
 
 osiWindow *osinteraction::_getWin(HWND h) {
@@ -2090,7 +2059,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 
       } /// switch gain/lose focus
       
-      if(chatty) printf("WM_ACTIVATEAPP %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, wParam, lParam);
+      if(chatty) printf("WM_ACTIVATEAPP %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, (uint64_t)wParam, (int64_t)lParam);
       goto ret;
 
     case WM_POWERBROADCAST:
@@ -2106,7 +2075,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       goto ret;
 
     case WM_CLOSE:
-      if(chatty) printf("WM_CLOSE %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, wParam, lParam);
+      if(chatty) printf("WM_CLOSE %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, (uint64)wParam, (int64)lParam);
       osi.flags.exit= true;     /// main exit flag
       return 0;
     
@@ -2116,7 +2085,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       return 0;
 
     case WM_CHAR:
-      if(chatty) printf("WM_CHAR %s %llu\n", osi._getWinName(hWnd), wParam);
+      if(chatty) printf("WM_CHAR %s %llu\n", osi._getWinName(hWnd), (uint64)wParam);
 
       in.k._checkAndAddUnicode((uint32)wParam);
       return 0;
@@ -2124,7 +2093,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       
     case WM_UNICHAR:
       //error.console("WM_UNICHAR not tested", false, null);
-      if(chatty) printf("WM_UNICHAR %s %llu\n", osi._getWinName(hWnd), wParam);
+      if(chatty) printf("WM_UNICHAR %s %llu\n", osi._getWinName(hWnd), (uint64)wParam);
       in.k._checkAndAddUnicode((uint32)wParam);
       return 0;
       
@@ -2171,18 +2140,18 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
     case WM_SETFOCUS:         /// focus gained to a window
       if(w= osi._getWin(hWnd)) w->hasFocus= true;
 
-      if(chatty) printf("WM_SETFOCUS %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, wParam, lParam);
+      if(chatty) printf("WM_SETFOCUS %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, (uint64)wParam, (int64)lParam);
       goto ret;
 
     case WM_KILLFOCUS:        /// window lost focus
       if(w= osi._getWin(hWnd)) w->hasFocus= false;
 
-      if(chatty) printf("WM_KILLFOCUS %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, wParam, lParam);
+      if(chatty) printf("WM_KILLFOCUS %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, (uint64)wParam, (int64)lParam);
       goto ret;
 
     // system commands
     case WM_SYSCOMMAND:
-      if(chatty) printf("WM_SYSCOMMAND %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, wParam, lParam);
+      if(chatty) printf("WM_SYSCOMMAND %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, (uint64)wParam, (int64)lParam);
 
       switch (wParam)	{
         case SC_SCREENSAVE:
@@ -2193,7 +2162,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
           
 				  // return 0;                         /// prevent these from happening by not calling DefWinProc
         case SC_CLOSE: 
-          if(chatty) printf("  SC_CLOSE %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, wParam, lParam);
+          if(chatty) printf("  SC_CLOSE %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, (uint64)wParam, (int64)lParam);
           osi.flags.exit= true;
           return 0;
       } /// switch the type of WM_SYSCOMMAND
@@ -2222,11 +2191,11 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
   /// unhandled frequent windows messages
   if(chatty&& !onlyHandled)
     switch(m) {
-      case WM_ACTIVATE: if(chatty)   printf("WM_ACTIVATE %s 0x%x %llu %lld\n",   osi._getWinName(hWnd), m, wParam, lParam); goto ret;
-      case WM_ERASEBKGND: if(chatty) printf("WM_ERASEBKGND %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, wParam, lParam); goto ret;
-      case WM_PAINT: if(chatty)      printf("WM_PAINT %s 0x%x %llu %lld\n",      osi._getWinName(hWnd), m, wParam, lParam); goto ret;
-      case WM_NCPAINT: if(chatty)    printf("WM_NCPAINT %s 0x%x %llu %lld\n",    osi._getWinName(hWnd), m, wParam, lParam); goto ret;
-      case WM_NCACTIVATE: if(chatty) printf("WM_NCACTIVATE %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, wParam, lParam); goto ret;
+      case WM_ACTIVATE: if(chatty)   printf("WM_ACTIVATE %s 0x%x %llu %lld\n",   osi._getWinName(hWnd), m, (uint64)wParam, (int64)lParam); goto ret;
+      case WM_ERASEBKGND: if(chatty) printf("WM_ERASEBKGND %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, (uint64)wParam, (int64)lParam); goto ret;
+      case WM_PAINT: if(chatty)      printf("WM_PAINT %s 0x%x %llu %lld\n",      osi._getWinName(hWnd), m, (uint64)wParam, (int64)lParam); goto ret;
+      case WM_NCPAINT: if(chatty)    printf("WM_NCPAINT %s 0x%x %llu %lld\n",    osi._getWinName(hWnd), m, (uint64)wParam, (int64)lParam); goto ret;
+      case WM_NCACTIVATE: if(chatty) printf("WM_NCACTIVATE %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, (uint64)wParam, (int64)lParam); goto ret;
       case WM_GETICON: if(chatty)    printf("WM_GETICON\n"); goto ret;              /// usually is used when alt-tabbing, gets an icon for the mini alt-tab list
         // WHEN dealing with icons, must remember to develop WM_GETICON too
       case WM_IME_NOTIFY: if(chatty) printf("WM_IME_NOTIFY\n"); goto ret;
@@ -2237,7 +2206,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
     } /// switch
 
   if(chatty&& !onlyHandled)
-    printf("UNKNOWN %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, wParam, lParam);
+    printf("UNKNOWN %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, (uint64)wParam, (int64)lParam);
   /// this DefWindowProc() handles window movement & resize & rest... without this, moving is not working, for example
 ret:
   if(timeFunc) { osi.getNanosecs(&end); printf("processMSG lag: %llu\n", end- start); }
@@ -3343,10 +3312,11 @@ void osinteraction::glGetVersion(int *outMajor, int *outMinor) {
 
 
 
-
+#ifdef OSI_USE_VKO
 bool osinteraction::vkCreateWindow(osiWindow *w, osiMonitor *m, const char *name, int32_t dx, int32_t dy, int8_t mode, int16_t freq, const char *iconFile) {
   if(!createWindow(w, m, name, dx, dy, mode, freq, iconFile))
     return false;
+  
   /*
   // vkAssignRenderer() will create or assign an already created renderer to the window, based on osi.settings
   if(!osiVk::_assignRenderer(w)) {
@@ -3355,6 +3325,15 @@ bool osinteraction::vkCreateWindow(osiWindow *w, osiMonitor *m, const char *name
     return false;
   }
   */
+
+  // the vulkan renderer - purely informational now
+  osiRenderer *r= new osiRenderer;
+  r->monitor= m;
+  r->GPU= m->GPU;
+  r->type= 1;
+  vkRenderers.add(r);
+
+  w->renderer= r;
 
   if(!osiVk::createSurface(vk, w)) {
     destroyWindow(w);
@@ -3404,7 +3383,7 @@ void osinteraction::vkDestroyAllSurfaces() {
       osiVk::destroySurface(vk, &win[a]);
 }
 
-
+#endif // OSI_USE_VKO
 
 
 

@@ -1,7 +1,7 @@
 #include "osinteraction.h"
 #include "util/typeShortcuts.h"
 
-
+#ifdef OSI_USE_VKO
 namespace osiVk {
 
 
@@ -86,7 +86,7 @@ bool recreateSurface(vkObject *in_vk, osiWindow *in_win) {
 
 } // osiVk
 
-
+#endif /// OSI_USE_VKO
 
 
 

@@ -1,0 +1,30 @@
+{
+  "DVTSourceControlWorkspaceBlueprintPrimaryRemoteRepositoryKey" : "8320BDCB92A03982BF8B3CEFD91C3DA20A5A9408",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyRepositoryLocationsKey" : {
+
+  },
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyStatesKey" : {
+    "8320BDCB92A03982BF8B3CEFD91C3DA20A5A9408" : 0,
+    "6412673629A8D771E570CDEF5BAE51856EE53FD4" : 0
+  },
+  "DVTSourceControlWorkspaceBlueprintIdentifierKey" : "9F8CF287-64FC-40F9-B47B-2FA86A7D0955",
+  "DVTSourceControlWorkspaceBlueprintWorkingCopyPathsKey" : {
+    "8320BDCB92A03982BF8B3CEFD91C3DA20A5A9408" : "osi\/",
+    "6412673629A8D771E570CDEF5BAE51856EE53FD4" : "!utilClasses\/"
+  },
+  "DVTSourceControlWorkspaceBlueprintNameKey" : "OSInteraction",
+  "DVTSourceControlWorkspaceBlueprintVersion" : 204,
+  "DVTSourceControlWorkspaceBlueprintRelativePathToProjectKey" : "xcode\/OSInteraction\/OSInteraction.xcodeproj",
+  "DVTSourceControlWorkspaceBlueprintRemoteRepositoriesKey" : [
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "https:\/\/github.com\/alec101\/-utilClasses.git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "6412673629A8D771E570CDEF5BAE51856EE53FD4"
+    },
+    {
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryURLKey" : "https:\/\/github.com\/alec101\/OSInteraction.git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositorySystemKey" : "com.apple.dt.Xcode.sourcecontrol.Git",
+      "DVTSourceControlWorkspaceBlueprintRemoteRepositoryIdentifierKey" : "8320BDCB92A03982BF8B3CEFD91C3DA20A5A9408"
+    }
+  ]
+}

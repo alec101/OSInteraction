@@ -19,12 +19,12 @@ ______________
 7= unknown / unsupported image type
 8= file read error
 */
-
+/*
 #define FILETGA_INCLUDED
 
-#ifndef IMG_TYPE_DEFINED
-#define IMG_TYPE_DEFINED
-enum ImageType {      // notice first 4, most important img types also have the number of channels in the enum value
+#ifndef IMG_FORMAT_DEFINED
+#define IMG_FORMAT_DEFINED
+enum ImageFormat {      // notice first 4, most important img types also have the number of channels in the enum value
   // the major image types first
   IMG_NONE= 0,        /// default - image not initialized / everything is empty
   IMG_GREY= 1,        /// 8bit greyscale /             1 channel
@@ -58,7 +58,7 @@ enum ImageType {      // notice first 4, most important img types also have the 
 struct Adam7 {
   int8 x0, y0, xnext, ynext;
 };
-#endif /// IMG_TYPE_DEFINED
+#endif /// IMG_FORMAT_DEFINED
 
 
 
@@ -69,26 +69,26 @@ class TGA {
 
 public:
   
-  void *bitmap;             /// raw data
-  int32_t dx, dy;             /// image size
-  int8_t bpp, bpc;            /// bits per pixel / bits per channel
-  ImageType type;           /// type value is the number of channels too
+  void *bitmap;               // raw data
+  int32_t dx, dy;             // image size
+  int8_t bpp, bpc;            // bits per pixel / bits per channel
+  ImageFormat format;         // image format
 
-  uint8_t *cmap;              /// color palette
-  int8_t cmapBpp;             /// color palette bits per color (16 / 24 / 32)
+  uint8_t *cmap;              // color palette
+  int8_t cmapBpp;             // color palette bits per color (16 / 24 / 32)
 
   // saving / loading
 
-  bool load(cchar *);        // loads a TGA (RLE compressed or uncompressed)
-  bool save(cchar *);        // TGA uncompressed
+  bool load(const char *);    // loads a TGA (RLE compressed or uncompressed)
+  bool save(const char *);    // TGA uncompressed
   
-  bool loadPalette(cchar *);
-  bool savePalette(cchar *);
+  bool loadPalette(const char *);
+  bool savePalette(const char *);
 
   // error handling
 
-  unsigned int err;                 /// see beggining of file
-  const char *getError();        /// returns error as text
+  uint32_t err;               // see beggining of file
+  const char *getError();     // returns error as text
 
   // constructor / destructor
 
@@ -97,7 +97,7 @@ public:
   void delData();
 };
 
-
+*/
 
 
 

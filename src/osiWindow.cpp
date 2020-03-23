@@ -1,7 +1,6 @@
 #include "osinteraction.h"
 #include "util/typeShortcuts.h"
-#include "util/filePNG.h"
-#include "util/fileTGA.h"
+#include "util/imgClass.h"
 
 
 // -----------============= WINDOW CLASS =============------------------
@@ -81,6 +80,17 @@ osiWindow::~osiWindow() {
 
 
 void osiWindow::delData() {
+  // vulkan renderer - one per window - info only
+  #ifdef OSI_USE_VKO
+  if(renderer)
+    if(renderer->type== 1) {
+      
+      osi.vkRenderers.del(renderer);
+      renderer= nullptr;
+      
+    }
+  #endif
+
   #ifdef OS_WIN
   if(_imgBM) {              /// splash window bmp image
     DeleteObject(_imgBM);
@@ -204,54 +214,26 @@ bool osiWindow::_createFBandVisual() {
 bool osiWindow::setIcon(cchar *file) {
   if(!file) return false;
   
-  /// s will hold the file extension to be loaded, in lowercase
-  str8 s("   ");
-  int32 len= Str::strlen8(file)- 1;
-  if(len< 3) return false;            /// at least characters file
 
-  for(char a= 0; a< 3; a++)
-    s.d[a]= file[len- 3+ a];
-
-  s.lower();
-
-  PNG png;
-  TGA tga;
+  Img img;
 
   uint8 *bitmap= null;
   int32 dx, dy;
   int8 depth, bpp, bpc;
   
-  /// file extension== PNG
-  if(s== "png") {
-    png.load(file);
-    
-    if(png.err) return false;                                   /// error loading
-    if(png.type!= IMG_RGB && png.type!= IMG_RGBA) return false; /// RGBA & RGB only
+  img.load(file);
+  if(img.err) return false;
+  
+  if((img.format!= ImgFormat::R8G8B8_UNORM) || (img.format!= ImgFormat::R8G8B8A8_UNORM))  // RGBA & RGB only
+    return false;
 
-    depth= png.bpp/ png.bpc;
-    bpp= png.bpp;
-    bpc= png.bpc;
-    dx= png.dx;
-    dy= png.dy;
-    bitmap= (uint8 *)png.bitmap;
-    
-  /// file extension== TGA
-  } else if(s== "tga") {
-    tga.load(file);
-    
-    if(tga.err) return false;                                   /// error loading
-    if(tga.type!= IMG_RGB && tga.type!= IMG_RGBA) return false; /// RGBA & RGB only
-
-    depth= tga.bpp/ tga.bpc;
-    bpp= tga.bpp;
-    bpc= tga.bpc;
-    dx= tga.dx;
-    dy= tga.dy;
-    bitmap= (uint8 *)tga.bitmap;
-    
-  /// file extension== UNKNOWN
-  } else return false;
-
+  depth= img.bpp/ img.nchannels;
+  bpp= (int8)img.bpp;
+  bpc= img.bpc[0];
+  dx= (int32)img.dx;
+  dy= (int32)img.dy;
+  bitmap= (uint8 *)img.bitmap;
+  
   #ifdef OS_WIN
   /// RGB(A)->BGR(A) conversion
   for(int32 a= 0; a< dy; a++)

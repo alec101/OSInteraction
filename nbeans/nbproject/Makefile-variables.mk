@@ -7,37 +7,37 @@ CND_BASEDIR=`pwd`
 CND_BUILDDIR=build
 CND_DISTDIR=dist
 # linux64D configuration
-CND_PLATFORM_linux64D=GNU-Linux-x86
+CND_PLATFORM_linux64D=GNU-Linux
 CND_ARTIFACT_DIR_linux64D=../lib
 CND_ARTIFACT_NAME_linux64D=osi64lin-dbg.so
 CND_ARTIFACT_PATH_linux64D=../lib/osi64lin-dbg.so
-CND_PACKAGE_DIR_linux64D=dist/linux64D/GNU-Linux-x86/package
+CND_PACKAGE_DIR_linux64D=dist/linux64D/GNU-Linux/package
 CND_PACKAGE_NAME_linux64D=nbeans.tar
-CND_PACKAGE_PATH_linux64D=dist/linux64D/GNU-Linux-x86/package/nbeans.tar
+CND_PACKAGE_PATH_linux64D=dist/linux64D/GNU-Linux/package/nbeans.tar
 # linux64R configuration
-CND_PLATFORM_linux64R=GNU-Linux-x86
+CND_PLATFORM_linux64R=GNU-Linux
 CND_ARTIFACT_DIR_linux64R=../lib
 CND_ARTIFACT_NAME_linux64R=osi64lin.so
 CND_ARTIFACT_PATH_linux64R=../lib/osi64lin.so
-CND_PACKAGE_DIR_linux64R=dist/linux64R/GNU-Linux-x86/package
+CND_PACKAGE_DIR_linux64R=dist/linux64R/GNU-Linux/package
 CND_PACKAGE_NAME_linux64R=nbeans.tar
-CND_PACKAGE_PATH_linux64R=dist/linux64R/GNU-Linux-x86/package/nbeans.tar
+CND_PACKAGE_PATH_linux64R=dist/linux64R/GNU-Linux/package/nbeans.tar
 # linux32D configuration
-CND_PLATFORM_linux32D=GNU-Linux-x86
+CND_PLATFORM_linux32D=GNU-Linux
 CND_ARTIFACT_DIR_linux32D=../lib
 CND_ARTIFACT_NAME_linux32D=osi32lin-dbg.so
 CND_ARTIFACT_PATH_linux32D=../lib/osi32lin-dbg.so
-CND_PACKAGE_DIR_linux32D=dist/linux32D/GNU-Linux-x86/package
+CND_PACKAGE_DIR_linux32D=dist/linux32D/GNU-Linux/package
 CND_PACKAGE_NAME_linux32D=nbeans.tar
-CND_PACKAGE_PATH_linux32D=dist/linux32D/GNU-Linux-x86/package/nbeans.tar
+CND_PACKAGE_PATH_linux32D=dist/linux32D/GNU-Linux/package/nbeans.tar
 # linux32R configuration
-CND_PLATFORM_linux32R=GNU-Linux-x86
+CND_PLATFORM_linux32R=GNU-Linux
 CND_ARTIFACT_DIR_linux32R=../lib
 CND_ARTIFACT_NAME_linux32R=osi32lin.so
 CND_ARTIFACT_PATH_linux32R=../lib/osi32lin.so
-CND_PACKAGE_DIR_linux32R=dist/linux32R/GNU-Linux-x86/package
+CND_PACKAGE_DIR_linux32R=dist/linux32R/GNU-Linux/package
 CND_PACKAGE_NAME_linux32R=nbeans.tar
-CND_PACKAGE_PATH_linux32R=dist/linux32R/GNU-Linux-x86/package/nbeans.tar
+CND_PACKAGE_PATH_linux32R=dist/linux32R/GNU-Linux/package/nbeans.tar
 # mac64D configuration
 CND_PLATFORM_mac64D=CLang-MacOSX
 CND_ARTIFACT_DIR_mac64D=../output

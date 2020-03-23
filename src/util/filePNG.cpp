@@ -2,20 +2,14 @@
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 
-// TTTESTING vvvv
-//#include "osinteraction.h"
-// ^^^^^^^^^^^^^^^^^^^^^
-
-
 #include <stdio.h>
 #include <stdlib.h>
-
 
 #include "util/typeShortcuts.h"
 #include "util/str8.h"
 #include "util/mzPacker.h"
-#include "util/filePNG.h"
-
+#include "util/imgClass.h"
+#include "util/mlib.hpp"
 
 
 /* TODO:
@@ -25,110 +19,226 @@
 
 using namespace Str;
 
-/// PNG uses big endian byte order(network order), iverse of what c/ c++ uses, therefore inverse all them bytes
-inline int32 byteSwp32(int32 n) {
-  uint8 *c= (uint8 *)&n;
-  return (c[0]<< 24)| (c[1]<< 16)| (c[2]<< 8)| c[3];
-}
+///==================================================================///
+// PNG image file =======================---------------------------- //
+///==================================================================///
 
-/// PNG uses big endian byte order(network order), iverse of what c/ c++ uses, therefore inverse all them bytes
-inline int16 byteSwp16(int16 n) {
-  uint8 *c= (uint8 *)&n;
-  return (c[0]<< 8)| c[1];
-}
+// Img PNG private
+class _ImgPNG {
+  /// PNG uses big endian byte order(network order), iverse of what c/ c++ uses, therefore inverse all them bytes
+  inline static uint32 byteSwp32(uint32 n) {
+    uint8 *c= (uint8 *)&n;
+    return (c[0]<< 24)| (c[1]<< 16)| (c[2]<< 8)| c[3];
+  }
 
-// these don't work... maybe make them work someday...
-
-//#define byteSwp32(n) (((uint8 *)&(n))[0]<< 24)| (((uint8 *)&(n))[1]<< 16)| (((uint8 *)&(n))[2]<< 8)| ((uint8 *)&(n))[3]
-//#define byteSwp16(n) (((uint8 *)&(n))[0]<< 8)| ((int8 *)&(n))[1]
-
-
-PNG::PNG() {
-  bitmap= null;
-  cmap= null;
-
-  delData();
-}
+  /// PNG uses big endian byte order(network order), iverse of what c/ c++ uses, therefore inverse all them bytes
+  inline static uint16 byteSwp16(uint16 n) {
+    uint8 *c= (uint8 *)&n;
+    return (c[0]<< 8)| c[1];
+  }
 
 
-void PNG::delData() {
-  if(bitmap) delete[] (int8 *)bitmap; bitmap= null;
-  if(cmap) delete[] cmap; cmap= null;
+  // these don't work... maybe make them work someday...
 
-  type= IMG_NONE;
-  dx= dy= 0;
-  bpp= bpc= cmapBpp= 0;
-  hasTrnCol= false;
-  trnCol.r= trnCol.g= trnCol.b= 0;
+  //#define byteSwp32(n) (((uint8 *)&(n))[0]<< 24)| (((uint8 *)&(n))[1]<< 16)| (((uint8 *)&(n))[2]<< 8)| ((uint8 *)&(n))[3]
+  //#define byteSwp16(n) (((uint8 *)&(n))[0]<< 8)| ((int8 *)&(n))[1]
 
-  err= 0;
-}
+  struct Adam7 {
+    int8 x0, y0, xnext, ynext;
+  };
+
+  static const Adam7 adam7[7];
+
+  struct IDATdata {
+    uint8 *bitmap;     // bitmap that will hold the PNG
+    uint8 *p;          // current position on bitmap
+    uint8 bpp;         // bitmap bits per pixel
+    uint32 xpos, ypos; // current X & Y coordinate position (pixel coords)
+    uint8 fline;       // current pixel line filter type
+    uint32 lineSize;   // linesize in bytes of the bitmap
+    uint8 mask;        // a mask used for less than 8bpp images
+    uint8 ilevel;      // current Adam7 level
+    uint8 depth;       // pixel depth used only for 8bpp and more
+    uint8 pixByte;     // byte number in current pixel
+    uint8 nbit;        // bit number in current byte
+    uint8 *l1, *l2;    // buffers that will hold 2 scanlines, used only for interlaced PNG's to help the filter ... filter
+    uint8 *linePrev, *lineCur, *linePos;  /// used with l1 and l2
+    IDATdata() { bitmap= p= null; bpp= 0; xpos= ypos= 0; fline= 0; lineSize= 0; mask= 0; ilevel= 0; depth= 0; pixByte= nbit= 0; l1= l2= linePrev= lineCur= linePos= null; }
+    ~IDATdata() { if(l1) delete[] l1; if(l2) delete[] l2; }
+  };
+
+  //inline uint8 _filter(uint8 interlace, IDATdata *d);
+  //inline bool _findGoodXY(uint8 &ilevel, uint32 &xpos, uint32 &ypos, const uint32 dx, const uint32 dy);
+  //bool _loadPNG(cchar *, Img *);
+  //bool _savePNG(cchar *, Img *);
 
 
-Adam7 adam7img[7]= { {0, 0, 8, 8},   /// lev 0
-                  {4, 0, 8, 8},   /// lev 1
-                  {0, 4, 4, 8},   /// lev 2
-                  {2, 0, 4, 4},   /// lev 3
-                  {0, 2, 2, 4},   /// lev 4
-                  {1, 0, 2, 2},   /// lev 5
-                  {0, 1, 1, 2} }; /// lev 6
 
-struct IDATdata {
-  uint8 *bitmap;    /// bitmap that will hold the PNG
-  uint8 *p;         /// current position on bitmap
-  int8 bpp;         /// bitmap bits per pixel
-  int32 xpos, ypos; /// current X & Y coordinate position (pixel coords)
-  int8 fline;       /// current pixel line filter type
-  int32 lineSize;   /// linesize in bytes of the bitmap
-  uint8 mask;       /// a mask used for less than 8bpp images
-  int8 ilevel;      /// current Adam7 level
-  int8 depth;       /// pixel depth 0 used only for 8bpp and more
-  int8 pixByte;     /// byte number in current pixel
-  int8 nbit;        /// bit number in current byte
-  uint8 *l1, *l2;   /// buffers that will hold 2 scanlines, used only for interlaced PNG's to help the filter ... filter
-  uint8 *linePrev, *lineCur, *linePos;  /// used with l1 and l2
-  IDATdata() { bitmap= p= null; bpp= 0; xpos= ypos= 0; fline= 0; lineSize= 0; mask= 0; ilevel= 0; depth= 0; pixByte= nbit= 0; l1= l2= linePrev= lineCur= linePos= null; }
-  ~IDATdata() { if(l1) delete[] l1; if(l2) delete[] l2; }
-};
 
-inline int8 _filter(int8 interlace, IDATdata *d);
-bool _findGoodXY(int8 &ilevel, int32 &xpos, int32 &ypos, const int32 dx, const int32 dy);
+  inline uint8 static _filter(uint8 interlace, IDATdata *d) {
+    uint32 xprev= 0, yprev= 0, xyprev= 0;
 
-#define SFREAD(a, b, c, d) if(fread(a, b, c, d)!= (c)) { err= 2; goto ReadError; }
+    // 8bpp and over PNGs
+    if(d->bpp>= 8) {
+      if(!interlace) {
+        xprev=   (d->xpos?             *(d->p- d->depth):              0);
+        yprev=   (d->ypos?             *(d->p- d->lineSize):           0);
+        xyprev= ((d->ypos && d->xpos)? *(d->p- d->lineSize- d->depth): 0);
+      } else {
+        bool xOK= ((d->xpos- adam7[d->ilevel].xnext>= 0) ? true: false);
+        bool yOK= ((d->ypos- adam7[d->ilevel].ynext>= 0) ? true: false);
+        xprev=  (xOK?         *(d->p- adam7[d->ilevel].xnext* d->depth):                                      0);
+        yprev=  (yOK?         *(d->p- adam7[d->ilevel].ynext* d->lineSize):                                   0);
+        xyprev=((xOK && yOK)? *(d->p- adam7[d->ilevel].xnext* d->depth- adam7[d->ilevel].ynext* d->lineSize): 0);
+      }
 
-bool PNG::load(cchar *fname) {
-  delData();
-  err= 0;
+    // less than 8bpp PNGs - tons of computations
+    } else {
+      if(!interlace) {
+        bool xOK= ((d->xpos/ d->bpp> 0)? true: false);
+        bool yOK= ((d->ypos/ d->bpp> 0)? true: false);
+        xprev=   (xOK?         *(d->p- 1):              0);
+        yprev=   (yOK?         *(d->p- d->lineSize):    0);
+        xyprev= ((xOK && yOK)? *(d->p- d->lineSize- 1): 0);
+      } else {
+        bool xOK= (((d->xpos- adam7[d->ilevel].xnext)>= 0) ? true: false);
+        bool yOK= (((d->ypos- adam7[d->ilevel].ynext)>= 0) ? true: false);
+        xprev=   (xOK?         *(d->linePos- 1):                            0);
+        yprev=   (yOK?         *(d->linePrev+ (d->linePos- d->lineCur)):    0);
+        xyprev= ((xOK && yOK)? *(d->linePrev+ (d->linePos- d->lineCur- 1)): 0);
+      }
+    }
+
+
+    if(!d->fline)                     /// no filter
+      return 0;
+  
+    else if(d->fline== 1)             /// 'Sub' filter
+      return (uint8)xprev;
+  
+    else if(d->fline== 2)             /// 'Up' filter
+      return (uint8)yprev; 
+
+    else if(d->fline== 3)             /// 'Average' filter
+      return (uint8)((xprev+ yprev)/ 2);
+
+    else if(d->fline== 4) {           /// 'Paeth' filter
+      int16 pa= mlib::abs32((int32)yprev- (int32)xyprev);
+      int16 pb= mlib::abs32((int32)xprev- (int32)xyprev);
+      int16 pc= mlib::abs32((int32)xprev+ (int32)yprev- (int32)xyprev- (int32)xyprev);
+
+      if(pc < pa && pc < pb) return (uint8)xyprev;
+      else if(pb < pa) return (uint8)yprev;
+      else return (uint8)xprev;
+    } /// filter types
+    return 0;
+  }
+
+
+  inline bool static _findGoodXY(uint8 &ilevel, uint32 &xpos, uint32 &ypos, const uint32 dx, const uint32 dy) {
+    CheckAgain:
+    if(xpos>= dx) {
+      xpos= _ImgPNG::adam7[ilevel].x0;
+      ypos+= adam7[ilevel].ynext;
+      if(xpos>= dx) {
+        ilevel++;
+        if(ilevel> 6) return false;
+        xpos= adam7[ilevel].x0;
+        ypos= adam7[ilevel].y0;
+        goto CheckAgain;
+      }
+    }
+
+    if(ypos>= dy) {
+      ilevel++;
+      if(ilevel> 6) return false;
+      xpos= adam7[ilevel].x0;
+      ypos= adam7[ilevel].y0;
+      goto CheckAgain;
+    }
+    return true;
+  }
+
+  friend class Img;
+}; // Img PNG private
+
+
+const _ImgPNG::Adam7 _ImgPNG::adam7[]= { {0, 0, 8, 8},   /// lev 0
+                                         {4, 0, 8, 8},   /// lev 1
+                                         {0, 4, 4, 8},   /// lev 2
+                                         {2, 0, 4, 4},   /// lev 3
+                                         {0, 2, 2, 4},   /// lev 4
+                                         {1, 0, 2, 2},   /// lev 5
+                                         {0, 1, 1, 2} }; /// lev 6
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// PNG load func ====================------------------------
+///==========================================================
+
+
+#define SFREAD(a, b, c, d) if(fread(a, b, c, d)!= (c)) { i->err= 9; goto ReadError; }
+
+bool Img::_loadPNG(const char *fname, Img *i) {
+  i->delData();
+  i->err= 0;
 
   char PNGfileCheck[9];     /// PNG file stamp
   bool tRNSloaded= false;   /// security checks
     /// header vars / chunk vars
-  uint32 clength= 0;        /// chunk length
-  char cname[5];           /// chunk name (4 bytes)
+  int32 clength= 0;         /// chunk length
+  char cname[5];            /// chunk name (4 bytes)
   cname[4]= 0;              /// string terminator
   uint32 cCRC;              /// chunk CRC
-  int8 colType;             /// PNG color type
-  int8 compression;         /// compression type (only 1 i think there is)
-  int8 filter;              /// filter type (only 1 in specs i think)
-  int8 interlace;           /// interlace type (only on or off i think)
+  uint8 colType;            /// PNG color type
+  uint8 compression;        /// compression type (only 1 i think there is)
+  uint8 filter;             /// filter type (only 1 in specs i think)
+  uint8 interlace;          /// interlace type (only on or off i think)
+  uint8 bpc;                /// bits per channel;
+  
   /// bitmap
-  //int64 n= 0;            /// n will be the number of bytes processed (no bigger than bitmapSize + dy)
-  int64 bitmapSize= 0;      /// bitmap raw img data size in bytes
+  //int64 n= 0;             /// n will be the number of bytes processed (no bigger than bitmapSize + dy)
+  uint8 *bitmap= null;      /// image raw data, i->bitmap or i->wrapbitmap will point to it in return
+  uint64 bitmapSize= 0;     /// bitmap raw img data size in bytes
   bool bitmapFilled= false; /// if the bitmap data was all filled, this flag will be true
   /// decompressor
-  
+  mzPacker pack;
   int64 size;               /// size of the decompressed data
   uint8 *p1;                /// p1 will walk the decompressed data
   /// filter tmp variables
-  uint8 *pprev= null;
+  //uint8 *pprev= null;
 
-  IDATdata d;
+  _ImgPNG::IDATdata d;
 
-  
 
   // open file
+  i->fileName= fname;
+  i->fileType= 2;
+
   FILE *f= fopen(fname, "rb");
-  if(!f) { err= 1; return false; }
+  if(!f) { i->err= 8; return false; }
 
   /// read PNG file check
   SFREAD(PNGfileCheck, 8, 1, f)
@@ -136,21 +246,21 @@ bool PNG::load(cchar *fname) {
 
   /// make shure it's a PNG image
   if(strcmp8("\x89PNG\xd\xa\x1a\xa", PNGfileCheck)) {
-    err= 9; goto ReadError; }
+    i->err= 14; goto ReadError; }
 
 
   /// pass thru all PNG chunks, until end chunk
   while(1) {
 
     /// read chunk length
-    SFREAD(&clength, 4, 1, f) clength= byteSwp32(clength);
+    SFREAD(&clength, 4, 1, f) clength= _ImgPNG::byteSwp32(clength);
     SFREAD(cname, 4, 1, f)
 
     // IHDR chunk, first, PNG header
     ///=============================
-    if(!strcmp8(cname, "IHDR")&& !dx) {   /// !dx - safety check: only 1 IHDR chunk must be present
-      SFREAD(&dx,          4, 1, f) dx= byteSwp32(dx);
-      SFREAD(&dy,          4, 1, f) dy= byteSwp32(dy);
+    if(!strcmp8(cname, "IHDR")&& !i->dx) {   /// !dx - safety check: only 1 IHDR chunk must be present
+      SFREAD(&i->dx,       4, 1, f) i->dx= _ImgPNG::byteSwp32(i->dx);
+      SFREAD(&i->dy,       4, 1, f) i->dy= _ImgPNG::byteSwp32(i->dy);
       SFREAD(&bpc,         1, 1, f)
       SFREAD(&colType,     1, 1, f)
       SFREAD(&compression, 1, 1, f)
@@ -158,82 +268,96 @@ bool PNG::load(cchar *fname) {
       SFREAD(&interlace,   1, 1, f)
 
       /// abort checks
-      if(!dx|| !dy)             { err= 4; goto ReadError; }
-      if(dx> 32768|| dy> 32768) { err= 4; goto ReadError; }
-      if(filter!= 0)            { err= 9; goto ReadError; }
-      if(interlace> 1)          { err= 9; goto ReadError; }
-      if(compression!= 0)       { err= 9; goto ReadError; }
+      if((!i->dx)|| (!i->dy))   { i->err= 2; goto ReadError; }
+      if(i->dx> 32768 || i->dy> 32768) { i->err= 2; goto ReadError; }
+      if(filter!= 0)            { i->err= 14; goto ReadError; }
+      if(interlace> 1)          { i->err= 14; goto ReadError; }
+      if(compression!= 0)       { i->err= 14; goto ReadError; }
 
       // PNG image type
 
       /// PNG type 0 - greyscale image
       if(colType== 0) {
-        if     (bpc== 1)  { type= IMG_GREY1;  bpp= 1; }
-        else if(bpc== 2)  { type= IMG_GREY2;  bpp= 2; }
-        else if(bpc== 4)  { type= IMG_GREY4;  bpp= 4; }
-        else if(bpc== 8)  { type= IMG_GREY;   bpp= 8; }
-        else if(bpc== 16) { type= IMG_GREY16; bpp= 16; }
-        else { err= 7; goto ReadError; }
+        if     (bpc== 1)  i->_set(ImgFormat::R8_UNORM); // IMG_GREY1
+        else if(bpc== 2)  i->_set(ImgFormat::R8_UNORM); // IMG_GREY2
+        else if(bpc== 4)  i->_set(ImgFormat::R8_UNORM);  // IMG_GREY4
+        else if(bpc== 8)  i->_set(ImgFormat::R8_UNORM);  // IMG_GREY
+        else if(bpc== 16) i->_set(ImgFormat::R16_UNORM); // IMG_GREY16
+        else { i->err= 3; goto ReadError; }
 
       /// PNG type 2 - RBG image
       } else if(colType== 2) {
-        if     (bpc== 8)  { type= IMG_RGB;   bpp= 24; }
-        else if(bpc== 16) { type= IMG_RGB48; bpp= 48; }
-        else { err= 7; goto ReadError; }
+        if     (bpc== 8)  i->_set(ImgFormat::R8G8B8_UNORM);
+        else if(bpc== 16) i->_set(ImgFormat::R16G16B16_UNORM);
+        else { i->err= 3; goto ReadError; }
 
       /// PNG type 3 - cmap image
       } else if(colType== 3) {
-        if     (bpc== 1) { type= IMG_CMAP1; bpp= 1; }
-        else if(bpc== 2) { type= IMG_CMAP2; bpp= 2; }
-        else if(bpc== 4) { type= IMG_CMAP4; bpp= 4; }
-        else if(bpc== 8) { type= IMG_CMAP;  bpp= 8; }
+        if     (bpc== 1) i->_set(ImgFormat::CMAP_RGB); /// 2 max cmap colors, to fit in 1 bit
+        else if(bpc== 2) i->_set(ImgFormat::CMAP_RGB); /// 4 max cmap colors, to fit in 2 bits
+        else if(bpc== 4) i->_set(ImgFormat::CMAP_RGB); /// 16 max cmap colors, to fit in 4 bits
+        else if(bpc== 8) i->_set(ImgFormat::CMAP_RGB); /// 256 max cmap colors, to fit in 8 bits
 
       /// PNG type 4 - grey + alpha image
       } else if(colType== 4) {
-        if     (bpc== 8)  { type= IMG_GREY_ALPHA;   bpp= 16; }
-        else if(bpc== 16) { type= IMG_GREY_ALPHA32; bpp= 32; }
-        else { err= 7; goto ReadError; }
+        if     (bpc== 8)  i->_set(ImgFormat::R8G8_UNORM);
+        else if(bpc== 16) i->_set(ImgFormat::R16G16_UNORM);
+        else { i->err= 3; goto ReadError; }
 
       /// PNG type 6 - RGBA image
       } else if(colType== 6) {
-        if     (bpc== 8)  { type= IMG_RGBA;   bpp= 32; }
-        else if(bpc== 16) { type= IMG_RGBA64; bpp= 64; }
-        else { err= 7; goto ReadError; }
+        if     (bpc== 8)  i->_set(ImgFormat::R8G8B8A8_UNORM);
+        else if(bpc== 16) i->_set(ImgFormat::R16G16B16A16_UNORM);
+        else { i->err= 3; goto ReadError; }
 
       /// unknown image type
-      } else { err= 9;  goto ReadError; }
+      } else { i->err= 14;  goto ReadError; }
 
       /// raw image buffer size; if it doesn't fit perfectly in full bytes, add 1 byte at the end of each line
-      bitmapSize= (((dx* bpp)% 8)? ((dx* bpp)/ 8+ 1)* dy: ((dx* bpp)/ 8)* dy);
+      bitmapSize= (((i->dx* i->bpp)% 8)? ((i->dx* i->bpp)/ 8+ 1)* i->dy: ((i->dx* i->bpp)/ 8)* i->dy);
+      //if(i->format== ImgFormat::CMAP_RGB) bitmapSize= i->dx* i->dy;
+      //else bitmapSize= (i->dx* i->nchannels)* i->dy;
 
     // PLTE chunk - cmap palette
     ///=========================
-    } else if(!strcmp8(cname, "PLTE")&& !cmap) {
-      if(!dx) { err= 10; goto ReadError; }          /// if IHDR is not first, nothing is initialized
-      if(clength> 768) { err= 12; goto ReadError; } /// chunk length bigger than maximum cmap size
+    } else if(!strcmp8(cname, "PLTE")&& !i->cmap) {
+      if(!i->dx) { i->err= 17; goto ReadError; }       /// if IHDR is not first, nothing is initialized
+      if(clength> 768) { i->err= 19; goto ReadError; } /// chunk length bigger than maximum cmap size
+      if(i->cmap!= null) { i->err= 19; goto ReadError; } /// more than 1 PLTE chunk
 
-      cmap= new uint8[768];           /// specs say there should be only one PLTE chunk... if cmap is already allocated...
-      SFREAD(cmap, clength, 1, f)
-      cmapBpp= 24;
+      i->cmap= new uint8[768];           /// specs say there should be only one PLTE chunk... if cmap is already allocated...
+      SFREAD(i->cmap, clength, 1, f)
+      //i->cmapBpp= 24;
 
     // IDAT chunk - PNG compressed data chunk
     ///======================================
     } else if(!strcmp8(cname, "IDAT")) {
-      if(!bitmapSize) { err= 10; goto ReadError; }  /// if IHDR is not first, nothing is initialized
-      if(bitmapFilled) { err= 13; goto ReadError; } /// image raw data aquired, yet another IDAT chunk found...
+      if(!bitmapSize) { i->err= 17; goto ReadError; }  /// if IHDR is not first, nothing is initialized
+      if(bitmapFilled) { i->err= 20; goto ReadError; } /// image raw data aquired, yet another IDAT chunk found...
       
+
+      d.bpp= bpc* i->nchannels;
+      d.lineSize= (uint32)(bitmapSize/ i->dy);  /// bitmap linesize in bytes
+      d.depth= ((d.bpp/ 8)== 0? 1: (d.bpp/ 8)); /// pixel depth in bytes, only used for 8bpp and more
+      d.mask= 0xFF>> (8- d.bpp);                /// mask of how many bits in the byte are used for 1 pixel for less than 8bpp images
+      
+      bool useLineBuffers= (((d.bpp< 8) && interlace)? true: false);
+
       /// alloc the bitmap
       if(!bitmap) {
-        bitmap= new int8[(uint)bitmapSize];
+        bitmap= new uint8[(unsigned int)bitmapSize];
+        if(i->_wrap) *i->wrapBitmap= bitmap;
+        i->bitmap= bitmap;
+
         d.p= (uint8 *)bitmap;
         d.bitmap= (uint8 *)bitmap;
-        if(bpp< 8) {
-          for(int64 a= 0; a< bitmapSize; a++)       /// wipe the bitmap, zeroes are _used_ (it's not for neatness)
+        if(d.bpp< 8) {
+          for(uint64 a= 0; a< bitmapSize; a++)       /// wipe the bitmap, zeroes are _used_ (it's not for neatness)
             d.p[a]= 0;
           /// interlaced+filter+less than 8bpp= 2 new buffers with current and previous scanlines are required, for the damn FILTER @$W$#@$@#
           if(interlace) {
-            d.l1= new uint8[(uint)(bitmapSize/ dy)];
-            d.l2= new uint8[(uint)(bitmapSize/ dy)];
+            d.l1= new uint8[(unsigned int)(bitmapSize/ i->dy)];
+            d.l2= new uint8[(unsigned int)(bitmapSize/ i->dy)];
             d.linePrev= d.l2;
             d.lineCur=  d.l1;
             d.linePos=  d.lineCur;
@@ -241,17 +365,12 @@ bool PNG::load(cchar *fname) {
         }
       }
       
-      d.lineSize= (int32)(bitmapSize/ dy);  /// bitmap linesize in bytes
-      d.depth= ((bpp/ 8)== 0? 1: (bpp/ 8)); /// pixel depth in bytes, only used for 8bpp and more
-      d.mask= 0xff>> (8- bpp);              /// mask of how many bits in the byte are used for 1 pixel for less than 8bpp images
-      d.bpp= bpp;
-      bool useLineBuffers= (((bpp< 8) && interlace)? true: false);
-
-      pack.startAdvDecomp(clength, mzTarget::STDIO_FILE, f, clength, mzTarget::INT_BUFFER, null, 0);
+      
+      pack.startAdvDecomp(clength, mzTarget::STDIO_FILE, f, (int64)clength, mzTarget::INT_BUFFER, null, 0);
 
       while(1) {
         p1= (uint8 *)pack.doAdvDecomp(0, &size);
-        if(pack.err) { err= 14; goto ReadError; }
+        if(pack.err) { i->err= 16; goto ReadError; }
         if((!size) && pack.results.srcFullyProcessed) break;
         
         /// the start of the process - only
@@ -262,23 +381,23 @@ bool PNG::load(cchar *fname) {
         }
 
         /// helper vars
-        uint8 ntimes= (bpp< 8? 8/ bpp: 1);                  /// number of times that each decompressed byte will be processed
+        uint8 ntimes= (d.bpp< 8? 8/ d.bpp: 1);            /// number of times that each decompressed byte will be processed
         uint8 *linePos= (uint8 *)bitmap+ d.ypos* d.lineSize;/// pointer to the start of the current line
 
         // pass thru all the bytes in the unpacked data
-        for(int64 a= 0; a< size; a++, p1++) {
-          if(d.xpos>= (int32)dx) {
+        for(uint64 a= (uint64)size; a> 0; a--, p1++) {
+          if(d.xpos>= i->dx) {
             d.fline= *p1;                                   /// filter type byte
             if(interlace) {
-              if(!_findGoodXY(d.ilevel, d.xpos, d.ypos, dx, dy)) { err= 13; goto ReadError; }
+              if(!_ImgPNG::_findGoodXY(d.ilevel, d.xpos, d.ypos, i->dx, i->dy)) { i->err= 20; goto ReadError; }
             } else {
               d.xpos= 0;                                    /// reset x position on bitmap
               d.ypos++;                                     /// increase y position on bitmap (only if n> 0)
-              if(d.ypos>= (int32)dy) { err= 13; goto ReadError; }
+              if(d.ypos>= i->dy) { i->err= 20; goto ReadError; }
             }
             linePos= (uint8 *)bitmap+ d.ypos* d.lineSize;   /// pointer to the start of the bitmap line (yposition)
-            d.p= linePos+ (d.xpos* bpp)/ 8;                 /// update p
-            d.nbit= (d.xpos* bpp)% 8;                       /// update nbit
+            d.p= linePos+ (d.xpos* d.bpp)/ 8;              /// update p
+            d.nbit= (d.xpos* d.bpp)% 8;                    /// update nbit
 
             /// this next code is used only for less than 8bpp interlaced PNGs, swaps 2 scanline buffers
             if(useLineBuffers) {
@@ -293,23 +412,23 @@ bool PNG::load(cchar *fname) {
           uint8 v= *p1;                                     /// working and changing p1, results in mzPacker decompression errors
 
           if(filter== 0)
-            v+= _filter(interlace, &d);                     /// apply the filter
+            v+= _ImgPNG::_filter(interlace, &d);                     /// apply the filter
 
           if(useLineBuffers)                                /// interlaced+filter garbage for less than 8bpp PNGs
             *d.linePos= v;
 
           for(uint b= 0; b< ntimes; b++) {                  /// process a whole byte
-            if(d.xpos>= (int32)dx) break;                    /// ignore the rest of the byte (garbage at the end of the line)
+            if(d.xpos>= i->dx) break;                       /// ignore the rest of the byte (garbage at the end of the line)
 
-            *d.p= (bpp>= 8? v: *d.p+ (((v>> (8- bpp- b))& d.mask)<< (8- bpp- d.nbit)));
+            *d.p= (d.bpp>= 8? v: *d.p+ (((v>> (8- d.bpp- b))& d.mask)<< (8- d.bpp- d.nbit)));
 
             if((++d.pixByte)>= d.depth) {
               d.pixByte= 0;
-              if(interlace) d.xpos+= adam7img[d.ilevel].xnext; /// advance xpos
+              if(interlace) d.xpos+= _ImgPNG::adam7[d.ilevel].xnext; /// advance xpos
               else          d.xpos++;
 
-              d.p= linePos+ (d.xpos* bpp)/ 8;               /// update p
-              d.nbit= (d.xpos* bpp)% 8;                     /// update nbit
+              d.p= linePos+ (d.xpos* d.bpp)/ 8;            /// update p
+              d.nbit= (d.xpos* d.bpp)% 8;                  /// update nbit
 
             } else
               d.p++;
@@ -322,14 +441,44 @@ bool PNG::load(cchar *fname) {
       } /// extract whole data
 
 
+      // convert the bitmap from less than 8bpp to 8bpp
+      /// there's only 2 posibilities this can happen: cmap and greyscale.
+      if(d.bpp< 8) {
+        uint8 *oldBitmap= bitmap;
+
+        // alloc
+        bitmap= new uint8[i->dx* i->dy];    /// 8bpp always, so dx*dy will do
+        i->bitmap= bitmap;
+        if(i->_wrap) *i->wrapBitmap= bitmap;
+
+        uint8 nbit= 0;
+        uint8 *p1= (uint8 *)bitmap;
+        uint8 *p2= bitmap;                  /// will walk the old bitmap
+
+        for(uint64 a= i->dx* i->dy; a> 0; a--, p1++) {
+          *p1= (*p2>> (8- d.bpp- nbit))& d.mask;
+
+          if(i->format== ImgFormat::R8_UNORM) {
+            if(d.bpp== 4)      *p1*= 17;    /// 4bpp  15(4bpp max)* 17= 255 (8bit max)
+            else if(d.bpp== 2) *p1*= 85;    /// 2bpp   3(2bpp max)* 85= 255 (8bit max)
+            else               *p1*= 255;   /// 1bpp
+          }
+
+          nbit+= d.bpp;
+          if(nbit== 8)           /// check if reached the end of the byte
+            nbit= 0, p2++;
+        }
+        delete[] oldBitmap;
+      }
+
     // IEND chunk - last chunk / end of file
     ///=====================================
     } else if(!strcmp8(cname, "IEND")) {
       /// some error checks; if none, just break from loop
-      if(!dx) { err= 10; goto ReadError; }          /// IHDR was not read
-      if((type== IMG_CMAP) && !cmap) { err= 12; goto ReadError; } /// PLTE was not read and it should've been
-      if(!bitmap) { err= 13; goto ReadError; }      /// IDAT was not read
-      // if(!bitmapFilled) { err= 15; goto ReadError; } /// bitmap data buffer not filled <<< bitmapFilled is not updated anymore. a check to ypos is done, for overflow
+      if(!i->dx) { i->err= 17; goto ReadError; }       /// IHDR was not read
+      if((i->format== ImgFormat::CMAP_RGB) && !i->cmap) { i->err= 19; goto ReadError; } /// PLTE was not read and it should've been
+      if(!bitmap) { i->err= 20; goto ReadError; }      /// IDAT was not read
+      // if(!bitmapFilled) { err= 21; goto ReadError; } /// bitmap data buffer not filled <<< bitmapFilled is not updated anymore. a check to ypos is done, for overflow
       break;
 
 
@@ -338,83 +487,92 @@ bool PNG::load(cchar *fname) {
 
     // tRNS - transparency 
     } else if(!strcmp8(cname, "tRNS")&& !tRNSloaded) {
-      if(!bitmapSize) { err= 10; goto ReadError; }  /// if IHDR is not first, nothing is initialized
+      if(!bitmapSize) { i->err= 17; goto ReadError; }  /// if IHDR is not first, nothing is initialized
       tRNSloaded= true;
-      if(colType== 0) {
-        hasTrnCol= true;
-        SFREAD(&trnCol.r, 2, 1, f) trnCol.r= byteSwp16(trnCol.r);
-      } else if(colType== 2) {
-        hasTrnCol= true;
-        SFREAD(&trnCol.r, 2, 1, f) trnCol.r= byteSwp16(trnCol.r);
-        SFREAD(&trnCol.g, 2, 1, f) trnCol.g= byteSwp16(trnCol.g);
-        SFREAD(&trnCol.b, 2, 1, f) trnCol.b= byteSwp16(trnCol.b);
-      } else if(colType== 3) {
+
+      //if(colType== 0) {
+      //  i->hasTrnCol= true;
+      //  SFREAD(&i->trnCol.r, 2, 1, f) i->trnCol.r= byteSwp16(i->trnCol.r);
+
+      //} else if(colType== 2) {
+      //  i->hasTrnCol= true;
+      //  SFREAD(&i->trnCol.r, 2, 1, f) i->trnCol.r= byteSwp16(i->trnCol.r);
+      //  SFREAD(&i->trnCol.g, 2, 1, f) i->trnCol.g= byteSwp16(i->trnCol.g);
+      //  SFREAD(&i->trnCol.b, 2, 1, f) i->trnCol.b= byteSwp16(i->trnCol.b);
+
+      //} else 
+      if(colType== 3) {
         uint8 *tcmap= new uint8[1024];
         for(uint16 a= 0; a< 256; a++) {
-          tcmap[a* 4]= cmap[a* 3];
-          tcmap[a* 4+ 1]= cmap[a* 3+ 1];
-          tcmap[a* 4+ 2]= cmap[a* 3+ 2];
+          tcmap[a* 4]= i->cmap[a* 3];
+          tcmap[a* 4+ 1]= i->cmap[a* 3+ 1];
+          tcmap[a* 4+ 2]= i->cmap[a* 3+ 2];
           if(clength> a) {
             SFREAD(&tcmap[a* 4+ 3], 1, 1, f)
           } else
             tcmap[a* 4+ 3]= 255;
         }
-        delete[] cmap;
-        cmap= tcmap;
-        cmapBpp= 32;
+        delete[] i->cmap;
+        i->_set(ImgFormat::CMAP_RGBA);
+        i->cmap= tcmap;
+        //i->cmapBpp= 32;
+
+      /// ignore transparent color if not CMAP
+      } else {
+        if(fseek(f, clength, SEEK_CUR)) { i->err= 9; goto ReadError; }
       }
 
     // gAMA chunk: Image gamma - IGNORED
     } else if(!strcmp8(cname, "gAMA")) {
-      if(fseek(f, clength, SEEK_CUR)) { err= 2; goto ReadError; }
+      if(fseek(f, clength, SEEK_CUR)) { i->err= 9; goto ReadError; }
 
     // cHRM chunk: Primary chromaticities - IGNORED
     } else if(!strcmp8(cname, "cHRM")) {
-      if(fseek(f, clength, SEEK_CUR)) { err= 2; goto ReadError; }
+      if(fseek(f, clength, SEEK_CUR)) { i->err= 9; goto ReadError; }
 
     // sRGB chunk: Standard RGB color space - IGNORED
     } else if(!strcmp8(cname, "sRGB")) {
-      if(fseek(f, clength, SEEK_CUR)) { err= 2; goto ReadError; }
+      if(fseek(f, clength, SEEK_CUR)) { i->err= 9; goto ReadError; }
     
     // iCCP chunk: Embedded ICC profile - IGNORED
     } else if(!strcmp8(cname, "iCCP")) {
-      if(fseek(f, clength, SEEK_CUR)) { err= 2; goto ReadError; }
+      if(fseek(f, clength, SEEK_CUR)) { i->err= 9; goto ReadError; }
 
     // iTXt, tEXt, and zTXt <<< NEEDS FURTHER THINKING, to be or not to be <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
     // bKGD chunk: Background color - IGNORED
     } else if(!strcmp8(cname, "bKGD")) {
-      if(fseek(f, clength, SEEK_CUR)) { err= 2; goto ReadError; }
+      if(fseek(f, clength, SEEK_CUR)) { i->err= 9; goto ReadError; }
 
     // pHYs chunk: Physical pixel dimensions - IGNORED
     } else if(!strcmp8(cname, "pHYs")) {
-      if(fseek(f, clength, SEEK_CUR)) { err= 2; goto ReadError; }
+      if(fseek(f, clength, SEEK_CUR)) { i->err= 9; goto ReadError; }
 
     // sBIT chunk: Significant bits - IGNORED
     } else if(!strcmp8(cname, "sBIT")) {
-      if(fseek(f, clength, SEEK_CUR)) { err= 2; goto ReadError; }
+      if(fseek(f, clength, SEEK_CUR)) { i->err= 9; goto ReadError; }
 
     // sPLT chunk: Suggested palette - IGNORED
     } else if(!strcmp8(cname, "sPLT")) {
-      if(fseek(f, clength, SEEK_CUR)) { err= 2; goto ReadError; }
+      if(fseek(f, clength, SEEK_CUR)) { i->err= 9; goto ReadError; }
 
     // hIST chunk: Palette histogram - IGNORED
     } else if(!strcmp8(cname, "hIST")) {
-      if(fseek(f, clength, SEEK_CUR)) { err= 2; goto ReadError; }
+      if(fseek(f, clength, SEEK_CUR)) { i->err= 9; goto ReadError; }
 
     // tIME chunk: Image last-modification time - IGNORED
     } else if(!strcmp8(cname, "tIME")) {
-      if(fseek(f, clength, SEEK_CUR)) { err= 2; goto ReadError; }
+      if(fseek(f, clength, SEEK_CUR)) { i->err= 9; goto ReadError; }
 
     // this is an UNKNOWN chunk, try to skip it
     } else {
-      if(fseek(f, clength, SEEK_CUR)) { err= 2; goto ReadError; }
+      if(fseek(f, clength, SEEK_CUR)) { i->err= 9; goto ReadError; }
 
     } /// what kind of chunk this is
 
     // CRC checks ARE NOT DONE. they can be done, but heck...
     // they are helpful in web images, and this lib is not for that
-    SFREAD(&cCRC, 4, 1, f) cCRC= byteSwp32(cCRC);
+    SFREAD(&cCRC, 4, 1, f) cCRC= _ImgPNG::byteSwp32(cCRC);
 
   } /// pass thru all chunks
 
@@ -425,96 +583,15 @@ bool PNG::load(cchar *fname) {
 
 ReadError:      // this avoids placing all these lines in every error check
   fclose(f);
-  delData();
+  i->delData();
   return false;
 }
 
 #undef SFREAD
 
 
-inline int8 _filter(int8 interlace, IDATdata *d) {
-  int xprev= 0, yprev= 0, xyprev= 0;
-
-  // 8bpp and over PNGs
-  if(d->bpp>= 8) {
-    if(!interlace) {
-      xprev=   (d->xpos?             *(d->p- d->depth):              0);
-      yprev=   (d->ypos?             *(d->p- d->lineSize):           0);
-      xyprev= ((d->ypos && d->xpos)? *(d->p- d->lineSize- d->depth): 0);
-    } else {
-      bool xOK= ((d->xpos- adam7img[d->ilevel].xnext>= 0) ? true: false);
-      bool yOK= ((d->ypos- adam7img[d->ilevel].ynext>= 0) ? true: false);
-      xprev=  (xOK?         *(d->p- adam7img[d->ilevel].xnext* d->depth):                                      0);
-      yprev=  (yOK?         *(d->p- adam7img[d->ilevel].ynext* d->lineSize):                                   0);
-      xyprev=((xOK && yOK)? *(d->p- adam7img[d->ilevel].xnext* d->depth- adam7img[d->ilevel].ynext* d->lineSize): 0);
-    }
-
-  // less than 8bpp PNGs - tons of computations
-  } else {
-    if(!interlace) {
-      bool xOK= ((d->xpos/ d->bpp> 0)? true: false);
-      bool yOK= ((d->ypos/ d->bpp> 0)? true: false);
-      xprev=   (xOK?         *(d->p- 1):              0);
-      yprev=   (yOK?         *(d->p- d->lineSize):    0);
-      xyprev= ((xOK && yOK)? *(d->p- d->lineSize- 1): 0);
-    } else {
-      bool xOK= (((d->xpos- adam7img[d->ilevel].xnext)>= 0) ? true: false);
-      bool yOK= (((d->ypos- adam7img[d->ilevel].ynext)>= 0) ? true: false);
-      xprev=   (xOK?         *(d->linePos- 1):                            0);
-      yprev=   (yOK?         *(d->linePrev+ (d->linePos- d->lineCur)):    0);
-      xyprev= ((xOK && yOK)? *(d->linePrev+ (d->linePos- d->lineCur- 1)): 0);
-    }
-  }
 
 
-  if(!d->fline)                     /// no filter
-    return 0;
-  
-  else if(d->fline== 1)             /// 'Sub' filter
-    return (uint8)xprev;
-  
-  else if(d->fline== 2)             /// 'Up' filter
-    return (uint8)yprev; 
-
-  else if(d->fline== 3)             /// 'Average' filter
-    return (uint8)((xprev+ yprev)/ 2);
-
-  else if(d->fline== 4) {           /// 'Paeth' filter
-    int16 pa= abs(yprev- xyprev);
-    int16 pb= abs(xprev- xyprev);
-    int16 pc= abs(xprev+ yprev- xyprev- xyprev);
-
-    if(pc < pa && pc < pb) return (uint8)xyprev;
-    else if(pb < pa) return (uint8)yprev;
-    else return (uint8)xprev;
-  } /// filter types
-  return 0;
-}
-
-
-inline bool _findGoodXY(int8 &ilevel, int32 &xpos, int32 &ypos, const int32 dx, const int32 dy) {
-  CheckAgain:
-  if(xpos>= dx) {
-    xpos= adam7img[ilevel].x0;
-    ypos+= adam7img[ilevel].ynext;
-    if(xpos>= dx) {
-      ilevel++;
-      if(ilevel> 6) return false;
-      xpos= adam7img[ilevel].x0;
-      ypos= adam7img[ilevel].y0;
-      goto CheckAgain;
-    }
-  }
-
-  if(ypos>= dy) {
-    ilevel++;
-    if(ilevel> 6) return false;
-    xpos= adam7img[ilevel].x0;
-    ypos= adam7img[ilevel].y0;
-    goto CheckAgain;
-  }
-  return true;
-}
 
 
 
@@ -527,16 +604,16 @@ inline bool _findGoodXY(int8 &ilevel, int32 &xpos, int32 &ypos, const int32 dx, 
 ///==========================================================
 
 /// a safe fwrite, configured for the next func only
-#define SFWRITE(a, b, c, d) if(fwrite(a, b, c, d)!= (c)) { err= 3; fclose(f); return false; }
+#define SFWRITE(a, b, c, d) if(fwrite(a, b, c, d)!= (c)) { i->err= 10; fclose(f); return false; }
 
-bool PNG::save(cchar *fname) {
+bool Img::_savePNG(const char *fname, Img *i) {
 
-  err= 0;
+  i->err= 0;
   static uint8 PNGfileStamp[9]= "\x89PNG\xd\xa\x1a\xa";
   mzPacker pack;
   //pack.setCompressionLevel(0);
-  
-  
+  void *bitmap= (i->_wrap? *i->wrapBitmap: i->bitmap);
+
   uint32 clength;         /// chunk length
   uint8 *cdata;           /// will hold chunk data for writing
   uint32 cCRC;            /// chunk CRC
@@ -544,33 +621,33 @@ bool PNG::save(cchar *fname) {
   uint8 compression= 0;   /// compression type (only 1 i think there is)
   uint8 filter= 0;        /// filter type (only 1 in specs i think)
   uint8 interlace= 0;     /// interlace type (only on or off i think)
+  bool hasCMAP= false;
 
   // size_t clengthPos, cdataPos, curPos;
-
-  if(type== IMG_GREY|| type== IMG_GREY1|| type== IMG_GREY2|| type== IMG_GREY4|| type== IMG_GREY16)
+  if(i->nchannels== 1 && i->bpp>= 8 && i->bpp<= 16 && !i->compressed)
     colType= 0;
-  else if(type== IMG_RGB|| type== IMG_RGB48)
+  else if(i->nchannels== 3 && i->bpp>= 24 && i->bpp<= 48 && !i->compressed)
     colType= 2;
-  else if(type== IMG_CMAP|| type== IMG_CMAP1|| type== IMG_CMAP2|| type== IMG_CMAP4)
+  else if(i->format== ImgFormat::CMAP_RGB || i->format== ImgFormat::CMAP_RGBA)
     colType= 3;
-  else if(type== IMG_GREY_ALPHA|| type== IMG_GREY_ALPHA32)
+  else if(i->nchannels== 2 && i->bpp>= 16 && i->bpp<= 32 && !i->compressed)
     colType= 4;
-  else if(type== IMG_RGBA|| type== IMG_RGBA64)
+  else if(i->nchannels== 4 && i->bpp>= 32 && i->bpp<= 64 && !i->compressed)
     colType= 6;
   else {
-    err= 16;      /// PNG doesn't support this image format
+    i->err= 22;      /// PNG doesn't support this image format
     return false;
   }
 
   /// abort checks
-  if(cmapBpp== 16) {
-    err= 8;
-    return false;
-  }
+  //if(i->cmapBpp== 16) {
+  //  i->err= 13;
+  //  return false;
+  //}
   
   // >> open file <<
   FILE *f= fopen(fname, "wb");
-  if(!f) { err= 1; return false; }
+  if(!f) { i->err= 8; return false; }
 
   /// write PNG file stamp
   SFWRITE(PNGfileStamp, 8, 1, f)
@@ -578,20 +655,20 @@ bool PNG::save(cchar *fname) {
 
   // IHDR chunk, first, PNG header
   ///=============================
-  clength= byteSwp32(13);                     /// IHDR has fixed data size
+  clength= _ImgPNG::byteSwp32(13);                     /// IHDR has fixed data size
 
   /// chunk data
   cdata= new uint8[13];
-  ((uint32 *)cdata)[0]= byteSwp32(dx);
-  ((uint32 *)cdata)[1]= byteSwp32(dy);
-  cdata[8]= bpc;
+  ((uint32 *)cdata)[0]= _ImgPNG::byteSwp32(i->dx);
+  ((uint32 *)cdata)[1]= _ImgPNG::byteSwp32(i->dy);
+  cdata[8]= i->bpc[0];
   cdata[9]= colType;
   cdata[10]= compression;
   cdata[11]= filter;
   cdata[12]= interlace;
   
   cCRC= pack.crc32(0, "IHDR", 4);
-  cCRC= byteSwp32(pack.crc32(cCRC, cdata, 13));
+  cCRC= _ImgPNG::byteSwp32(pack.crc32(cCRC, cdata, 13));
 
   // write
   SFWRITE(&clength, 4,  1, f)
@@ -604,13 +681,13 @@ bool PNG::save(cchar *fname) {
   // PLTE chunk - cmap palette
   ///=========================
   if(colType== 3) {
-    clength= 768; clength= byteSwp32(clength); /// fixed length 256 colors * 3
+    clength= 768; clength= _ImgPNG::byteSwp32(clength); /// fixed length 256 colors * 3
     bool delCdata= false;
     cCRC= pack.crc32(0, "PLTE", 4);
 
-    if(cmapBpp== 24) {
-      cdata= cmap;
-      cCRC= byteSwp32(pack.crc32(cCRC, cmap, 768));
+    if(i->format== ImgFormat::CMAP_RGB) {
+      cdata= i->cmap;
+      cCRC= _ImgPNG::byteSwp32(pack.crc32(cCRC, i->cmap, 768));
     } else {
       
       /// 32bit cmap -> 24bit cmap
@@ -618,12 +695,12 @@ bool PNG::save(cchar *fname) {
       delCdata= true;             /// flag cdata for delete[] operation
       
       for(int16 a= 0; a< 256; a++) {
-        cdata[a* 3]=    cmap[a* 4];
-        cdata[a* 3+ 1]= cmap[a* 4+ 1];
-        cdata[a* 3+ 2]= cmap[a* 4+ 2];
+        cdata[a* 3]=    i->cmap[a* 4];
+        cdata[a* 3+ 1]= i->cmap[a* 4+ 1];
+        cdata[a* 3+ 2]= i->cmap[a* 4+ 2];
       }
       
-      cCRC= byteSwp32(pack.crc32(cCRC, cdata, 768));
+      cCRC= _ImgPNG::byteSwp32(pack.crc32(cCRC, cdata, 768));
     } /// 24 or 32 bit cmap
 
     SFWRITE(&clength, 4, 1, f)
@@ -637,24 +714,25 @@ bool PNG::save(cchar *fname) {
 
   // tRNS chunk - transparency
   ///=========================
-
+  
+  /*
   // RGB image
-  if(hasTrnCol&& colType== 2) {
+  if(i->hasTrnCol&& colType== 2) {
     
     /// populate cdata
     cdata= new uint8[6];
 
-    if(bpp== 24) {          /// 24bit RGB
+    if(i->bpp== 24) {          /// 24bit RGB
       cdata[0]= 0;
-      cdata[1]= (uint8)trnCol.r;
+      cdata[1]= (uint8)i->trnCol.r;
       cdata[2]= 0;
-      cdata[3]= (uint8)trnCol.g;
+      cdata[3]= (uint8)i->trnCol.g;
       cdata[4]= 0;
-      cdata[5]= (uint8)trnCol.b;
+      cdata[5]= (uint8)i->trnCol.b;
     } else {                /// 48bit RGB
-      ((uint16 *)cdata)[0]= byteSwp16(trnCol.r);
-      ((uint16 *)cdata)[1]= byteSwp16(trnCol.g);
-      ((uint16 *)cdata)[2]= byteSwp16(trnCol.b);
+      ((uint16 *)cdata)[0]= byteSwp16(i->trnCol.r);
+      ((uint16 *)cdata)[1]= byteSwp16(i->trnCol.g);
+      ((uint16 *)cdata)[2]= byteSwp16(i->trnCol.b);
     }
     /// rest of vars
     clength= byteSwp32(6);
@@ -671,14 +749,14 @@ bool PNG::save(cchar *fname) {
   } /// RGB image tRNS chunk
 
   // GREY image
-  if(hasTrnCol&& colType== 0) {
+  if(i->hasTrnCol&& colType== 0) {
     /// populate cdata
     cdata= new uint8[2];
-    if(bpp<= 8) {           /// 8bit and less GREY
+    if(i->bpp<= 8) {           /// 8bit and less GREY
       cdata[0]= 0;
-      cdata[1]= (uint8)trnCol.r;
+      cdata[1]= (uint8)i->trnCol.r;
     } else {                /// 16bit GREY
-      *((uint16 *)cdata)= byteSwp16(trnCol.r);
+      *((uint16 *)cdata)= byteSwp16(i->trnCol.r);
     }
     /// rest of vars
     clength= byteSwp32(2);
@@ -693,17 +771,18 @@ bool PNG::save(cchar *fname) {
     
     delete[] cdata;          // dealloc
   } /// GREY image tRBS chunk
-  
+  */
+
   // CMAP image
-  if(colType== 3 && cmapBpp== 32) {
+  if(colType== 3 && i->format== ImgFormat::CMAP_RGBA) {
     /// cdata populate
     cdata= new uint8[256];
     for(int16 a= 0; a< 256; a++)
-      cdata[a]= cmap[a* 4];
+      cdata[a]= i->cmap[a* 4];
     /// rest of vars
-    clength= byteSwp32(256);
+    clength= _ImgPNG::byteSwp32(256);
     cCRC= pack.crc32(0, "tRNS", 4);
-    cCRC= byteSwp32(pack.crc32(cCRC, cdata, 256));
+    cCRC= _ImgPNG::byteSwp32(pack.crc32(cCRC, cdata, 256));
 
     SFWRITE(&clength, 4, 1, f)
     SFWRITE("tRNS",   4, 1, f)
@@ -718,29 +797,29 @@ bool PNG::save(cchar *fname) {
   ///======================================
 
   /// alloc a buffer for compression
-  int lineSize= ((dx* bpp)% 8== 0)? (dx* bpp)/ 8+ 1: (dx* bpp)/ 8+ 1+ 1;
-  int64 bitmapSize= (lineSize- 1)* dy;
+  uint32 lineSize= ((i->dx* i->bpp)% 8== 0)? (i->dx* i->bpp)/ 8+ 1: (i->dx* i->bpp)/ 8+ 1+ 1;
+  uint64 bitmapSize= (lineSize- 1)* i->dy;
   
 
-  int64 len= pack.compressBound(bitmapSize+ dy);
+  uint64 len= pack.compressBound(bitmapSize+ i->dy);
 
   cdata= new uint8[(uint)len];
 
-  uint8 *tmp= new uint8[(uint)(bitmapSize+ dy)];
-  for(int a= 0; a< (int)dy; a++) {
+  uint8 *tmp= new uint8[(unsigned int)(bitmapSize+ i->dy)];
+  for(uint32 a= 0; a< i->dy; a++) {
     tmp[a* lineSize]= 0;    /// filter type
-    for(int b= 1; b< lineSize; b++)
+    for(uint32 b= 1; b< lineSize; b++)
       tmp[a* lineSize+ b]= ((uint8 *)bitmap)[a* (lineSize- 1)+ (b- 1)];
   }
 
 
   // compress data
-  pack.compress(tmp, bitmapSize+ dy, cdata, len);
-  if(pack.err) { err= 17; delete[] cdata; fclose(f); return false; }
+  pack.compress(tmp, bitmapSize+ i->dy, cdata, len);
+  if(pack.err) { i->err= 15; delete[] cdata; fclose(f); return false; }
 
-  clength= byteSwp32((int32)pack.results.outFilled);
+  clength= _ImgPNG::byteSwp32((int32)pack.results.outFilled);
   cCRC= pack.crc32(0, "IDAT", 4);
-  cCRC= byteSwp32(pack.crc32(cCRC, cdata, pack.results.outFilled));
+  cCRC= _ImgPNG::byteSwp32(pack.crc32(cCRC, cdata, pack.results.outFilled));
 
   SFWRITE(&clength, 4, 1, f)
   SFWRITE("IDAT",   4, 1, f)
@@ -755,7 +834,7 @@ bool PNG::save(cchar *fname) {
   clength= 0;
 
   cCRC= pack.crc32(0, "IEND", 4);
-  cCRC= byteSwp32(cCRC);
+  cCRC= _ImgPNG::byteSwp32(cCRC);
 
   SFWRITE(&clength, 4, 1, f)
   SFWRITE("IEND",   4, 1, f)
@@ -763,14 +842,11 @@ bool PNG::save(cchar *fname) {
 
   fclose(f);
 
+  /// update Img's file
+  i->fileName= fname;
+  i->fileType= 2;
+
   return true;
 }
 
-#undef SFWRITE
-
-
-
-
-
-
-
+//} // namespace _Img

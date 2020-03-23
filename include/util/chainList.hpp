@@ -174,6 +174,7 @@ inline void chainList::del(chainData *p) {
   if(p->next) p->next->prev= p->prev;
   if(p== first) first= p->next;
   if(p== last) last= p->prev;
+
   /// delete
   CHAINLIST_DEALLOC(p);
   nrNodes--;
@@ -230,7 +231,7 @@ inline chainData *chainList::get(uint32_t nr) {
   #endif
   
   chainData *p= first;
-  for(uint32_t a= 0; a< nr; a++)                   // <<< SLOW PART >>>
+  for(uint32_t a= nr; a> 0; a--)                   // <<< SLOW PART >>>
     p= p->next;
 
   return p;
