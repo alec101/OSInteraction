@@ -5,7 +5,7 @@
 // you can define OSI_USE_OPENGL_EXOTIC_EXT before including this file, to signal osi to use exotic extensions when in core ARB mode
 
 #define OSI_USE_OPENGL 1        // <<< enable/disalbe all opengl functionability
-//#define OSI_USE_VKO 1           // <<< enable/disable all Vulkan object functionability
+#define OSI_USE_VKO 1           // <<< enable/disable all Vulkan object functionability
 
 // !!!
 // any comment starting with '<<<' marks a setting that can / SHOULD be changed for your project

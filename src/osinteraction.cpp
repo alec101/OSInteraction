@@ -2125,11 +2125,25 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       if(wParam== SIZE_RESTORED) {      /// handling only window size change (there are minimize and maximize messages here)
         if(w= osi._getWin(hWnd))        /// safety check; 'unknown windows' msgs happened in Win7
           if(w->mode== 1) {
-            w->dx= LOWORD(lParam);
-            w->dy= HIWORD(lParam);
-            osi.flags.windowResized= true;
+            w->dx= LOWORD(lParam),
+            w->dy= HIWORD(lParam),
+            osi.flags.windowResized= true,
+            osi.flags.minimized= false;
             //osi.resizeGLScene(w->dx, w->dy);
           }
+      } else if(wParam== SIZE_MAXIMIZED) {
+        if(w= osi._getWin(hWnd))        /// safety check; 'unknown windows' msgs happened in Win7
+          if(w->mode== 1)
+            w->dx= LOWORD(lParam),
+            w->dy= HIWORD(lParam),
+            osi.flags.windowResized= true,
+            osi.flags.minimized= false;
+      } else if(wParam== SIZE_MINIMIZED) {
+        if(w= osi._getWin(hWnd))        /// safety check; 'unknown windows' msgs happened in Win7
+          if(w->mode== 1)
+            w->dx= LOWORD(lParam),
+            w->dy= HIWORD(lParam),
+            osi.flags.minimized= true;
       }
       goto ret;
 
@@ -2700,7 +2714,7 @@ bool osinteraction::checkMSG() {
   /// set flags down 
   osi.flags.windowResized= false;
   osi.flags.windowMoved= false;
-
+  
   while(1)    // loop thru ALL msgs... i used to peek thru only 1 msg, that was baaad... biig LAG
     if(PeekMessage(&primWin->_msg, NULL, 0, 0, PM_REMOVE)) {	// Is There A Message Waiting?
       // eventTime= primWin->_msg.time; // not reliable. 1 sec before getMillisecs(). this time is in the dang future
