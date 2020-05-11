@@ -2142,12 +2142,12 @@ bool Img::vkConvertCompatible() {
 }
 
 
-VkImageAspectFlags Img::vkGetAspectFromFormat(VkFormat in_format) {
-  if((in_format>= VK_FORMAT_D16_UNORM) && (in_format<= VK_FORMAT_D32_SFLOAT))
+uint32 Img::vkGetAspectFromFormat(ImgFormat in_format) {
+  if((in_format>= ImgFormat::D16_UNORM) && (in_format<= ImgFormat::D32_SFLOAT))
     return VK_IMAGE_ASPECT_DEPTH_BIT;
-  if(in_format== VK_FORMAT_S8_UINT)
+  if(in_format== ImgFormat::S8_UINT)
     return VK_IMAGE_ASPECT_STENCIL_BIT;
-  if((in_format>= VK_FORMAT_D16_UNORM_S8_UINT) && (in_format<= VK_FORMAT_D32_SFLOAT_S8_UINT))
+  if((in_format>= ImgFormat::D16_UNORM_S8_UINT) && (in_format<= ImgFormat::D32_SFLOAT_S8_UINT))
     return VK_IMAGE_ASPECT_DEPTH_BIT| VK_IMAGE_ASPECT_STENCIL_BIT;
 
   return VK_IMAGE_ASPECT_COLOR_BIT;

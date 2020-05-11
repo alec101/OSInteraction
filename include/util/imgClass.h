@@ -303,7 +303,7 @@ public:
 
   #ifdef IMG_CLASS_USE_VULKAN
   bool vkConvertCompatible();                       // converts the image into something Vulkan can process. Usually only CMAP images and grey1/4 are not supported
-  static VkImageAspectFlags vkGetAspectFromFormat(VkFormat in_format);
+  static uint32 vkGetAspectFromFormat(ImgFormat in_format);
   #endif
 
   
