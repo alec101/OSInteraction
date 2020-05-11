@@ -218,8 +218,8 @@ public:
   uint8 fileType;       // 0= TEX, 1= TGA, 2= PNG
   uint8 *bitmap;        // raw data
   uint32 dx, dy;        // image size
-
   uint32 depth;         // 3D texture: basically number of images combined in this object
+
   uint16 bpp;           // bits per pixel
   uint8 bpc[4];         // bits per channel, for all 4 possible channels
   uint8 nchannels;      // number of channels per pixel (rgb= 3, rgba= 4, etc)
@@ -303,6 +303,7 @@ public:
 
   #ifdef IMG_CLASS_USE_VULKAN
   bool vkConvertCompatible();                       // converts the image into something Vulkan can process. Usually only CMAP images and grey1/4 are not supported
+  static VkImageAspectFlags vkGetAspectFromFormat(VkFormat in_format);
   #endif
 
   

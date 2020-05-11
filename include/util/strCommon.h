@@ -213,6 +213,37 @@ namespace Str {
     }
   }
 
+  inline void memcpyWIP(void *dst, const void *src, uint64_t n) {
+    /*
+    // MK1
+    void *m= ((uint8_t *)dst)+ n- 8;
+    for(uint64_t *p1= (uint64_t *)dst, *p2= (uint64_t *)src; p1< m; p1++, p2++)
+      *p1= *p2;
+
+    m= ((uint8_t *)m)+ 8;
+    for(uint8_t  *p1=  (uint8_t *)dst, *p2=  (uint8_t *)src; p1< m; p1++, p2++)
+      *p1= *p2;
+
+    // MK2
+    void *m= ((uint8_t *)dst)+ n- 8;
+    while(dst< m)
+      *((uint64_t *)dst)= *((uint64_t *)src), dst= (uint64_t *)dst- 1, src= (uint64_t *)src- 1;
+
+    m= ((uint8_t *)m)+ 8;
+    while(dst< m)
+      *((uint8_t *)dst)= *((uint8_t *)src), dst= (uint8_t *)dst- 1, src= (uint8_t *)src- 1;
+
+    // MK3
+    void *m= ((uint8_t *)dst)+ n- 32;
+    struct N { uint64_t n1, n2, n3, n4; } *p1= (N *)dst, *p2= (N *)src;
+    while(p1< m) *p1= *p2, p1++, p2++;
+
+    m= ((uint8_t *)m)+ 32;
+    for(uint8_t  *p1=  (uint8_t *)dst, *p2=  (uint8_t *)src; p1< m; p1++, p2++)
+      *p1= *p2;
+      */
+  }
+
   // unpacks UTF-8 and returns unicode value (UTF-32) 
   inline uint8_t *utf8to32fast(const uint8_t *in_txt, uint32_t *out_unicode) {
     if(*in_txt < 128) {                    /// character uses 1 byte (ascii 0-127)

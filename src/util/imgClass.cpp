@@ -1133,10 +1133,10 @@ bool Img::save3D(cchar *in_fn) {
 
 
 uint32 Img::mipmapGetMaxLevels(Img *i) {
-  uint32 a= 0;
+  uint32 a= 1;
   for(uint b= MAX(MAX(i->dx, i->dy), i->depth); b!= 1; b/= 2)
     a++;
-  return a+ 1;
+  return a;
 }
 
 
@@ -2140,6 +2140,19 @@ bool Img::vkConvertCompatible() {
   if(format== ImgFormat::CMAP_RGBA) return convert(ImgFormat::R8G8B8A8_UNORM);
   return true;
 }
+
+
+VkImageAspectFlags Img::vkGetAspectFromFormat(VkFormat in_format) {
+  if((in_format>= VK_FORMAT_D16_UNORM) && (in_format<= VK_FORMAT_D32_SFLOAT))
+    return VK_IMAGE_ASPECT_DEPTH_BIT;
+  if(in_format== VK_FORMAT_S8_UINT)
+    return VK_IMAGE_ASPECT_STENCIL_BIT;
+  if((in_format>= VK_FORMAT_D16_UNORM_S8_UINT) && (in_format<= VK_FORMAT_D32_SFLOAT_S8_UINT))
+    return VK_IMAGE_ASPECT_DEPTH_BIT| VK_IMAGE_ASPECT_STENCIL_BIT;
+
+  return VK_IMAGE_ASPECT_COLOR_BIT;
+}
+
 
 /*
 // returns the ImgFormat closest resembling the OGL internal format
