@@ -17,7 +17,9 @@ public:
   void populate(bool onlyVulkan= false); // this is auto-called on osi constructor; can be called multiple times to rescan the displays. after vulkan is initialized, it should be called to further populate everything vulkan can find. if <onlyVulkan> is true, only the vulkan part will populate
   
   int16_t nrMonitors;                   /// nr of active monitors connected to the system
-  int32_t vx0, vy0, vdx, vdy;           /// VIRTUAL DESKTOP size (all monitors are placed inside this virtual desktop/ fullscreen virtual desktop mode, uses these)
+  int32_t vx0, vy0;                     /// virtual desktop position - win+linux top-left origin, mac bottom-right origin
+  int32_t vdx, vdy;                     /// VIRTUAL DESKTOP size (all monitors are placed inside this virtual desktop/ fullscreen virtual desktop mode, uses these)
+  int32_t vyMax;                        /// virtual desktop y-axis max point (vy0+ vdy- 1)- used in TOP-BOTTOM origin point compute (a shortcut)
 
   int16_t nrGPUs;                       /// nr of GPU's on the current machine - IF THIS IS 0, THERE WAS NO WAY TO AQUIRE THIS DATA
   osiGPU *GPU;                          /// array with all GPU's on the current machine

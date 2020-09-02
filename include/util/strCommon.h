@@ -190,7 +190,7 @@ namespace Str {
       *p2++= v;
   }
 
-  // copies 8 bytes at a time - 2x- 3x slower than Microsoft memcpy
+  // copies 8 bytes at a time - 2x slower than Microsoft memcpy
   inline void memcpy(void *dst, const void *src, uint64_t n) {
     if(dst< src) {
       
@@ -214,35 +214,39 @@ namespace Str {
   }
 
   inline void memcpyWIP(void *dst, const void *src, uint64_t n) {
-    /*
-    // MK1
-    void *m= ((uint8_t *)dst)+ n- 8;
-    for(uint64_t *p1= (uint64_t *)dst, *p2= (uint64_t *)src; p1< m; p1++, p2++)
-      *p1= *p2;
+    uint64_t n64= (n/ 8);
+    uint64_t n8= (n% 8);
 
-    m= ((uint8_t *)m)+ 8;
-    for(uint8_t  *p1=  (uint8_t *)dst, *p2=  (uint8_t *)src; p1< m; p1++, p2++)
-      *p1= *p2;
+    // special case - a copy from same buffer and src < dst
+    if(src< dst)
+      if((uint8_t *)src+ n>= dst) {
 
-    // MK2
-    void *m= ((uint8_t *)dst)+ n- 8;
-    while(dst< m)
-      *((uint64_t *)dst)= *((uint64_t *)src), dst= (uint64_t *)dst- 1, src= (uint64_t *)src- 1;
+        if(n8)                                    /// copy bytes 1 by 1 (max 7)
+          for(int64_t i= n- 1; i> (int64_t)(n- n8- 1); i--)
+            ((uint8_t *)dst)[i]= ((uint8_t *)src)[i];
 
-    m= ((uint8_t *)m)+ 8;
-    while(dst< m)
-      *((uint8_t *)dst)= *((uint8_t *)src), dst= (uint8_t *)dst- 1, src= (uint8_t *)src- 1;
+        if(n64)
+          for(int64_t i= n64- 1; i>= 0; i--)      /// copy 8 bytes at a time
+            ((uint64_t *)dst)[i]= ((uint64_t *)src)[i];
 
-    // MK3
-    void *m= ((uint8_t *)dst)+ n- 32;
-    struct N { uint64_t n1, n2, n3, n4; } *p1= (N *)dst, *p2= (N *)src;
-    while(p1< m) *p1= *p2, p1++, p2++;
+        return;
+      }
 
-    m= ((uint8_t *)m)+ 32;
-    for(uint8_t  *p1=  (uint8_t *)dst, *p2=  (uint8_t *)src; p1< m; p1++, p2++)
-      *p1= *p2;
-      */
+    // normal copy
+    if(n64)
+      for(uint64_t i= 0; i< n64; i++)             /// copy 8 bytes at a time
+        ((uint64_t *)dst)[i]= ((uint64_t *)src)[i];
+    
+    if(n8) {                                      /// rest of bytes 1 by 1 (max 7)
+      dst= (uint64_t *)dst+ n64;
+      src= (uint64_t *)src+ n64;
+      for(uint64_t i= 0; i< n8; i++)
+        ((uint8_t *)dst)[i]= ((uint8_t *)src)[i];
+    }
   }
+
+
+
 
   // unpacks UTF-8 and returns unicode value (UTF-32) 
   inline uint8_t *utf8to32fast(const uint8_t *in_txt, uint32_t *out_unicode) {

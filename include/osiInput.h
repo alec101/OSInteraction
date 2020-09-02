@@ -44,7 +44,7 @@ public:
 
   int x, y;               // current mouse position
   //int vx, vy;             // current mouse position on the virtual desktop *TO BE OR NOT TO BE: x&y would be inside window coords... things might get messier, tho
-  int oldx, oldy;         // old mouse position (can be usefull) sincel last in.update() call
+  int oldx, oldy;         // old mouse position (can be useful) since last in.update() call
   int dx, dy;             // mouse delta movement values, since last in.update() call
   
   // wheel
@@ -122,9 +122,11 @@ public:
   bool insertLock;                      // insert is basically working like any 'lock' key
   
   struct osiKeyLog {
-    int32_t code;                       // scan code of the keyboard key (Input::Kv structure has all the keyboard key codes for each os)
-    bool checked;                       // checked & lastKey[] used for mortal kombat style of keyboard check
-    uint64_t timeDown, timeUp, timeDT;  // when the key was pressed & released and for how int32 it was pressed (timeDT) (timeUp & timeDT can be 0, indicating the key is still down)
+    int32_t code;                   // scan code of the keyboard key (Input::Kv structure has all the keyboard key codes for each OS)
+    bool checked;                   // checked & lastKey[] used for mortal kombat style of keyboard check
+    uint64_t timeDown;              // exact time when key was pressed
+    uint64_t timeUp;                // exact time when key was de-pressed - can be 0, indicating key is still pressed
+    uint64_t timeDT;                // how long the key was pressed (timeUp-timeDown) - can be 0, indicating key is still pressed
     
     osiKeyLog(const osiKeyLog &o): code(o.code), checked(o.checked), timeDown(o.timeDown), timeUp(o.timeUp), timeDT(o.timeDT) {};
     osiKeyLog(): code(0), checked(false), timeDown(0), timeUp(0), timeDT(0) {}
@@ -140,11 +142,11 @@ public:
 
   /// in charTyped.nrNodes / manipTyped.nrNodes is the nr of chars waiting to be processed (they get auto-del after 1-2 secs if not processed)
   segList charTyped;              // list with chars typed. charTyped::nrNodes has nr of chars waiting to be 'read'. dimensions: [size:32, unitsize sizeof(chTyped)];
-  //segList manipTyped;             // list with string manip chars (arrow keys, backspace, del, enter, etc)
+  //segList manipTyped;             // [MOVED INSIDE charTyped - NO NEED FOR 2 LISTS] list with string manip chars (arrow keys, backspace, del, enter, etc)
 
   /// the main functions to call to get a char / string manip char
   uint32_t getChar();             // returns a character typed @ keyboard or null if nothing is typed. (call it until it returns 0, or for each charTyped.nrNodes)
-  //uint32_t getManip();            // returns a str manip key press. (call it until it returns 0, or for each manipTyped.nrNodes)
+  //uint32_t getManip();            // [MOVED TO getChar() - NO NEED FOR 2 LISTS !!!] returns a str manip key press. (call it until it returns 0, or for each manipTyped.nrNodes)
   void clearTypedBuffer();        // clears all character buffers, ususally called when switching to a new/ existing input box / control
   
   // funcs
@@ -165,7 +167,7 @@ public:
   bool init(int8_t mode= 1);                  // see 'mode' var; can be used to initialize direct input, otherwize, use Input::init()
   void _log(const osiKeyLog &);               // [internal] just puts the last key in the last key-history (it logs imediatly when a key is down)
   void _addChar(uint32_t c, uint64_t *time);  // [internal] used in WM_CHAR message... nothing to bother
-  //void _addManip(uint32_t c, uint64_t *time); // [internal] string manipulation keys - enter/del/arrow keys/etc
+  //void _addManip(uint32_t c, uint64_t *time); // REMOVED - ONLY ONE LIST [internal] string manipulation keys - enter/del/arrow keys/etc
 
   void _checkAndAddUnicode(uint32_t in_char);   // [internal] OSchar.cpp. checks if current unicode and keys pressed form a char manip, if they do, it adds it into charTyped
   void _checkKeyManip(uint32_t in_keyCode);     // [internal] OSchar.cpp. checks if current keys pressed form a char manip, if they do, it adds it in charTyped
@@ -193,7 +195,7 @@ private:
   int16_t getFirstKey();
   void printPressed();
   
-// to be or not to be - THIS REALLY SEEMS ARE USELESS (31.01.2014) maybe if extending to ps4/xbone...
+// to be or not to be - THIS REALLY SEEMS USELESS (31.01.2014) maybe if extending to ps4/xbone...
 //  uint repeat[256];             /// how many times a character was repeated
 //  inline int getRepeat(int key) { uint t= repeat[key]; repeat[key]= 0; return t; }
 // these might be useless ^^^

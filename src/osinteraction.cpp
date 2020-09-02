@@ -999,9 +999,14 @@ bool osinteraction::createWindow(osiWindow *w, osiMonitor *m, const char *name, 
   }
 
   rect.left=   w->x0;
-  rect.right=  w->x0+ w->dx;
-  rect.top=    display.vdy- display.vy0- (w->y0+ w->dy);  /// coordonate unification changed
-  rect.bottom= display.vdy- display.vy0- w->y0;           /// coordonate unification changed
+  rect.right=  w->x0+ w->dx- 1;
+  #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
+  rect.top=    display.vyMax- (w->y0+ w->dy- 1);
+  #endif
+  #ifdef OSI_USE_ORIGIN_TOP_LEFT
+  rect.top=    w->y0;
+  #endif
+  rect.bottom= rect.top+ (w->dy- 1);
 
   w->_hInstance =   GetModuleHandle(NULL);                /// grab an instance for window
   wc.style=         CS_HREDRAW | CS_VREDRAW | CS_OWNDC;   /// Redraw On Size, And Own DC For Window.
@@ -1054,19 +1059,25 @@ bool osinteraction::createWindow(osiWindow *w, osiMonitor *m, const char *name, 
 
   // Create The Window
   if (!(w->_hWnd= CreateWindowEx(
-                dwExStyle,              // Extended Style For The Window
-                className,              // class name           <--- might want a different class name?
-                w->name,                /// window title
-                dwStyle |               /// defined window style
-                WS_CLIPSIBLINGS |       /// Required Window Style ?? not shure
-                WS_CLIPCHILDREN,        /// Required Window Style ?? not shure
-                w->x0, (display.vdy- display.vy0)- (w->y0+ w->dy), /// window position (coord unification fixed)
-                rect.right- rect.left,  /// dx
-                rect.bottom- rect.top,  /// dy
-                primWin->_hWnd,         /// parent window
-                NULL,                   /// no menu
-                w->_hInstance,          /// instance
-                NULL)))                 /// don't pass anything to WM_CREATE
+                dwExStyle,                         // Extended Style For The Window
+                className,                         // class name           <--- might want a different class name?
+                w->name,                          /// window title
+                dwStyle |                         /// defined window style
+                WS_CLIPSIBLINGS |                 /// Required Window Style ?? not shure
+                WS_CLIPCHILDREN,                  /// Required Window Style ?? not shure
+                w->x0,                            /// window x position
+                #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
+                display.vyMax- (w->y0+ w->dy- 1), /// window y position
+                #endif
+                #ifdef OSI_USE_ORIGIN_TOP_LEFT
+                w->y0,                            /// window y position
+                #endif
+                rect.right- rect.left+ 1,         /// dx
+                rect.bottom- rect.top+ 1,         /// dy
+                primWin->_hWnd,                   /// parent window
+                NULL,                             /// no menu
+                w->_hInstance,                    /// instance
+                NULL)))                           /// don't pass anything to WM_CREATE
   {
     destroyWindow(w);                    // Reset The Display
     error.simple(func+ "Window creation error.");
@@ -1170,13 +1181,20 @@ bool osinteraction::createWindow(osiWindow *w, osiMonitor *m, const char *name, 
   swa.override_redirect= 0;                             // this is very hard to handle if true
   
   w->_win= XCreateWindow(w->_dis, w->_root,
-                        w->x0, display.vdy- display.vy0- (w->y0+ w->dy), w->dx, w->dy,     // position & size (coord unification fixed)
-                        0,                              // border size
-                        w->_vi->depth,                  // depth can be CopyFromParent
-                        InputOutput,                    // InputOnly/ InputOutput/ CopyFromParent
-                        w->_vi->visual,                 // can be CopyFromParent
-                        CWColormap| CWEventMask| CWOverrideRedirect,       // tied with &swa
-                        &swa);                          //
+                         w->x0,                          // window x position
+                         #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
+                         display.vyMax- (w->y0+ w->dy- 1),  // window y position
+                         #endif
+                         #ifdef OSI_USE_ORIGIN_TOP_LEFT
+                         w->y0,                          // window y position
+                         #endif
+                         w->dx, w->dy,                   // window size
+                         0,                              // border size
+                         w->_vi->depth,                  // depth can be CopyFromParent
+                         InputOutput,                    // InputOnly/ InputOutput/ CopyFromParent
+                         w->_vi->visual,                 // can be CopyFromParent
+                         CWColormap| CWEventMask| CWOverrideRedirect,       // tied with &swa
+                         &swa);                          //
 
 
 // tring to see what this group hint is
@@ -1395,7 +1413,15 @@ bool osinteraction::createSplashWindow(osiWindow *w, osiMonitor *m, const char *
 
   if(!RegisterClassEx(&wc)) { error.simple("osi::createSplashWindow(): RegisterClassEx failed"); goto Fail; }
   
-  y0= display.vdy- display.vy0- (w->y0+ w->dy);             /// coordonate unification changed y0
+  #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
+  y0= display.vyMax- (w->y0+ w->dy- 1);
+  #endif
+  #ifdef OSI_USE_ORIGIN_TOP_LEFT
+  y0= w->y0;
+  #endif
+  
+
+
   className= w->name;
   w->_hWnd= CreateWindowEx(WS_EX_LAYERED, className, w->name,     /// type & name
                            WS_VISIBLE| WS_POPUP,                  /// more attribs
@@ -1539,7 +1565,14 @@ Fail:
   XStoreName(w->_dis, w->_win, w->name);      /// window name (top bar description/name)
   
   XMapWindow(w->_dis, w->_win);               /// map window= finish creation/ show window
-  XMoveWindow(w->_dis, w->_win, w->x0, display.vdy- display.vy0- (w->y0+ w->dy));
+
+  #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
+  XMoveWindow(w->_dis, w->_win, w->x0, display.vyMax- (w->y0+ w->dy- 1));
+  #endif
+  #ifdef OSI_USE_ORIGIN_TOP_LEFT
+  XMoveWindow(w->_dis, w->_win, w->x0, w->y0);
+  #endif
+  
   
   
   /// create image32: convert from RGBA to BGRA, and if the image is 24bpp, pad it to 32bpp anyways (there can be only 8/16/32 pad between pixels)
@@ -1761,7 +1794,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         //if(chatty) printf("mouse: wheel rotated\n");
         goto ret;
       }
-
+    
     /// mouse in [MODE 1]- all values are handled from here on
     if(in.m.mode== 1) {
       if(m== WM_MOUSEMOVE) {
@@ -1770,9 +1803,14 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         if(w= osi._getWin(hWnd)) {                /// i had an instance that a msg from an unknown window was sent, so safety checks must be made
           in.m.x= ((int32)(int16)LOWORD(lParam));   /// msdn says not to use loword; this is what GET_X_PARAM does
           in.m.y= ((int32)(int16)HIWORD(lParam));
-          /// coordonate unification
+          /// virtual dektop coords
+          in.m.x+= w->x0;
+          #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
           in.m.y= w->y0+ (w->dy- 1)- in.m.y;
-          in.m.x= w->x0+ in.m.x;
+          #endif
+          #ifdef OSI_USE_ORIGIN_TOP_LEFT
+          in.m.y+= w->y0;
+          #endif
         }
         
         goto ret; //return 0; // it is faster, but no windows move/resize!!!
@@ -2116,7 +2154,14 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       if(w= osi._getWin(hWnd))              /// safety check; 'unknown windows' msgs happened in Win7
         if(w->mode== 1) {
           w->x0= (int32)(int16)LOWORD(lParam);
-          w->y0= (osi.display.vdy)- (int32)(int16)HIWORD(lParam)- w->dy;
+
+          #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
+          w->y0= (osi.display.vy0+ osi.display.vdy)- (int32)(int16)HIWORD(lParam)- w->dy;   // no need for -1 if using vdy not vyMax
+          #endif
+          #ifdef OSI_USE_ORIGIN_TOP_LEFT
+          w->y0= (int32)(int16)HIWORD(lParam);
+          #endif
+
           osi.flags.windowMoved= true;
         }
       goto ret;
@@ -2191,7 +2236,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       if(w)
       if(w->mode== 0) {
         w->x0= tw->x;
-        w->y0= osi.display.vdy- tw->y- 1;
+        w->y0= osi.display.vyMax- tw->y- 1;
         w->dx= tw->cx;
         w->dy= tw->cy;
       }
@@ -2253,7 +2298,13 @@ bool osinteraction::_processMSG()  {
     if(event.type == MotionNotify) { /// this is the first event handled, because it is spammed
       /// oldx&y, dx&y removed; now updated on each in.update() call 
       in.m.x= event.xmotion.x_root;
-      in.m.y= osi.display.vdy- event.xmotion.y_root- 1; // test this <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+      #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
+      in.m.y= osi.display.vyMax- event.xmotion.y_root;
+      #endif
+      #ifdef OSI_USE_ORIGIN_TOP_LEFT
+      in.m.y= event.xmotion.y_root;
+      #endif
 
       continue;
 
@@ -2668,7 +2719,14 @@ bool osinteraction::_processMSG()  {
         int32 xold= w->x0, yold= w->y0;
 
         w->x0= event.xconfigure.x;
-        w->y0= display.vdy- display.vy0- (event.xconfigure.y+ event.xconfigure.height); // coordinate unification
+
+        #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
+        w->y0= (display.vy0+ display.vdy)- (event.xconfigure.y+ event.xconfigure.height);
+        #endif
+        #ifdef OSI_USE_ORIGIN_TOP_LEFT
+        w->y0= event.xconfigure.y;
+        #endif
+
         w->dx= event.xconfigure.width;
         w->dy= event.xconfigure.height;
         if((w->x0 != xold) || (w->y0!= yold))

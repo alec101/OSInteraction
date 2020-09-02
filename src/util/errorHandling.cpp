@@ -95,10 +95,11 @@ void ErrorHandling::detail(const char *txt, const char *func, int line, bool exi
 }
 
 
-void ErrorHandling::makeme(const char *func, int line, bool exit, void (*exitFunc)(void)) {
+void ErrorHandling::
+makeme(const char *func, int line, bool exit, void (*exitFunc)(void)) {
   str8 s= "MAKEME encountered";
   if(func)     s+= str8().f(" f[%s]", func);
-  if(line>= 0) s+= str8().f(" l[%d]");
+  if(line>= 0) s+= str8().f(" l[%d]", line);
 
   simple(s, exit, exitFunc);
 }

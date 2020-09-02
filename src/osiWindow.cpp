@@ -359,37 +359,51 @@ void osiWindow::hide() {
 }
 
 
-void osiWindow::move(int x, int y) {
-  x0= x; y0= y;
+void osiWindow::move(int in_x, int in_y) {
+  x0= in_x; y0= in_y;
   //if(mode!= 1) return;
   #ifdef OS_WIN
-  MoveWindow(_hWnd, x0, osi.display.vdy- (y0+ dy), dx, dy, false);
+    #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
+    MoveWindow(_hWnd, x0, osi.display.vyMax- (y0+ dy- 1), dx, dy, false);
+    #endif
+    #ifdef OSI_USE_ORIGIN_TOP_LEFT
+    MoveWindow(_hWnd, x0, y0, dx, dy, false);
+    #endif
   #endif /// OS_WIN
   
   #ifdef OS_LINUX
-  XMoveWindow(_dis, _win, x0, osi.display.vdy- (y0+ dy));
+    #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
+    XMoveWindow(_dis, _win, x0, osi.display.vyMax- (y0+ dy- 1));
+    #endif
+    #ifdef OSI_USE_ORIGIN_TOP_LEFT
+    XMoveWindow(_dis, _win, x0, y0);
+    #endif
   #endif /// OS_LINUX
   
   #ifdef OS_MAC
-  cocoa.setWindowPos(this, x, y);
+    cocoa.setWindowPos(this, x0, y0);
   #endif /// OS_MAC
 }
 
 
-void osiWindow::resize(int dx, int dy) {
-  this->dx= dx; this->dy= dy;
-  //if(mode!= 1) return;
+void osiWindow::resize(int in_dx, int in_dy) {
+  dx= in_dx; dy= in_dy;
+  
   #ifdef OS_WIN
-  MoveWindow(_hWnd, x0, osi.display.vdy- (y0+ dy), dx, dy, false);
+    #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
+    MoveWindow(_hWnd, x0, osi.display.vyMax- (y0+ dy- 1), dx, dy, false);
+    #endif
+    #ifdef OSI_USE_ORIGIN_TOP_LEFT
+    MoveWindow(_hWnd, x0, y0, dx, dy, false);
+    #endif
   #endif /// OS_WIN
   
-  
   #ifdef OS_LINUX
-  XResizeWindow(_dis, _win, dx, dy);
+    XResizeWindow(_dis, _win, dx, dy);
   #endif /// OS_LINUX
   
   #ifdef OS_MAC
-  cocoa.setWindowSize(this, dx, dy);
+    cocoa.setWindowSize(this, dx, dy);
   #endif /// OS_MAC
 }
 

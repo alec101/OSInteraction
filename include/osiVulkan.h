@@ -8,7 +8,6 @@
 
 namespace osiVk {
 
-
   void init(osinteraction *o);
   void close();
 
@@ -21,9 +20,6 @@ namespace osiVk {
   // private funcs
 
   //bool _assignRenderer(osiWindow *w, VkDevice in_device= NULL, osiVkRenderer **out_r= NULL);
-
-
-
 
 }; /// namespace osiVk
 

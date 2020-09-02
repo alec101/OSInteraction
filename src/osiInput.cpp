@@ -834,7 +834,7 @@ void osiInput::update() {
   
   /* <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
   check linux+mac joysticks. buttons & everything
-  carefull with axis!! -x and -y must be as in opengl
+  carefull with axis!! -x and -y must be left and down
   buttons 7& 8 must be back(select) / start
   check timers 
    */
@@ -1069,20 +1069,35 @@ bool osiMouse::ungrab() {
 }
 
 
-void osiMouse::setPos(int _x, int _y) {
+void osiMouse::setPos(int in_x, int in_y) {
   #ifdef OS_WIN
-  SetCursorPos(_x, osi.display.vdy- _y);
-
+    #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
+    SetCursorPos(in_x, osi.display.vyMax- in_y);
+    #endif
+    #ifdef OSI_USE_ORIGIN_TOP_LEFT
+    SetCursorPos(in_x, in_y);
+    #endif
   #endif /// OS_WIN
-  
+
   #ifdef OS_LINUX
-  XWarpPointer(osi._dis, None, None, 0, 0, 0, 0, _x, osi.display.vdy- _y);
+    #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
+    XWarpPointer(osi._dis, None, None, 0, 0, 0, 0, in_x, osi.display.vyMax- in_y);
+    #endif
+    #ifdef OSI_USE_ORIGIN_TOP_LEFT
+    XWarpPointer(osi._dis, None, None, 0, 0, 0, 0, in_x, in_y);
+    #endif
   #endif /// OS_LINUX
   
   #ifdef OS_MAC
-  CGPoint p; p.x= (float)_x; p.y= (float) _y;
-  
-  CGWarpMouseCursorPosition(p);
+    CGPoint p;
+    p.x= (float)in_x;
+    #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
+    p.y= (float)in_y;
+    #endif
+    #ifdef OSI_USE_ORIGIN_TOP_LEFT
+    p.y= (float)(osi.display.vyMax- in_y);
+    #endif
+    CGWarpMouseCursorPosition(p);
   #endif /// OS_MAC
 }
 
@@ -1123,7 +1138,12 @@ void osiMouse::update() {
     oldx= x;
     oldy= y;
     x= p.x;
-    y= osi.display.vdy- p.y;    /// coordonate unification
+    #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT     /// coordonate unification
+    y= osi.display.vyMax- p.y;
+    #endif
+    #ifdef OSI_USE_ORIGIN_TOP_LEFT        /// coordonate unification
+    y= p.y;
+    #endif
     dx= x- oldx;      /// replaced += with =; deltas are updated on each in.update() call
     dy= y- oldy;
 
@@ -1178,7 +1198,13 @@ void osiMouse::update() {
     oldx= x;
     oldy= y;
     x= _diStats.lX;
-    y= osi.display.vdy- _diStats.lY;   /// coordonate unification
+    #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
+    y= osi.display.vyMax- _diStats.lY;   /// coordonate unification
+    #endif
+    #ifdef OSI_USE_ORIGIN_TOP_LEFT
+    y= _diStats.lY;
+    #endif
+
     dx= x- oldx;      /// removed +=, made =; 
     dy= y- oldy;
     

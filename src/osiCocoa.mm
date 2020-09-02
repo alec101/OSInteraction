@@ -179,7 +179,12 @@ bool _osiCocoaSetTheIcon;
     if(w->mode== 1) {
       NSRect r= [self frame];
       w->x0= r.origin.x;
+      #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
       w->y0= r.origin.y;
+      #endif
+      #ifdef OSI_USE_ORIGIN_TOP_LEFT
+      w->y0= osi.display.vyMax- (r.origin.y+ w->dy- 1);
+      #endif
       osi.flags.windowMoved= true;
     }
 
@@ -715,7 +720,13 @@ bool _processMSG(void) {
        [event type]== NSOtherMouseDragged) {
       /// oldx&y, deltas, removed; now updated with each in.update() call
       in.m.x= event.window.screen.frame.origin.x+ event.window.frame.origin.x+ event.locationInWindow.x;
+      #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
       in.m.y= event.window.screen.frame.origin.y+ event.window.frame.origin.y+ event.locationInWindow.y;
+      #endif
+      #ifdef OSI_USE_ORIGIN_TOP_LEFT
+      in.m.y= event.window.screen.frame.origin.y+ event.window.frame.origin.y+ event.locationInWindow.y;
+      in.m.y= osi.display.vyMax- in.m.y;
+      #endif
       // spam if(chatty) printf("mouseMoved: x[%d] y[%d]\n", in.m.x, in.m.y);
     }
     // ---------------============ LEFT BUTTON DOWN =============-------------------
@@ -1114,8 +1125,13 @@ bool osiCocoa::createWindow(osiWindow *w, const char *iconFile) {
   
   /// window size
   NSRect contRect;
+  #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
   contRect= NSMakeRect(w->x0, w->y0, w->dx, w->dy);
-  
+  #endif
+  #ifdef OSI_USE_ORIGIN_TOP_LEFT
+  contRect= NSMakeRect(w->x0, osi.display.vyMax- (w->y0+ w->dy- 1), w->dx, w->dy);
+  #endif
+
   /// window style
   uint winStyle= 0;
 	if(w->mode== 1)                                 /// windowed style
@@ -1306,8 +1322,14 @@ bool osiCocoa::createSplashWindow(osiWindow *w, uint8_t *bitmap, int dx, int dy,
   
   /// window size
   NSRect contRect;
+  #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
   contRect= NSMakeRect(w->x0, w->y0, w->dx, w->dy);
-  
+  #endif
+  contRect= NSMakeRect(w->x0, osi.display.vyMax- (w->y0+ w->dy- 1), w->dx, w->dy);
+  #ifdef OSI_USE_ORIGIN_TOP_LEFT
+
+  #endif
+
   /// window style
   uint winStyle= 
     NSBorderlessWindowMask|
@@ -1444,7 +1466,12 @@ void osiCocoa::setWindowSize(osiWindow *w, int dx, int dy) {
   rect.size.width= dx;
   rect.size.height= dy;
   rect.origin.x= w->x0;
-  rect.origin.y= w->y0- dy;
+  #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
+  rect.origin.y= (w->y0+ w->dy)- dy;
+  #endif
+  #ifdef OSI_USE_ORIGIN_TOP_LEFT
+  rect.origin.y= osi.display.vyMax- (w->y0+ dy- 1);
+  #endif
   [(osiMacWindow *)w->_win setFrame:rect display:false];
 }
 
@@ -1452,7 +1479,12 @@ void osiCocoa::setWindowSize(osiWindow *w, int dx, int dy) {
 void osiCocoa::setWindowPos(osiWindow *w, int x, int y) {
   NSPoint p;
   p.x= (float)x;
-  p.y= (float)y- w->dy;
+  #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
+  p.y= (float)(y- w->dy);
+  #endif
+  #ifdef OSI_USE_ORIGIN_TOP_LEFT
+  p.y= (float)(osi.display.vyMax- (y+ w->dy- 1));
+  #endif
   [(osiMacWindow *)w->_win setFrameOrigin: p];
 }
 

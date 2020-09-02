@@ -1,4 +1,7 @@
 #pragma once
+#ifndef _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS 1
+#endif
 
 bool readLine8(FILE *f, str8 *out_str);
 bool readLine16(FILE *f, str16 *out_str);

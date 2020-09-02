@@ -7,6 +7,11 @@
 #define OSI_USE_OPENGL 1        // <<< enable/disalbe all opengl functionability
 #define OSI_USE_VKO 1           // <<< enable/disable all Vulkan object functionability
 
+// one of the next must be enabled:
+#define OSI_USE_ORIGIN_TOP_LEFT 1     // <<< coordinate system origin top left, with +y axis going down
+//#define OSI_USE_ORIGIN_BOTTOM_LEFT 1  // <<< coordinate system origin bottom left, with +y axis going up
+
+
 // !!!
 // any comment starting with '<<<' marks a setting that can / SHOULD be changed for your project
 // keep glext.h wglext.h, glxext.h updated from https://www.opengl.org/registry/ , to be able to access the latest OpenGL extensions
@@ -165,8 +170,11 @@ main() {
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 
-#define _WIN32_WINNT 0x05010000
-#define WINVER 0x0501
+//#ifndef _WIN32_WINNT
+//#define _WIN32_WINNT 0x05010000
+//#endif
+
+//#define WINVER 0x0501
 #include <SDKDDKVer.h>
 #include <Windows.h>
 
@@ -310,7 +318,6 @@ main() {
 #endif /// OS_MAC
 
 // utility classes
-//#include "util/typeShortcuts.h" // no point to clog other ppl's app with more custom C types - if they want it, they include it
 
 #include "util/str32.h"
 #include "util/str16.h"
@@ -564,7 +571,7 @@ public:
   
   // next funcs call glCreateWindow; they might make life easier, but nothing more
   
-  bool glPrimaryWindow(const char *name, int32_t dx, int32_t dy, int8_t mode, int16_t freq= 0); // mode: 1= windowed, 2= fullscreen, 3= fullscreeen window(must research this one), 4= fullscreen virtual desktop (every monitor)
+  bool glPrimaryWindow(const char *name, int32_t dx, int32_t dy, int8_t mode, int16_t freq= 0); // mode: 1= windowed, 2= fullscreen, 3= fullscreeen window, 4= fullscreen virtual desktop (every monitor)
   bool glPrimaryWindow();              // creates a basic window, fullscreen
   
 

@@ -170,8 +170,13 @@ osiGlRenderer *osinteraction::glCreateRendererMon(osiMonitor *m) {
 
   rect.left=   w.x0;
   rect.right=  w.x0+ 50;
-  rect.top=    (osi.display.vdy- osi.display.vy0)- (w.y0+ w.dy);
-  rect.bottom= w.y0+ 50;
+  #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
+  rect.top=    osi.display.vyMax- (w.y0+ w.dy- 1);
+  #endif
+  #ifdef OSI_USE_ORIGIN_TOP_LEFT
+  rect.top=    w.y0;
+  #endif
+  rect.bottom= rect.top- 50;
 
   w._hInstance=     GetModuleHandle(NULL);               /// grab an instance for window
   Str::memclr(&wc, sizeof(wc));
@@ -293,8 +298,13 @@ osiWindow *_osiCreateTmpWin(osiMonitor *m) {
 
   rect.left=   w->x0;
   rect.right=  w->x0+ 50;
+  #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
+  rect.top=    osi.display.vyMax- (w->y0+ w->dy- 1);
+  #endif
+  #ifdef OSI_USE_ORIGIN_TOP_LEFT
   rect.top=    w->y0;
-  rect.bottom= w->y0+ 50;
+  #endif
+  rect.bottom= rect.top- 50;
 
   w->_hInstance=    GetModuleHandle(NULL);                /// grab an instance for window
   wc.style=         CS_HREDRAW | CS_VREDRAW | CS_OWNDC;   /// Redraw On Size, And Own DC For Window.
@@ -327,7 +337,13 @@ osiWindow *_osiCreateTmpWin(osiMonitor *m) {
                 dwStyle |               /// defined window style
                 WS_CLIPSIBLINGS |       /// Required Window Style ?? not shure
                 WS_CLIPCHILDREN,        /// Required Window Style ?? not shure
-                w->x0, (osi.display.vdy- osi.display.vy0)- (w->y0+ w->dy), /// window position (coord unification fixed)
+                w->x0,
+                #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
+                osi.display.vyMax- (w->y0+ w->dy- 1),
+                #endif
+                #ifdef OSI_USE_ORIGIN_TOP_LEFT
+                w->y0,
+                #endif
                 rect.right- rect.left,  /// dx
                 rect.bottom- rect.top,  /// dy
                 NULL,                   /// parent window
@@ -439,7 +455,14 @@ osiWindow *_osiCreateTmpWin(osiMonitor *m) {
                   //PointerMotionMask;                  // mouse motion
     
   w->_win= XCreateWindow(w->_dis, w->_root,
-                         w->x0, osi.display.vdy- osi.display.vy0- (w->y0+ w->dy), w->dx, w->dy,     // position & size (coord unification fixed)
+                         w->x0,
+                         #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
+                         osi.display.vyMax- (w->y0+ w->dy- 1),
+                         #endif
+                         #ifdef OSI_USE_ORIGIN_TOP_LEFT
+                         w->y0,
+                         #endif
+                         w->dx, w->dy,                   // size
                          0,                              // border size
                          w->_vi->depth,                  // depth can be CopyFromParent
                          InputOutput,                    // InputOnly/ InputOutput/ CopyFromParent

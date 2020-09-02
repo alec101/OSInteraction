@@ -242,7 +242,7 @@ osiDisplay::osiDisplay() {
   bResCanBeChangedReason= buf;
   bGPUinfoAvaibleReason= buf;
   
-  vdx= vdy= vx0= vy0= 0;
+  vdx= vdy= vyMax= vx0= vy0= 0;
 }
 
 osiDisplay::~osiDisplay() {
@@ -710,6 +710,21 @@ bool _osiDoChange(osiMonitor *m, osiResolution *r, int16_t freq) {
   
   /// change the virtual desktop size
   _osiUpdateVirtualDesktop();               /// updates all virtual desktop vars (atm not mm)
+
+
+  /*
+   THIS COULD BE A THING, SO vx0, vy0 are always 0, 0
+  // if virtual desktop is not in position 0, 0, all monitors get moved until vx0 and vy0 are 0, 0
+  for(int a= 0; a< osi.display.nrMonitors; a++) {
+    osi.display.monitor[a].x0-= osi.display.vx0;
+    osi.display.monitor[a]._y0-= osi.display.vy0;
+  }
+
+  osi.display.vx0= osi.display.vy0= 0;
+
+  */
+
+
   // this can be avoided, and changex & changey used to update virtual desktop!!!
   if(chatty) printf("virtual desktop UPDATE: x[%d], y[%d] (monitor change delta x[%d], y[%d])\n", osi.display.vdx, osi.display.vdy, changex, changey);
   
@@ -913,9 +928,10 @@ void osiDisplay::populate(bool in_onlyVulkan) {
 
   /// virtual screen size
   vx0= GetSystemMetrics(SM_XVIRTUALSCREEN);
-  vy0= -GetSystemMetrics(SM_YVIRTUALSCREEN);    /// coordonate unification
+  vy0= GetSystemMetrics(SM_YVIRTUALSCREEN);
   vdx= GetSystemMetrics(SM_CXVIRTUALSCREEN);
   vdy= GetSystemMetrics(SM_CYVIRTUALSCREEN);
+  vyMax= vy0+ vdy- 1;
 
   // EnumDisplayDevices	DISPLAY_DEVICE		gr card(s) info
 
@@ -963,9 +979,11 @@ void osiDisplay::populate(bool in_onlyVulkan) {
 
     /// position on VIRTUAL DESKTOP		<--- if there's a need to find this position after a resolution change, a new func might be needed
     /// to get these vars & some rethinking
-    monitor[id].x0= dm.dmPosition.x;
-    monitor[id]._y0= dm.dmPosition.y;
-    monitor[id].y0= vdy- dm.dmPosition.y- dm.dmPelsHeight;   /// coordonate unification
+    
+    _osiGetMonitorPos(&monitor[id]);
+    //monitor[id].x0= dm.dmPosition.x;
+    //monitor[id]._y0= dm.dmPosition.y;
+    //monitor[id].y0= vdy- dm.dmPosition.y- dm.dmPelsHeight;   /// coordonate unification
     
     for(a= 0; EnumDisplayDevices(monitor[id]._id, a, &dd, null); a++) {
       //if(chatty) printf("found %d ID[%s]\nName[%s]\nString[%s]\n", a, dd.DeviceID, dd.DeviceName, dd.DeviceString);
@@ -1454,7 +1472,7 @@ void osiDisplay::populate(bool in_onlyVulkan) {
 
   /// coordonate unification (must be placed after the virtual desktop size is found)
   for(a= 0; a< nrMonitors; a++)
-    monitor[a].y0= vdy- monitor[a]._y0- monitor[a].dy;
+    _osiGetMonitorPos(&monitor[a]);
   
 
   if(chatty) printf("virtual desktop size [%dx%d]\n", vdx, vdy);
@@ -1587,8 +1605,10 @@ void osiDisplay::populate(bool in_onlyVulkan) {
     /// monitor position on virtual desktop
     r= CGDisplayBounds(dis[d]);
     monitor[d].x0= r.origin.x;
-    monitor[d].y0= r.origin.y;
     monitor[d]._y0= r.origin.y;
+    //_osiGetMonitorPos(&monitor[d]);
+    //monitor[d].y0= r.origin.y;
+    
 
     /// original monitor settings
     monitor[d].original.dx= (int)CGDisplayPixelsWide(dis[d]);
@@ -1601,7 +1621,7 @@ void osiDisplay::populate(bool in_onlyVulkan) {
     //monitor[d].original.freq[0]= (short)dm.dmDisplayFrequency;
       
     if(chatty) printf("monitor %d (%s):\n", d, monitor[d].name.d);
-    if(chatty) printf("  id[%d] position[%dx%d] original res[%dx%d]\n", monitor[d]._id, monitor[d].x0, monitor[d].y0, monitor[d].original.dx, monitor[d].original.dy);
+    if(chatty) printf("  id[%d] position[%dx%d] original res[%dx%d]\n", monitor[d]._id, monitor[d].x0, monitor[d]._y0, monitor[d].original.dx, monitor[d].original.dy);
     
     // * MAC 10.5 required *
     // double CGDisplayRotation(dis[d]); this is macOS 10.5 onwards... <<<<<<<<<<<<<<<<<<<<<<<<<
@@ -1829,7 +1849,11 @@ void osiDisplay::populate(bool in_onlyVulkan) {
   } /// displays loop
   
   _osiUpdateVirtualDesktop();
-  
+
+  /// update y0 position, based on coordinate origin setting
+  for(int a= 0; a< nrMonitors; a++)
+    _osiGetMonitorPos(&monitor[a]);
+
   delete[] dis;
   
 // IT'S OVERRRRR ... 
@@ -2354,12 +2378,23 @@ void _osiGetMonitorPos(osiMonitor *m) {
   if(EnumDisplaySettings(m->_id, ENUM_CURRENT_SETTINGS, &dm)) {
     m->x0= dm.dmPosition.x;               /// position on VIRTUAL DESKTOP
     m->_y0= dm.dmPosition.y;              /// position on VIRTUAL DESKTOP
-    m->y0= osi.display.vdy- m->_y0- m->dy;
+    #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
+    m->y0= osi.display.vyMax- (m->_y0+ m->dy);
+    #endif
+    #ifdef OSI_USE_ORIGIN_TOP_LEFT
+    m->y0= m->_y0;
+    #endif
   }
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
-  m->y0= osi.display.vdy- m->_y0- m->dy;  /// coordonate unification - y0 position
+  /// y0 position, depending on the origin setup
+  #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
+  m->y0= osi.display.vyMax- (m->_y0+ m->dy);  /// coordonate unification - y0 position
+  #endif
+  #ifdef OSI_USE_ORIGIN_TOP_LEFT
+  m->y0= m->_y0;
+  #endif
   #endif
   
   #ifdef OS_MAC
@@ -2367,7 +2402,13 @@ void _osiGetMonitorPos(osiMonitor *m) {
   r= CGDisplayBounds(m->_id);
   m->x0= r.origin.x;
   m->_y0= r.origin.y;
-  m->y0= m->_y0;                          /// macs have the right origin *MUST TEST*
+  /// y0 position, depending on the origin setup
+  #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
+  m->y0= m->_y0;                          /// macs have bottom-left origin *MUST TEST*
+  #endif
+  #ifdef OSI_USE_ORIGIN_TOP_LEFT
+  m->y0= osi.display.vyMax- (m->_y0+ m->dy);
+  #endif
   #endif /// OS_MAC
 }
 
@@ -2423,7 +2464,7 @@ void _osiUpdateVirtualDesktop() {
       osi.display._left= osi.display.monitor[a]._XineramaID;
       #endif
     }
-    if(osi.display.monitor[a]._y0< osi.display.vy0) {                            /// ^^
+    if(osi.display.monitor[a]._y0< osi.display.vy0) {                            /// ^^ or vv on mac
       osi.display.vy0= osi.display.monitor[a]._y0;
       #ifdef OS_LINUX
       osi.display._top= osi.display.monitor[a]._XineramaID;
@@ -2435,7 +2476,7 @@ void _osiUpdateVirtualDesktop() {
       osi.display._right= osi.display.monitor[a]._XineramaID;
       #endif
     }
-    if(osi.display.monitor[a]._y0+ osi.display.monitor[a].dy> osi.display.vdy) { /// vv
+    if(osi.display.monitor[a]._y0+ osi.display.monitor[a].dy> osi.display.vdy) { /// vv or ^^ on mac
       osi.display.vdy= osi.display.monitor[a]._y0+ osi.display.monitor[a].dy;
       #ifdef OS_LINUX
       osi.display._bottom= osi.display.monitor[a]._XineramaID;
@@ -2443,18 +2484,11 @@ void _osiUpdateVirtualDesktop() {
     }
   } /// for each monitor
 
-  #ifndef OS_MAC /// LINUX + WIN
-  /// coordonate unification - switch vdy and vy0
-  /* THIS IS WRONG - DELETE INCOMING
-  int t= osi.display.vdy;
-  osi.display.vdy= osi.display.vy0;
-  osi.display.vy0= t;
-  */
-  #endif /// OS_WIN + OS_LINUX
-
   /// vdx & vdy currently hold an end coordonate- they need to be delta x & y
   osi.display.vdx-= osi.display.vx0;
   osi.display.vdy-= osi.display.vy0;
+
+  osi.display.vyMax= osi.display.vy0+ osi.display.vdy- 1; // used for faster translate of origin (TOP vs BOTTOM)
 }
 
 

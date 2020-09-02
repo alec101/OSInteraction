@@ -727,7 +727,7 @@ TODO:
 
 // nothing to bother from here on vvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 
-// if you disable specific stuff, some other stuff that is based on the disabled stuff will not work anymore ("or something" as Butthead would say)
+// if you disable specific stuff, some other stuff that is based on the disabled stuff will not work anymore
 #ifdef GL_VERSION_1_5
 #if(GL_VERSION_1_5== 0)
 typedef ptrdiff_t GLsizeiptr;
