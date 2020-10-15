@@ -942,7 +942,9 @@ void _osiParseCmdLine(osinteraction *o) {
 
 // MAIN CREATE WINDOW FUNC. has every customisation
 bool osinteraction::createWindow(osiWindow *w, osiMonitor *m, const char *name, int32_t dx, int32_t dy, int8_t mode, int16_t freq, const char *iconFile) {
+  #ifdef OSI_BE_CHATTY
   bool chatty= false;
+  #endif
 
   str8 func= "osinteraction::createWindow(): ";
   w->name= name;
@@ -977,8 +979,10 @@ bool osinteraction::createWindow(osiWindow *w, osiMonitor *m, const char *name, 
   w->freq= freq;
   if(!primWin) primWin= w;                          /// if no primary window is set, this will be the primary
   
+  #ifdef OSI_BE_CHATTY
   if(chatty) printf("win x[%d] y[%d], monitor x[%d] y[%d]\n", w->x0, w->y0, m->x0, m->y0);
-  
+  #endif
+
   #ifdef OS_WIN
   
           
@@ -1243,7 +1247,9 @@ bool osinteraction::createWindow(osiWindow *w, osiMonitor *m, const char *name, 
     xev.xclient.data.l[1]= display._bottom;  /// bottommost
     xev.xclient.data.l[2]= display._left;    /// leftmost
     xev.xclient.data.l[3]= display._right;   /// rightmost
+    #ifdef OSI_BE_CHATTY
     if(chatty) printf("top[%d] left[%d] bottom[%d] right[%d]\n", display._top, display._left, display._bottom, display._right);
+    #endif
     xev.xclient.data.l[4]= 1;                /// source indication (1 for normal applications, 2 for pagers and other Clients that represent direct user actions)
     
     XSendEvent (w->_dis, DefaultRootWindow(w->_dis), False,
@@ -1771,14 +1777,19 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
   // it would work good for fullscreen/windowed fullscreen, but in windowed mode
   // there is no resize/move for windows, the close button won't work either, i think
   ///===================================================
+  
+  #ifdef OSI_BE_CHATTY
   bool onlyHandled= true; /// used with chatty
   bool chatty= false;
   bool timeFunc= false;   /// measure the time this func takes to finish
   uint64 start, end;      /// used with timeFunc
+  #endif
+
   osiWindow *w;           /// window that received the message
 //  WINDOWPOS *tw;          /// used for window position change messages
-
+  #ifdef OSI_BE_CHATTY
   if(timeFunc) osi.getNanosecs(&start);
+  #endif
 
   int mb= 0;
 
@@ -1791,7 +1802,6 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
     if(in.m.mode== 2)
       if(m== WM_MOUSEWHEEL) {
         in.m.wheel+= (GET_WHEEL_DELTA_WPARAM(wParam)> 0)? 1: -1;
-        //if(chatty) printf("mouse: wheel rotated\n");
         goto ret;
       }
     
@@ -1822,7 +1832,6 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         in.m.but[0].timeStart= osi.eventTime;
         in.m.but[0].down= true;
 
-        //if(chatty) printf("mouse: l button pressed\n");
         goto ret; //return 0;
 
       } else if(m== WM_LBUTTONUP) {
@@ -1831,14 +1840,12 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         in.m.but[0].lastDT= in.m.but[0].lastTimeEnded- in.m.but[0].lastTimeStart;
         in.m.but[0].down= false;
 
-        //if(chatty) printf("mouse: l button released\n");
         goto ret; //return 0;
 
       } else if(m== WM_RBUTTONDOWN) {                                       /// right mouse button
         in.m.but[1].timeStart= osi.eventTime;
         in.m.but[1].down= true;
 
-        //if(chatty) printf("mouse: r button pressed\n");
         goto ret; //return 0;
 
       } else if(m== WM_RBUTTONUP) {
@@ -1847,14 +1854,12 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         in.m.but[1].lastDT= in.m.but[1].lastTimeEnded- in.m.but[1].lastTimeStart;
         in.m.but[1].down= false;
 
-        //if(chatty) printf("mouse: r button released\n");
         goto ret; //return 0;
 
       } else if(m== WM_MBUTTONDOWN) {                                       /// middle mouse button
         in.m.but[2].timeStart= osi.eventTime;
         in.m.but[2].down= true;
 
-        //if(chatty) printf("mouse: m button pressed\n");
         goto ret; //return 0;
 
       } else if(m== WM_MBUTTONUP) {
@@ -1863,13 +1868,11 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         in.m.but[2].lastDT= in.m.but[2].lastTimeEnded- in.m.but[2].lastTimeStart;
         in.m.but[2].down= false;
 
-        //if(chatty) printf("mouse: m button released\n");
         goto ret; //return 0;
 
       } else if(m== WM_MOUSEWHEEL) {                                        /// wheel
         in.m._twheel+= (GET_WHEEL_DELTA_WPARAM(wParam)> 0)? 1: -1;
 
-        //if(chatty) printf("mouse: wheel rotated\n");
         goto ret; //return 0;
 
       } else if(m== WM_XBUTTONDOWN) {
@@ -1877,14 +1880,12 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
           in.m.but[3].timeStart= osi.eventTime;
           in.m.but[3].down= true;
 
-          //if(chatty) printf("mouse: button 4 pressed\n");
           goto ret; //return 0;
         } 
         if(GET_XBUTTON_WPARAM(wParam)== XBUTTON2) {                         /// button 5 press
           in.m.but[4].timeStart= osi.eventTime;
           in.m.but[4].down= true;
 
-          //if(chatty) printf("mouse: button 5 pressed\n");
           goto ret; //return 0;
         }
       } else if(m== WM_XBUTTONUP) {
@@ -1892,7 +1893,6 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
           in.m.but[3].lastTimeStart= in.m.but[3].timeStart;
           in.m.but[3].lastTimeEnded= osi.eventTime;
           in.m.but[3].down= false;
-          //if(chatty) printf("mouse: button 4 released\n");
           goto ret; //return 0;
 
         } else if(GET_XBUTTON_WPARAM(wParam)== XBUTTON2) {                  /// button 5 release
@@ -1900,11 +1900,12 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
           in.m.but[4].lastTimeEnded= osi.eventTime;
           in.m.but[4].lastDT= in.m.but[4].lastTimeEnded- in.m.but[4].lastTimeStart;
           in.m.but[4].down= false;
-          //if(chatty) printf("mouse: button 5 released\n");
           goto ret; //return 0;
         }
       } else {
+        #ifdef OSI_BE_CHATTY
         if(chatty) printf("UNKNOWN MOUSE MESSAGE\n");
+        #endif
       } /// pass thru all possible mouse messages
     } /// if mouse is in [MODE 1]
   } /// if this is a mouse message
@@ -2051,7 +2052,9 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
               ShowWindow(osi.win[a]._hWnd, SW_RESTORE);
               osi.flags.minimized= false;
               MoveWindow(osi.win[a]._hWnd, osi.win[a].monitor->x0, osi.win[a].monitor->_y0, osi.win[a].dx, osi.win[a].dy, false);
+              #ifdef OSI_BE_CHATTY
               if(chatty) printf("window %d x0[%d] y0[%d] dx[%d] dy[%d]\n", a, osi.win[a].monitor->x0, osi.win[a].monitor->y0, osi.win[a].dx, osi.win[a].dy);
+              #endif
             }
         if(osi.primWin)
         SetForegroundWindow(osi.primWin->_hWnd);
@@ -2096,8 +2099,9 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
               osi.display.restoreRes(osi.win[a].monitor);
 
       } /// switch gain/lose focus
-      
+      #ifdef OSI_BE_CHATTY
       if(chatty) printf("WM_ACTIVATEAPP %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, (uint64_t)wParam, (int64_t)lParam);
+      #endif
       goto ret;
 
     case WM_POWERBROADCAST:
@@ -2113,7 +2117,9 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       goto ret;
 
     case WM_CLOSE:
+      #ifdef OSI_BE_CHATTY
       if(chatty) printf("WM_CLOSE %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, (uint64)wParam, (int64)lParam);
+      #endif
       osi.flags.exit= true;     /// main exit flag
       return 0;
     
@@ -2123,7 +2129,9 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       return 0;
 
     case WM_CHAR:
+      #ifdef OSI_BE_CHATTY
       if(chatty) printf("WM_CHAR %s %llu\n", osi._getWinName(hWnd), (uint64)wParam);
+      #endif
 
       in.k._checkAndAddUnicode((uint32)wParam);
       return 0;
@@ -2131,7 +2139,9 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       
     case WM_UNICHAR:
       //error.console("WM_UNICHAR not tested", false, null);
+      #ifdef OSI_BE_CHATTY
       if(chatty) printf("WM_UNICHAR %s %llu\n", osi._getWinName(hWnd), (uint64)wParam);
+      #endif
       in.k._checkAndAddUnicode((uint32)wParam);
       return 0;
       
@@ -2198,19 +2208,23 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 
     case WM_SETFOCUS:         /// focus gained to a window
       if(w= osi._getWin(hWnd)) w->hasFocus= true;
-
+      #ifdef OSI_BE_CHATTY
       if(chatty) printf("WM_SETFOCUS %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, (uint64)wParam, (int64)lParam);
+      #endif
       goto ret;
 
     case WM_KILLFOCUS:        /// window lost focus
       if(w= osi._getWin(hWnd)) w->hasFocus= false;
-
+      #ifdef OSI_BE_CHATTY
       if(chatty) printf("WM_KILLFOCUS %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, (uint64)wParam, (int64)lParam);
+      #endif
       goto ret;
 
     // system commands
     case WM_SYSCOMMAND:
+      #ifdef OSI_BE_CHATTY
       if(chatty) printf("WM_SYSCOMMAND %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, (uint64)wParam, (int64)lParam);
+      #endif
 
       switch (wParam)	{
         case SC_SCREENSAVE:
@@ -2220,8 +2234,10 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
           // atm, can't find the option in linux (it has to work on all os-es)
           
 				  // return 0;                         /// prevent these from happening by not calling DefWinProc
-        case SC_CLOSE: 
+        case SC_CLOSE:
+          #ifdef OSI_BE_CHATTY
           if(chatty) printf("  SC_CLOSE %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, (uint64)wParam, (int64)lParam);
+          #endif
           osi.flags.exit= true;
           return 0;
       } /// switch the type of WM_SYSCOMMAND
@@ -2248,6 +2264,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
   } /// switch message
   
   /// unhandled frequent windows messages
+  #ifdef OSI_BE_CHATTY
   if(chatty&& !onlyHandled)
     switch(m) {
       case WM_ACTIVATE: if(chatty)   printf("WM_ACTIVATE %s 0x%x %llu %lld\n",   osi._getWinName(hWnd), m, (uint64)wParam, (int64)lParam); goto ret;
@@ -2266,9 +2283,12 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 
   if(chatty&& !onlyHandled)
     printf("UNKNOWN %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, (uint64)wParam, (int64)lParam);
+  #endif
   /// this DefWindowProc() handles window movement & resize & rest... without this, moving is not working, for example
 ret:
+  #ifdef OSI_BE_CHATTY
   if(timeFunc) { osi.getNanosecs(&end); printf("processMSG lag: %llu\n", end- start); }
+  #endif
   return DefWindowProc(hWnd, m, wParam, lParam);
 }
 
@@ -2399,7 +2419,9 @@ bool osinteraction::_processMSG()  {
 
       /// if this is a real key press, log it and set vars
       if(!repeat) {
+        #ifdef OSI_BE_CHATTY
         if(chatty) printf("key PRESS code=%d \n", code);
+        #endif
         osiKeyboard::osiKeyLog k;
         
         /// log the key
@@ -2450,8 +2472,9 @@ bool osinteraction::_processMSG()  {
       uint code= event.xkey.keycode;
       
       in.k.updateLocks();
-      
+      #ifdef OSI_BE_CHATTY
       if(chatty) printf("key RELEASE code=%d\n", code);
+      #endif
 
       /// log the key in history
       bool found= false;
@@ -2522,8 +2545,9 @@ bool osinteraction::_processMSG()  {
           }
         }
       }
-      
+      #ifdef OSI_BE_CHATTY
       if(chatty) printf("Expose event [%s]\n", (event.xexpose.count> 0? "partial redraw - IGNORED": (cchar *)w->name.d));
+      #endif
       continue;
       
     //} else if(event.type == NoExpose) {
@@ -2538,7 +2562,9 @@ bool osinteraction::_processMSG()  {
       
       w= _getWin(&event.xmap.event);
       w->_isMapped= true;
+      #ifdef OSI_BE_CHATTY
       if(chatty) printf("Window [%s] mapped\n", w->name.d);
+      #endif
       
       continue;
       
@@ -2550,7 +2576,9 @@ bool osinteraction::_processMSG()  {
       
       w= _getWin(&event.xexpose.window);
       w->_isMapped= false;
+      #ifdef OSI_BE_CHATTY
       if(chatty) printf("window Unmapped [%s]\n", w->name.d);
+      #endif
       continue;
       
     // -------------============ ENTER NOTIFY =================-----------------
@@ -2582,7 +2610,9 @@ bool osinteraction::_processMSG()  {
         if(w) w->hasFocus= true;
         
         if(flags.haveFocus) {                    // ignore if already focused
+          #ifdef OSI_BE_CHATTY
           if(chatty) printf("FocusIn IGNORED: xchange focus between internal program windows\n");
+          #endif
           continue;
         }
         
@@ -2615,10 +2645,13 @@ bool osinteraction::_processMSG()  {
               win[a]._setWMstate(0, "_NET_WM_STATE_BELOW");
               XRaiseWindow(_dis, w->_win);                        // this is a must <<<<<<<<<<<
             }
-        
+        #ifdef OSI_BE_CHATTY
         if(chatty) printf("FocusIn:NotifyNormal[%s]\n", w->name.d);
+        #endif
       } /// NotifyNormal
+      #ifdef OSI_BE_CHATTY
       else if(chatty) printf("FocusIn: NOT NOTIFY NORMAL -NOT HANDLED\n");
+      #endif
       
       continue;
 
@@ -2638,7 +2671,9 @@ bool osinteraction::_processMSG()  {
           XEvent tmp;
           XPeekEvent(_dis, &tmp);
           if((tmp.type == FocusIn)&& (tmp.xfocus.mode== NotifyNormal)) {
+            #ifdef OSI_BE_CHATTY
             if(chatty) printf("FocusOut:IGNORED: xchange focus between internal program windows\n");
+            #endif
             continue;
           }
         }
@@ -2682,9 +2717,14 @@ bool osinteraction::_processMSG()  {
             display.restoreAllRes();
             break;
           }
+        #ifdef OSI_BE_CHATTY
         if(chatty) printf("FocusOut:NotifyNormal[%s]\n", (w? (cchar *)w->name.d: "unknown"));
-      } else /// if FocusOut:NotifyNormal
+        #endif
+      }
+      #ifdef OSI_BE_CHATTY
+      else /// if FocusOut:NotifyNormal
         if(chatty) printf("FocusOut: NOT NotifyNormal, NOT HANDLED\n");
+      #endif
       
       continue;
 
@@ -2702,8 +2742,9 @@ bool osinteraction::_processMSG()  {
       continue;
 
     } else if(event.type == CirculateNotify) {
+      #ifdef OSI_BE_CHATTY
       if(chatty) printf("circulate notify\n");
-      
+      #endif
       
       
     // -----------============ WINDOW POSITION AND SIZE ============------------
@@ -2737,7 +2778,9 @@ bool osinteraction::_processMSG()  {
     } else {
       //XFlush(_dis); // why flush msgs? pass thru all, right?
       w= _getWin(&event.xany.window);
+      #ifdef OSI_BE_CHATTY
       if(chatty) printf("Unhandled unknown message [%s %d %lu]\n", (w? (cchar *)w->name.d: ""), event.xany.type, event.xany.serial);
+      #endif
     }
     
     
@@ -3403,7 +3446,6 @@ bool osinteraction::vkCreateWindow(osiWindow *w, osiMonitor *m, const char *name
   r->monitor= m;
   r->GPU= m->GPU;
   r->type= 1;
-  vkRenderers.add(r);
 
   w->renderer= r;
 

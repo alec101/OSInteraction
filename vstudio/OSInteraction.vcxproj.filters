@@ -1,180 +1,176 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Filter Include="Source Files">
+    <Filter Include="SRC">
       <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
       <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
     </Filter>
-    <Filter Include="Header Files">
+    <Filter Include="SRC\util">
+      <UniqueIdentifier>{0aedec65-7136-4162-922f-6e7cccaf41a9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="INC">
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
     </Filter>
-    <Filter Include="Resource Files">
-      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
-      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
-    </Filter>
-    <Filter Include="Header Files\util">
+    <Filter Include="INC\util">
       <UniqueIdentifier>{27b963b8-34c4-41e7-9bd5-1806b2b15a8b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Header Files\oGL">
+    <Filter Include="INC\oGL">
       <UniqueIdentifier>{ca00687e-d671-4f82-8405-ea326880f5c8}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Source Files\util">
-      <UniqueIdentifier>{0aedec65-7136-4162-922f-6e7cccaf41a9}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\osiWindow.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>SRC</Filter>
     </ClCompile>
     <ClCompile Include="..\src\osiVulkan.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>SRC</Filter>
     </ClCompile>
     <ClCompile Include="..\src\osinteraction.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>SRC</Filter>
     </ClCompile>
     <ClCompile Include="..\src\osiInput.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>SRC</Filter>
     </ClCompile>
     <ClCompile Include="..\src\osiGlRenderer.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>SRC</Filter>
     </ClCompile>
     <ClCompile Include="..\src\osiGlExt.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>SRC</Filter>
     </ClCompile>
     <ClCompile Include="..\src\osiDisplay.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>SRC</Filter>
     </ClCompile>
     <ClCompile Include="..\src\osiChar.cpp">
-      <Filter>Source Files</Filter>
+      <Filter>SRC</Filter>
     </ClCompile>
     <ClCompile Include="..\src\util\strCommon.cpp">
-      <Filter>Source Files\util</Filter>
+      <Filter>SRC\util</Filter>
     </ClCompile>
     <ClCompile Include="..\src\util\str8.cpp">
-      <Filter>Source Files\util</Filter>
+      <Filter>SRC\util</Filter>
     </ClCompile>
     <ClCompile Include="..\src\util\str32.cpp">
-      <Filter>Source Files\util</Filter>
+      <Filter>SRC\util</Filter>
     </ClCompile>
     <ClCompile Include="..\src\util\str16.cpp">
-      <Filter>Source Files\util</Filter>
+      <Filter>SRC\util</Filter>
     </ClCompile>
     <ClCompile Include="..\src\util\segList.cpp">
-      <Filter>Source Files\util</Filter>
+      <Filter>SRC\util</Filter>
     </ClCompile>
     <ClCompile Include="..\src\util\mzPacker.cpp">
-      <Filter>Source Files\util</Filter>
+      <Filter>SRC\util</Filter>
     </ClCompile>
     <ClCompile Include="..\src\util\imgClass.cpp">
-      <Filter>Source Files\util</Filter>
+      <Filter>SRC\util</Filter>
     </ClCompile>
     <ClCompile Include="..\src\util\fileTGA.cpp">
-      <Filter>Source Files\util</Filter>
+      <Filter>SRC\util</Filter>
     </ClCompile>
     <ClCompile Include="..\src\util\filePNG.cpp">
-      <Filter>Source Files\util</Filter>
+      <Filter>SRC\util</Filter>
     </ClCompile>
     <ClCompile Include="..\src\util\fileOp.cpp">
-      <Filter>Source Files\util</Filter>
+      <Filter>SRC\util</Filter>
     </ClCompile>
     <ClCompile Include="..\src\util\errorHandling.cpp">
-      <Filter>Source Files\util</Filter>
+      <Filter>SRC\util</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\osiChar.h">
-      <Filter>Header Files</Filter>
+      <Filter>INC</Filter>
     </ClInclude>
     <ClInclude Include="..\include\osiCocoa.h">
-      <Filter>Header Files</Filter>
+      <Filter>INC</Filter>
     </ClInclude>
     <ClInclude Include="..\include\osiDisplay.h">
-      <Filter>Header Files</Filter>
+      <Filter>INC</Filter>
     </ClInclude>
     <ClInclude Include="..\include\osiGlExt.h">
-      <Filter>Header Files</Filter>
+      <Filter>INC</Filter>
     </ClInclude>
     <ClInclude Include="..\include\osiInput.h">
-      <Filter>Header Files</Filter>
+      <Filter>INC</Filter>
     </ClInclude>
     <ClInclude Include="..\include\osinteraction.h">
-      <Filter>Header Files</Filter>
+      <Filter>INC</Filter>
     </ClInclude>
     <ClInclude Include="..\include\osiRenderer.h">
-      <Filter>Header Files</Filter>
+      <Filter>INC</Filter>
     </ClInclude>
     <ClInclude Include="..\include\osiWindow.h">
-      <Filter>Header Files</Filter>
+      <Filter>INC</Filter>
     </ClInclude>
     <ClInclude Include="..\extlib\oGL\include\glext.h">
-      <Filter>Header Files\oGL</Filter>
+      <Filter>INC\oGL</Filter>
     </ClInclude>
     <ClInclude Include="..\extlib\oGL\include\glxext.h">
-      <Filter>Header Files\oGL</Filter>
+      <Filter>INC\oGL</Filter>
     </ClInclude>
     <ClInclude Include="..\extlib\oGL\include\wglext.h">
-      <Filter>Header Files\oGL</Filter>
+      <Filter>INC\oGL</Filter>
     </ClInclude>
     <ClInclude Include="..\include\osiGlDisable.h">
-      <Filter>Header Files</Filter>
+      <Filter>INC</Filter>
     </ClInclude>
     <ClInclude Include="..\extlib\oGL\include\glcorearb.h">
-      <Filter>Header Files\oGL</Filter>
+      <Filter>INC\oGL</Filter>
     </ClInclude>
     <ClInclude Include="..\include\util\typeShortcuts.h">
-      <Filter>Header Files\util</Filter>
+      <Filter>INC\util</Filter>
     </ClInclude>
     <ClInclude Include="..\include\util\strCommon.h">
-      <Filter>Header Files\util</Filter>
+      <Filter>INC\util</Filter>
     </ClInclude>
     <ClInclude Include="..\include\util\str8.h">
-      <Filter>Header Files\util</Filter>
+      <Filter>INC\util</Filter>
     </ClInclude>
     <ClInclude Include="..\include\util\str32.h">
-      <Filter>Header Files\util</Filter>
+      <Filter>INC\util</Filter>
     </ClInclude>
     <ClInclude Include="..\include\util\str16.h">
-      <Filter>Header Files\util</Filter>
+      <Filter>INC\util</Filter>
     </ClInclude>
     <ClInclude Include="..\include\util\segList.h">
-      <Filter>Header Files\util</Filter>
+      <Filter>INC\util</Filter>
     </ClInclude>
     <ClInclude Include="..\include\util\rgb.hpp">
-      <Filter>Header Files\util</Filter>
+      <Filter>INC\util</Filter>
     </ClInclude>
     <ClInclude Include="..\include\util\mzPacker.h">
-      <Filter>Header Files\util</Filter>
+      <Filter>INC\util</Filter>
     </ClInclude>
     <ClInclude Include="..\include\util\mlib.hpp">
-      <Filter>Header Files\util</Filter>
+      <Filter>INC\util</Filter>
     </ClInclude>
     <ClInclude Include="..\include\util\imgClass.h">
-      <Filter>Header Files\util</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\util\fileTGA.h">
-      <Filter>Header Files\util</Filter>
-    </ClInclude>
-    <ClInclude Include="..\include\util\filePNG.h">
-      <Filter>Header Files\util</Filter>
+      <Filter>INC\util</Filter>
     </ClInclude>
     <ClInclude Include="..\include\util\fileOp.h">
-      <Filter>Header Files\util</Filter>
+      <Filter>INC\util</Filter>
     </ClInclude>
     <ClInclude Include="..\include\util\errorHandling.h">
-      <Filter>Header Files\util</Filter>
+      <Filter>INC\util</Filter>
     </ClInclude>
     <ClInclude Include="..\include\util\circleList.hpp">
-      <Filter>Header Files\util</Filter>
+      <Filter>INC\util</Filter>
     </ClInclude>
     <ClInclude Include="..\include\util\chainList.hpp">
-      <Filter>Header Files\util</Filter>
+      <Filter>INC\util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\osiVulkan.h">
+      <Filter>INC</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\osiGlRenderer.h">
+      <Filter>INC</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\README.md" />
     <None Include="..\src\osiCocoa.mm">
-      <Filter>Source Files</Filter>
+      <Filter>SRC</Filter>
     </None>
   </ItemGroup>
 </Project>

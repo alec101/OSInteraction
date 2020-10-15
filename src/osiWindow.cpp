@@ -84,10 +84,8 @@ void osiWindow::delData() {
   #ifdef OSI_USE_VKO
   if(renderer)
     if(renderer->type== 1) {
-      
-      osi.vkRenderers.del(renderer);
+      delete renderer;
       renderer= nullptr;
-      
     }
   #endif
 

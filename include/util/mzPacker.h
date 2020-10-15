@@ -99,8 +99,8 @@ public:
 
   // util funcs
 
-  uint32_t crc32(uint32_t crc, const void *dat, int64_t buf_len);
-
+  uint32_t crc32_MK1(uint32_t crc, const void *dat, uint64_t buf_len);
+  uint32_t crc32_MK2(uint32_t crc, const void *ptr, uint64_t buf_len);
   // error handling - if funcs do not return true, check err number / getErr in text
 
   unsigned int err;

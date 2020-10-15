@@ -1,9 +1,9 @@
-
+#include "osinteraction.h"
 // not part of coreARB exts that are used in this file:
 //  - GL_EXT_texture_filter_anisotropic
-#define OSI_USE_OPENGL_EXOTIC_EXT 1
+//#define OSI_USE_OPENGL_EXOTIC_EXT 1
 
-#include "osinteraction.h"
+
 
 #ifdef OSI_USE_OPENGL
 
@@ -262,7 +262,9 @@ void osinteraction::glDelRenderer(osiGlRenderer *r) {
 /// big stack for arguments, to avoid memory corruption - hopefully no function has more than 24* sizeof(void *) argument size...
 void *_osiGlExtNULL(void *a, void *b, void *c, void *d, void *e, void *f, void *g, void *h, void *i, void *j, void *k, void *l, void *m, void *n, void *o, void *p, void *q, void *r, void *s, void *t, void *u, void *v, void *x, void *y, void *z) {     /// it has a big stack for arguments
   // this can be further customized to pop an error, or mark an error somewhere
+  #ifdef OSI_BE_CHATTY
   printf("_osiGlExtNULL func called!!! - a oGL func that the system could not aquire a pointer to, was called\n");
+  #endif
   return null;
 }
 
@@ -616,13 +618,17 @@ bool _osiGetContextFuncs(osiMonitor *m, osiGlRenderer *r) {
     glGetIntegerv(GL_NUM_EXTENSIONS, &max);
     
     error = glGetError();
+    #ifdef OSI_BE_CHATTY
     if (error != GL_NO_ERROR) printf("OpenGL Error: %u\n", error);
+    #endif
  
     
     for(int a= 0; a< max; a++) {
       ext= (cuint8 *)(((PFNGLGETSTRINGIPROC)r->glExt.glGetStringi)(GL_EXTENSIONS, a));
       error = glGetError();
+      #ifdef OSI_BE_CHATTY
       if (error != GL_NO_ERROR) printf("OpenGL Error: %u\n", error);
+      #endif
 
       /// WGL_ARB_create_context / WGL_ARB_create_context_profile http://www.opengl.org/registry/specs/ARB/wgl_create_context.txt
       if(!strcmp8((cchar *)ext, r->glARBlist[54].desc) || !strcmp8((cchar *)ext, "WGL_ARB_create_context_profile"))
@@ -1110,8 +1116,10 @@ void _osiParseBigExtString(osiGlRenderer *, cchar *);  /// used for next func
 void _osiParseExtString(osiGlRenderer *, cchar *);     /// used for next func
 
 void osiGlRenderer::checkExt() {
+  #ifdef OSI_BE_CHATTY
   bool chatty= false;
-    
+  #endif
+
   bool thisIsMac= false;
   #ifdef OS_MAC
   thisIsMac= true;
@@ -1140,14 +1148,18 @@ void osiGlRenderer::checkExt() {
   
   glGetIntegerv(GL_MAX_3D_TEXTURE_SIZE, &max3Dtexture);     /// maximum 3D texture size
 
-  if(chatty) printf("context[%lld]\n", (long long)(this->glContext));
-  //if(chatty) printf("GL extensions: %s\n", glGetString(GL_EXTENSIONS));
-  if(chatty) printf("Vendor Name: %s\n", glVendor.d);
-  if(chatty) printf("Graphic Card: %s\n", glRenderer.d);
-  if(chatty) printf("GL Version: %s\n", glVersion.d);
-  if(chatty) printf("Texel units avaible: %d\n", maxTexelUnits);
-  if(chatty) printf("Maximum 3d texture size %dx%dx%d\n", max3Dtexture, max3Dtexture, max3Dtexture);
-  if(chatty) printf("\nTesting GL Extensions...\n");
+  #ifdef OSI_BE_CHATTY
+  if(chatty) {
+    printf("context[%lld]\n", (long long)(this->glContext));
+    //printf("GL extensions: %s\n", glGetString(GL_EXTENSIONS));
+    printf("Vendor Name: %s\n", glVendor.d);
+    printf("Graphic Card: %s\n", glRenderer.d);
+    printf("GL Version: %s\n", glVersion.d);
+    printf("Texel units avaible: %d\n", maxTexelUnits);
+    printf("Maximum 3d texture size %dx%dx%d\n", max3Dtexture, max3Dtexture, max3Dtexture);
+    printf("\nTesting GL Extensions...\n");
+  }
+  #endif
 
   /// OpenGL 2.x and less
   if(glVerMajor< 3 || thisIsMac) {
@@ -1190,7 +1202,9 @@ void osiGlRenderer::checkExt() {
 
 
 void _osiParseExtString(osiGlRenderer *r, cchar *ext) {
+  #ifdef OSI_BE_CHATTY
   bool chatty= false;
+  #endif
 
   /// search the ARB list
   int i= _osiSearchARB(r, ext);
@@ -1210,8 +1224,10 @@ void _osiParseExtString(osiGlRenderer *r, cchar *ext) {
         r->glOTHERlist[i].avaible= true;     /// found it in OTHER
 
       /// not found in any list
-      } else
-        if(chatty) printf("UNKNOWN extension: [%s]\n", ext);
+      }
+      #ifdef OSI_BE_CHATTY
+      else if(chatty) printf("UNKNOWN extension: [%s]\n", ext);
+      #endif
     }
   }
 }
@@ -1219,7 +1235,9 @@ void _osiParseExtString(osiGlRenderer *r, cchar *ext) {
 
 void _osiParseBigExtString(osiGlRenderer *r, cchar *ext) {
   if(!ext) return;
+  #ifdef OSI_BE_CHATTY
   bool chatty= false;
+  #endif
   uint8 buf[128];      /// hopefully extension names won't be bigger than 128... 
   uint8 *p= (uint8 *)ext;
 

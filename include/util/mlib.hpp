@@ -903,6 +903,7 @@ struct ALIGNED(4) vec4 {    // alignment of 16 if in the future intrinsics will 
 
   // funcs - research: https://github.com/g-truc/glm/blob/master/glm/detail/func_geometric.inl
 
+  inline vec4 &setColoru8(uint8_t _r, uint8_t _g, uint8_t _b, uint8_t _a) { return set(((float)_r)/ 255.0f, ((float)_g)/ 255.0f, ((float)_b)/ 255.0f, ((float)_a)/ 255.0f); }
   inline vec4 &set(float _x, float _y, float _z, float _w) { x= _x, y= _y, z= _z, w= _w; return *this; }
   inline vec4 &normalize() { float size= length(); if(size) { this->operator/=(size); } return *this; } // return vec* inversesqrt(dot(vec, vec)); - another option
   inline float length() const { return sqrtf((x* x)+ (y* y)+ (z* z)+ (w* w)); };
@@ -1139,12 +1140,21 @@ struct ALIGNED(4) mat4 {
 
   // l= left, r= right, b= bottom, t= top, zn= z coord near, zf= z coord far
   inline mat4 &ortho(float l, float r, float b, float t, float zn, float zf) {
-    float dx= r- l, dy= t- b, dz= zf- zn;
+    /*float dx= r- l, dy= t- b, dz= zf- zn;
 
     v[0]= 2.0f/ dx;   v[4]= 0.0f;       v[8]=   0.0f;       v[12]= -(r+ l)/ dx;
     v[1]= 0.0f;       v[5]= 2.0f/ dy;   v[9]=   0.0f;       v[13]= -(t+ b)/ dy;
     v[2]= 0.0f;       v[6]= 0.0f;       v[10]= -2.0f/ dz;   v[14]= -(zf+ zn)/ dz;
     v[3]= 0.0f;       v[7]= 0.0f;       v[11]=  0.0f;       v[15]= 1.0f;
+    return *this;
+    */
+    float dx= r- l, dy= b- t, dz= zf- zn;
+
+    v[0]= 2.0f/ dx;   v[4]= 0.0f;       v[8]=   0.0f;       v[12]= -(r+ l)/ dx;
+    v[1]= 0.0f;       v[5]= 2.0f/ dy;   v[9]=   0.0f;       v[13]= -(t+ b)/ dy;
+    v[2]= 0.0f;       v[6]= 0.0f;       v[10]= 2.0f/ dz;   v[14]= -(zf+ zn)/ dz;
+    v[3]= 0.0f;       v[7]= 0.0f;       v[11]=  0.0f;       v[15]= 1.0f;
+
     return *this;
   }
 

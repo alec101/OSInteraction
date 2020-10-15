@@ -86,7 +86,9 @@ bool _osiCocoaSetTheIcon;
 // they are not called tho...
 
 - (BOOL) canBecomeMainWindow:(NSApplication *)theApplication{
+  #ifdef OSI_BE_CHATTY
   printf("%s\n", __FUNCTION__);
+  #endif
   return YES;
 }
 
@@ -198,8 +200,10 @@ bool _osiCocoaSetTheIcon;
 
 // --------------------->>>> WINDOW FOCUS IN <<<<------------------------
 - (void)windowDidBecomeKey:(NSNotification *)notification{
+  #ifdef OSI_BE_CHATTY
   bool chatty= false;
   if(chatty) printf("%s\n", __FUNCTION__);
+  #endif
 
   /// set the hasFocus flag of the window that become key to true
   osiWindow *w= osi._getWin(self);
@@ -211,7 +215,9 @@ bool _osiCocoaSetTheIcon;
   if(!osi.flags.haveFocus) {
     if([NSApp isActive]) {    /// app just became active
       osi.flags.haveFocus= true;
+      #ifdef OSI_BE_CHATTY
       if(chatty) printf("program is ACTIVE\n");
+      #endif
       
       /// loop thru all created windows
       for(int16 a= 0; a< MAX_WINDOWS; a++)
@@ -239,7 +245,9 @@ bool _osiCocoaSetTheIcon;
     } else {                  /// impossible...
       osi.flags.haveFocus= true;
       // but the program is NOT ACTIVE... so this is not possible
+      #ifdef OSI_BE_CHATTY
       if(chatty) printf("black hole sun!\n");
+      #endif
     }
   } /// if osi.haveFocus is false
 
@@ -248,16 +256,20 @@ bool _osiCocoaSetTheIcon;
 
 // ------------------>>>> WINDOW FOCUS OUT <<<<----------------------
 - (void)windowDidResignKey:(NSNotification *)notification{
+  #ifdef OSI_BE_CHATTY
   bool chatty= false;
   if(chatty) printf("%s\n", __FUNCTION__);
-  
+  #endif
+
   /// set the hasFocus flag of the window as false
   osiWindow *w= osi._getWin(self);
   if(w)
     w->hasFocus= false;
 
   if(![NSApp isActive]) {   /// the program is NOT active anymore
+    #ifdef OSI_BE_CHATTY
     if(chatty) printf("app is NOT ACTIVE\n");
+    #endif
     osi.flags.haveFocus= false;
     
     /// loop thru all created windows
@@ -681,8 +693,10 @@ if(flags == NSCommandKeyMask+ NSControlKeyMask) if ⌘ and ⌃ should be pressed
 // -------------------->>> PROCESS MSGS <<<------------------------- //
 ///=================================================================///
 bool _processMSG(void) {
+  #ifdef OSI_BE_CHATTY
   bool chatty= false;    /// debug texts
-  
+  #endif
+
   bool ret= false;      /// return value - true if a message was processed, false if no message was in queue
 
   NSAutoreleasePool *pool=[[NSAutoreleasePool alloc] init];
@@ -727,7 +741,9 @@ bool _processMSG(void) {
       in.m.y= event.window.screen.frame.origin.y+ event.window.frame.origin.y+ event.locationInWindow.y;
       in.m.y= osi.display.vyMax- in.m.y;
       #endif
+      #ifdef OSI_BE_CHATTY
       // spam if(chatty) printf("mouseMoved: x[%d] y[%d]\n", in.m.x, in.m.y);
+      #endif
     }
     // ---------------============ LEFT BUTTON DOWN =============-------------------
     else if([event type]== NSLeftMouseDown) {
@@ -735,7 +751,9 @@ bool _processMSG(void) {
   
       in.m.but[0].down= true;
       in.m.but[0].timeStart= osi.eventTime;
+      #ifdef OSI_BE_CHATTY
       if(chatty) printf("mouseDown (left button)\n");
+      #endif
     }
     // ---------------============= LEFT BUTTON UP ==============-------------------
     else if([event type]== NSLeftMouseUp) {
@@ -751,7 +769,9 @@ bool _processMSG(void) {
         in.m.but[0].lastDT= 1;
       }
       in.m.but[0].down= false;
+      #ifdef OSI_BE_CHATTY
       if(chatty) printf("mouseUp (left button)\n");
+      #endif
     }
     
       
@@ -761,7 +781,9 @@ bool _processMSG(void) {
   
       in.m.but[1].down= true;
       in.m.but[1].timeStart= osi.eventTime;
-        if(chatty) printf("rightMouseDown\n");
+      #ifdef OSI_BE_CHATTY
+      if(chatty) printf("rightMouseDown\n");
+      #endif
     }
     // ---------------============ RIGHT BUTTON UP ==============-------------------
     else if([event type]== NSRightMouseUp) {
@@ -777,7 +799,9 @@ bool _processMSG(void) {
         in.m.but[1].lastDT= 1;
       }
       in.m.but[1].down= false;
+      #ifdef OSI_BE_CHATTY
       if(chatty) printf("rightMouseUp\n");
+      #endif
     }
 
     // ---------------========== 'OTHER' BUTTON DOWN ============-------------------
@@ -788,7 +812,9 @@ bool _processMSG(void) {
   
       in.m.but[b].down= true;
       in.m.but[b].timeStart= osi.eventTime;
+      #ifdef OSI_BE_CHATTY
       if(chatty) printf("otherMouseDown [%d]\n", b);
+      #endif
     }
     // ---------------=========== 'OTHER' BUTTON UP =============-------------------
     else if([event type]== NSOtherMouseUp) {
@@ -805,7 +831,9 @@ bool _processMSG(void) {
         in.m.but[b].lastDT= 1;
       }
       in.m.but[b].down= false;
+      #ifdef OSI_BE_CHATTY
       if(chatty) printf("otherMouseUp [%d]\n", b);
+      #endif
     }
     // ---------------============== MOUSE WHEEL ================-------------------
     else if([event type]== NSScrollWheel) {
@@ -813,7 +841,9 @@ bool _processMSG(void) {
         in.m._twheel++;
       else
         in.m._twheel--;
+      #ifdef OSI_BE_CHATTY
       if(chatty) printf("scrollWheel [%d]\n", event.scrollingDeltaY> 0? 1: -1);
+      #endif
     }
 
 
@@ -830,8 +860,9 @@ bool _processMSG(void) {
   
       ulong flags= [event modifierFlags];
       uint8 code= [event keyCode];
-  
+      #ifdef OSI_BE_CHATTY
       if(chatty) printf("event!!\n");
+      #endif
   
       //MUST TEST THIS, it is INPOSSIBLE OTHERWISE...
       /// caps lock
@@ -844,7 +875,9 @@ bool _processMSG(void) {
           in.k.capsLock= false; // not shure about this
 
         }
+        #ifdef OSI_BE_CHATTY
         if(chatty) printf("capsLock[%s]\n", in.k.capsLock? "true": "false");
+        #endif
       }
       // TEST ^^^ no clue if macs actually have a true 'lock'
 
@@ -866,7 +899,9 @@ bool _processMSG(void) {
       // it's a KEY PRESS
       if(press) {
         osi.flags.keyPress= true;
+        #ifdef OSI_BE_CHATTY
         if(chatty) printf("key PRESS code[0x%x] [flagsChanged]\n", code);
+        #endif
     
         /// log the key
         osiKeyboard::osiKeyLog k;
@@ -884,8 +919,9 @@ bool _processMSG(void) {
       // it's a KEY DEPRESS
       } else {
         osi.flags.keyPress= false;
-    
+        #ifdef OSI_BE_CHATTY
         if(chatty) printf("key RELEASE code[0x%x] [flagsChanged]\n", code);
+        #endif
     
         /// log the key in history
         bool found= false;
@@ -942,7 +978,9 @@ bool _processMSG(void) {
   
       /// if it's not a repeat press event, start the keypress log
       if(![event isARepeat]) {
+        #ifdef OSI_BE_CHATTY
         if(chatty) printf("Key PRESS: code[0x%x] [keyDown]\n", code);
+        #endif
         /// log the key
         osiKeyboard::osiKeyLog k;
         k.code= code;
@@ -968,8 +1006,9 @@ bool _processMSG(void) {
       osi.flags.keyPress= false;
   
       uint8 code= [event keyCode];
-  
+      #ifdef OSI_BE_CHATTY
       if(chatty) printf("key RELEASE code[0x%x] [keyUp]\n", code);
+      #endif
   
       /// log the key in history
       bool found= false;
@@ -1631,7 +1670,9 @@ bool osiCocoa::createContext(osiGlRenderer *r, uint32_t oglDisplayMask) {
   CGLContextObj cCGL;
   CGLPixelFormatObj pfCGL= (CGLPixelFormatObj)[(NSOpenGLPixelFormat *)r->_pixelFormat CGLPixelFormatObj];
   if(CGLCreateContext(pfCGL, sh, &cCGL)) {
+    #ifdef OSI_BE_CHATTY
     printf("CGL CREATE CONTEXT FAILED !!!!!!!!!!!");
+    #endif
     error.simple("CreateRenderer(): CGLCreateContext FAILED");
     delPixelFormat(r->_pixelFormat);
     r->_pixelFormat= NULL;

@@ -20,7 +20,13 @@ USAGE ==========================================================================
 extern void (*(_FUNCconsole)) (const char *txt, bool exit, void (*exitFunc)(void));  // console print pointer. ixConsole sets this to it's own printing func, for example
 #define errorMAKEME error.detail("makeme", __FUNCTION__, __LINE__, true)
 
+#ifdef OSI_USE_OPENGL
 #define USING_OPENGL 1    // << enables OpenGL error handling
+#endif
+
+//#ifdef OSI_USE_VKO
+//#define USING_VULKAN 1
+//#endif
 
 
 class ErrorHandling {

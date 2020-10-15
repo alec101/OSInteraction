@@ -1,4 +1,4 @@
 build/
 nbeans/build/
-lib/
 extlib/vulkan/lib
+vstudio/build

@@ -4,20 +4,21 @@
 // you can define OSI_USE_OPENGL_LEGACY before including this file, to signal osi to use all the deprecated / legacy / extensions in OpenGL (the old way)
 // you can define OSI_USE_OPENGL_EXOTIC_EXT before including this file, to signal osi to use exotic extensions when in core ARB mode
 
-#define OSI_USE_OPENGL 1        // <<< enable/disalbe all opengl functionability
-#define OSI_USE_VKO 1           // <<< enable/disable all Vulkan object functionability
+//#define OSI_USE_OPENGL 1        // <<< enable/disalbe all opengl functionability
+//#define OSI_USE_VKO 1           // <<< enable/disable all Vulkan object functionability
 
 // one of the next must be enabled:
 #define OSI_USE_ORIGIN_TOP_LEFT 1     // <<< coordinate system origin top left, with +y axis going down
 //#define OSI_USE_ORIGIN_BOTTOM_LEFT 1  // <<< coordinate system origin bottom left, with +y axis going up
 
+#if !defined NDEBUG
+#define OSI_BE_CHATTY 1   // <<< this will print various info things on the console.
+#endif
 
 // !!!
 // any comment starting with '<<<' marks a setting that can / SHOULD be changed for your project
 // keep glext.h wglext.h, glxext.h updated from https://www.opengl.org/registry/ , to be able to access the latest OpenGL extensions
 // !!!
-
-// if you want OpenGL legacy stuff, define OSI_USE_OPENGL_LEGACY before including osinteraction.h <<<
 
 ///===================///
 // COMPILING / LINKING //
@@ -156,14 +157,14 @@ main() {
 #define XINPUTINCLUDE "../extlib/directx/include/XInput.h"    // <<< xinput header file & directory location, if used - manually set this if using other
 #define DINPUTINCLUDE "../extlib/directx/include/dinput.h"    // <<< dinput header file & directory location, if used - manually set this if using other
 #define D3DINCLUDE    "../extlib/directx/include/d3d9.h"      // <<< direct3D9 header file & direcotry location, if used - manually set this if using other
-#define XINPUTLIB32 "extlib/directx/lib/XInput_32.lib"         // <<< xinput 32bit library file & directory location, if used
-#define XINPUTLIB64 "extlib/directx/lib/XInput_64.lib"         // <<< xinput 64bit library file & directory location, if used
-#define DINPUTLIB32 "extlib/directx/lib/dinput8_32.lib"        // <<< dinput 32bit library file & directory location, if used
-#define DINPUTLIB64 "extlib/directx/lib/dinput8_64.lib"        // <<< dinput 64bit library file & directory location, if used
-#define DXGUIDLIB32 "extlib/directx/lib/dxguid_32.lib"         // <<< direct input guid 32bit library file & directory location, if dinput is used
-#define DXGUIDLIB64 "extlib/directx/lib/dxguid_64.lib"         // <<< direct input guid 64bit library file & directory location, if dinput is used
-#define D3D9LIB32   "extlib/directx/lib/d3d9_32.lib"           // <<< direct3D9 32bit library file & directory location, if it is used
-#define D3D9LIB64   "extlib/directx/lib/d3d9_64.lib"           // <<< direct3D9 64bit library file & directory location, if it is used
+#define XINPUTLIB32 "../extlib/directx/lib/XInput_32.lib"         // <<< xinput 32bit library file & directory location, if used
+#define XINPUTLIB64 "../extlib/directx/lib/XInput_64.lib"         // <<< xinput 64bit library file & directory location, if used
+#define DINPUTLIB32 "../extlib/directx/lib/dinput8_32.lib"        // <<< dinput 32bit library file & directory location, if used
+#define DINPUTLIB64 "../extlib/directx/lib/dinput8_64.lib"        // <<< dinput 64bit library file & directory location, if used
+#define DXGUIDLIB32 "../extlib/directx/lib/dxguid_32.lib"         // <<< direct input guid 32bit library file & directory location, if dinput is used
+#define DXGUIDLIB64 "../extlib/directx/lib/dxguid_64.lib"         // <<< direct input guid 64bit library file & directory location, if dinput is used
+#define D3D9LIB32   "../extlib/directx/lib/d3d9_32.lib"           // <<< direct3D9 32bit library file & directory location, if it is used
+#define D3D9LIB64   "../extlib/directx/lib/d3d9_64.lib"           // <<< direct3D9 64bit library file & directory location, if it is used
 
 // WINDOWS SETTINGS / DIRECTORIES ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #ifndef _CRT_SECURE_NO_WARNINGS
@@ -182,20 +183,20 @@ main() {
   #define DIRECTINPUT_VERSION 0x0800
   #include DINPUTINCLUDE
   //#pragma comment(lib, DINPUTLIB32)   /// if not using visual studio, this lib must be manually included, if using directinput
-  #pragma comment(lib, DINPUTLIB64)   /// if not using visual studio, this lib must be manually included, if using directinput
+  //#pragma comment(lib, DINPUTLIB64)   /// if not using visual studio, this lib must be manually included, if using directinput
   //#pragma comment(lib, DXGUIDLIB32)   /// if not using visual studio, this lib must be manually included, if using directinput
-  #pragma comment(lib, DXGUIDLIB64)   /// if not using visual studio, this lib must be manually included, if using directinput
+  //#pragma comment(lib, DXGUIDLIB64)   /// if not using visual studio, this lib must be manually included, if using directinput
 #endif
 
 #ifdef USING_XINPUT
   #include XINPUTINCLUDE
-  #pragma comment(lib, XINPUTLIB64)   /// if not using visual studio, this lib must be manually included, if using xinput
+  //#pragma comment(lib, XINPUTLIB64)   /// if not using visual studio, this lib must be manually included, if using xinput
   //#pragma comment(lib, XINPUTLIB32)   /// if not using visual studio, this lib must be manually included, if using xinput
 #endif
 
 #ifdef USING_DIRECT3D
   //#pragma comment(lib, D3D9LIB32)     /// if not using visual studio, this lib must be manually included, if using direct3d
-  #pragma comment(lib, D3D9LIB64)     /// if not using visual studio, this lib must be manually included, if using direct3d
+  //#pragma comment(lib, D3D9LIB64)     /// if not using visual studio, this lib must be manually included, if using direct3d
 #endif /// USING_DIRECT3D
 
 #endif /// OS_WIN
@@ -234,7 +235,7 @@ main() {
 // if you want OpenGL legacy stuff, define OSI_USE_OPENGL_LEGACY before including osinteraction.h <<<
 
 //#define OSI_USE_OPENGL_LEGACY 1 // you could just set this here, but it is encouraged to define this before including this header
-//#define OSI_USE_OPENGL_EXOTIC_EXT 1 // enabling this, will include exotic extensions in the coreARB mode - define this before #include "osinteraction.h"
+#define OSI_USE_OPENGL_EXOTIC_EXT 1 // enabling this, will include exotic extensions in the coreARB mode - define this before #include "osinteraction.h"
 
 #include "osiGlDisable.h"   // either modify this file to enable/disable extensions or include a custom one, before including osinteraction.h
 
@@ -536,22 +537,7 @@ public:
 
 
 
-  // it's best you create your own vulkan device, but you can let osi to create it (using settings.vulkan)
-  // if you want to let osi handle the device, just let <in_device> NULL
-  //inline osiVkRenderer *vkCreateRendererMon(osiMonitor *m, VkDevice in_device= NULL) { return osiVkRenderer::vkCreateRendererMon(m, in_device); }
-  //inline osiVkRenderer *vkCreateRendererWin(osiWindow *w, VkDevice in_device= NULL)  { return osiVkRenderer::vkCreateRendererWin(w, in_device); }
-  //inline osiVkRenderer *vkAssignRenderer(osiWindow *w, VkDevice in_device= NULL)     { return osiVkRenderer::vkAssignRenderer(w, in_device); }
-  //inline void vkDelRenderer(osiVkRenderer *r) { osiVkRenderer::vkDelRenderer(r); }
-
-  // creates a vulkan osi renderer from the specified already created vulkan device.
-  // you must create the device yourself. This func could be used for other than drawing types of vulkan devices
-  // it will link the vulkan funcs to it so it will be a ready to use osi renderer
-  //inline bool vkCreateRenderer(osiVkRenderer **out_renderer, VkDevice in_device, VkPhysicalDevice in_physicalDevice) { return osiVkRenderer::vkCreateRenderer(out_renderer, in_device, in_physicalDevice); }
-
-  // makes sure there's a vkSurface created on that window
-  //inline bool vkLinkRendererToWindow(osiWindow *in_window, osiVkRenderer *in_renderer) { return osiVkRenderer::vkLinkRendererToWindow(in_window, in_renderer); }
-
-  chainList vkRenderers;        // chainlist with all the vulkan renderers active; PURELY INFORMATIONAL / one per window
+//  chainList vkRenderers;        // chainlist with all the vulkan renderers active; PURELY INFORMATIONAL / one per window
   //VkInstance vkInstance;        // Vulkan instance handle assigned to this app
   //uint32_t vkApiVersion;        // OS installed Vulkan api version, on the instance level at least; use VK_VERSION_MAJOR(vkApiVersion) VK_VERSION_MINOR(vkApiVersion) VK_VERSION_PATCH(vkApiVersion) to extract the version
 

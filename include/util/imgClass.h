@@ -1,10 +1,14 @@
 #pragma once
 
+#ifdef OSI_USE_OPENGL
 #define IMG_CLASS_USE_OPENGL 1   // enables/disables opengl funcs
+#endif
+#ifdef OSI_USE_VKO
 #define IMG_CLASS_USE_VULKAN 1   // enables/disables vulkan funcs
+#endif
 
-#include "util/typeShortcuts.h"
-#include "util/str8.h"
+#include "osi/include/util/typeShortcuts.h"
+#include "osi/include/util/str8.h"
 
 enum class ImgFormat: uint32 {
   UNDEFINED = 0,

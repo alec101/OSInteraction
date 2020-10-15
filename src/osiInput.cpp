@@ -409,11 +409,12 @@ bool osiInput::init(int mMode, int kMode) {
 bool jConnected[8];
 bool _HIDdisconnected= false;
 void osiInput::populate(bool scanMouseKeyboard) {
+  #ifdef OSI_BE_CHATTY
   /// debug
   bool chatty= false;
   uint64 start, end;
   bool timer= false;
-
+  #endif
 
   _lastPopulate= osi.present;
 
@@ -496,7 +497,11 @@ void osiInput::populate(bool scanMouseKeyboard) {
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
+
+  #ifdef OSI_BE_CHATTY
   if(timer) osi.getNanosecs(&start);
+  #endif
+
   // xlib xinput research: ... after some time, found nothing. TOO OLD LIB?
   
   // this function takes 5-10 mil nanosecs (5-10 millisecs), which is HUGE
@@ -580,8 +585,9 @@ void osiInput::populate(bool scanMouseKeyboard) {
         nr.jOS++;     nr.gpOS++;    nr.gwOS++;
         
         checkGamepadType(&gp[b]);               /// check if it is ps3/ xbone compatible
-        
+        #ifdef OSI_BE_CHATTY
         if(chatty) printf("joystick[%d] %s Axes: %d Buttons: %d Version: %d CONNECTED\n", b, name, axes, buttons, version);
+        #endif
         break;
       }
     
@@ -589,8 +595,10 @@ void osiInput::populate(bool scanMouseKeyboard) {
   
   /// if no event file needs to be found, just return
   if(!addEventFile) {
+    #ifdef OSI_BE_CHATTY
     if(timer) osi.getNanosecs(&end);
     if(timer) printf("linux joystick scan: %llu nanosecs\n", (unsigned long long)(end- start));
+    #endif
     return;
   }
   
@@ -627,7 +635,9 @@ void osiInput::populate(bool scanMouseKeyboard) {
         if((j[b]._eventFile== -1) && (j[b].name== (cchar *)name)) {
           j[b]._eventFile= f;
           j[b]._eventID= a;
+          #ifdef OSI_BE_CHATTY
           if(chatty) printf("event file: %s%d belongs to joystick %d\n", s2.d, a, b);
+          #endif
           found= true;
           break;
         }
@@ -637,8 +647,11 @@ void osiInput::populate(bool scanMouseKeyboard) {
       close(f);
   } /// for each possible 'event' file
 
+  #ifdef OSI_BE_CHATTY
   if(timer) osi.getNanosecs(&end);
   if(timer) printf("linux joystick scan: %llu nanosecs\n", (unsigned long long)(end- start));
+  #endif
+
   #endif /// OS_LINUX
   
   #ifdef OS_MAC
@@ -649,7 +662,9 @@ void osiInput::populate(bool scanMouseKeyboard) {
   // ------------============ MODE 2 JOYSTICKS ===============------------
   #ifdef OS_WIN
   #ifdef USING_DIRECTINPUT
+  #ifdef OSI_BE_CHATTY
   if(timer) osi.getNanosecs(&start);
+  #endif
   /// jConnected helps to check for disconnected joysticks; start with false, and each connected stick must mark 'true'
   /// if a stick doesn't mark jConnected[id] as true, it is DISCONNECTED
   for(short a= 0; a< 8; a++)
@@ -659,7 +674,9 @@ void osiInput::populate(bool scanMouseKeyboard) {
 
   for(short a= 0; a< 8; a++) {
     if(j[a+ 8].mode&& !jConnected[a]) {     // a joystick was disconnected
+      #ifdef OSI_BE_CHATTY
       if(chatty) printf("DirectInput: hid[%d] %s DISCONNECTED\n", a+ 8, j[a+ 8].name.d);
+      #endif
       /// clear all axis / buttons data / dinput driver
       j[a+ 8].delData();
       gp[a+ 8].delData();
@@ -671,9 +688,11 @@ void osiInput::populate(bool scanMouseKeyboard) {
     }
   }
 
-
+  #ifdef OSI_BE_CHATTY
   if(timer) osi.getNanosecs(&end);
   if(timer) printf("direct input joystick check: %llu nanosecs %llu millisecs\n", end- start, (end- start)/ 1000000);
+  #endif
+
   /// direct input 'plugged' state is in diDevCallback(..)
   /// direct input 'unplugged' state is set in Joystick::update(); if it can't read from device, calls delData()
 
@@ -684,8 +703,10 @@ void osiInput::populate(bool scanMouseKeyboard) {
 
   #ifdef OS_WIN
   #ifdef USING_XINPUT
+
+  #ifdef OSI_BE_CHATTY
   if(timer) osi.getNanosecs(&start);
-  
+  #endif
   
   XINPUT_STATE state;
   
@@ -707,8 +728,9 @@ void osiInput::populate(bool scanMouseKeyboard) {
         /// update sticks numbers
         nr.jT3++;    nr.gpT3++;    nr.gwT3++;
         nr.jFound++; nr.gpFound++; nr.gwFound++;
-
+        #ifdef OSI_BE_CHATTY
         if(chatty) printf("XInput controller %d CONNECTED\n", a);
+        #endif
       }
     } else {
       if(j[16+ a].mode) {           /// error reading & stick is enabled= stick disconnected
@@ -721,12 +743,17 @@ void osiInput::populate(bool scanMouseKeyboard) {
         nr.jFound--; nr.gpFound--; nr.gwFound--;
         _HIDdisconnected= true;
         
+        #ifdef OSI_BE_CHATTY
         if(chatty) printf("XInput controller %d DISCONNECTED\n", a);
+        #endif
       }
     }
   } /// for each possible xinput slot
+
+  #ifdef OSI_BE_CHATTY
   if(timer) osi.getNanosecs(&end);
   if(timer) printf("xinput joystick check: %llu nanosecs\n", end- start);
+  #endif
   
   #endif /// USING_XINPUT
   #endif /// OS_WIN
@@ -735,7 +762,9 @@ void osiInput::populate(bool scanMouseKeyboard) {
 #ifdef OS_WIN
 #ifdef USING_DIRECTINPUT
 BOOL CALLBACK _diDevCallback(LPCDIDEVICEINSTANCE inst, LPVOID extra) {
+  #ifdef OSI_BE_CHATTY
   bool chatty= false;
+  #endif
 
   /// can't handle more than 8 direct input sticks (don't think this will change very soon)
   if(in.nr.jT2== 8)
@@ -759,8 +788,8 @@ BOOL CALLBACK _diDevCallback(LPCDIDEVICEINSTANCE inst, LPVOID extra) {
 
   /// create the direct input device
   bool fail= false;
-  if(in._dInput->CreateDevice(inst->guidInstance, &in.j[id]._diDevice, NULL)                     != DI_OK) fail= true;
-  if(in.j[id]._diDevice->SetDataFormat(&c_dfDIJoystick2)                                         != DI_OK) fail= true;
+  if(in._dInput->CreateDevice(inst->guidInstance, &in.j[id]._diDevice, NULL)                       != DI_OK) fail= true;
+  if(in.j[id]._diDevice->SetDataFormat(&c_dfDIJoystick2)                                           != DI_OK) fail= true;
   if(in.j[id]._diDevice->SetCooperativeLevel(osi.primWin->_hWnd, DISCL_EXCLUSIVE| DISCL_FOREGROUND)!= DI_OK) fail= true;
 
   if(fail) {
@@ -801,7 +830,9 @@ BOOL CALLBACK _diDevCallback(LPCDIDEVICEINSTANCE inst, LPVOID extra) {
 
   checkGamepadType(&in.gp[id]);               /// check if pad is ps3 compatible or xbone compatible
 
+  #ifdef OSI_BE_CHATTY
   if(chatty) printf("DirectInput: found joystick[%d]: %s axes[%d] buttons[%d]\n", id, in.j[id].name.d, caps.dwAxes, caps.dwButtons);
+  #endif
 
   return DIENUM_CONTINUE;         /// DIENUM_CONTINUE to continue enumerating devices; else it will stop enumerating
 }
@@ -814,9 +845,11 @@ BOOL CALLBACK _diDevCallback(LPCDIDEVICEINSTANCE inst, LPVOID extra) {
 // ######################### MAIN INPUT UPDATE #################################
 ///=============================================================================
 void osiInput::update() {
+  #ifdef OSI_BE_CHATTY
   uint64 start, end;    /// debug
   bool timer= false;    /// debug
   if(timer) osi.getNanosecs(&start);
+  #endif
   
   /// set flags
   if(_HIDdisconnected) {
@@ -861,16 +894,16 @@ void osiInput::update() {
       if(j[a]._bActive)
         j[a].update();
   
-
-  
   /// update [type 3] sticks/pads/wheels
   if(nr.jT3)
     for(short a= 16; a< 20; a++)
       if(j[a]._bActive)
         j[a].update();
 
+  #ifdef OSI_BE_CHATTY
   if(timer) osi.getNanosecs(&end);
   if(timer) printf("Input::update() timer: %llu nanosecs\n", (unsigned long long)(end- start)); // it's nothing
+  #endif
 }
 
 
@@ -1758,7 +1791,9 @@ void osiJoystick::delData() {
 /// handles pads/wheels too. might be a good ideea to call this func if others are called, dunno (or just remove update() from gp/gw)
 
 void osiJoystick::update() {
+  #ifdef OSI_BE_CHATTY
   bool chatty= false;
+  #endif
 
   if(!_bActive) return;                           /// a stick/pad/wheel must be marked as active, for updating to take place
                                                   /// this must be used, as updating same device with mutiple drives, will create a bad mess
@@ -1927,7 +1962,9 @@ ReadAgain:
       // check if the joystick was UNPLUGGED (read sets errno on EBADF: file does not exist anymore)
       //printf("e[%d]", errno);
       //if(errno== ENODEV) {
+        #ifdef OS_BE_CHATTY
         if(chatty) printf("joystick %s REMOVED\n", name.d);
+        #endif
 
         /// set stick as DISABLED & close all opened driver files
         delData();
@@ -2013,7 +2050,11 @@ ReadAgain:
           _gw->_log(blog);
           blog.but= nbut;
           _gp->_log(blog);
+
+          #ifdef OSI_BE_CHATTY
           if(chatty) printf("hid[%s] button PRESS nr[%d] arranged[%d]\n", name.d, ev[a].number, nbut);
+          #endif
+
         } else if(ev[a].value== 0) {               // button RELEASE
           /// search thru history for the button, to mark the time it got released
           found= false;
@@ -2051,8 +2092,11 @@ ReadAgain:
             blog.but= nbut;
             _gp->_log(blog);
           } /// failsafe
-        
+
+          #ifdef OSI_BE_CHATTY
           if(chatty) printf("hid[%s] button RELEASE nr[%d] arranged[%d]\n", name.d, ev[a].number, nbut);
+          #endif
+
         } /// if button press/release
 
       // --------------============== AXIS EVENT ================---------------
@@ -2162,11 +2206,15 @@ ReadAgain:
             _gp->v= ev[a].value;
             break;
           default:
+            #ifdef OSI_BE_CHATTY
             if(chatty) printf("unhandled axis event!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+            #endif
+            ;
         }
-      } else
-        if(chatty) printf("unhandled other joystick event!!!!!!!!!!!!!!!!!!!!!\n");
-      
+      }
+      #ifdef OSI_BE_CHATTY
+      else if(chatty) printf("unhandled other joystick event!!!!!!!!!!!!!!!!!!!!!\n");
+      #endif
         
     } /// for each event
     
@@ -2333,7 +2381,9 @@ ReadAgain:
 
       /// after 1 aquire attempt, still not works, signal it disconnected
       if(_diDevice->GetDeviceState(sizeof(DIJOYSTATE2), (LPVOID)&_diStats)== DIERR_INPUTLOST) {   /// device DISCONNECTED
+        #ifdef OSI_BE_CHATTY
         if(chatty) printf("DirectInput: hid[%s] DISCONNECTED<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<,\n", name.d);
+        #endif
         /// clear all axis / buttons data / dinput driver
         delData();
         _gp->delData();
@@ -2454,7 +2504,9 @@ ReadAgain:
         _gw->_log(blog);
         blog.but= _but;
         _gp->_log(blog);
+        #ifdef OSI_BE_CHATTY
         if(chatty) printf("DirectInput: hid[%s] button PRESS nr[%d] arranged[%d]\n", name.d, a, _but);
+        #endif
       
       // --------------============= BUTTON RELEASE ===============-----------------
       } else if(butPrev[a]&& !but[a]) {
@@ -2496,7 +2548,9 @@ ReadAgain:
           _gp->_log(blog);
         } /// failsafe
 
+        #ifdef OSI_BE_CHATTY
         if(chatty) printf("DirectInput: hid[%s] button RELEASE nr[%d] arranged[%d]\n", name.d, a, _but);
+        #endif
 
       } /// button press or release
     } /// for each button
@@ -2606,7 +2660,11 @@ ReadAgain:
         _log(blog);
         _gw->_log(blog);
         _gp->_log(blog);
+
+        #ifdef OSI_BE_CHATTY
         if(chatty) printf("XInput: hid[%s] button PRESS nr[%d]\n", name.d, a);
+        #endif
+
       } else if(but[a]&& !butPrev[a]) {         // button just got ---=== RELEASED ===---
         /// search thru history for the button, to mark the time it got released
         found= false;
@@ -2643,7 +2701,9 @@ ReadAgain:
           _gp->_log(blog);
         } /// failsafe
 
+        #ifdef OSI_BE_CHATTY
         if(chatty) printf("XInput: hid[%s] button RELEASE nr[%d]\n", name.d, a);
+        #endif
 
       } /// if press or depress
     } /// for each possible xpad button
@@ -3008,11 +3068,14 @@ static void HIDadded(void *context, IOReturn result, void *sender, IOHIDDeviceRe
   // result:    the result of the matching operation
   // sender:    the IOHIDManagerRef for the new device
   // device: the new HID device
+  #ifdef OSI_BE_CHATTY
   bool chatty= false;
+  #endif
 
   // IOHIDDeviceRegisterInputValueCallback(device, HIDchange, &driver[a]); this could further optimize some code, but very little, by passing &driver[a] after it is created...
-  
+  #ifdef OSI_BE_CHATTY
   if(chatty) printf("%s\n", __FUNCTION__);
+  #endif
 
   /// find the first non-in-use joystick
   int16 a;
@@ -3100,7 +3163,9 @@ static void HIDadded(void *context, IOReturn result, void *sender, IOHIDDeviceRe
       driver[a].elem[b].id= d++;
       driver[a].nrButtons++;
     }
+    #ifdef OSI_BE_CHATTY
     if(chatty) printf("element[%d]: cookie[%d] id[%d] type[%d] min[%ld] max[%ld] hasNULL[%d] isHat[%d]\n", b, cookie, driver[a].elem[b].id, driver[a].elem[b].type, (long)driver[a].elem[b].logicalMin, (long)driver[a].elem[b].logicalMax, driver[a].elem[b].hasNULLstate, driver[a].elem[b].isHat);
+    #endif
 
 	} /// for each element
   
@@ -3109,7 +3174,10 @@ static void HIDadded(void *context, IOReturn result, void *sender, IOHIDDeviceRe
   in.gw[a].maxButtons= driver[a].nrButtons;
 
 	CFRelease(elems);     /// release elements array
+
+  #ifdef OSI_BE_CHATTY
 	if(chatty) printf("device[%s] nrButtons[%d] nrAxis[%d]\n", in.j[a].name.d, driver[a].nrButtons, driver[a].nrAxis);
+  #endif
   
   // THESE VARS NEED TO BE THE LAST TO BE WRITTEN TO. AND THE ORDER IS VERY IMPORTANT TO AVOID BUGS (mode = 1 before nrFounds)
   //  theory case: the callbug aaa callback func starts to write data to the joystick
@@ -3142,9 +3210,11 @@ static void HIDremoved(void *context, IOReturn result, void *sender, IOHIDDevice
   // inResult:    the result of the removing operation
   // inSender:    the IOHIDManagerRef for the device being removed
   // inHIDDevice: the removed HID device
-  bool chatty= false;
 
+  #ifdef OSI_BE_CHATTY
+  bool chatty= false;
   if(chatty) printf("%s", __FUNCTION__);
+  #endif
 
   /// find removed device in 'driver' struct
   int16 a;
@@ -3176,7 +3246,11 @@ static void HIDremoved(void *context, IOReturn result, void *sender, IOHIDDevice
   _HIDdisconnected= true;
   
   driver[a].delData();
+
+  #ifdef OSI_BE_CHATTY
   if(chatty) printf(" helper cleared\n");
+  #endif
+
   //in.j[a]._cbTame._accessCB_HIDplug= false;
 
   /// release objects lock
@@ -3200,8 +3274,10 @@ void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDValueRef
   // REMEMBER: this function must be optimized for speed, as it is called many times over;
   
   // further testing: it seems there is d-pad button pressure measurements... same with most of buttons !!!!
-  bool chatty= false;
 
+  #ifdef OSI_BE_CHATTY
+  bool chatty= false;
+  #endif
   
 
   IOHIDElementRef elem= IOHIDValueGetElement(val);        /// get the 'element' thet of the value
@@ -3246,10 +3322,15 @@ void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDValueRef
   /// !!! these timestamps are using mach too, so they are reliable !!!
   uint64_t time= IOHIDValueGetTimeStamp(val)/ 1000000;    /// convert to millisecs too (from nanosecs)
   
+  #ifdef OSI_BE_CHATTY
   if(chatty)  printf("HID callback[%s] ", in.j[a].name.d);
+  #endif
 
   if(e->usagePage== kHIDPage_GenericDesktop) {            // ---=== axis ===---
+    #ifdef OSI_BE_CHATTY
     if(chatty) printf(" axis change\n");
+    #endif
+
     int32 t= (((v+ amin)* 65534)/ (amin+ amax))- 32767;   /// value scaled to min[-32767] max[+32767], 65535 total possible units (65534+ unit 0)
     if(t> -150&& t< 150) t= 0;                           /// this is due to bug in mac HID api. center position is not centered.
     
@@ -3324,11 +3405,18 @@ void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDValueRef
         in.j[a]._cbTame.mutex.unlock();
         return;
       default:
+        #ifdef OSI_BE_CHATTY
         if(chatty) printf(" unhandled generic desktop element usage[%x]\n", e->usage);
+        #endif
+        ;
     } /// axis usage switch
 
   } else if(e->type== 2) {                                // ---=== button ===---
+
+    #ifdef OSI_BE_CHATTY
     if(chatty) printf(" button state/pressure change\n");
+    #endif
+
     /// ^^^ have to use the 'type' variable, wich is the only place it actually works... 
 
     in.j[a]._cbTame.but[e->id]= (uint8)v;
@@ -3359,10 +3447,14 @@ void HIDchange(void *inContext, IOReturn inResult, void *inSender, IOHIDValueRef
     
   } else if(e->usagePage== kHIDPage_Button) {             // ---=== ofc, this page doesn't work for game HIDs ===---
     /// this page is NOT USED (for gamepads at least, so i guess it is not used for any game HID)
+    #ifdef OSI_BE_CHATTY
     if(chatty) printf(" unhandled usagePage == button\n");
+    #endif
 
-  } else
-    if(chatty) printf(" unhandled HID element: usagePage[%x] usage[%x]\n", e->usagePage, e->usage);
+  }
+  #ifdef OSI_BE_CHATTY
+  else if(chatty) printf(" unhandled HID element: usagePage[%x] usage[%x]\n", e->usagePage, e->usage);
+  #endif
   
 
   /* SOME DOCUMENTATION:

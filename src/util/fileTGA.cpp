@@ -1,7 +1,5 @@
-#ifdef _WIN32
-#ifndef _CRT_SECURE_NO_WARNINGS
+#if defined _WIN32 && !defined _CRT_SECURE_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
-#endif
 #endif
 
 #include <stdio.h>
@@ -9,10 +7,30 @@
 #include "util/typeShortcuts.h"
 #include "util/imgClass.h"
 
+
 /* TODO:
 */
 
+//  - SUPPORTED formats:
+//      all uncompressed and RLE compressed TGA types (img type 1, 2, 3, 9, 10, 11)
+//
+//  - NOT SUPPORTED formats:
+//      zip compression NOT SUPPORTED (image types 32 & 33)
+//
+// ERROR NUMBERS:
+// ______________
+// 0= no error
+// 1= file not found
+// 2= size error
+// 3= palette is empty
+// 4= alloc error
+// 5= invalid BPP
+// 6= cmap palette not suported
+// 7= unknown / unsupported image type
+// 8= file read error
 
+
+// Img TGA private
 class _ImgTGA {
   // TGA header // http://www.paulbourke.net/dataformats/tga/
   ///==========
@@ -181,7 +199,7 @@ bool Img::_loadTGA(const char *filename, Img *i) {
   }
     
   /// bitmap memory alloc
-  bitmap= new uint8[(uint64)(i->dx* i->dy* c)];
+  bitmap= new uint8[(uint64)i->dx* (uint64)i->dy* (uint64)c];
 
   if(i->_wrap)
     *i->wrapBitmap= bitmap;
@@ -189,12 +207,13 @@ bool Img::_loadTGA(const char *filename, Img *i) {
 
   if(!bitmap) { i->err= 12; i->delData(); fclose(f); return false;}
   tb= (uint8 *)bitmap;                    /// tb will 'walk' the bitmap
-  
+  uint64 s= (uint64)i->dx* (uint64)i->dy;
+
   // not compressed TGA image
   if(!compressed) {
     if(i->format== ImgFormat::R8G8B8A8_UNORM || i->format== ImgFormat::R8G8B8_UNORM ||
        i->format== ImgFormat::R5G5B5A1_UNORM_PACK16 || i->format== ImgFormat::R5G6B5_UNORM_PACK16) {
-      for(uint64 a= 0, s= i->dx* i->dy; a< s; a++, tb+= c) {
+      for(uint64 a= 0; a< s; a++, tb+= c) {
         if(fread(tb, c, 1, f)!= 1)        /// read BGR
           goto ReadError;
 
@@ -212,17 +231,17 @@ bool Img::_loadTGA(const char *filename, Img *i) {
         }
       }
     } else if(i->format== ImgFormat::CMAP_RGB || i->format== ImgFormat::CMAP_RGBA || i->format== ImgFormat::R8_UNORM) {
-      if(fread(bitmap, 1, i->dx* i->dy, f)!= i->dx* i->dy)
+      if(fread(bitmap, 1, s, f)!= s)
         goto ReadError;
     } else if(i->format== ImgFormat::R8G8_UNORM) {
-      if(fread(bitmap, 1, i->dx* i->dy* 2, f)!= i->dx* i->dy* 2)
+      if(fread(bitmap, 1, s* 2, f)!= s* 2)
         goto ReadError;
     }
 
 
   // compressed TGA image
   } else {
-    for(uint64 a= 0; a< i->dx* i->dy;) {
+    for(uint64 a= 0; a< s;) {
       if(fread(&h, 1, 1, f)!= 1)         // read chunk header
         goto ReadError;
 
@@ -433,8 +452,6 @@ bool Img::_saveTGA(const char *filename, Img *i) {
   i->err= 0;
   return true;
 }
-
-//} // namespace _Img
 
 
 

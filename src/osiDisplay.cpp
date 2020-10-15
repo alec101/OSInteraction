@@ -208,14 +208,18 @@ void osiMonitor::delData() {
 // SUBJECT OF DELETION - it helped many months later, so don't be hasty in deleting obsolete stuff
 #ifdef OS_WIN
 BOOL CALLBACK monitorData(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData) {
-// MIGHT BE USELESS <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+  // MIGHT BE USELESS <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
   MONITORINFOEX hmon;
   hmon.cbSize= sizeof(hmon);
   GetMonitorInfo(hMonitor, &hmon);
+
+  #ifdef OSI_BE_CHATTY
   // printf("%s ", hmon.szDevice); %s or %ls depending on the windows "unicode" or mbyte... watever those really mean
   if(hmon.dwFlags& MONITORINFOF_PRIMARY)
     printf("primary monitor\n");
   printf("\n");
+  #endif
+
   return true;
 }
 #endif ///OS_WIN
@@ -284,7 +288,9 @@ bool osiDisplay::changePrimary(int32 dx, int32 dy, int16 freq) {      // change 
 bool _osiDoChange(osiMonitor *m, osiResolution *r, int16_t freq);
 
 bool osiDisplay::changeRes(osiMonitor *m, int32 dx, int32 dy, int16 freq) {
+  #ifdef OSI_BE_CHATTY
   bool chatty= false;
+  #endif
   if(!bResCanBeChanged) return false;   /// there can be reasons that res change is not possible. check bResCanBeChangedReason text
   
   // THERE HAS TO BE ALL THE CHECKS IN HERE, cuz changing 10 times the resolution
@@ -309,7 +315,9 @@ bool osiDisplay::changeRes(osiMonitor *m, int32 dx, int32 dy, int16 freq) {
     error.simple("osi:changeRes: Can't find requested resolution size");
     return false;
   }
+  #ifdef OSI_BE_CHATTY
   if(chatty) printf("requested RESOLUTION CHANGE: %dx%d %dHz (%s)\n", r->dx, r->dy, freq, m->name.d);
+  #endif
   
   /// if a frequency is provided, get it's ID from databanks
   int16 fID= 0, tfreq= 0;            /// this will help with frequencyes
@@ -337,7 +345,9 @@ bool osiDisplay::changeRes(osiMonitor *m, int32 dx, int32 dy, int16 freq) {
   
   if((m->original.dx== dx) && (m->original.dy== dy) && (m->original.freq[0]== tfreq)) {
     if(!m->inOriginal) {                   // already in original res?
+      #ifdef OSI_BE_CHATTY
       if(chatty) printf("changeRes: IGNORE: already in original resolution\n");
+      #endif
       return true;
     }
     
@@ -364,7 +374,9 @@ bool osiDisplay::changeRes(osiMonitor *m, int32 dx, int32 dy, int16 freq) {
       #endif /// OS_LINUX & OS_MAC 
 
       if(!b) { // could not change resolution
+        #ifdef OSI_BE_CHATTY
         printf("\nERROR 1\n\n");
+        #endif
         restoreAllRes();
         return false;
       }
@@ -394,8 +406,9 @@ bool osiDisplay::changeRes(osiMonitor *m, int32 dx, int32 dy, int16 freq) {
 
       return true;
     } /// if in original resolution
-    
+    #ifdef OSI_BE_CHATTY
     if(chatty) printf("changeRes: IGNORE: already in program resolution\n");
+    #endif
     return true; /// if already in program resolution, just return
   } /// if progRes is requested
   
@@ -473,7 +486,10 @@ void osiDisplay::restoreRes(osiMonitor *m) {
   
   if(m->inOriginal)
     return;
+
+  #ifdef OSI_BE_CHATTY
   if(chatty) printf("RESTORE MONITOR RESOLUTION [%s] dx[%d] dx[%d] freq[%d]\n", m->name.d, m->original.dx, m->original.dy, m->original.freq[0]);
+  #endif
   
   #ifdef OS_WIN
   ChangeDisplaySettingsEx(m->_id, NULL, NULL, NULL, NULL);
@@ -637,7 +653,9 @@ bool _osiDoChange(osiMonitor *m, osiResolution *r, int16_t freq) {
     outs[a]= new RROutput[nouts[a]];
     for(short b= 0; b< nouts[a]; b++) {
       outs[a][b]= crtc->outputs[b];
+      #ifdef OSI_BE_CHATTY
       if(chatty) printf("storing info: crtc[%lu] out[a%d][b%d/%d]= %lu\n", osi.display.monitor[a]._crtcID, a, b+ 1, nouts[a], outs[a][b]);
+      #endif
     }
     XRRFreeCrtcInfo(crtc);
   } /// for each monitor
@@ -649,7 +667,9 @@ bool _osiDoChange(osiMonitor *m, osiResolution *r, int16_t freq) {
     scr= XRRGetScreenResources(osi._dis, m->_root);
     crtc= XRRGetCrtcInfo(osi._dis, scr, osi.display.monitor[a]._crtcID);
     /// actual disable
+    #ifdef OSI_BE_CHATTY
     if(chatty) printf("disabling crtc[%lu] [%s]\n", osi.display.monitor[a]._crtcID, osi.display.monitor[a].name.d);
+    #endif
     if(change)  // DEBUG
     XRRSetCrtcConfig(osi._dis, scr, osi.display.monitor[a]._crtcID,
                      CurrentTime, 0, 0, None, RR_Rotate_0, NULL, 0);
@@ -726,8 +746,10 @@ bool _osiDoChange(osiMonitor *m, osiResolution *r, int16_t freq) {
 
 
   // this can be avoided, and changex & changey used to update virtual desktop!!!
+  #ifdef OSI_BE_CHATTY
   if(chatty) printf("virtual desktop UPDATE: x[%d], y[%d] (monitor change delta x[%d], y[%d])\n", osi.display.vdx, osi.display.vdy, changex, changey);
-  
+  #endif
+
   if(change)
   XRRSetScreenSize(osi._dis, DefaultRootWindow(osi._dis), osi.display.vdx, osi.display.vdy,
               DisplayWidthMM(m->win->_dis, m->_screen), DisplayHeightMM(m->win->_dis, m->_screen)); // the size in mm is kinda hard to compute, but doable... it might be NOT NEEDED
@@ -764,7 +786,9 @@ bool _osiDoChange(osiMonitor *m, osiResolution *r, int16_t freq) {
       /// in pass 0, find primary monitor (pos 0, 0)
       if(pass== 0 && (!primaryActivated)) {
         if(osi.display.monitor[a].primary) {
+          #ifdef OSI_BE_CHATTY
           if(chatty) printf("activating primary monitor first\n");
+          #endif
           primaryActivated= true;
         } else continue;                          /// skip until primary monitor is found
       }
@@ -773,27 +797,37 @@ bool _osiDoChange(osiMonitor *m, osiResolution *r, int16_t freq) {
         
       scr= XRRGetScreenResources(osi._dis, m->_root);
       crtc= XRRGetCrtcInfo(osi._dis, scr, osi.display.monitor[a]._crtcID);
-      
+      #ifdef OSI_BE_CHATTY
       if(chatty) printf("monitor%d[%s]:", a, osi.display.monitor[a].name.d);
+      #endif
       if(m== &osi.display.monitor[a]) {           /// current monitor that is changing resolution
         r2= r;
         id= freq;                                 /// id is supplied
+        #ifdef OSI_BE_CHATTY
         if(chatty) printf(" requested resChange x[%d], y[%d] id[%d] crtc[%lu] nouts[%d] out1[%lu]\n",
                           r2->dx, r2->dy, id, osi.display.monitor[a]._crtcID, nouts[a], outs[a][0]);
+        #endif
       } else {                                    /// rest of monitors
         if(osi.display.monitor[a].inOriginal) {
           r2= &osi.display.monitor[a].original;   /// if in original resolution
+          #ifdef OSI_BE_CHATTY
           if(chatty) printf(" other monitor in origRes");
+          #endif
         } else {
           r2= &osi.display.monitor[a].progRes;    /// if in program resolution resolution
+          #ifdef OSI_BE_CHATTY
           if(chatty) printf(" other monitor in progRes");
+          #endif
         }
         id= 0;                                    /// first resolution in progRes or originalRes
+        #ifdef OSI_BE_CHATTY
         if(chatty) printf(" x[%d], y[%d] id[%d] crtc[%lu] nouts[%d] out1[%lu]\n",
                           r2->dx, r2->dy, id, osi.display.monitor[a]._crtcID, nouts[a], outs[a][0]);
+        #endif
       }
-    
+      #ifdef OSI_BE_CHATTY
       if(chatty) printf("monitor position: x[%d], y[%d]\n", osi.display.monitor[a].x0, osi.display.monitor[a]._y0);
+      #endif
       s= Success;
     
       if(change) // DEBUG
@@ -823,8 +857,9 @@ bool _osiDoChange(osiMonitor *m, osiResolution *r, int16_t freq) {
         
         m->dx= tmpx;
         m->dy= tmpy;
-      
+        #ifdef OSI_BE_CHATTY
         if(chatty) printf("error: XRRSetCrtcConfig not sucessful\n");
+        #endif
         error.simple("osiDoChange: Critical error while changing monitor resolution"); // , true); DISABLED QUIT, do something in other funcs
         return false;
       } /// if changing res isn't successful
@@ -901,7 +936,9 @@ bool _osiDoChange(osiMonitor *m, osiResolution *r, int16_t freq) {
 void _osiPopulateGrCards(osiDisplay *);
 
 void osiDisplay::populate(bool in_onlyVulkan) {
+  #ifdef OSI_BE_CHATTY
   bool chatty= true;
+  #endif
 
   if(in_onlyVulkan) {
     _vkPopulate();
@@ -958,15 +995,21 @@ void osiDisplay::populate(bool in_onlyVulkan) {
 
     monitor[id]._id= dd.DeviceName;           // <<<<<<<<<<<<<<<<<<<
     monitor[id].name= dd.DeviceString;       // <<<<<<<<<<<<<<<<<<<
+    #ifdef OSI_BE_CHATTY
     //printf("DEVICE ID: %s\n", dd.DeviceID);
     if(chatty) printf("%s (%s)", monitor[id]._id.d, monitor[id].name.d);
+    #endif
 
     if(dd.StateFlags& DISPLAY_DEVICE_PRIMARY_DEVICE) {
       monitor[id].primary= true;
       primary= &monitor[id];
+      #ifdef OSI_BE_CHATTY
       if(chatty) printf(" primary");
+      #endif
     }
+    #ifdef OSI_BE_CHATTY
     if(chatty) printf("\n");
+    #endif
     
     /// original monitor settings
     if(EnumDisplaySettings(monitor[id]._id, ENUM_CURRENT_SETTINGS, &dm)) {
@@ -986,9 +1029,10 @@ void osiDisplay::populate(bool in_onlyVulkan) {
     //monitor[id].y0= vdy- dm.dmPosition.y- dm.dmPelsHeight;   /// coordonate unification
     
     for(a= 0; EnumDisplayDevices(monitor[id]._id, a, &dd, null); a++) {
+      #ifdef OSI_BE_CHATTY
       //if(chatty) printf("found %d ID[%s]\nName[%s]\nString[%s]\n", a, dd.DeviceID, dd.DeviceName, dd.DeviceString);
       if(!(dd.StateFlags& DISPLAY_DEVICE_ATTACHED_TO_DESKTOP)) printf("!!not attached!!\n");
-
+      #endif
     }
 
     if(EnumDisplayDevices(monitor[id]._id, 0, &dd, null)) {     /// >>> FOR EACH MONITOR ON THAT DISPLAY ADAPTER <<<<
@@ -996,9 +1040,10 @@ void osiDisplay::populate(bool in_onlyVulkan) {
       monitor[id]._monitorName= dd.DeviceString;            //<<<<<<<<<<<<<<<<<<<<<<<<<<<
       
     }
-
+    #ifdef OSI_BE_CHATTY
     if(chatty) printf("%s (%s)\n", monitor[id]._monitorID.d, monitor[id]._monitorName.d);
     if(chatty) printf("Monitor metrics: x0[%d] y0[%d] dx[%d] dy[%d]\n", monitor[id].x0, monitor[id].y0, monitor[id].dx, monitor[id].dy);
+    #endif
 
     /// windows vomit array size
     for(a= 0, n= 0; EnumDisplaySettings(monitor[id]._id, a, &dm) != 0; a++)
@@ -1111,7 +1156,7 @@ void osiDisplay::populate(bool in_onlyVulkan) {
             p[a].freq[c]= tx;
           }
         }
-
+    #ifdef OSI_BE_CHATTY
     if(chatty)
       for(a= 0; a< n; a++) {
         printf("%dx%d %d", p[a].dx, monitor[id].res[a].dy , monitor[id].res[a].nrFreq);
@@ -1119,7 +1164,7 @@ void osiDisplay::populate(bool in_onlyVulkan) {
           printf("%d ", p[a].freq[b]);
         printf("\n");
       }
-
+    #endif
     delete[] tmp;
   } /// displays loop
 
@@ -1171,21 +1216,26 @@ void osiDisplay::populate(bool in_onlyVulkan) {
   
   // POPULATE VIA XRANDR ============---------------------
   if(_osiXrrAvaible) {
-    
+    #ifdef OSI_BE_CHATTY
     if(chatty) printf("XRandR: version[%d.%d] querry[%d] err[%d]\n", _osiXrrMajor, _osiXrrMinor, evBase, err);
-    
+    #endif
+
     XRROutputInfo *out, *out2;
     XRRCrtcInfo *crtc;
     XRRScreenResources *scr;
 
     /// X11 screen info
     scr= XRRGetScreenResourcesCurrent(osi._dis, DefaultRootWindow(osi._dis));
+    #ifdef OSI_BE_CHATTY
     if(chatty) printf("Screen info: outputs= %d; modes= %d; crtcs= %d\n",scr->noutput, scr->nmode, scr->ncrtc);
+    #endif
 
     /// find the number of connected monitors  
     for(a= 0; a< scr->noutput; a++) {
        out= XRRGetOutputInfo(osi._dis, scr, scr->outputs[a]);
+       #ifdef OSI_BE_CHATTY
        if(chatty) printf("output %d: %s %s (crtc%lu)\n", a, out->name, (out->connection== RR_Connected)? "active": "no connection", out->crtc);
+       #endif
 
        if(out->connection== RR_Connected)
          nrMonitors++;
@@ -1206,6 +1256,7 @@ void osiDisplay::populate(bool in_onlyVulkan) {
       /// crtc that handles this output (output that IS connected to a monitor)
       crtc= XRRGetCrtcInfo(osi._dis, scr, out->crtc);
       /// can ge usefull data from a crtc
+      #ifdef OSI_BE_CHATTY
       if(chatty) {
         printf("out%lu: is on crtc%lu\n", scr->outputs[a], out->crtc);
         printf("crtc%lu: has %d outputs:", out->crtc, crtc->noutput);
@@ -1213,7 +1264,7 @@ void osiDisplay::populate(bool in_onlyVulkan) {
           printf(" %lu", crtc->outputs[z]);
         printf("\n");
       }
-
+      #endif
 
       /// populate monitor, lots of stuff found at this point
       monitor[b]._screen= DefaultScreen(osi._dis);   // can it be possible anymore to be a different value???
@@ -1237,10 +1288,10 @@ void osiDisplay::populate(bool in_onlyVulkan) {
       }
       monitor[b].dx= crtc->width;
       monitor[b].dy= crtc->height;
-
+      #ifdef OSI_BE_CHATTY
       if(chatty) printf("monitor [%s] position %d,%d crtc[%lu] out[%lu]\n", monitor[b].name.d, monitor[b].x0, monitor[b].y0, monitor[b]._crtcID, monitor[b]._outID);
-
-      /* crtc transform tests. SEEMS NOTHING USEFULL IS HERE (not going into zooms and scales)
+      #endif
+      /* crtc transform tests. SEEMS NOTHING USEFUL IS HERE (not going into zooms and scales)
       XRRCrtcTransformAttributes *attr;
       XRRGetCrtcTransform(osi.primWin->dis, out->crtc, &attr);
 
@@ -1325,7 +1376,9 @@ void osiDisplay::populate(bool in_onlyVulkan) {
         }
         tmp2[tmp2Size++]= tmp[c];
       } /// for each element in tmp
+      #ifdef OSI_BE_CHATTY
       if(chatty) printf("found %d unique res\n", tmp2Size);
+      #endif
 
       /// create & populate res structure 
       monitor[b].nrRes= tmp2Size;
@@ -1417,6 +1470,7 @@ void osiDisplay::populate(bool in_onlyVulkan) {
 
     XRRFreeScreenResources(scr);
 
+    #ifdef OSI_BE_CHATTY
     if(chatty)
       for(a= 0; a< nrMonitors; a++)
         for(b= 0; b< monitor[a].nrRes; b++) {
@@ -1425,7 +1479,7 @@ void osiDisplay::populate(bool in_onlyVulkan) {
             printf(" %d[id%lu]", monitor[a].res[b].freq[c], monitor[a].res[b]._resID[c]);
           printf("\n");
         }
-
+    #endif
   } /// XRandR avaible
   
   
@@ -1457,11 +1511,15 @@ void osiDisplay::populate(bool in_onlyVulkan) {
   XineramaScreenInfo *xi= XineramaQueryScreens(osi._dis, &heads);
   
   for (a= 0; a< heads; a++) {
+    #ifdef OSI_BE_CHATTY
     if(chatty) printf("XINERAMA: monitor[%d/%d]: position[%dx %dy] size[%dx %dy]\n", a+ 1, heads, xi[a].x_org, xi[a].y_org, xi[a].width, xi[a].height);
+    #endif
     for(b= 0; b< nrMonitors; b++) {
       if(xi[a].x_org== monitor[b].x0 && xi[a].y_org== monitor[b]._y0) {
         monitor[b]._XineramaID= a;
+        #ifdef OSI_BE_CHATTY
         if(chatty) printf("monitor[%d] xineramaID[%d]\n", b, monitor[b]._XineramaID);
+        #endif
       }
     }
   }
@@ -1474,9 +1532,10 @@ void osiDisplay::populate(bool in_onlyVulkan) {
   for(a= 0; a< nrMonitors; a++)
     _osiGetMonitorPos(&monitor[a]);
   
-
+  #ifdef OSI_BE_CHATTY
   if(chatty) printf("virtual desktop size [%dx%d]\n", vdx, vdy);
-  
+  #endif
+
   // IT'S OVERRRRR ... 
   
   // OLD CODE FROM HERE
@@ -1581,8 +1640,10 @@ void osiDisplay::populate(bool in_onlyVulkan) {
   nrMonitors= (short)n;
   
   monitor= new osiMonitor[nrMonitors];
-  
+
+  #ifdef OSI_BE_CHATTY
   if(chatty) printf("found %d monitors\n", nrMonitors);
+  #endif
   
   // loop thru all displays < START <--------------------------------------------------------
   for(d= 0; d< nrMonitors; d++) {                     /// for each monitor
@@ -1619,10 +1680,12 @@ void osiDisplay::populate(bool in_onlyVulkan) {
     monitor[d].dy= (int)CGDisplayPixelsHigh(dis[d]);
     
     //monitor[d].original.freq[0]= (short)dm.dmDisplayFrequency;
-      
+
+    #ifdef OSI_BE_CHATTY
     if(chatty) printf("monitor %d (%s):\n", d, monitor[d].name.d);
     if(chatty) printf("  id[%d] position[%dx%d] original res[%dx%d]\n", monitor[d]._id, monitor[d].x0, monitor[d]._y0, monitor[d].original.dx, monitor[d].original.dy);
-    
+    #endif
+
     // * MAC 10.5 required *
     // double CGDisplayRotation(dis[d]); this is macOS 10.5 onwards... <<<<<<<<<<<<<<<<<<<<<<<<<
     // ROTATION???
@@ -1638,7 +1701,8 @@ void osiDisplay::populate(bool in_onlyVulkan) {
     
     CFArrayRef modes= CGDisplayCopyAllDisplayModes(dis[d], NULL);
     n2= (uint)CFArrayGetCount(modes);
-        
+
+    #ifdef OSI_BE_CHATTY
     if(chatty) printf("  vomit array is %d big\n", n2);
     
     if(chatty)
@@ -1679,7 +1743,7 @@ void osiDisplay::populate(bool in_onlyVulkan) {
         
         //CFRelease(st); /// "caller is responsible for releasing the string"
       }
-
+    #endif /// OSI_BE_CHATTY
     
     /// compute how many resolutions the monitor can handle
     osiResolution *tmp= new osiResolution[n2+ 1]; /// +1 a safety, this list will be wiped anyways
@@ -1720,8 +1784,10 @@ void osiDisplay::populate(bool in_onlyVulkan) {
     } /// for each vomit element
     
     n= monitor[d].nrRes;                  /// n= name shortcut
-    
+
+    #ifdef OSI_BE_CHATTY
     if(chatty) printf("found %d unique resolutions\n", n);
+    #endif
     
     /// width sort
     for(a= 0; a< n; a++)
@@ -1835,7 +1901,8 @@ void osiDisplay::populate(bool in_onlyVulkan) {
             p[a].freq[c]= (short)tx;
             p[a]._id[c]= idt;
           }
-    
+
+    #ifdef OSI_BE_CHATTY
     if(chatty)
       for(a= 0; a< n; a++) {
         printf("%dx%d ", p[a].dx, p[a].dy);
@@ -1843,7 +1910,8 @@ void osiDisplay::populate(bool in_onlyVulkan) {
           printf("%d[ID%u] ", p[a].freq[b], p[a]._id[b]);
         printf("\n");
       }
-    
+    #endif
+
     CFRelease(modes);
     delete[] tmp;
   } /// displays loop
@@ -1866,7 +1934,9 @@ void osiDisplay::populate(bool in_onlyVulkan) {
 
 
 void _osiPopulateGrCards(osiDisplay *display) {
+  #ifdef OSI_BE_CHATTY
   bool chatty= true;
+  #endif
   
   #ifdef OS_WIN
 
@@ -1876,7 +1946,9 @@ void _osiPopulateGrCards(osiDisplay *display) {
   #endif
 
   #ifdef USING_DIRECT3D
+  #ifdef OSI_BE_CHATTY
   if(chatty) printf("Direct3D GPU detection:\n");
+  #endif
   display->bGPUinfoAvaible= true;
   display->bGPUinfoAvaibleReason= "";
   
@@ -1937,8 +2009,9 @@ void _osiPopulateGrCards(osiDisplay *display) {
 
     display->GPU[a].name= disList[c].Description;
     display->GPU[a].LUID= ((uint64_t) l.HighPart<< 32)+ (uint64_t)l.LowPart;
-
+    #ifdef OSI_BE_CHATTY
     if(chatty) printf("Found GPU [%d]: [%s] LUID[%llu]\n", a, display->GPU[a].name.d, display->GPU[a].LUID);
+    #endif
     
   }
     
@@ -1963,7 +2036,9 @@ void _osiPopulateGrCards(osiDisplay *display) {
           if(display->monitor[b].x0+ display->monitor[b].dx== mon.rcMonitor.right)
             if(display->monitor[b]._y0+ display->monitor[b].dy== mon.rcMonitor.bottom) {
               display->monitor[b].GPU= &display->GPU[n];    // MONITOR FOUND - assign that monitor to this GPU
+              #ifdef OSI_BE_CHATTY
               if(chatty) printf("osiDisplay::monitor[%d] belongs to GPU[%d]: %s\n", b, n, display->GPU[n].name.d);
+              #endif
             }
     
     /* // debug tests - unfortunately, for same model cards, these descriptions are the same, so nothing can be counted on
@@ -2069,7 +2144,9 @@ void _osiPopulateGrCards(osiDisplay *display) {
             display->monitor[c].GPU= &display->GPU[a];
           }
     } /// there are monitors on this GPU
+    #ifdef OSI_BE_CHATTY
     if(chatty) printf("Found GPU[%s]: monitors attached[%d]\n", display->GPU[a].name.d, display->GPU[a].nrMonitors);
+    #endif
 
     XRRFreeProviderInfo(cardInfo);        
   }
@@ -2142,7 +2219,10 @@ void _osiPopulateGrCards(osiDisplay *display) {
 
 https://stackoverflow.com/questions/20025868/cgdisplayioserviceport-is-deprecated-in-os-x-10-9-how-to-replace
 
+  #ifdef OSI_BE_CHATTY
   if(chatty) printf("searching for GPU(s)...");
+  #endif
+
   display->nrGPUs= 0;
   if(!display->nrMonitors) return;
   
@@ -2162,13 +2242,18 @@ https://stackoverflow.com/questions/20025868/cgdisplayioserviceport-is-deprecate
     if(!found)
       s[display->nrGPUs++]= display->monitor[a]._GPUinfo;
   }
+
+  #ifdef OSI_BE_CHATTY
   if(chatty) printf("found %d GPU(s)\n", display->nrGPUs);
+  #endif
   
   /// populate display's GPU array
   display->GPU= new osiGPU[display->nrGPUs];
   for(int a= 0; a< display->nrGPUs; a++) {
     display->GPU[a].name= s[a];
+    #ifdef OSI_BE_CHATTY
     if(chatty) printf(" GPU[%d]: [%s]\n", a, display->GPU[a].name.d);
+    #endif
     // more gpu info could be populated here
   }
   
@@ -2229,11 +2314,11 @@ void osiDisplay::_vkPopulate() {
   propID.sType= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES;
   propID.pNext= null;
 
-  osi.vk->EnumeratePhysicalDevices(osi.vk->instance, &nrPDev, null);
+  osi.vk->EnumeratePhysicalDevices(osi.vk->instance(), &nrPDev, null);
   if(!nrPDev) return;
 
   pd= new VkPhysicalDevice[nrPDev];
-  osi.vk->EnumeratePhysicalDevices(osi.vk->instance, &nrPDev, pd); 
+  osi.vk->EnumeratePhysicalDevices(osi.vk->instance(), &nrPDev, pd); 
 
 
 
@@ -2251,7 +2336,9 @@ void osiDisplay::_vkPopulate() {
         osi.vk->GetPhysicalDeviceProperties2KHR(pd[a], &prop2);    // vulkan 1.0 + extension
 
       if(!propID.deviceLUIDValid) continue;           // no valid device LUID, skip
+      #ifdef OSI_BE_CHATTY
       if(chatty) printf("Vulkan LUID[%llu]\n", *((uint64 *)propID.deviceLUID));
+      #endif
 
       // loop thru currently known osiGPU's
       for(int b= 0; b< osi.display.nrGPUs; b++) {
@@ -2264,7 +2351,9 @@ void osiDisplay::_vkPopulate() {
         // found a match
         if(gpu->LUID== *((uint64 *)propID.deviceLUID)) {
           gpu->vkGPU= pd[a];
+          #ifdef OSI_BE_CHATTY
           if(chatty) printf("found vulkan-d3d match thru LUID: [%s]\n", gpu->name.d);
+          #endif
           // could populate with more info here
         }
       }
@@ -2293,7 +2382,9 @@ void osiDisplay::_vkPopulate() {
         // reached this point == this monitor belongs to this GPU
         if(monitor[b].GPU) {
           monitor[b].GPU->vkGPU= pd[a];
+          #ifdef OSI_BE_CHATTY
           if(chatty) printf("Found Vulkan - RROutput match [%s]\n", monitor[b].GPU->name.d);
+          #endif
           // COULD POPULATE WITH MORE DATA
         }
       } /// loop thru all osiMonitors
@@ -2343,7 +2434,9 @@ void osiDisplay::_vkPopulate() {
             osi.vk->GetPhysicalDeviceProperties(pd[b], &prop);  // get physicalDevice properties
             if(GPU[a].name.operator== (prop.deviceName)) {
               GPU[a].vkGPU= pd[b];
+              #ifdef OSI_BE_CHATTY
               if(chatty) printf("Found Vulkan - osiGPU name match [%s]\n", monitor[b].GPU->name.d);
+              #endif
             
               // COULD POPULATE WITH MORE DATA
             }

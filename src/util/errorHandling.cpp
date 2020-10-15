@@ -1,11 +1,7 @@
-
 #ifdef _WIN32
 #define OS_WIN 1
 #define USING_DIRECTINPUT 1    // << DISABLE / ENABLE
 #include <windows.h>
-
-
-
 
 #ifdef USING_DIRECTINPUT
 #define DIRECTINPUT_VERSION 0x0800
@@ -23,7 +19,10 @@
 #include <CoreFoundation/CoreFoundation.h>
 #endif /// OS_APPLE
 
+#ifdef OSI_USE_OPENGL
 #define USING_OPENGL 1
+#endif
+
 #ifdef USING_OPENGL
 #ifdef __APPLE__
 #include <OpenGL/gl.h>
@@ -39,6 +38,7 @@
 #include "util/typeShortcuts.h"
 #include "util/str8.h"
 #include "util/errorHandling.h"
+
 
 
 void _consoleFunc_notLoaded(cchar *txt, bool exit= false, void (*exitFunc)(void)= NULL);

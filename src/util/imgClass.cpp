@@ -1,9 +1,13 @@
-#define OSI_USE_OPENGL_EXOTIC_EXT 1
 #include "osinteraction.h"
 #include "util/mzPacker.h"
 #include "util/imgClass.h"
 #include "util/mlib.hpp"
 #include "util/fileOp.h"
+
+//#ifdef OSI_USE_OPENGL
+//#define OSI_USE_OPENGL_EXOTIC_EXT 1
+//#endif
+
 
 // TODO:
 /*  
@@ -78,14 +82,15 @@ class _Img {
     uint8 compressed;   // [bool] compressed format or not
     void (*(_fromFunc)) (uint8 *, _FormatData *, uint8, _Img::RGBAconv *);
     void (*(_toFunc)) (RGBAconv *, uint8 *, _FormatData *, uint8);
+
     #ifdef IMG_CLASS_USE_OPENGL
     GLint glFormat;
     GLenum glChannelFormat;
     GLenum glDataType;
     inline void setGl(GLint f, GLenum cFrmt, GLenum datType) { glFormat= f, glChannelFormat= cFrmt, glDataType= datType; }
+    static _FormatData *getGl(GLint);     // points to the FormatData that has the oGL format
     #endif
     
-    static _FormatData *getGl(GLint);     // points to the FormatData that has the oGL format
     static _FormatData *get(ImgFormat);   // points to the ImgFormatData that has ImgFormat
   };
 
