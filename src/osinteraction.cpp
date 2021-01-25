@@ -250,7 +250,7 @@ osinteraction::osinteraction() {
   void *buf= new char16[2048];
   GetCurrentDirectoryW(2047, (LPWSTR)buf);
   path= (char16 *)buf;
-  delete[] buf;
+  delete[] (char16*)buf;
   #endif /// OS_WIN
   
   #ifdef OS_LINUX
@@ -1380,7 +1380,7 @@ bool osinteraction::createSplashWindow(osiWindow *w, osiMonitor *m, const char *
   str8 className;
 
   img.load(file);
-  if((img.format!= ImgFormat::R8G8B8_UNORM) || (img.format!= ImgFormat::R8G8B8A8_UNORM))
+  if((img.format!= ImgFormat::R8G8B8_UNORM) && (img.format!= ImgFormat::R8G8B8A8_UNORM))
     return false;
   
   depth= img.bpp/ img.nchannels;
@@ -1791,8 +1791,6 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
   if(timeFunc) osi.getNanosecs(&start);
   #endif
 
-  int mb= 0;
-
   // mouse messages ==============-------------------
   if((m>= WM_MOUSEFIRST)&& (m<= WM_MOUSELAST)) {
     if(!osi.flags.haveFocus)
@@ -1810,7 +1808,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       if(m== WM_MOUSEMOVE) {
         /// removed oldx&y, dx&y, they are updated when in.update() is called; deltas are always on, now.
         /// these are inside window positions
-        if(w= osi._getWin(hWnd)) {                /// i had an instance that a msg from an unknown window was sent, so safety checks must be made
+        if((w= osi._getWin(hWnd))) {         /// i had an instance that a msg from an unknown window was sent, so safety checks must be made
           in.m.x= ((int32)(int16)LOWORD(lParam));   /// msdn says not to use loword; this is what GET_X_PARAM does
           in.m.y= ((int32)(int16)HIWORD(lParam));
           /// virtual dektop coords
@@ -2161,7 +2159,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 
     case WM_MOVE:
       /// hanles normal windows (no fullscreens)
-      if(w= osi._getWin(hWnd))              /// safety check; 'unknown windows' msgs happened in Win7
+      if((w= osi._getWin(hWnd)))              /// safety check; 'unknown windows' msgs happened in Win7
         if(w->mode== 1) {
           w->x0= (int32)(int16)LOWORD(lParam);
 
@@ -2178,7 +2176,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 
     case WM_SIZE:
       if(wParam== SIZE_RESTORED) {      /// handling only window size change (there are minimize and maximize messages here)
-        if(w= osi._getWin(hWnd))        /// safety check; 'unknown windows' msgs happened in Win7
+        if((w= osi._getWin(hWnd)))      /// safety check; 'unknown windows' msgs happened in Win7
           if(w->mode== 1) {
             w->dx= LOWORD(lParam),
             w->dy= HIWORD(lParam),
@@ -2187,14 +2185,14 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
             //osi.resizeGLScene(w->dx, w->dy);
           }
       } else if(wParam== SIZE_MAXIMIZED) {
-        if(w= osi._getWin(hWnd))        /// safety check; 'unknown windows' msgs happened in Win7
+        if((w= osi._getWin(hWnd)))      /// safety check; 'unknown windows' msgs happened in Win7
           if(w->mode== 1)
             w->dx= LOWORD(lParam),
             w->dy= HIWORD(lParam),
             osi.flags.windowResized= true,
             osi.flags.minimized= false;
       } else if(wParam== SIZE_MINIMIZED) {
-        if(w= osi._getWin(hWnd))        /// safety check; 'unknown windows' msgs happened in Win7
+        if((w= osi._getWin(hWnd)))      /// safety check; 'unknown windows' msgs happened in Win7
           if(w->mode== 1)
             w->dx= LOWORD(lParam),
             w->dy= HIWORD(lParam),
@@ -2207,14 +2205,14 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 
 
     case WM_SETFOCUS:         /// focus gained to a window
-      if(w= osi._getWin(hWnd)) w->hasFocus= true;
+      if((w= osi._getWin(hWnd))) w->hasFocus= true;
       #ifdef OSI_BE_CHATTY
       if(chatty) printf("WM_SETFOCUS %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, (uint64)wParam, (int64)lParam);
       #endif
       goto ret;
 
     case WM_KILLFOCUS:        /// window lost focus
-      if(w= osi._getWin(hWnd)) w->hasFocus= false;
+      if((w= osi._getWin(hWnd))) w->hasFocus= false;
       #ifdef OSI_BE_CHATTY
       if(chatty) printf("WM_KILLFOCUS %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, (uint64)wParam, (int64)lParam);
       #endif

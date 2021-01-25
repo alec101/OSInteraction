@@ -497,7 +497,6 @@ _Img::_FormatData *_Img::_FormatData::get(ImgFormat in_f) {
 
 #ifdef IMG_CLASS_USE_OPENGL
 _Img::_FormatData *_Img::_FormatData::getGl(GLint in_f) {
-  const _FormatData *p= &_Img::_formats[1];
   for(uint a= 1; _Img::_formats[a].format!= ImgFormat::UNDEFINED; a++)
     if(_Img::_formats[a].glFormat== in_f)
       return (_FormatData *)&_Img::_formats[a];
@@ -935,7 +934,7 @@ bool Img::areSizesPowerOfTwo() {
 
 
 bool Img::loadPalette(cchar *name, uint8 in_bpp) {
-  if(in_bpp!= 32|| in_bpp!= 24)
+  if((in_bpp!= 32) && (in_bpp!= 24))
     return false;
 
   FILE *f= fopen(name,"rb");
@@ -1004,7 +1003,7 @@ bool Img::load(cchar *fname) {
 }
 
 
-bool Img::save(cchar *fname) {
+bool Img::save(cchar *fname, int dummy) {
   str8 s= pointFileExt(fname);
   s.lower();
   
@@ -1369,14 +1368,15 @@ bool Img::packPixels() {
       }
 
   // 8bpp formats
-  } else if(bpc[0]+ bpc[1]+ bpc[2]+ bpc[4]== 8) {
+  } else if(bpc[0]+ bpc[1]+ bpc[2]+ bpc[3]== 8) {
 
     p8= (uint8 *)bitmap;
     for(uint32 a= dx* dy; a> 0; a--, p+= nchannels)
-      *p8++=   (p8[0]<< (bpc[1]+ bpc[2]+ bpc[3]))+
+      *p8=     (p8[0]<< (bpc[1]+ bpc[2]+ bpc[3]))+
       (bpc[1]? (p8[1]<< (bpc[2]+ bpc[3])):     0)+
-      (bpc[2]? (p8[2]<< bpc[3]):               0)+
-      (bpc[3]?  p8[3]:                         0);
+      (bpc[2]? (p8[2]<<  bpc[3]):              0)+
+      (bpc[3]?  p8[3]:                         0),
+      p8++;
 
   // 16bpp formats
   } else if(bpc[0]+ bpc[1]+ bpc[2]+ bpc[3]<= 16) {

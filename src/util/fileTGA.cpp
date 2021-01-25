@@ -79,6 +79,7 @@ bool Img::_loadTGA(const char *filename, Img *i) {
   uint8 *bitmap= null;
   i->err= 0;
   uint cmapBpp= 0;
+  uint64 s;
 
   i->fileName= filename;
   i->fileType= 1;
@@ -207,7 +208,7 @@ bool Img::_loadTGA(const char *filename, Img *i) {
 
   if(!bitmap) { i->err= 12; i->delData(); fclose(f); return false;}
   tb= (uint8 *)bitmap;                    /// tb will 'walk' the bitmap
-  uint64 s= (uint64)i->dx* (uint64)i->dy;
+  s= (uint64)i->dx* (uint64)i->dy;
 
   // not compressed TGA image
   if(!compressed) {

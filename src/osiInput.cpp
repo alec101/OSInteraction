@@ -142,7 +142,7 @@ void osiInput::vibrate() {
 
   // wLeftMotorSpeed
     int32 hr= 0;
-        DWORD    rgdwAxes[2] = { DIJOFS_X, DIJOFS_Y };  // X- and y-axis
+        DWORD    rgdwAxes[2] = { (DWORD)DIJOFS_X, (DWORD)DIJOFS_Y };  // X- and y-axis
         LONG rglDirection[2] = { 0, 0 };
 
         DICONSTANTFORCE cf;
@@ -831,7 +831,7 @@ BOOL CALLBACK _diDevCallback(LPCDIDEVICEINSTANCE inst, LPVOID extra) {
   checkGamepadType(&in.gp[id]);               /// check if pad is ps3 compatible or xbone compatible
 
   #ifdef OSI_BE_CHATTY
-  if(chatty) printf("DirectInput: found joystick[%d]: %s axes[%d] buttons[%d]\n", id, in.j[id].name.d, caps.dwAxes, caps.dwButtons);
+  if(chatty) printf("DirectInput: found joystick[%d]: %s axes[%d] buttons[%d]\n", id, in.j[id].name.d, (int)caps.dwAxes, (int)caps.dwButtons);
   #endif
 
   return DIENUM_CONTINUE;         /// DIENUM_CONTINUE to continue enumerating devices; else it will stop enumerating
@@ -2477,10 +2477,11 @@ ReadAgain:
         /// direct input i don't think will ever see extra buttons... i got 1 extra and it's nowhere to be found
 
         /// the first 4 buttons are arranged as the ps3 pad
-        if(a< 4)
+        if(a< 4) {
           if(a== 0)      _but= 1;
           else if(a== 1) _but= 2;
           else if(a== 2) _but= 0;
+        }
       } /// check type of gamepad
 
       /// update current button state

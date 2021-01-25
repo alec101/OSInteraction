@@ -36,7 +36,7 @@ bool createSurface(vkObject *in_vk, osiWindow *in_w) {
 
   #ifdef OS_WIN
   if(in_vk->CreateWin32SurfaceKHR== null) { error.detail("vkCreateWin32Surface not avaible. vk_KHR_win32_surface must be enabled/ avaible", __FUNCTION__); return false; }
-
+  
   VkWin32SurfaceCreateInfoKHR s;
   
   s.sType= VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;

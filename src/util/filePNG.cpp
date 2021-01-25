@@ -639,7 +639,7 @@ bool Img::_savePNG(const char *fname, Img *i) {
   uint8 compression= 0;   /// compression type (only 1 i think there is)
   uint8 filter= 0;        /// filter type (only 1 in specs i think)
   uint8 interlace= 0;     /// interlace type (only on or off i think)
-  bool hasCMAP= false;
+  //bool hasCMAP= false;
 
   // size_t clengthPos, cdataPos, curPos;
   if(i->nchannels== 1 && i->bpp>= 8 && i->bpp<= 16 && !i->compressed)

@@ -1,5 +1,5 @@
 #pragma once
-#include "util/chainList.hpp"
+#include "chainList.hpp"
 //#define CHAINLIST_SAFECHECKS 1 //to check for bad calls to chainList
 
 // ADVANTAGES:    -few to no memory allocs/deallocs (should be a huge boost in speed)

@@ -222,7 +222,7 @@ bool osiWindow::setIcon(cchar *file) {
   img.load(file);
   if(img.err) return false;
   
-  if((img.format!= ImgFormat::R8G8B8_UNORM) || (img.format!= ImgFormat::R8G8B8A8_UNORM))  // RGBA & RGB only
+  if((img.format!= ImgFormat::R8G8B8_UNORM) && (img.format!= ImgFormat::R8G8B8A8_UNORM))  // RGBA & RGB only
     return false;
 
   depth= img.bpp/ img.nchannels;

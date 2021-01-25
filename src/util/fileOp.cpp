@@ -20,38 +20,59 @@ void fileReadWordOrWordsInQuotes(FILE *f, str8 *out_string) {
 */
 
 
+
+
 bool readLine8(FILE *f, str8 *out_str) {
+  uint8 c;
   if(out_str== null) return false;
   if(f== null) { out_str->delData(); return false; }
+  
+  // wrapping output str8
+  if(out_str->wrapping) {
+    if(out_str->wrapSize< 2) return false;
 
-  int64 start= osi.ftell64(f);
+    int32 a= 0;
+    for(; a< out_str->wrapSize- 1; ++a) {
+      if(!fread(&c, 1, 1, f)) break;
+      if(c== 0) break;
+      out_str->d[a]= c;
+      if(c== '\n') { ++a; break; }
+    }
 
-  uint8 c;
-  int64 size= 0;
+    out_str->d[a]= 0;
+    out_str->updateLen();
 
-  /// checkout how big the line is
-  while(1) {
-    if(!fread(&c, 1, 1, f)) break;
-    size++;
-    if((c== '\n') || (c== 0)) break;
-  }
+  // non-wrapping output str8 - ALLOCS + SLOWER!
+  } else {
+    int64 start= osi.ftell64(f);
+    int64 size= 0;
 
-  /// nothing read? exit
-  if(!size) { out_str->delData(); return false; }
+    /// checkout how big the line is
+    while(1) {
+      if(!fread(&c, 1, 1, f)) break;
+      size++;
+      if((c== '\n') || (c== 0)) break;
+    }
+
+    /// nothing read? exit
+    if(!size) { out_str->delData(); return false; }
  
-  // read the text
-  uint8 *p= new uint8[size+ 1];
-  osi.fseek64(f, start, SEEK_SET);
-  fread(p, 1, size, f);
-  p[size]= 0;                           /// str terminator
+    // read the text
+    uint8 *p= new uint8[size+ 1];
+    osi.fseek64(f, start, SEEK_SET);
+    fread(p, 1, size, f);
+    p[size]= 0;                           /// str terminator
 
-  /// returned string
-  out_str->delData();
-  out_str->d= (char *)p;
-  out_str->updateLen();
-
+    /// returned string
+    out_str->delData();
+    out_str->d= (char *)p;
+    out_str->updateLen();
+  }
   return true;
 }
+
+
+
 
 
 bool readLine16(FILE *f, str16 *out_str) {
@@ -85,6 +106,7 @@ bool readLine16(FILE *f, str16 *out_str) {
 
   return true;
 }
+
 
 
 bool readLine32(FILE *f, str32 *out_str) {

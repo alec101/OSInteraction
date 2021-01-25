@@ -870,7 +870,7 @@ char *str32::getUTF8(int32_t *out_len) const {
   uint8_t *p= buf8;
   for(p2= (uint32_t *)d; *p2; p2++) {   /// for each character in d
     //p+= Str::utf32to8(*p2, (char *)p);
-    int32_t a;
+    int32_t a= 0;
     /// compress unicode value into utf-8
     if(*p2<= 0x0000007F)    { *p++= (uint8_t) *p2; continue; }
     else if(*p2<= 0x000007FF) *p++= (uint8_t) (*p2>> 6) | 0xC0, a= 0;
@@ -1464,7 +1464,7 @@ str32 &str32::secureUTF16(const char16_t *in_s, int32_t in_len) {
       if(Str::isHighSurrogate(*p2)) { if((limit- 4)< 0) break; }
       else                            if((limit- 2)< 0) break; }
 
-    uint32_t c= _secure16to32advance((const char16_t **)&p2);
+    _secure16to32advance((const char16_t **)&p2);
     limit= in_len- (int32_t)((uint8_t *)p2- (uint8_t *)in_s);
     n++;
   }

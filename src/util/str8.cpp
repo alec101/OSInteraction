@@ -160,24 +160,46 @@ void str8::updateLen() {
 
 
 str8 &str8::f(const char *format, ...) {
-  uint8_t fBuf[2048];
+ 
+  if(!wrapping) {
+    uint8_t fBuf[2048];
+	  if(Str::strlen8(format)> 2048) {
+		  *this= "TOO BIG, FORMAT FAILED";
+		  return *this;
+	  }
 
-	int32_t l= Str::strlen8(format);
-	if(l> 2048) {
-		*this= "TOO BIG, FORMAT FAILED";
-		return *this;
-	}
-  /// create formatted text (use a buffer)
-  fBuf[0]= '\0';
-	va_list args;
-  va_start(args, format);
-  vsprintf((char *)fBuf, (const char *)format, args);
-  va_end(args);
+    /// create formatted text (use a buffer)
+    fBuf[0]= '\0';
+	  va_list args;
+    va_start(args, format);
+    vsprintf((char *)fBuf, (const char *)format, args);
+    va_end(args);
 
-	return *this= (char *)fBuf;     // WRAP SAFE, BECAUSE OF operator=
+	  return *this= (char *)fBuf;
+
+  } else {
+
+	  va_list args;
+    va_start(args, format);
+    vsprintf((char *)d, (const char *)format, args);
+    va_end(args);
+    updateLen();
+
+    return *this;
+  }
 }
 
 
+int str8::s(const char *format, ...) {
+  int ret;
+  va_list args;
+
+  va_start(args, format);
+  ret= vsscanf(d, format, args);
+  va_end(args);
+
+  return ret;
+}
 
 
 ///---------///

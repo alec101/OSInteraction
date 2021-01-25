@@ -180,73 +180,51 @@ namespace Str {
   // utility
 
   inline void memclr(void *dst, uint32_t n, uint8_t v= 0) {
-    uint64_t *p1;
-    uint8_t *p2;
-    uint32_t i;
+    uint64_t i= 0;
+    uint64_t n64= n>> 3;            // n/ 8 - number of int64's to copy
+    
+    if(n64)
+      for(; i< n64; ++i)
+        ((uint64_t *)dst)[i]= v;    // clear 8 bytes at a time
 
-    for(i= n/ 8, p1= (uint64_t *)dst; i; i--)
-      *p1++= v;
-    for(i= n% 8, p2= (uint8_t *)p1; i; i--)
-      *p2++= v;
+    for(i<<= 3; i< n; ++i)
+      ((uint8_t *)dst)[i]= v;       // clear 1 byte at a time
   }
 
-  // copies 8 bytes at a time - 2x slower than Microsoft memcpy
+  
+  // copies 8 bytes at a time (mk3 - on par with std)
   inline void memcpy(void *dst, const void *src, uint64_t n) {
-    if(dst< src) {
-      
-      uint64_t *p1= (uint64_t *)dst, *p2= (uint64_t *)src;
-      while(n>= 8)                /// 8 bytes at a time copy
-        *p1++= *p2++, n-= 8;
+    uint64_t n64= n>> 3;          // n/ 8  number of int64 to copy
+    uint64_t n8=  n- (n64<< 3);   // n% 8  number of int8 to copy
 
-      uint8_t *p3= (uint8_t *)p1, *p4= (uint8_t *)p2;
-      while(n)                    /// rest of bytes 1 by 1 (max 7)
-        *p3++= *p4++, n--;
+    // special case - a copy from same buffer (dst inside src) - copying is done backwards
+    if(dst> src && dst< ((int8_t *)src+ n)) {
+      if(n64)
+        for(uint64_t a= n64; a> 0;)
+          --a, ((uint64_t *)dst)[a]= ((uint64_t *)src)[a];  // copy 8 bytes at a time
 
-    } else {
-      uint64_t *p1= (uint64_t *)((uint8_t *)dst+ n), *p2= (uint64_t *)((uint8_t *)src+ n);
-      while(n>= 8)                /// 8 bytes at a time copy
-        *--p1= *--p2, n-= 8;
-
-      uint8_t *p3= (uint8_t *)p1, *p4= (uint8_t *)p2;
-      while(n)                    /// rest of bytes 1 by 1 (max 7)
-        *--p3= *--p4, n--;
-    }
-  }
-
-  inline void memcpyWIP(void *dst, const void *src, uint64_t n) {
-    uint64_t n64= (n/ 8);
-    uint64_t n8= (n% 8);
-
-    // special case - a copy from same buffer and src < dst
-    if(src< dst)
-      if((uint8_t *)src+ n>= dst) {
-
-        if(n8)                                    /// copy bytes 1 by 1 (max 7)
-          for(int64_t i= n- 1; i> (int64_t)(n- n8- 1); i--)
-            ((uint8_t *)dst)[i]= ((uint8_t *)src)[i];
-
-        if(n64)
-          for(int64_t i= n64- 1; i>= 0; i--)      /// copy 8 bytes at a time
-            ((uint64_t *)dst)[i]= ((uint64_t *)src)[i];
-
-        return;
+      if(n8) {
+        dst= ((uint64_t *)dst+ n64), src= ((uint64_t *)src+ n64);
+        for(uint64_t a= n8; a> 0;)
+          --a, ((uint8_t *)dst)[a]=  ((uint8_t *)src)[a];   // copy 1 byte at a time
       }
 
-    // normal copy
-    if(n64)
-      for(uint64_t i= 0; i< n64; i++)             /// copy 8 bytes at a time
-        ((uint64_t *)dst)[i]= ((uint64_t *)src)[i];
-    
-    if(n8) {                                      /// rest of bytes 1 by 1 (max 7)
-      dst= (uint64_t *)dst+ n64;
-      src= (uint64_t *)src+ n64;
-      for(uint64_t i= 0; i< n8; i++)
-        ((uint8_t *)dst)[i]= ((uint8_t *)src)[i];
+    // normal copy func, most cases this part will be called
+    } else {
+      if(n64)
+        for(uint64_t a= 0; a< n64; ++a)
+          ((uint64_t *)dst)[a]= ((uint64_t *)src)[a];       // copy 8 bytes at a time
+
+      if(n8) {
+        dst= ((uint64_t *)dst+ n64), src= ((uint64_t *)src+ n64);
+        for(uint64_t a= 0; a< n8; ++a)
+          ((uint8_t *)dst)[a]=  ((uint8_t *)src)[a];        // copy 1 byte at a time
+      }
     }
   }
-
-
-
+  
+ 
+  
 
   // unpacks UTF-8 and returns unicode value (UTF-32) 
   inline uint8_t *utf8to32fast(const uint8_t *in_txt, uint32_t *out_unicode) {
@@ -299,6 +277,31 @@ namespace Str {
 
   //inline void memcpy(void *dst, const void *src, uint64_t n) { for(uint64_t a= 0; a< n; a++) ((int8_t *)dst)[a]= ((int8_t *)src)[a]; }
   //inline void memcpy(void *dst, const void *src, uint64_t n) { int8_t *p1= (int8_t *)dst, *p2= (int8_t *)src; for(uint64_t a= 0; a< n; a++, p1++, p2++) *p1= *p2; }
+
+  /*
+  // copies 8 bytes at a time - slower than Microsoft memcpy
+  inline void memcpyMK1(void *dst, const void *src, uint64_t n) {
+    uint64_t *p1, *p2; uint8_t *p3, *p4;
+
+    if(dst< src) {
+      for(p1= (uint64_t *)dst, p2= (uint64_t *)src; n>= 8; n-= 8)
+        *p1++= *p2++;       /// 8 bytes at a time copy
+
+      for(p3= (uint8_t *)p1, p4= (uint8_t *)p2; n; n--)
+        *p3++= *p4++;       /// rest of bytes 1 by 1 (max 7)
+
+    } else {
+      for(p1= (uint64_t *)((uint8_t *)dst+ n), p2= (uint64_t *)((uint8_t *)src+ n); n>= 8; n-=8)
+        *--p1= *--p2;       /// 8 bytes at a time copy
+
+      for(p3= (uint8_t *)p1, p4= (uint8_t *)p2; n; n--)
+        *--p3= *--p4;       /// rest of bytes 1 by 1 (max 7)
+    }
+  }
+  */
+
+
+
 } /// namespace Str
 
 

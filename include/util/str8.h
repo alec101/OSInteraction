@@ -57,7 +57,8 @@ public:
 
   // main functions
   
-  str8 &f(const char *, ...); // format string using sprintf(...) MAX LENGTH IS 1024, so dont re-write books with this one; use it on a line by line basis
+  str8 &f(const char *, ...); // format string using sprintf(...) MAX LENGTH IS 1024 IF NOT WRAPPING, so dont re-write books with this one; use it on a line by line basis
+  int s(const char *format, ...);               // scan string using sscanf(...) type of func
   void updateLen();           // updates len and nrUnicodes vars, in case you want to mess with the string internal data (d). [WARNING: see start of this header file]
   void lower();               // converts whole string to lowercase (special cases that 1 character transforms into multiple characters ARE NOT HANDLED)
   void upper();               // converts whole string to uppercase (special cases that 1 character transforms into multiple characters ARE NOT HANDLED)
@@ -190,7 +191,7 @@ public:
   inline str8 &operator= (const WCHAR *s) { return operator= ((char16_t *)s); }
 #endif /// OS_WIN
   private:
-    bool _changed;
+    //bool _changed;
 };
 
 inline str8 operator+(const char *s1,     const str8 &s2) { return str8(s1)+= s2; }

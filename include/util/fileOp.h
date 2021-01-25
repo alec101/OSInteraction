@@ -3,10 +3,10 @@
 #define _CRT_SECURE_NO_WARNINGS 1
 #endif
 
-bool readLine8(FILE *f, str8 *out_str);
-bool readLine16(FILE *f, str16 *out_str);
-bool readLine32(FILE *f, str32 *out_str);
-bool readFile(FILE *f, uint8_t **out_buf);     // reads the file, from the current location. adds 7 terminators, in case it should be a utf32 file, for failsafe
+bool readLine8(FILE *f, str8 *out_str);         // works with wrapped str8's
+bool readLine16(FILE *f, str16 *out_str);       // wrapping not done
+bool readLine32(FILE *f, str32 *out_str);       // wrapping not done
+bool readFile(FILE *f, uint8_t **out_buf);      // reads the file, from the current location. adds 7 terminators, in case it should be a utf32 file, for failsafe
 
 bool secureRead8(const char *name, str8 *out_str);
 bool secureRead16(const char *name, str16 *out_str);

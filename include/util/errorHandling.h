@@ -53,7 +53,7 @@ public:
   
 
   #ifdef USING_DIRECTINPUT
-  void dinput(int32_t nr);   // direct input error nr as text (msgbox etc)
+  void dinput(int64_t nr);   // direct input error nr as text (msgbox etc)
   #endif
   
   #ifdef USING_OPENGL
@@ -70,42 +70,56 @@ public:
   inline void vkPrint(VkResult in_err, const char *in_extraText= NULL, bool in_exit= false, void (*in_exitFunc)(void)= NULL) {
     if(!in_err) return;
     str8 s("Vulkan Error: ");
-    if(in_err== VK_SUCCESS) s+= "VK_SUCCESS";
-    else if(in_err== VK_NOT_READY)    s+= "VK_NOT_READY";
-    else if(in_err== VK_TIMEOUT)      s+= "VK_TIMEOUT";
-    else if(in_err== VK_EVENT_SET)    s+= "VK_EVENT_SET";
-    else if(in_err== VK_EVENT_RESET)  s+= "VK_EVENT_RESET";
-    else if(in_err== VK_INCOMPLETE)   s+= "VK_INCOMPLETE";
-    else if(in_err== VK_ERROR_OUT_OF_HOST_MEMORY)     s+= "VK_ERROR_OUT_OF_HOST_MEMORY";
-    else if(in_err== VK_ERROR_OUT_OF_DEVICE_MEMORY)   s+= "VK_ERROR_OUT_OF_DEVICE_MEMORY";
-    else if(in_err== VK_ERROR_INITIALIZATION_FAILED)  s+= "VK_ERROR_INITIALIZATION_FAILED";
-    else if(in_err== VK_ERROR_DEVICE_LOST)            s+= "VK_ERROR_DEVICE_LOST";
-    else if(in_err== VK_ERROR_MEMORY_MAP_FAILED)      s+= "VK_ERROR_MEMORY_MAP_FAILED";
-    else if(in_err== VK_ERROR_LAYER_NOT_PRESENT)      s+= "VK_ERROR_LAYER_NOT_PRESENT";
-    else if(in_err== VK_ERROR_EXTENSION_NOT_PRESENT)  s+= "VK_ERROR_EXTENSION_NOT_PRESENT";
-    else if(in_err== VK_ERROR_FEATURE_NOT_PRESENT)    s+= "VK_ERROR_FEATURE_NOT_PRESENT";
-    else if(in_err== VK_ERROR_INCOMPATIBLE_DRIVER)    s+= "VK_ERROR_INCOMPATIBLE_DRIVER";
-    else if(in_err== VK_ERROR_TOO_MANY_OBJECTS)       s+= "VK_ERROR_TOO_MANY_OBJECTS";
-    else if(in_err== VK_ERROR_FORMAT_NOT_SUPPORTED)   s+= "VK_ERROR_FORMAT_NOT_SUPPORTED";
-    else if(in_err== VK_ERROR_FRAGMENTED_POOL)        s+= "VK_ERROR_FRAGMENTED_POOL";
-    else if(in_err== VK_ERROR_OUT_OF_POOL_MEMORY)     s+= "VK_ERROR_OUT_OF_POOL_MEMORY";
-    else if(in_err== VK_ERROR_INVALID_EXTERNAL_HANDLE) s+= "VK_ERROR_INVALID_EXTERNAL_HANDLE";
-    else if(in_err== VK_ERROR_SURFACE_LOST_KHR)       s+= "VK_ERROR_SURFACE_LOST_KHR";
-    else if(in_err== VK_ERROR_NATIVE_WINDOW_IN_USE_KHR) s+= "VK_ERROR_NATIVE_WINDOW_IN_USE_KHR";
-    else if(in_err== VK_SUBOPTIMAL_KHR)               s+= "VK_SUBOPTIMAL_KHR";
-    else if(in_err== VK_ERROR_OUT_OF_DATE_KHR)        s+= "VK_ERROR_OUT_OF_DATE_KHR";
-    else if(in_err== VK_ERROR_INCOMPATIBLE_DISPLAY_KHR) s+= "VK_ERROR_INCOMPATIBLE_DISPLAY_KHR";
-    else if(in_err== VK_ERROR_VALIDATION_FAILED_EXT)  s+= "VK_ERROR_VALIDATION_FAILED_EXT";
-    else if(in_err== VK_ERROR_INVALID_SHADER_NV)      s+= "VK_ERROR_INVALID_SHADER_NV";
-    else if(in_err== VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT) s+= "VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT";
-    else if(in_err== VK_ERROR_FRAGMENTATION_EXT)      s+= "VK_ERROR_FRAGMENTATION_EXT";
-    else if(in_err== VK_ERROR_NOT_PERMITTED_EXT)      s+= "VK_ERROR_NOT_PERMITTED_EXT";
-    else s+= "Unknown error";
+    s+= vkStrResult(in_err);
     
     if(in_extraText)
       s+= " ", s+= in_extraText;
     simple(s, in_exit, in_exitFunc);
   }
+
+  inline void vkWindow(const char *in_text, const char *in_vkoErrText, VkResult in_res, bool in_exit= false, void (*in_exitFunc)(void)= NULL) {
+    window(str8().f("%s\nVKO error: %s\nvkResult: %s", (in_text? in_text: ""), (in_vkoErrText? in_vkoErrText: ""), vkStrResult(in_res)), in_exit, in_exitFunc);
+  }
+
+  inline void vkSimple(const char *in_text, const char *in_vkoErrText, VkResult in_res, bool in_exit= false, void (*in_exitFunc)(void)= NULL) {
+    simple(str8().f("%s\nVKO error: %s\nvkResult: %s", (in_text? in_text: ""), (in_vkoErrText? in_vkoErrText: ""), vkStrResult(in_res)), in_exit, in_exitFunc);
+  }
+
+  inline const char *vkStrResult(VkResult in_r) {
+    if(in_r== VK_SUCCESS) return "VK_SUCCESS";
+    else if(in_r== VK_NOT_READY)    return "VK_NOT_READY";
+    else if(in_r== VK_TIMEOUT)      return "VK_TIMEOUT";
+    else if(in_r== VK_EVENT_SET)    return "VK_EVENT_SET";
+    else if(in_r== VK_EVENT_RESET)  return "VK_EVENT_RESET";
+    else if(in_r== VK_INCOMPLETE)   return "VK_INCOMPLETE";
+    else if(in_r== VK_ERROR_OUT_OF_HOST_MEMORY)     return "VK_ERROR_OUT_OF_HOST_MEMORY";
+    else if(in_r== VK_ERROR_OUT_OF_DEVICE_MEMORY)   return "VK_ERROR_OUT_OF_DEVICE_MEMORY";
+    else if(in_r== VK_ERROR_INITIALIZATION_FAILED)  return "VK_ERROR_INITIALIZATION_FAILED";
+    else if(in_r== VK_ERROR_DEVICE_LOST)            return "VK_ERROR_DEVICE_LOST";
+    else if(in_r== VK_ERROR_MEMORY_MAP_FAILED)      return "VK_ERROR_MEMORY_MAP_FAILED";
+    else if(in_r== VK_ERROR_LAYER_NOT_PRESENT)      return "VK_ERROR_LAYER_NOT_PRESENT";
+    else if(in_r== VK_ERROR_EXTENSION_NOT_PRESENT)  return "VK_ERROR_EXTENSION_NOT_PRESENT";
+    else if(in_r== VK_ERROR_FEATURE_NOT_PRESENT)    return "VK_ERROR_FEATURE_NOT_PRESENT";
+    else if(in_r== VK_ERROR_INCOMPATIBLE_DRIVER)    return "VK_ERROR_INCOMPATIBLE_DRIVER";
+    else if(in_r== VK_ERROR_TOO_MANY_OBJECTS)       return "VK_ERROR_TOO_MANY_OBJECTS";
+    else if(in_r== VK_ERROR_FORMAT_NOT_SUPPORTED)   return "VK_ERROR_FORMAT_NOT_SUPPORTED";
+    else if(in_r== VK_ERROR_FRAGMENTED_POOL)        return "VK_ERROR_FRAGMENTED_POOL";
+    else if(in_r== VK_ERROR_OUT_OF_POOL_MEMORY)     return "VK_ERROR_OUT_OF_POOL_MEMORY";
+    else if(in_r== VK_ERROR_INVALID_EXTERNAL_HANDLE) return "VK_ERROR_INVALID_EXTERNAL_HANDLE";
+    else if(in_r== VK_ERROR_SURFACE_LOST_KHR)       return "VK_ERROR_SURFACE_LOST_KHR";
+    else if(in_r== VK_ERROR_NATIVE_WINDOW_IN_USE_KHR) return "VK_ERROR_NATIVE_WINDOW_IN_USE_KHR";
+    else if(in_r== VK_SUBOPTIMAL_KHR)               return "VK_SUBOPTIMAL_KHR";
+    else if(in_r== VK_ERROR_OUT_OF_DATE_KHR)        return "VK_ERROR_OUT_OF_DATE_KHR";
+    else if(in_r== VK_ERROR_INCOMPATIBLE_DISPLAY_KHR) return "VK_ERROR_INCOMPATIBLE_DISPLAY_KHR";
+    else if(in_r== VK_ERROR_VALIDATION_FAILED_EXT)  return "VK_ERROR_VALIDATION_FAILED_EXT";
+    else if(in_r== VK_ERROR_INVALID_SHADER_NV)      return "VK_ERROR_INVALID_SHADER_NV";
+    else if(in_r== VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT) return "VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT";
+    else if(in_r== VK_ERROR_FRAGMENTATION_EXT)      return "VK_ERROR_FRAGMENTATION_EXT";
+    else if(in_r== VK_ERROR_NOT_PERMITTED_EXT)      return "VK_ERROR_NOT_PERMITTED_EXT";
+    else return "Unknown error";
+  }
+
+
   #endif
 
   ErrorHandling();

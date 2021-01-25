@@ -589,7 +589,7 @@ void osiDisplay::restoreRes(osiMonitor *m) {
 ///-----------------------------------------------------------------------------///
 
 bool _osiDoChange(osiMonitor *m, osiResolution *r, int16_t freq) {
-  bool chatty= false;
+  //bool chatty= false;
   #ifdef OS_WIN
   DEVMODE dm;
   for(short a= 0; a< sizeof(DEVMODE); a++) ((int8 *)&dm)[a]= 0;
@@ -957,8 +957,8 @@ void osiDisplay::populate(bool in_onlyVulkan) {
   str8 s;
   
   bool found;
-  DISPLAY_DEVICE dd= { 0 };
-  DEVMODE dm= { 0 };
+  DISPLAY_DEVICE dd= {};
+  DEVMODE dm= {};
 
   dm.dmSize= sizeof(dm);
   dd.cb= sizeof(dd);
@@ -2464,7 +2464,7 @@ void osiDisplay::_vkPopulate() {
 // after each resolution change, this shuld be called; it works in populate() too
 void _osiGetMonitorPos(osiMonitor *m) {
   #ifdef OS_WIN
-  DEVMODE dm= { 0 };
+  DEVMODE dm= {};
   dm.dmSize= sizeof(dm);
 
   // a new call to remake it's internal vomit array might be needed <<<<<<<<<<<<<<<<<<<<<<

@@ -598,6 +598,8 @@ struct ALIGNED(4) vec3 {
   operator float* ()                  { return v; }
   operator const float *() const      { return v; }
 
+  inline vec3 &set(float _x, float _y, float _z) { x= _x, y= _y, z= _z; return *this; }
+
   // dot product
 
   inline float dot(float _x, float _y, float _z)   const { return (x* _x)+ (y* _y)+ (z* _z); }
@@ -962,6 +964,7 @@ struct ALIGNED(4) mat4 {
   
 
   // various matrix types
+
   
   inline mat4 &identity() {
     v[0]= 1.0f; v[4]= 0.0f; v[8]=  0.0f; v[12]= 0.0f;
@@ -976,9 +979,75 @@ struct ALIGNED(4) mat4 {
 
   // see http://www.khronos.org/opengles/documentation/html/glRotate.html if there are any bugs :)
 
-  inline mat4 &rotate(float angle, const vec3 &axis) { // axis to rotate about, angle = angle in degrees
+
+  /*
+    Matrix4x4 PrepareRotationMatrix(float angle, Vector3 const &axis, float normalize_axis ) {
+    float x, y, z;
+
+    if( normalize_axis ) {
+      Vector3 normalized = Normalize( axis );
+      x = normalized[0];
+      y = normalized[1];
+      z = normalized[2];
+    } else {
+      x = axis[0];
+      y = axis[1];
+      z = axis[2];
+    }
+
+    const float c = cos( Deg2Rad( angle ) );
+    const float _1_c = 1.0f - c;
+    const float s = sin( Deg2Rad( angle ) );
+
+    Matrix4x4 rotation_matrix = {
+      x* x* _1_c+ c,
+      y* x* _1_c- z* s,
+      z* x* _1_c+ y* s,
+      0.0f,
+
+      x* y* _1_c+ z* s,
+      y* y* _1_c+ c,
+      z* y* _1_c- x* s,
+      0.0f,
+
+      x* z* _1_c- y* s,
+      y* z* _1_c+ x* s,
+      z* z* _1_c+ c,
+      0.0f,
+
+      0.0f,
+      0.0f,
+      0.0f,
+      1.0f
+    };
+    return rotation_matrix;
+  } */
+
+  
+  inline mat4 &vkRotate(float angle, const vec3 &axis, bool doNormalize= false) { // axis to rotate about, angle = angle in degrees
     vec3 a= axis;
-    a.normalize();
+    if(doNormalize)
+      a.normalize();
+
+    float s= sinf(angle* DEG2RAD);
+    float c= cosf(angle* DEG2RAD);
+    float c1= 1.0f- c;
+    float x1c= a.x* c1;
+    float y1c= a.y* c1;
+    float z1c= a.z* c1;
+
+    v[0]=  a.x*  x1c+ c;       v[4]=  a.x*  y1c+ a.z* s;  v[8]=  a.x*  z1c- a.y* s;  v[12]= 0.0f;
+    v[1]=  a.x*  y1c- a.z* s;  v[5]=  a.y*  y1c+ c;       v[9]=  a.y*  z1c+ a.x* s;  v[13]= 0.0f;
+    v[2]=  a.x*  z1c+ a.y* s;  v[6]=  a.y*  y1c- a.x* s;  v[10]= a.z*  z1c+ c;       v[14]= 0.0f;
+    v[3]=  0.0f;               v[7]=  0.0f;               v[11]= 0.0f;               v[15]= 1.0f;
+
+    return *this;
+  }
+
+  inline mat4 &glRotate(float angle, const vec3 &axis, bool doNormalize= false) { // axis to rotate about, angle = angle in degrees
+    vec3 a= axis;
+    if(doNormalize)
+      a.normalize();
 
     float s= sinf(angle* DEG2RAD);
     float c= cosf(angle* DEG2RAD);
@@ -991,14 +1060,31 @@ struct ALIGNED(4) mat4 {
     v[1]=  a.x*  y1c+ a.z* s;  v[5]=  a.y*  y1c+ c;       v[9]=  a.y*  z1c- a.x* s;  v[13]= 0.0f;
     v[2]=  a.x*  z1c- a.y* s;  v[6]=  a.y*  y1c+ a.x* s;  v[10]= a.z*  z1c+ c;       v[14]= 0.0f;
     v[3]=  0.0f;               v[7]=  0.0f;               v[11]= 0.0f;               v[15]= 1.0f;
-    
+
     return *this;
   }
 
-  inline mat4 &rotate(float angle, float x, float y, float z) { return rotate(angle, vec3(x, y, z)); }
+
+
+  inline mat4 &vkRotate(float angle, float x, float y, float z, bool doNormalize= false) { return vkRotate(angle, vec3(x, y, z), doNormalize); }
+  inline mat4 &glRotate(float angle, float x, float y, float z, bool doNormalize= false) { return glRotate(angle, vec3(x, y, z), doNormalize); }
+  
 
   /// uses fewer computations than rotate
-  inline mat4 &rotateX(float angle) {
+  inline mat4 &vkRotateX(float angle) {
+    float c= cosf(angle* DEG2RAD);
+    float s= sinf(angle* DEG2RAD);
+
+    v[0]= 1.0f;   v[4]= 0.0f;   v[8]=  0.0f;   v[12]= 0.0f;
+    v[1]= 0.0f;   v[5]= c;      v[9]=  s;      v[13]= 0.0f;
+    v[2]= 0.0f;   v[6]= -s;     v[10]= c;      v[14]= 0.0f;
+    v[3]= 0.0f;   v[7]= 0.0f;   v[11]= 0.0f;   v[15]= 1.0f;
+
+    return *this;
+  }
+
+  /// uses fewer computations than rotate
+  inline mat4 &glRotateX(float angle) {
     float c= cosf(angle* DEG2RAD);
     float s= sinf(angle* DEG2RAD);
 
@@ -1006,11 +1092,25 @@ struct ALIGNED(4) mat4 {
     v[1]= 0.0f;   v[5]= c;      v[9]=  -s;     v[13]= 0.0f;
     v[2]= 0.0f;   v[6]= s;      v[10]= c;      v[14]= 0.0f;
     v[3]= 0.0f;   v[7]= 0.0f;   v[11]= 0.0f;   v[15]= 1.0f;
+
     return *this;
   }
 
   /// uses fewer computations than rotate
-  inline mat4 &rotateY(float angle) {
+  inline mat4 &vkRotateY(float angle) {
+    float c= cosf(angle* DEG2RAD);
+    float s= sinf(angle* DEG2RAD);
+
+    v[0]= c;      v[4]= 0.0f;   v[8]=  -s;     v[12]= 0.0f;
+    v[1]= 0.0f;   v[5]= 1.0f;   v[9]=  0.0f;   v[13]= 0.0f;
+    v[2]= s;      v[6]= 0.0f;   v[10]= c;      v[14]= 0.0f;
+    v[3]= 0.0f;   v[7]= 0.0f;   v[11]= 0.0f;   v[15]= 1.0f;
+
+    return *this;
+  }
+  
+  /// uses fewer computations than rotate
+  inline mat4 &glRotateY(float angle) {
     float c= cosf(angle* DEG2RAD);
     float s= sinf(angle* DEG2RAD);
 
@@ -1018,11 +1118,25 @@ struct ALIGNED(4) mat4 {
     v[1]= 0.0f;   v[5]= 1.0f;   v[9]=  0.0f;   v[13]= 0.0f;
     v[2]= -s;     v[6]= 0.0f;   v[10]= c;      v[14]= 0.0f;
     v[3]= 0.0f;   v[7]= 0.0f;   v[11]= 0.0f;   v[15]= 1.0f;
+    
     return *this;
   }
 
   /// uses fewer computations than rotate
-  inline mat4 &rotateZ(float angle) {
+  inline mat4 &vkRotateZ(float angle) {
+    float c= cosf(angle* DEG2RAD);
+    float s= sinf(angle* DEG2RAD);
+
+    v[0]= c;      v[4]= s;      v[8]=  0.0f;   v[12]= 0.0f;
+    v[1]= -s;     v[5]= c;      v[9]=  0.0f;   v[13]= 0.0f;
+    v[2]= 0.0f;   v[6]= 0.0f;   v[10]= 1.0f;   v[14]= 0.0f;
+    v[3]= 0.0f;   v[7]= 0.0f;   v[11]= 0.0f;   v[15]= 1.0f;
+
+    return *this;
+  }
+
+  /// uses fewer computations than rotate
+  inline mat4 &glRotateZ(float angle) {
     float c= cosf(angle* DEG2RAD);
     float s= sinf(angle* DEG2RAD);
 
@@ -1030,6 +1144,7 @@ struct ALIGNED(4) mat4 {
     v[1]= s;      v[5]= c;      v[9]=  0.0f;   v[13]= 0.0f;
     v[2]= 0.0f;   v[6]= 0.0f;   v[10]= 1.0f;   v[14]= 0.0f;
     v[3]= 0.0f;   v[7]= 0.0f;   v[11]= 0.0f;   v[15]= 1.0f;
+
     return *this;
   }
 
@@ -1139,26 +1254,43 @@ struct ALIGNED(4) mat4 {
   // funcs
 
   // l= left, r= right, b= bottom, t= top, zn= z coord near, zf= z coord far
-  inline mat4 &ortho(float l, float r, float b, float t, float zn, float zf) {
-    /*float dx= r- l, dy= t- b, dz= zf- zn;
+  inline mat4 &vkOrtho(float l, float r, float b, float t, float zn, float zf) {
+    float dx= r- l,  dy= b- t,  dz= zn- zf;       /// used more than once
+    
+    v[0]= 2.0f/ dx,
+    v[1]= 0.0f,
+    v[2]= 0.0f,
+    v[3]= 0.0f;
+
+    v[4]= 0.0f,
+    v[5]= 2.0f/ dy,
+    v[6]= 0.0f,
+    v[7]= 0.0f;
+
+    v[8]= 0.0f,
+    v[9]= 0.0f,
+    v[10]= 1.0f/ dz,
+    v[11]= 0.0f;
+
+    v[12]= -(r+ l) / dx,
+    v[13]= -(b+ t) / dy,
+    v[14]= zn/ dz,
+    v[15]= 1.0f;
+
+    return *this;
+  }
+
+  inline mat4 &glOrtho(float l, float r, float b, float t, float zn, float zf) {
+    float dx= r- l, dy= t- b, dz= zf- zn;
 
     v[0]= 2.0f/ dx;   v[4]= 0.0f;       v[8]=   0.0f;       v[12]= -(r+ l)/ dx;
     v[1]= 0.0f;       v[5]= 2.0f/ dy;   v[9]=   0.0f;       v[13]= -(t+ b)/ dy;
     v[2]= 0.0f;       v[6]= 0.0f;       v[10]= -2.0f/ dz;   v[14]= -(zf+ zn)/ dz;
     v[3]= 0.0f;       v[7]= 0.0f;       v[11]=  0.0f;       v[15]= 1.0f;
     return *this;
-    */
-    float dx= r- l, dy= b- t, dz= zf- zn;
-
-    v[0]= 2.0f/ dx;   v[4]= 0.0f;       v[8]=   0.0f;       v[12]= -(r+ l)/ dx;
-    v[1]= 0.0f;       v[5]= 2.0f/ dy;   v[9]=   0.0f;       v[13]= -(t+ b)/ dy;
-    v[2]= 0.0f;       v[6]= 0.0f;       v[10]= 2.0f/ dz;   v[14]= -(zf+ zn)/ dz;
-    v[3]= 0.0f;       v[7]= 0.0f;       v[11]=  0.0f;       v[15]= 1.0f;
-
-    return *this;
   }
 
-  inline mat4 &frustrum(float l, float r, float b, float t, float zn, float zf) {
+  inline mat4 &glFrustrum(float l, float r, float b, float t, float zn, float zf) {
     float dx= r- l, dy= t- b, dz= zf- zn;
 
     v[0]= (2.0f* zn)/ dx;   v[4]= 0.0f;             v[8]=  0.0f;            v[12]= 0.0f;
@@ -1168,21 +1300,48 @@ struct ALIGNED(4) mat4 {
     return *this;
   }
 
-  inline mat4 &perspective(float fovy, float aspect, float znear, float zfar) {
-    if((!fovy) || (absf(fovy)== 360.0f) || (!(zfar- znear)) || (!aspect))
+  inline mat4 &vkPerspective(float fovy, float aspect, float zn, float zf) {
+    if((!fovy) || (absf(fovy)== 360.0f) || (!(zf- zn)) || (!aspect))
       return *this;
 
-    float dz= zfar- znear;
-    float ctg= 1.0f/ tanf(fovy/ 2.0f* DEG2RAD);
+    float dz= zn- zf,   ctg= 1.0f/ tanf((fovy* 0.5f)* DEG2RAD);
   
-    v[0]= ctg/ aspect;  v[4]= 0.0f;   v[8]= 0;                    v[12]= 0.0f;
-    v[1]= 0.0f;         v[5]= ctg;    v[9]= 0;                    v[13]= 0.0f;
-    v[3]= 0.0f;         v[6]= 0.0f;   v[10]= -(zfar+ znear)/ dz;  v[14]= -2.0f* znear* zfar/ dz;
-    v[2]= 0.0f;         v[7]= 0.0f;   v[11]= -1.0f;               v[15]= 1.0f;
+    v[0]= ctg/ aspect;  v[4]= 0.0f;   v[8]= 0;        v[12]= 0.0f;
+    v[1]= 0.0f;         v[5]= -ctg;   v[9]= 0;        v[13]= 0.0f;
+    v[3]= 0.0f;         v[6]= 0.0f;   v[10]= zf/ dz;  v[14]= (zn* zf)/ dz;
+    v[2]= 0.0f;         v[7]= 0.0f;   v[11]= -1.0f;   v[15]= 1.0f;
+
     return *this;
   }
 
-  inline mat4 &lookAt(const vec3 &eye, const vec3 &center, const vec3 &up) {
+  inline mat4 &glPerspective(float fovy, float aspect, float zn, float zf) {
+    if((!fovy) || (absf(fovy)== 360.0f) || (!(zf- zn)) || (!aspect))
+      return *this;
+
+    float dz= zn- zf,   ctg= 1.0f/ tanf((fovy* 0.5f)* DEG2RAD);
+  
+    v[0]= ctg/ aspect;  v[4]= 0.0f;   v[8]= 0;               v[12]= 0.0f;
+    v[1]= 0.0f;         v[5]= ctg;    v[9]= 0;               v[13]= 0.0f;
+    v[3]= 0.0f;         v[6]= 0.0f;   v[10]= -(zf+ zn)/ dz;  v[14]= -2.0f* zn* zf/ dz;
+    v[2]= 0.0f;         v[7]= 0.0f;   v[11]= -1.0f;          v[15]= 1.0f;
+
+    return *this;
+  }
+
+  inline mat4 &vkLookAt(const vec3 &eye, const vec3 &center, const vec3 &up) {
+    // MUST TEST THIS
+    vec3 f(center- eye);  f.normalize();
+    vec3 s(cross(f, up)); s.normalize();
+    vec3 u(cross(s, f));
+  
+    v[0]=  s.x;   v[4]=  s.y;   v[8]=   s.z;   v[12]= -dot(s, eye);
+    v[1]=  u.x;   v[5]=  u.y;   v[9]=   u.z;   v[13]= -dot(u, eye);
+    v[2]= -f.x;   v[6]= -f.y;   v[10]= -f.z;   v[14]=  dot(f, eye);
+    v[3]= 0.0f;   v[7]= 0.0f;   v[11]= 0.0f;   v[15]=  1.0f;
+    return *this;
+  }
+  
+  inline mat4 &glLookAt(const vec3 &eye, const vec3 &center, const vec3 &up) {
     vec3 f(center- eye);  f.normalize();
     vec3 s(cross(f, up)); s.normalize();
     vec3 u(cross(s, f));

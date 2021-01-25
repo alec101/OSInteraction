@@ -281,7 +281,7 @@ void ErrorHandling::messageBox(const char *text) {
 
 
 #ifdef USING_DIRECTINPUT
-void ErrorHandling::dinput(int32_t n) {
+void ErrorHandling::dinput(int64_t n) {
   str8 s;
   switch(n) {
     case S_FALSE:                   { s= "S_FALSE: DI_BUFFEROVERFLOW: The device buffer overflowed and some input was lost.\nDI_NOEFFECT: The operation had no effect.\nDI_NOTATTACHED: The device exists but is not currently attached to the user's computer.\nDI_PROPNOEFFECT: The change in device properties had no effect."; break; }

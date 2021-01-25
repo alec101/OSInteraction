@@ -243,7 +243,7 @@ public:
   // funcs
 
   virtual bool load(cchar *);     // can be used to load a 3D texture, if the filename doesn't acutally exist on the disk
-  virtual bool save(cchar *);
+  virtual bool save(cchar *name, int dummy= 0);
   virtual bool load3D(cchar *);   // filename is a basename - the first image on disk would be [basename0000.format] - can use just load(fname) instead, wich will call this func
   virtual bool save3D(cchar *);
 
