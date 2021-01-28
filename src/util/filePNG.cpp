@@ -3,7 +3,6 @@
 #endif
 
 #include <stdio.h>
-#include <stdlib.h>
 
 #include "util/typeShortcuts.h"
 #include "util/str8.h"

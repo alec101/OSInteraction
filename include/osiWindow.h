@@ -49,14 +49,14 @@ public:
   // internal data from here
 
   #ifdef OS_WIN
-  HDC _hDC;               // private GDI device context
-  HWND _hWnd;             // holds program window handle
-  HINSTANCE _hInstance;   // holds the instance of the application ?? isn't this per window...
+  uint64_t _hDC;         // private GDI device context
+  uint64_t _hWnd;        // holds program window handle
+  uint64_t _hInstance;   // holds the instance of the application ?? isn't this per window...
   
-  static MSG _msg;        // windows message struct... this is just needed for checkMSG();
+  //static MSG _msg;       // windows message struct... this is just needed for checkMSG();
 
-  HDC _imgDC;             // background - hdc for the DIB bitmap
-  HBITMAP _imgBM;         // background - handle for the DIB bitmap
+  uint64_t _imgDC;       // background - hdc for the DIB bitmap
+  uint64_t _imgBM;       // background - handle for the DIB bitmap
   #endif ///OS_WIN
 
   #ifdef OS_LINUX
@@ -68,7 +68,7 @@ public:
   GLXFBConfig _fbID;      // front buffer ID
   
   bool _isMapped;         // internal flag used when resolution is changing <<NOT USED ANYMORE I THINK>>
-  ulong *_iconData;       // NEEDS TO BE ULONG (64bit for linux64) due to a bug - it might be fixed in the future
+  uint64_t *_iconData;    // NEEDS TO BE ULONG (64bit for linux64) due to a bug - it might be fixed in the future
 
   GC _gc;                 // background - gr context
   XImage *_img;           // background - X11 image

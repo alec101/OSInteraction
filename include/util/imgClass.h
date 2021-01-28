@@ -7,10 +7,9 @@
 #define IMG_CLASS_USE_VULKAN 1   // enables/disables vulkan funcs
 #endif
 
-#include "osi/include/util/typeShortcuts.h"
-#include "osi/include/util/str8.h"
+#include "str8.h"
 
-enum class ImgFormat: uint32 {
+enum class ImgFormat: uint32_t {
   UNDEFINED = 0,
   R4G4_UNORM_PACK8 = 1,
   R4G4B4A4_UNORM_PACK16 = 2,
@@ -219,62 +218,62 @@ public:
   // base vars
 
   str8 fileName;        // image base fileName, if there is one
-  uint8 fileType;       // 0= TEX, 1= TGA, 2= PNG
-  uint8 *bitmap;        // raw data
-  uint32 dx, dy;        // image size
-  uint32 depth;         // 3D texture: basically number of images combined in this object
+  uint8_t fileType;       // 0= TEX, 1= TGA, 2= PNG
+  uint8_t *bitmap;        // raw data
+  uint32_t dx, dy;        // image size
+  uint32_t depth;         // 3D texture: basically number of images combined in this object
 
-  uint16 bpp;           // bits per pixel
-  uint8 bpc[4];         // bits per channel, for all 4 possible channels
-  uint8 nchannels;      // number of channels per pixel (rgb= 3, rgba= 4, etc)
+  uint16_t bpp;           // bits per pixel
+  uint8_t bpc[4];         // bits per channel, for all 4 possible channels
+  uint8_t nchannels;      // number of channels per pixel (rgb= 3, rgba= 4, etc)
   ImgFormat format;     // image format - check ImageFormat enum
   bool compressed;      // the image is compressed or not
 
-  uint8 *cmap;          // color map palette
+  uint8_t *cmap;          // color map palette
   //uint8 cmapBpp;        // color palette bits per color (16 / 24 / 32)
 
   //bool hasTrnCol;       // indicates that the image uses the transparent (trnCol);
   //struct { uint16 r, g, b; } trnCol;  // the transparent color, can be used in RGB / GREY image types
   bool packedPixels;    // images with less than 8bits per pixel can be packed or unpacked, meaning that each pixel can have 1 byte, or multiple pixels can be packed in 1 byte
 
-  uint32 err;           // error number; 0= no error/ everything OK
+  uint32_t err;           // error number; 0= no error/ everything OK
   
 
   // funcs
 
-  virtual bool load(cchar *);     // can be used to load a 3D texture, if the filename doesn't acutally exist on the disk
-  virtual bool save(cchar *name, int dummy= 0);
-  virtual bool load3D(cchar *);   // filename is a basename - the first image on disk would be [basename0000.format] - can use just load(fname) instead, wich will call this func
-  virtual bool save3D(cchar *);
+  virtual bool load(const char *);     // can be used to load a 3D texture, if the filename doesn't acutally exist on the disk
+  virtual bool save(const char *name, int dummy= 0);
+  virtual bool load3D(const char *);   // filename is a basename - the first image on disk would be [basename0000.format] - can use just load(fname) instead, wich will call this func
+  virtual bool save3D(const char *);
 
-  bool loadPalette(cchar *fname, uint8 fileBpp= 24); // cmap bits per pixel of the file. 24bpp= 768 pal size, 32bpp= 1024 pal size, 16bpp= 512 pal size
-  bool savePalette(cchar *);
+  bool loadPalette(const char *fname, uint8_t fileBpp= 24); // cmap bits per pixel of the file. 24bpp= 768 pal size, 32bpp= 1024 pal size, 16bpp= 512 pal size
+  bool savePalette(const char *);
 
-  inline static uint16 getR565(uint16 c) { return c>> 11; }
-  inline static uint16 getG565(uint16 c) { return (c>> 5)& 0x3F; }
-  inline static uint16 getB565(uint16 c) { return c& 0x1F; }
+  inline static uint16_t getR565(uint16_t c) { return c>> 11; }
+  inline static uint16_t getG565(uint16_t c) { return (c>> 5)& 0x3F; }
+  inline static uint16_t getB565(uint16_t c) { return c& 0x1F; }
 
-  inline static uint16 getR5551(uint16 c) { return c>> 11; }
-  inline static uint16 getG5551(uint16 c) { return (c>> 6)& 0x1F; }
-  inline static uint16 getB5551(uint16 c) { return (c>> 1)& 0x1F; }
-  inline static uint16 getA5551(uint16 c) { return c& 0x01; }
+  inline static uint16_t getR5551(uint16_t c) { return c>> 11; }
+  inline static uint16_t getG5551(uint16_t c) { return (c>> 6)& 0x1F; }
+  inline static uint16_t getB5551(uint16_t c) { return (c>> 1)& 0x1F; }
+  inline static uint16_t getA5551(uint16_t c) { return c& 0x01; }
 
-  inline static uint16 getR1555(uint16 c) { return (c>> 10)& 0x1F; }
-  inline static uint16 getG1555(uint16 c) { return (c>> 5)& 0x1F; }
-  inline static uint16 getB1555(uint16 c) { return c& 0x1F; }
-  inline static uint16 getA1555(uint16 c) { return c>>15; }
+  inline static uint16_t getR1555(uint16_t c) { return (c>> 10)& 0x1F; }
+  inline static uint16_t getG1555(uint16_t c) { return (c>> 5)& 0x1F; }
+  inline static uint16_t getB1555(uint16_t c) { return c& 0x1F; }
+  inline static uint16_t getA1555(uint16_t c) { return c>>15; }
 
 
-  cchar *getError();
+  const char *getError();
 
-  void wrap(void **p, uint32 _sx= 0, uint32 _sy= 0, ImgFormat t= ImgFormat::UNDEFINED);   // wraps this class on a different buffer, specify the buffer's sizes and internalFormat
+  void wrap(void **p, uint32_t _sx= 0, uint32_t _sy= 0, ImgFormat t= ImgFormat::UNDEFINED);   // wraps this class on a different buffer, specify the buffer's sizes and internalFormat
   void stopWrapping();                  // signals to release wrapping on the specified buffer, and do it's internal allocs/deallocs
   
   void computePixelInfo(ImgFormat t= ImgFormat::UNDEFINED); // computes bpp and bpc from either supplied [t] or internal [type]
 
   bool convert(ImgFormat newType);      // convert image to specified new image format
   bool convertTo8bpcUNORM();            // convert the image channels to 8bpc (it can be 1/2/3/4 channels, all will be converted to 8bpc)
-  bool swapChannel(uint8 c1, uint8 c2); // swaps channel [c1] and [c2] in the image
+  bool swapChannel(uint8_t c1, uint8_t c2); // swaps channel [c1] and [c2] in the image
   bool packPixels();                    // for images with less than 8bpp, this packs multiple pixels under 1 byte
   bool unpackPixels();                  // for images with less than 8bpp, this unpacks pixels: each pixel will have 1 byte
 
@@ -282,12 +281,12 @@ public:
   
 
   bool areSizesPowerOfTwo();            // checks if the image sizes are power of 2 (usefull for OpenGL mainly)
-  static void* resample2(void *image, uint32 width, uint32 height, uint32 components, uint32 &err); // 2->1 average (linear) resampling, tex power of 2
+  static void *resample2(void *image, uint32_t width, uint32_t height, uint32_t components, uint32_t &err); // 2->1 average (linear) resampling, tex power of 2
 
   //bool isGlCompatible();              // checks if this internal format is OpenGL compatible
   bool glIsCompatible();                // checks if current image's format is OpenGL compatible
   bool vkIsCompatible();                // checks if current image's format is Vulkan compatible
-  static uint32 mipmapGetMaxLevels(Img *); // returns the maximum number of mipmap levels the texture can have
+  static uint32_t mipmapGetMaxLevels(Img *); // returns the maximum number of mipmap levels the texture can have
 
 
   #ifdef IMG_CLASS_USE_OPENGL
@@ -307,22 +306,22 @@ public:
 
   #ifdef IMG_CLASS_USE_VULKAN
   bool vkConvertCompatible();                       // converts the image into something Vulkan can process. Usually only CMAP images and grey1/4 are not supported
-  static uint32 vkGetAspectFromFormat(ImgFormat in_format);
+  static uint32_t vkGetAspectFromFormat(ImgFormat in_format);
   #endif
 
   
-  enum class Type: uint8 {
+  enum class Type: uint8_t {
     T_1D= 0,
     T_2D= 1,
     T_3D= 2,
   };
 
   #ifdef IMG_CLASS_USE_OPENGL
-  static Type glGetType(int32);      // converts GL type -> ImageType
-  static int32 glGetGlType(Type);    // converts ImageType -> GL type
+  static Type glGetType(int32_t);    // converts GL type -> ImageType
+  static int32_t glGetGlType(Type);    // converts ImageType -> GL type
   #endif
 
-  enum class Wrap: uint8 {
+  enum class Wrap: uint8_t {
     REPEAT=               0,
     MIRRORED_REPEAT=      1,
     CLAMP_TO_EDGE=        2,
@@ -331,12 +330,12 @@ public:
   };
 
   #ifdef IMG_CLASS_USE_OPENGL
-  static Wrap glGetWrap(int32);      // converts GL wrap -> ImageWrap
-  static int32 glGetGlWrap(Wrap);    // converts ImageWrap -> GL wrap
+  static Wrap glGetWrap(int32_t);    // converts GL wrap -> ImageWrap
+  static int32_t glGetGlWrap(Wrap);    // converts ImageWrap -> GL wrap
   #endif
 
   // direct compatible with VkComponentSwizzle
-  enum class Swizzle: uint8 {
+  enum class Swizzle: uint8_t {
     IDENTITY= 0,
     ZERO=     1,
     ONE=      2,
@@ -379,11 +378,11 @@ public:
    
 protected:
   
-  bool _wrap;           /// if this class was wrapped on a buffer, to modify it. signals to not delete [bitmap] buffer
-  uint8 **wrapBitmap;   /// pointer to the bitmap pointer, that can be changed / reallocated when this class acts as a wrapper
+  bool _wrap;               /// if this class was wrapped on a buffer, to modify it. signals to not delete [bitmap] buffer
+  uint8_t **wrapBitmap;     /// pointer to the bitmap pointer, that can be changed / reallocated when this class acts as a wrapper
 
-  void _set(ImgFormat); /// sets format then updates bpp, bpc, nchannels
-  void _updateWrap(Img *); // NO MORE USES DEL INCOMING
+  void _set(ImgFormat);     /// sets format then updates bpp, bpc, nchannels
+  void _updateWrap(Img *);   // NO MORE USES DEL INCOMING
   bool _checkVars(Img *);
 
   static bool _loadPNG(const char *, Img *);

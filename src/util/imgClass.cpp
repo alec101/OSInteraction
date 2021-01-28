@@ -1,8 +1,13 @@
+#ifndef _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
 #include "osinteraction.h"
 #include "util/mzPacker.h"
 #include "util/imgClass.h"
 #include "util/mlib.hpp"
 #include "util/fileOp.h"
+#include <stdio.h>
 
 //#ifdef OSI_USE_OPENGL
 //#define OSI_USE_OPENGL_EXOTIC_EXT 1
@@ -33,7 +38,7 @@ ASTC    - new-kewl but only on phones
 */
 
 /* MAYBE???????????????????
-uint32 getChannel0_32(uint32 in_data, ImgFormat in_f) {
+uint32_t getChannel0_32(uint32_t in_data, ImgFormat in_f) {
   _Img::_FormatData *_f= _Img::_FormatData::get(in_f);
   return in_data>> (_f->bpc[1]+ _f->bpc[2]+ _f->bpc[3]);
 }
@@ -51,13 +56,13 @@ class _Img {
   friend class Img;
   friend class _ImgGlFormatConvConstructor;
   
-  static uint8 *_cmap;          // color map palette
-  //uint8 _cmapBpp;        // color palette bits per color (16 / 24 / 32)
+  static uint8_t *_cmap;          // color map palette
+  //uint8_t _cmapBpp;        // color palette bits per color (16 / 24 / 32)
 
-  //static bool _loadPNG(cchar *, Img *);
-  //static bool _savePNG(cchar *, Img *);
-  //static bool _loadTGA(cchar *, Img *);
-  //static bool _saveTGA(cchar *, Img *);
+  //static bool _loadPNG(const char *, Img *);
+  //static bool _savePNG(const char *, Img *);
+  //static bool _loadTGA(const char *, Img *);
+  //static bool _saveTGA(const char *, Img *);
 
   
 
@@ -67,21 +72,21 @@ class _Img {
 
   struct RGBAconv {
     union {
-      struct { uint64 r, g, b, a; };
-      uint64 v[4];
+      struct { uint64_t r, g, b, a; };
+      uint64_t v[4];
     };
   };
 
   //database with all the formats, with their conversion funcs
   struct _FormatData {
     ImgFormat format;
-    uint16 bpp;          // bits per pixel
-    uint8 bpc[4];       // bits per channel, for each 4 possible channels
-    uint8 swizzle[4];   // [def:Identity] normally the data is read as RGBA. if the channel format differs, this is used to identify each channel's color
-    uint8 nchannels;    // number of active channels (0-4)
-    uint8 compressed;   // [bool] compressed format or not
-    void (*(_fromFunc)) (uint8 *, _FormatData *, uint8, _Img::RGBAconv *);
-    void (*(_toFunc)) (RGBAconv *, uint8 *, _FormatData *, uint8);
+    uint16_t bpp;          // bits per pixel
+    uint8_t bpc[4];       // bits per channel, for each 4 possible channels
+    uint8_t swizzle[4];   // [def:Identity] normally the data is read as RGBA. if the channel format differs, this is used to identify each channel's color
+    uint8_t nchannels;    // number of active channels (0-4)
+    uint8_t compressed;   // [bool] compressed format or not
+    void (*(_fromFunc)) (uint8_t *, _FormatData *, uint8_t, _Img::RGBAconv *);
+    void (*(_toFunc)) (RGBAconv *, uint8_t *, _FormatData *, uint8_t);
 
     #ifdef IMG_CLASS_USE_OPENGL
     GLint glFormat;
@@ -104,19 +109,19 @@ class _Img {
 
 
 
-  static const uint64 _2toConv= 0x5555555555555555Ui64;  // u64 max / u2 max (3)=            0x5555555555555555
-  static const uint64 _4toConv= 0x1111111111111111Ui64;  // u64 max / u4 max (15)=           0x1111111111111111
-  static const uint64 _8toConv= 0x101010101010101Ui64;   // u64 max / u8 max (255)=          0x101010101010101
-  static const uint64 _16toConv= 0x1000100010001Ui64;    // u64 max / u16 max (65535)=       0x1000100010001
-  static const uint64 _32toConv= 0x100000001Ui64;        // u64 max / u32 max (‭4294967295‬)=  0x100000001
-//const uint64 _10toConv= 0xFFFFFFFFFFFFFFFFui64/ 0x3FFui64;
+  static const uint64_t _2toConv= 0x5555555555555555Ui64;  // u64 max / u2 max (3)=            0x5555555555555555
+  static const uint64_t _4toConv= 0x1111111111111111Ui64;  // u64 max / u4 max (15)=           0x1111111111111111
+  static const uint64_t _8toConv= 0x101010101010101Ui64;   // u64 max / u8 max (255)=          0x101010101010101
+  static const uint64_t _16toConv= 0x1000100010001Ui64;    // u64 max / u16 max (65535)=       0x1000100010001
+  static const uint64_t _32toConv= 0x100000001Ui64;        // u64 max / u32 max (‭4294967295‬)=  0x100000001
+//const uint64_t _10toConv= 0xFFFFFFFFFFFFFFFFui64/ 0x3FFui64;
                      
-// const uint16 _8to16= 257; u16 max/ 255= 257
+// const uint16_t _8to16= 257; u16 max/ 255= 257
 
 
 
 
-  static void from8(uint8 *from, _FormatData *f, uint8 unused2, _Img::RGBAconv *ret) {
+  static void from8(uint8_t *from, _FormatData *f, uint8_t unused2, _Img::RGBAconv *ret) {
     // u64 max / 255= 0x‭101010101010101‬
     ret->v[0]=                   from[0]* _8toConv;
     ret->v[1]= (f->nchannels> 1? from[1]* _8toConv: 0);
@@ -129,78 +134,78 @@ class _Img {
     */
   }
 
-  static void from16(uint8 *from, _FormatData *f, uint8 unused2, _Img::RGBAconv *ret) {
+  static void from16(uint8_t *from, _FormatData *f, uint8_t unused2, _Img::RGBAconv *ret) {
     // u64 max/ 65535= 0x1000100010001
-    ret->v[0]=                   ((uint16 *)from)[0]* _16toConv;
-    ret->v[1]= (f->nchannels> 1? ((uint16 *)from)[1]* _16toConv: 0);
-    ret->v[2]= (f->nchannels> 2? ((uint16 *)from)[2]* _16toConv: 0);
-    ret->v[3]= (f->nchannels> 3? ((uint16 *)from)[3]* _16toConv: 0);
+    ret->v[0]=                   ((uint16_t *)from)[0]* _16toConv;
+    ret->v[1]= (f->nchannels> 1? ((uint16_t *)from)[1]* _16toConv: 0);
+    ret->v[2]= (f->nchannels> 2? ((uint16_t *)from)[2]* _16toConv: 0);
+    ret->v[3]= (f->nchannels> 3? ((uint16_t *)from)[3]* _16toConv: 0);
   }
 
-  static void from32(uint8 *from, _FormatData *f, uint8 unused2, _Img::RGBAconv *ret) {
-    ret->v[0]=                   ((uint32 *)from)[0]* _32toConv;
-    ret->v[1]= (f->nchannels> 1? ((uint32 *)from)[1]* _32toConv: 0);
-    ret->v[2]= (f->nchannels> 2? ((uint32 *)from)[2]* _32toConv: 0);
-    ret->v[3]= (f->nchannels> 3? ((uint32 *)from)[3]* _32toConv: 0);
+  static void from32(uint8_t *from, _FormatData *f, uint8_t unused2, _Img::RGBAconv *ret) {
+    ret->v[0]=                   ((uint32_t *)from)[0]* _32toConv;
+    ret->v[1]= (f->nchannels> 1? ((uint32_t *)from)[1]* _32toConv: 0);
+    ret->v[2]= (f->nchannels> 2? ((uint32_t *)from)[2]* _32toConv: 0);
+    ret->v[3]= (f->nchannels> 3? ((uint32_t *)from)[3]* _32toConv: 0);
   }
 
-  static void from64(uint8 *from, _FormatData *f, uint8 unused2, _Img::RGBAconv *ret) {
-    ret->v[0]=                   ((uint64 *)from)[0];
-    ret->v[1]= (f->nchannels> 1? ((uint64 *)from)[1]: 0);
-    ret->v[2]= (f->nchannels> 2? ((uint64 *)from)[2]: 0);
-    ret->v[3]= (f->nchannels> 3? ((uint64 *)from)[3]: 0);
+  static void from64(uint8_t *from, _FormatData *f, uint8_t unused2, _Img::RGBAconv *ret) {
+    ret->v[0]=                   ((uint64_t *)from)[0];
+    ret->v[1]= (f->nchannels> 1? ((uint64_t *)from)[1]: 0);
+    ret->v[2]= (f->nchannels> 2? ((uint64_t *)from)[2]: 0);
+    ret->v[3]= (f->nchannels> 3? ((uint64_t *)from)[3]: 0);
   }
 
-  static void from44(uint8 *from, _FormatData *f, uint8 unused2, RGBAconv *ret) {
+  static void from44(uint8_t *from, _FormatData *f, uint8_t unused2, RGBAconv *ret) {
     ret->r= ((*from)>> 4)*  _4toConv;
     ret->g= ((*from)& 0xF)* _4toConv;
     ret->b= 0;
     ret->a= 0;
   }
 
-  static void from4444(uint8 *from, _FormatData *f, uint8 unused2, RGBAconv *ret) {
-    uint16 *p16= (uint16 *)from;
+  static void from4444(uint8_t *from, _FormatData *f, uint8_t unused2, RGBAconv *ret) {
+    uint16_t *p16= (uint16_t *)from;
     ret->r= (*p16>> 12)* _4toConv;
     ret->g= ((*p16>> 8)& 0xF)* _4toConv;
     ret->b= ((*p16>> 4)& 0xF)* _4toConv;
     ret->a= (*p16& 0xF)* _4toConv;
   }
 
-  static void from565(uint8 *from, _FormatData *f, uint8 unused2, RGBAconv *ret) {
-    uint16 *p16= (uint16 *)from;
-    ret->r= ((( (uint64)*p16>> 11)*       65535)/ 31)* _16toConv;   /// scaling: RGB565 R max is 31, R16G16B16 max is 65535
-    ret->g= (((((uint64)*p16>> 5)& 0x3F)* 65535)/ 63)* _16toConv;   /// scaling: RGB565 G max is 63, R16G16B16 max is 65535
-    ret->b= ((( (uint64)*p16     & 0x1F)* 65535)/ 31)* _16toConv;
+  static void from565(uint8_t *from, _FormatData *f, uint8_t unused2, RGBAconv *ret) {
+    uint16_t *p16= (uint16_t *)from;
+    ret->r= ((( (uint64_t)*p16>> 11)*       65535)/ 31)* _16toConv;   /// scaling: RGB565 R max is 31, R16G16B16 max is 65535
+    ret->g= (((((uint64_t)*p16>> 5)& 0x3F)* 65535)/ 63)* _16toConv;   /// scaling: RGB565 G max is 63, R16G16B16 max is 65535
+    ret->b= ((( (uint64_t)*p16     & 0x1F)* 65535)/ 31)* _16toConv;
     ret->a= ~0ui64;
   }
 
-  static void from5551(uint8 *from, _FormatData *f, uint8 unused2, RGBAconv *ret) {
-    uint16 *p16= (uint16 *)from;
-    ret->r= ((( (uint64)*p16>> 11)*       65535)/ 31)* _16toConv;   /// scaling: RGB565 R max is 31, R16G16B16 max is 65535
-    ret->g= (((((uint64)*p16>> 6)& 0x1F)* 65535)/ 31)* _16toConv;
-    ret->b= (((((uint64)*p16>> 1)& 0x1F)* 65535)/ 31)* _16toConv;
+  static void from5551(uint8_t *from, _FormatData *f, uint8_t unused2, RGBAconv *ret) {
+    uint16_t *p16= (uint16_t *)from;
+    ret->r= ((( (uint64_t)*p16>> 11)*       65535)/ 31)* _16toConv;   /// scaling: RGB565 R max is 31, R16G16B16 max is 65535
+    ret->g= (((((uint64_t)*p16>> 6)& 0x1F)* 65535)/ 31)* _16toConv;
+    ret->b= (((((uint64_t)*p16>> 1)& 0x1F)* 65535)/ 31)* _16toConv;
     ret->a= (*p16& 0x01? ~0ui64: 0);
   }
 
-  static void from1555(uint8 *from, _FormatData *f, uint8 unused2, RGBAconv *ret) {
-    uint16 *p16= (uint16 *)from;
-    ret->r= (((((uint64)*p16>> 10)& 0x1F)* 0xFFFF)/ 0x1F)* _16toConv;   /// scaling: RGB565 R max is 31, R16G16B16 max is 65535
-    ret->g= (((((uint64)*p16>> 5)&  0x1F)* 0xFFFF)/ 0x1F)* _16toConv;
-    ret->b= (((((uint64)*p16)&      0x1F)* 0xFFFF)/ 0x1F)* _16toConv;
+  static void from1555(uint8_t *from, _FormatData *f, uint8_t unused2, RGBAconv *ret) {
+    uint16_t *p16= (uint16_t *)from;
+    ret->r= (((((uint64_t)*p16>> 10)& 0x1F)* 0xFFFF)/ 0x1F)* _16toConv;   /// scaling: RGB565 R max is 31, R16G16B16 max is 65535
+    ret->g= (((((uint64_t)*p16>> 5)&  0x1F)* 0xFFFF)/ 0x1F)* _16toConv;
+    ret->b= (((((uint64_t)*p16)&      0x1F)* 0xFFFF)/ 0x1F)* _16toConv;
     ret->a= (*p16>> 15? ~0ui64: 0);
   }
 
-  static void from2101010(uint8 *from, _FormatData *f, uint8 unused2, RGBAconv *ret) {
-    uint32 *p32= (uint32 *)from;
-    ret->r= (((((uint64)*p32>> 20)& 0x3FF)* 0xFFFFFFFF)/ 0x3FF)* _32toConv;
-    ret->g= (((((uint64)*p32>> 10)& 0x3FF)* 0xFFFFFFFF)/ 0x3FF)* _32toConv;    //4294967295 i32 max (unsigned)
-    ret->b= (((((uint64)*p32)     & 0x3FF)* 0xFFFFFFFF)/ 0x3FF)* _32toConv;
-    ret->a= (((uint64)*p32>> 30)& 0x3)* _2toConv;
+  static void from2101010(uint8_t *from, _FormatData *f, uint8_t unused2, RGBAconv *ret) {
+    uint32_t *p32= (uint32_t *)from;
+    ret->r= (((((uint64_t)*p32>> 20)& 0x3FF)* 0xFFFFFFFF)/ 0x3FF)* _32toConv;
+    ret->g= (((((uint64_t)*p32>> 10)& 0x3FF)* 0xFFFFFFFF)/ 0x3FF)* _32toConv;    //4294967295 i32 max (unsigned)
+    ret->b= (((((uint64_t)*p32)     & 0x3FF)* 0xFFFFFFFF)/ 0x3FF)* _32toConv;
+    ret->a= (((uint64_t)*p32>> 30)& 0x3)* _2toConv;
   }
 
-  static void fromCMAP_1(uint8 *from, _FormatData *f, uint8 bitPos, RGBAconv *ret) {
-    uint8 n= (*from>> (7- bitPos))& 0x01;
-    uint8 *p= &_cmap[n* (f->bpp/ 8)];
+  static void fromCMAP_1(uint8_t *from, _FormatData *f, uint8_t bitPos, RGBAconv *ret) {
+    uint8_t n= (*from>> (7- bitPos))& 0x01;
+    uint8_t *p= &_cmap[n* (f->bpp/ 8)];
 
     if(f->bpp== 16)
       from5551(p, 0, 0, ret);
@@ -208,9 +213,9 @@ class _Img {
       from8(p, f, 0, ret);
   }
 
-  static void fromCMAP_2(uint8 *from, _FormatData *f, uint8 bitPos, RGBAconv *ret) {
-    uint8 n= (*from>> (6- bitPos))& 0x03;
-    uint8 *p= &_cmap[n* (f->bpp/ 8)];
+  static void fromCMAP_2(uint8_t *from, _FormatData *f, uint8_t bitPos, RGBAconv *ret) {
+    uint8_t n= (*from>> (6- bitPos))& 0x03;
+    uint8_t *p= &_cmap[n* (f->bpp/ 8)];
 
     if(f->bpp== 16)
       from5551(p, 0, 0, ret);
@@ -218,17 +223,17 @@ class _Img {
       from8(p, f, 0, ret);
   }
 
-  static void fromCMAP_4(uint8 *from, _FormatData *f, uint8 bitPos, RGBAconv *ret) {
-    uint8 n= (*from>> (4- bitPos))& 0x0f;
-    uint8 *p= &_cmap[n* (f->bpp/ 8)];
+  static void fromCMAP_4(uint8_t *from, _FormatData *f, uint8_t bitPos, RGBAconv *ret) {
+    uint8_t n= (*from>> (4- bitPos))& 0x0f;
+    uint8_t *p= &_cmap[n* (f->bpp/ 8)];
     if(f->bpp== 16)
       from5551(p, 0, 0, ret);
     else
       from8(p, f, 0, ret);
   }
 
-  static void fromCMAP_8(uint8 *from, _FormatData *f, uint8 unused2, RGBAconv *ret) {
-    uint8 *p= _cmap+ from[0]* (f->bpp/ 8);
+  static void fromCMAP_8(uint8_t *from, _FormatData *f, uint8_t unused2, RGBAconv *ret) {
+    uint8_t *p= _cmap+ from[0]* (f->bpp/ 8);
 
     if(f->bpp== 16)
       from5551(p, 0, 0, ret);
@@ -236,12 +241,12 @@ class _Img {
       from8(p, f, 0, ret);
 
     /*
-    uint16 *p16;
+    uint16_t *p16;
     if(_cmapBpp== 16) { // R5G5B5A1
-      p16= (uint16 *)p;
-      ret->r= (((uint64)(*p16>> 11)*        65535)/ 31)* _16toConv;
-      ret->g= (((uint64)((*p16>> 6)& 0x1F)* 65535)/ 31)* _16toConv;
-      ret->b= (((uint64)((*p16>> 1)& 0x1F)* 65535)/ 31)* _16toConv;
+      p16= (uint16_t *)p;
+      ret->r= (((uint64_t)(*p16>> 11)*        65535)/ 31)* _16toConv;
+      ret->g= (((uint64_t)((*p16>> 6)& 0x1F)* 65535)/ 31)* _16toConv;
+      ret->b= (((uint64_t)((*p16>> 1)& 0x1F)* 65535)/ 31)* _16toConv;
       ret->a= (*p16& 0x01? ~0ui64: 0);
 
     } else {
@@ -254,17 +259,17 @@ class _Img {
   }
 
   /*
-  void fromGREY_1(uint8 *from, int8 bitPos, _RGBA64 *ret) {
+  void fromGREY_1(uint8_t *from, int8_t bitPos, _RGBA64 *ret) {
     ret->r= ret->g= ret->b= ((*from>> (7- bitPos))& 0x01)* 65535;   /// scaling: 0 or 65535
     ret->a= 65535;
   }
 
-  void fromGREY_2(uint8 *from, int8 bitPos, _RGBA64 *ret) {
+  void fromGREY_2(uint8_t *from, int8_t bitPos, _RGBA64 *ret) {
     ret->r= ret->g= ret->b= ((*from>> (6- bitPos))& 0x03)* 21845;   /// scaling: 65535 / 3(max val)= 21845
     ret->a= 65535;
   }
 
-  void fromGREY_4(uint8 *from, int8 bitPos, _RGBA64 *ret) {
+  void fromGREY_4(uint8_t *from, int8_t bitPos, _RGBA64 *ret) {
     ret->r= ret->g= ret->b= ((*from>> (4- bitPos))& 0x0F)* 4369;    /// scaling: 65535 / 15(max val)= 4369
     ret->a= 65535;
   }
@@ -275,129 +280,129 @@ class _Img {
 
 
 
-  static void to8(RGBAconv *from, uint8 *ret, _FormatData *f, uint8 unused2) {
-    //for(uint a= 0; a< f->nchannels; a++)
-    //  ret[a]= (uint8)(from->v[a]/ _8toConv);
-                        ret[0]= (uint8)(from->r/ _8toConv);
-    if(f->nchannels> 1) ret[1]= (uint8)(from->g/ _8toConv);
-    if(f->nchannels> 2) ret[2]= (uint8)(from->b/ _8toConv);
-    if(f->nchannels> 3) ret[3]= (uint8)(from->a/ _8toConv);
+  static void to8(RGBAconv *from, uint8_t *ret, _FormatData *f, uint8_t unused2) {
+    //for(unsigned int a= 0; a< f->nchannels; a++)
+    //  ret[a]= (uint8_t)(from->v[a]/ _8toConv);
+                        ret[0]= (uint8_t)(from->r/ _8toConv);
+    if(f->nchannels> 1) ret[1]= (uint8_t)(from->g/ _8toConv);
+    if(f->nchannels> 2) ret[2]= (uint8_t)(from->b/ _8toConv);
+    if(f->nchannels> 3) ret[3]= (uint8_t)(from->a/ _8toConv);
   }
 
 
-  static void to16(RGBAconv *from, uint8 *ret, _FormatData *f, uint8 unused2) {
-                        ((uint16*)ret)[0]= (uint16)(from->r/ _16toConv);
-    if(f->nchannels> 1) ((uint16*)ret)[1]= (uint16)(from->g/ _16toConv);
-    if(f->nchannels> 2) ((uint16*)ret)[2]= (uint16)(from->b/ _16toConv);
-    if(f->nchannels> 3) ((uint16*)ret)[3]= (uint16)(from->a/ _16toConv);
+  static void to16(RGBAconv *from, uint8_t *ret, _FormatData *f, uint8_t unused2) {
+                        ((uint16_t*)ret)[0]= (uint16_t)(from->r/ _16toConv);
+    if(f->nchannels> 1) ((uint16_t*)ret)[1]= (uint16_t)(from->g/ _16toConv);
+    if(f->nchannels> 2) ((uint16_t*)ret)[2]= (uint16_t)(from->b/ _16toConv);
+    if(f->nchannels> 3) ((uint16_t*)ret)[3]= (uint16_t)(from->a/ _16toConv);
   }
 
-  static void to32(RGBAconv *from, uint8 *ret, _FormatData *f, uint8 unused2) {
+  static void to32(RGBAconv *from, uint8_t *ret, _FormatData *f, uint8_t unused2) {
 
-                        ((uint32*)ret)[0]= (uint32)(from->r/ _32toConv);
-    if(f->nchannels> 1) ((uint32*)ret)[1]= (uint32)(from->g/ _32toConv);
-    if(f->nchannels> 2) ((uint32*)ret)[2]= (uint32)(from->b/ _32toConv);
-    if(f->nchannels> 3) ((uint32*)ret)[3]= (uint32)(from->a/ _32toConv);
+                        ((uint32_t*)ret)[0]= (uint32_t)(from->r/ _32toConv);
+    if(f->nchannels> 1) ((uint32_t*)ret)[1]= (uint32_t)(from->g/ _32toConv);
+    if(f->nchannels> 2) ((uint32_t*)ret)[2]= (uint32_t)(from->b/ _32toConv);
+    if(f->nchannels> 3) ((uint32_t*)ret)[3]= (uint32_t)(from->a/ _32toConv);
   }
 
-  static void to64(RGBAconv *from, uint8 *ret, _FormatData *f, uint8 unused2) {
-                        ((uint64*)ret)[0]= from->r;
-    if(f->nchannels> 1) ((uint64*)ret)[1]= from->g;
-    if(f->nchannels> 2) ((uint64*)ret)[2]= from->b;
-    if(f->nchannels> 3) ((uint64*)ret)[3]= from->a;
+  static void to64(RGBAconv *from, uint8_t *ret, _FormatData *f, uint8_t unused2) {
+                        ((uint64_t*)ret)[0]= from->r;
+    if(f->nchannels> 1) ((uint64_t*)ret)[1]= from->g;
+    if(f->nchannels> 2) ((uint64_t*)ret)[2]= from->b;
+    if(f->nchannels> 3) ((uint64_t*)ret)[3]= from->a;
   }
 
 
-  static void to44(RGBAconv *from, uint8 *ret, _FormatData *f, uint8 unused2) {
-    uint64 r= from->r/ _4toConv;
-    uint64 g= from->g/ _4toConv;
-    *ret= (uint8)((r<< 4)+ g);
+  static void to44(RGBAconv *from, uint8_t *ret, _FormatData *f, uint8_t unused2) {
+    uint64_t r= from->r/ _4toConv;
+    uint64_t g= from->g/ _4toConv;
+    *ret= (uint8_t)((r<< 4)+ g);
   }
 
-  static void to4444(RGBAconv *from, uint8 *ret, _FormatData *f, uint8 unused2) {
-    uint64 r= from->r/ _4toConv;
-    uint64 g= from->g/ _4toConv;
-    uint64 b= from->b/ _4toConv;
-    uint64 a= from->a/ _4toConv;
-    *((uint16 *)ret)= (uint16)((r<< 12)+ (g<< 8)+ (b<< 4)+ a);
+  static void to4444(RGBAconv *from, uint8_t *ret, _FormatData *f, uint8_t unused2) {
+    uint64_t r= from->r/ _4toConv;
+    uint64_t g= from->g/ _4toConv;
+    uint64_t b= from->b/ _4toConv;
+    uint64_t a= from->a/ _4toConv;
+    *((uint16_t *)ret)= (uint16_t)((r<< 12)+ (g<< 8)+ (b<< 4)+ a);
   }
 
-  static void to565(RGBAconv *from, uint8 *ret, _FormatData *f, uint8 unused2) {
-    uint64 r= ((from->r/ _16toConv)* 0x1F)/ 0xFFFF; // 0x1F(31) r5 max
-    uint64 g= ((from->g/ _16toConv)* 0x3F)/ 0xFFFF; // 0x3F     g6 max
-    uint64 b= ((from->b/ _16toConv)* 0x1F)/ 0xFFFF;
-    *((uint16 *)ret)= (uint16)((r<< 11)+ (g<< 5)+ b);
+  static void to565(RGBAconv *from, uint8_t *ret, _FormatData *f, uint8_t unused2) {
+    uint64_t r= ((from->r/ _16toConv)* 0x1F)/ 0xFFFF; // 0x1F(31) r5 max
+    uint64_t g= ((from->g/ _16toConv)* 0x3F)/ 0xFFFF; // 0x3F     g6 max
+    uint64_t b= ((from->b/ _16toConv)* 0x1F)/ 0xFFFF;
+    *((uint16_t *)ret)= (uint16_t)((r<< 11)+ (g<< 5)+ b);
   }
 
-  static void to5551(RGBAconv *from, uint8 *ret, _FormatData *f, uint8 unused2) {
-    uint64 r= ((from->r/ _16toConv)* 0x1F)/ 0xFFFF; // 0x1F(31) r5 max
-    uint64 g= ((from->g/ _16toConv)* 0x1F)/ 0xFFFF;
-    uint64 b= ((from->b/ _16toConv)* 0x1F)/ 0xFFFF;
-    uint64 a= (from->a? 1: 0);
-    *((uint16 *)ret)= (uint16)((r<< 11)+ (g<< 6)+ (b<< 1)+ a);
+  static void to5551(RGBAconv *from, uint8_t *ret, _FormatData *f, uint8_t unused2) {
+    uint64_t r= ((from->r/ _16toConv)* 0x1F)/ 0xFFFF; // 0x1F(31) r5 max
+    uint64_t g= ((from->g/ _16toConv)* 0x1F)/ 0xFFFF;
+    uint64_t b= ((from->b/ _16toConv)* 0x1F)/ 0xFFFF;
+    uint64_t a= (from->a? 1: 0);
+    *((uint16_t *)ret)= (uint16_t)((r<< 11)+ (g<< 6)+ (b<< 1)+ a);
   }
 
-  static void to1555(RGBAconv *from, uint8 *ret, _FormatData *f, uint8 unused2) {
-    uint64 r= ((from->r/ _16toConv)* 0x1F)/ 0xFFFF; // 0x1F(31) r5 max
-    uint64 g= ((from->g/ _16toConv)* 0x1F)/ 0xFFFF;
-    uint64 b= ((from->b/ _16toConv)* 0x1F)/ 0xFFFF;
-    uint64 a= (from->a? 1: 0);
-    *((uint16 *)ret)= (uint16)((a<< 15)+ (r<< 10)+ (g<< 5)+ b);
+  static void to1555(RGBAconv *from, uint8_t *ret, _FormatData *f, uint8_t unused2) {
+    uint64_t r= ((from->r/ _16toConv)* 0x1F)/ 0xFFFF; // 0x1F(31) r5 max
+    uint64_t g= ((from->g/ _16toConv)* 0x1F)/ 0xFFFF;
+    uint64_t b= ((from->b/ _16toConv)* 0x1F)/ 0xFFFF;
+    uint64_t a= (from->a? 1: 0);
+    *((uint16_t *)ret)= (uint16_t)((a<< 15)+ (r<< 10)+ (g<< 5)+ b);
   }
 
-  static void to2101010(RGBAconv *from, uint8 *ret, _FormatData *f, uint8 unused2) {
-    uint64 r= ((from->r/ _32toConv)* 0x3FF)/ 0xFFFFFFFF; // 0x3FF r10 max
-    uint64 g= ((from->r/ _32toConv)* 0x3FF)/ 0xFFFFFFFF;
-    uint64 b= ((from->r/ _32toConv)* 0x3FF)/ 0xFFFFFFFF;
-    uint64 a= from->a/ _2toConv;
-    *((uint32 *)ret)= (uint32)((a<< 30)+ (r<< 20)+ (g<< 10)+ b);
+  static void to2101010(RGBAconv *from, uint8_t *ret, _FormatData *f, uint8_t unused2) {
+    uint64_t r= ((from->r/ _32toConv)* 0x3FF)/ 0xFFFFFFFF; // 0x3FF r10 max
+    uint64_t g= ((from->r/ _32toConv)* 0x3FF)/ 0xFFFFFFFF;
+    uint64_t b= ((from->r/ _32toConv)* 0x3FF)/ 0xFFFFFFFF;
+    uint64_t a= from->a/ _2toConv;
+    *((uint32_t *)ret)= (uint32_t)((a<< 30)+ (r<< 20)+ (g<< 10)+ b);
   }
 
 
   // finds the closest CMAP for the provided color
-  static uint8 findCMAP(RGBAconv *from, uint CMAPsize, uint8 CMAPbpp) {
-    uint8 cmapID= 0;
-    uint16 _r= (uint16)(from->r/ _16toConv);
-    uint16 _g= (uint16)(from->g/ _16toConv);
-    uint16 _b= (uint16)(from->b/ _16toConv);
-    uint16 _a= (uint16)(from->a/ _16toConv);
+  static uint8_t findCMAP(RGBAconv *from, unsigned int CMAPsize, uint8_t CMAPbpp) {
+    uint8_t cmapID= 0;
+    uint16_t _r= (uint16_t)(from->r/ _16toConv);
+    uint16_t _g= (uint16_t)(from->g/ _16toConv);
+    uint16_t _b= (uint16_t)(from->b/ _16toConv);
+    uint16_t _a= (uint16_t)(from->a/ _16toConv);
 
-    int32 diffR, diffG, diffB, diffA;
+    int32_t diffR, diffG, diffB, diffA;
     diffR= diffG= diffB= diffA= 65535;
 
     if(CMAPbpp== 16) {
-      for(uint a= 0; a< CMAPsize; a++) {
-        uint16 col= ((uint16 *)_cmap)[a];
+      for(unsigned int a= 0; a< CMAPsize; a++) {
+        uint16_t col= ((uint16_t *)_cmap)[a];
         /// smallest difference in color; differenceR+ diffG+ diffB+ diffA < source diffR+ diffG+ diffB+ diffA
-        if(abs64((((int64)Img::getR5551(col)* 65535)/ 31)- (int64)(_r))+ /// scaling: 31(RGBA16 max) - 65535(RGBA64 max)
-           abs64((((int64)Img::getG5551(col)* 65535)/ 31)- (int64)(_g))+ 
-           abs64((((int64)Img::getB5551(col)* 65535)/ 31)- (int64)(_b))+ 
-           abs64(  (int64)Img::getA5551(col)* 65535-       (int64)(_a)) < 
-           (int64)(diffR+ diffG+ diffB+ diffA)) {
+        if(abs64((((int64_t)Img::getR5551(col)* 65535)/ 31)- (int64_t)(_r))+ /// scaling: 31(RGBA16 max) - 65535(RGBA64 max)
+           abs64((((int64_t)Img::getG5551(col)* 65535)/ 31)- (int64_t)(_g))+ 
+           abs64((((int64_t)Img::getB5551(col)* 65535)/ 31)- (int64_t)(_b))+ 
+           abs64(  (int64_t)Img::getA5551(col)* 65535-       (int64_t)(_a)) < 
+           (int64_t)(diffR+ diffG+ diffB+ diffA)) {
           cmapID= a;
 
-          diffR= ((int32)Img::getR5551(col)* 65535)/ 31- (int32)(_r);
-          diffG= ((int32)Img::getG5551(col)* 65535)/ 31- (int32)(_g);
-          diffB= ((int32)Img::getB5551(col)* 65535)/ 31- (int32)(_b);
-          diffA=  (int32)Img::getA5551(col)* 65535-      (int32)(_a);
+          diffR= ((int32_t)Img::getR5551(col)* 65535)/ 31- (int32_t)(_r);
+          diffG= ((int32_t)Img::getG5551(col)* 65535)/ 31- (int32_t)(_g);
+          diffB= ((int32_t)Img::getB5551(col)* 65535)/ 31- (int32_t)(_b);
+          diffA=  (int32_t)Img::getA5551(col)* 65535-      (int32_t)(_a);
         }
       } /// for each cmap index
     } else {
-      for(uint a= 0; a< CMAPsize; a++) {
-        uint8 *p= &_cmap[a* (CMAPbpp/ 8)];
+      for(unsigned int a= 0; a< CMAPsize; a++) {
+        uint8_t *p= &_cmap[a* (CMAPbpp/ 8)];
 
         /// smallest difference in color; differenceR+ diffG+ diffB+ diffA < source diffR+ diffG+ diffB+ diffA
-        if(abs64((int64)(p[0])* 257- (int64)_r)+ /// scaling: 255(RGBA32 max) - 65535(RGBA64 max); 255* 257= 65535
-           abs64((int64)(p[1])* 257- (int64)_g)+
-           abs64((int64)(p[2])* 257- (int64)_b)+
-           abs64((CMAPbpp== 32? (int64)(p[3])* 257: 65535)- (int64)_a) <
-           (int64)(diffR+ diffG+ diffB+ diffA)) {
+        if(abs64((int64_t)(p[0])* 257- (int64_t)_r)+ /// scaling: 255(RGBA32 max) - 65535(RGBA64 max); 255* 257= 65535
+           abs64((int64_t)(p[1])* 257- (int64_t)_g)+
+           abs64((int64_t)(p[2])* 257- (int64_t)_b)+
+           abs64((CMAPbpp== 32? (int64_t)(p[3])* 257: 65535)- (int64_t)_a) <
+           (int64_t)(diffR+ diffG+ diffB+ diffA)) {
 
           cmapID= a;
-          diffR= (int32)abs64((int64)(p[0])* 257- (int64)(_r));
-          diffG= (int32)abs64((int64)(p[1])* 257- (int64)(_g));
-          diffB= (int32)abs64((int64)(p[2])* 257- (int64)(_b));
-          diffA= (int32)abs64((CMAPbpp== 32? (int64)(p[3])* 257: 65535- (int64)(_a)));
+          diffR= (int32_t)abs64((int64_t)(p[0])* 257- (int64_t)(_r));
+          diffG= (int32_t)abs64((int64_t)(p[1])* 257- (int64_t)(_g));
+          diffB= (int32_t)abs64((int64_t)(p[2])* 257- (int64_t)(_b));
+          diffA= (int32_t)abs64((CMAPbpp== 32? (int64_t)(p[3])* 257: 65535- (int64_t)(_a)));
         }
       }
     }
@@ -405,16 +410,16 @@ class _Img {
   }
 
   // NOT TESTED
-  static void toCMAP_1(RGBAconv *from, uint8 *ret, _FormatData *f, uint8 bitPos) {
-    uint8 cmapID= findCMAP(from, 2, (uint8)f->bpp);
+  static void toCMAP_1(RGBAconv *from, uint8_t *ret, _FormatData *f, uint8_t bitPos) {
+    uint8_t cmapID= findCMAP(from, 2, (uint8_t)f->bpp);
 
     *ret&= ~(1<< (7- bitPos));    /// clear bitPos
     cmapID<<= (7- bitPos);
     *ret+= cmapID;                /// set that bit to cmapID
   }
 
-  static void toCMAP_2(RGBAconv *from, uint8 *ret, _FormatData *f, uint8 bitPos) {
-    uint8 cmapID= findCMAP(from, 4, (uint8)f->bpp);
+  static void toCMAP_2(RGBAconv *from, uint8_t *ret, _FormatData *f, uint8_t bitPos) {
+    uint8_t cmapID= findCMAP(from, 4, (uint8_t)f->bpp);
   
     *ret&= ~(1<< (7- bitPos));      /// clear bitPos 1
     *ret&= ~(1<< (7- (bitPos+ 1))); /// clear bitPos 2
@@ -423,8 +428,8 @@ class _Img {
   }
 
 
-  static void toCMAP_4(RGBAconv *from, uint8 *ret, _FormatData *f, uint8 bitPos) {
-    uint8 cmapID= findCMAP(from, 16, (uint8)f->bpp);
+  static void toCMAP_4(RGBAconv *from, uint8_t *ret, _FormatData *f, uint8_t bitPos) {
+    uint8_t cmapID= findCMAP(from, 16, (uint8_t)f->bpp);
 
     *ret&= ~(1<< (7- bitPos));        /// clear bitPos 1
     *ret&= ~(1<< (7- (bitPos+ 1)));   /// clear bitPos 2
@@ -435,34 +440,34 @@ class _Img {
   }
 
   // not tested
-  static void toCMAP_8(RGBAconv *from, uint8 *ret, _FormatData *f, uint8 unused2) {
-    uint8 cmapID= findCMAP(from, 256, (uint8)f->bpp);
+  static void toCMAP_8(RGBAconv *from, uint8_t *ret, _FormatData *f, uint8_t unused2) {
+    uint8_t cmapID= findCMAP(from, 256, (uint8_t)f->bpp);
     *ret= cmapID;
   }
 
 
   /*
-  void toGREY_1(RGBAconv *from, uint8 *ret, uint8 bitPos) {
-    uint32 c= ((from->r+ from->g+ from->b)? 1: 0)<< (7- bitPos);
+  void toGREY_1(RGBAconv *from, uint8_t *ret, uint8_t bitPos) {
+    uint32_t c= ((from->r+ from->g+ from->b)? 1: 0)<< (7- bitPos);
     *ret&= ~(1 << (7- bitPos))+ c;
   }
 
-  void toGREY_2(RGBAconv *from, uint8 *ret, uint8 bitPos) {
-    uint32 c= (from->r+ from->g+ from->b)/ 3; /// average number between R, G and B
+  void toGREY_2(RGBAconv *from, uint8_t *ret, uint8_t bitPos) {
+    uint32_t c= (from->r+ from->g+ from->b)/ 3; /// average number between R, G and B
     c= (c* 3)/ 65535;                        /// scaling: 3(GREY2 max) - 65535 (RGBA64 max)
     *ret&= ~(1 << (7- bitPos));              /// clear bit 1
     *ret&= ~(1 << (7- (bitPos+ 1)));         /// clear bit 2
-    *ret+= (uint8)c;
+    *ret+= (uint8_t)c;
   }
 
-  void toGREY_4(RGBAconv *from, uint8 *ret, uint8 bitPos) {
-    uint32 c= (from->r+ from->g+ from->b)/ 3; /// average number between R, G and B
+  void toGREY_4(RGBAconv *from, uint8_t *ret, uint8_t bitPos) {
+    uint32_t c= (from->r+ from->g+ from->b)/ 3; /// average number between R, G and B
     c= (c* 3)/ 65535;                        /// scaling: 3(GREY2 max) - 65535 (RGBA64 max)
     *ret&= ~(1 << (7- bitPos));              /// clear bit 1
     *ret&= ~(1 << (7- (bitPos+ 1)));         /// clear bit 2
     *ret&= ~(1 << (7- (bitPos+ 2)));         /// clear bit 3
     *ret&= ~(1 << (7- (bitPos+ 3)));         /// clear bit 4
-    *ret+= (uint8)c;
+    *ret+= (uint8_t)c;
   }
   */
 
@@ -477,19 +482,19 @@ class _Img {
 
 
 // static vars
-uint8 *_Img::_cmap;
+uint8_t *_Img::_cmap;
 
 
 
 _Img::_FormatData *_Img::_FormatData::get(ImgFormat in_f) {
   // simple match for first 184
-  if((uint32)in_f<= 184) return (_FormatData *)&_Img::_formats[(uint)in_f];
+  if((uint32_t)in_f<= 184) return (_FormatData *)&_Img::_formats[(unsigned int)in_f];
 
   // cmap formats range
   if(in_f>= ImgFormat::CMAP_START_RANGE&& in_f<= ImgFormat::CMAP_END_RANGE)
     return (_FormatData *)&_Img::_formats[(int)ImgFormat::CMAP_START_INDEX+ ((int)in_f- (int)ImgFormat::CMAP_START_RANGE)];
 
-  return null;
+  return nullptr;
   // future formats must be placed here
 }
 
@@ -497,7 +502,7 @@ _Img::_FormatData *_Img::_FormatData::get(ImgFormat in_f) {
 
 #ifdef IMG_CLASS_USE_OPENGL
 _Img::_FormatData *_Img::_FormatData::getGl(GLint in_f) {
-  for(uint a= 1; _Img::_formats[a].format!= ImgFormat::UNDEFINED; a++)
+  for(unsigned int a= 1; _Img::_formats[a].format!= ImgFormat::UNDEFINED; a++)
     if(_Img::_formats[a].glFormat== in_f)
       return (_FormatData *)&_Img::_formats[a];
 
@@ -512,14 +517,14 @@ _Img::_FormatData *_Img::_FormatData::getGl(GLint in_f) {
 #define GLPART  
 #endif
 
-//#define _I (uint8)Img::Swizzle::IDENTITY
-#define _R 0 // (uint8)Img::Swizzle::R
-#define _G 1 // (uint8)Img::Swizzle::G
-#define _B 2 // (uint8)Img::Swizzle::B
-#define _A 3 // (uint8)Img::Swizzle::A
+//#define _I (uint8_t)Img::Swizzle::IDENTITY
+#define _R 0 // (uint8_t)Img::Swizzle::R
+#define _G 1 // (uint8_t)Img::Swizzle::G
+#define _B 2 // (uint8_t)Img::Swizzle::B
+#define _A 3 // (uint8_t)Img::Swizzle::A
 _Img::_FormatData _Img::_formats[]= {
   //                                 bpp    bpc             swizzle     nch compr conv funcs
-  { ImgFormat::UNDEFINED,             0,  {0, 0, 0, 0}, {_R, _G, _B, _A}, 0, 0, null, null GLPART},
+  { ImgFormat::UNDEFINED,             0,  {0, 0, 0, 0}, {_R, _G, _B, _A}, 0, 0, nullptr, nullptr GLPART},
   { ImgFormat::R4G4_UNORM_PACK8,      8,  {4, 4, 0, 0}, {_R, _G, _B, _A}, 2, 0, _Img::from44, _Img::to44 GLPART},
   { ImgFormat::R4G4B4A4_UNORM_PACK16, 16, {4, 4, 4, 4}, {_R, _G, _B, _A}, 4, 0, _Img::from4444, _Img::to4444 GLPART},
   { ImgFormat::B4G4R4A4_UNORM_PACK16, 16, {4, 4, 4, 4}, {_B, _G, _R, _A}, 4, 0, _Img::from4444, _Img::to4444 GLPART},
@@ -535,7 +540,7 @@ _Img::_FormatData _Img::_formats[]= {
   { ImgFormat::R8_SSCALED,            8, {8, 0, 0, 0}, {_R, _G, _B, _A}, 1, 0, _Img::from8, _Img::to8 GLPART},
   { ImgFormat::R8_UINT,               8, {8, 0, 0, 0}, {_R, _G, _B, _A}, 1, 0, _Img::from8, _Img::to8 GLPART},
   { ImgFormat::R8_SINT,               8, {8, 0, 0, 0}, {_R, _G, _B, _A}, 1, 0, _Img::from8, _Img::to8 GLPART},
-  { ImgFormat::R8_SRGB,               8, {8, 0, 0, 0}, {_R, _G, _B, _A}, 1, 0, null, null GLPART},
+  { ImgFormat::R8_SRGB,               8, {8, 0, 0, 0}, {_R, _G, _B, _A}, 1, 0, nullptr, nullptr GLPART},
 
   { ImgFormat::R8G8_UNORM,            16, {8, 8, 0, 0}, {_R, _G, _B, _A}, 2, 0, _Img::from8, _Img::to8 GLPART},
   { ImgFormat::R8G8_SNORM,            16, {8, 8, 0, 0}, {_R, _G, _B, _A}, 2, 0, _Img::from8, _Img::to8 GLPART},
@@ -543,21 +548,21 @@ _Img::_FormatData _Img::_formats[]= {
   { ImgFormat::R8G8_SSCALED,          16, {8, 8, 0, 0}, {_R, _G, _B, _A}, 2, 0, _Img::from8, _Img::to8 GLPART},
   { ImgFormat::R8G8_UINT,             16, {8, 8, 0, 0}, {_R, _G, _B, _A}, 2, 0, _Img::from8, _Img::to8 GLPART},
   { ImgFormat::R8G8_SINT,             16, {8, 8, 0, 0}, {_R, _G, _B, _A}, 2, 0, _Img::from8, _Img::to8 GLPART},
-  { ImgFormat::R8G8_SRGB,             16, {8, 8, 0, 0}, {_R, _G, _B, _A}, 2, 0, null, null GLPART},
+  { ImgFormat::R8G8_SRGB,             16, {8, 8, 0, 0}, {_R, _G, _B, _A}, 2, 0, nullptr, nullptr GLPART},
   { ImgFormat::R8G8B8_UNORM,          24, {8, 8, 8, 0}, {_R, _G, _B, _A}, 3, 0, _Img::from8, _Img::to8 GLPART},
   { ImgFormat::R8G8B8_SNORM,          24, {8, 8, 8, 0}, {_R, _G, _B, _A}, 3, 0, _Img::from8, _Img::to8 GLPART},
   { ImgFormat::R8G8B8_USCALED,        24, {8, 8, 8, 0}, {_R, _G, _B, _A}, 3, 0, _Img::from8, _Img::to8 GLPART},
   { ImgFormat::R8G8B8_SSCALED,        24, {8, 8, 8, 0}, {_R, _G, _B, _A}, 3, 0, _Img::from8, _Img::to8 GLPART},
   { ImgFormat::R8G8B8_UINT,           24, {8, 8, 8, 0}, {_R, _G, _B, _A}, 3, 0, _Img::from8, _Img::to8 GLPART},
   { ImgFormat::R8G8B8_SINT,           24, {8, 8, 8, 0}, {_R, _G, _B, _A}, 3, 0, _Img::from8, _Img::to8 GLPART},
-  { ImgFormat::R8G8B8_SRGB,           24, {8, 8, 8, 0}, {_R, _G, _B, _A}, 3, 0, null, null GLPART},
+  { ImgFormat::R8G8B8_SRGB,           24, {8, 8, 8, 0}, {_R, _G, _B, _A}, 3, 0, nullptr, nullptr GLPART},
   { ImgFormat::B8G8R8_UNORM,          24, {8, 8, 8, 0}, {_B, _G, _R, _A}, 3, 0, _Img::from8, _Img::to8 GLPART},
   { ImgFormat::B8G8R8_SNORM,          24, {8, 8, 8, 0}, {_B, _G, _R, _A}, 3, 0, _Img::from8, _Img::to8 GLPART},
   { ImgFormat::B8G8R8_USCALED,        24, {8, 8, 8, 0}, {_B, _G, _R, _A}, 3, 0, _Img::from8, _Img::to8 GLPART},
   { ImgFormat::B8G8R8_SSCALED,        24, {8, 8, 8, 0}, {_B, _G, _R, _A}, 3, 0, _Img::from8, _Img::to8 GLPART},
   { ImgFormat::B8G8R8_UINT,           24, {8, 8, 8, 0}, {_B, _G, _R, _A}, 3, 0, _Img::from8, _Img::to8 GLPART},
   { ImgFormat::B8G8R8_SINT,           24, {8, 8, 8, 0}, {_B, _G, _R, _A}, 3, 0, _Img::from8, _Img::to8 GLPART},
-  { ImgFormat::B8G8R8_SRGB,           24, {8, 8, 8, 0}, {_B, _G, _R, _A}, 3, 0, null, null GLPART},
+  { ImgFormat::B8G8R8_SRGB,           24, {8, 8, 8, 0}, {_B, _G, _R, _A}, 3, 0, nullptr, nullptr GLPART},
 
   { ImgFormat::R8G8B8A8_UNORM,          32, {8, 8, 8, 8}, {_R, _G, _B, _A}, 4, 0, _Img::from8, _Img::to8 GLPART},
   { ImgFormat::R8G8B8A8_SNORM,          32, {8, 8, 8, 8}, {_R, _G, _B, _A}, 4, 0, _Img::from8, _Img::to8 GLPART},
@@ -565,21 +570,21 @@ _Img::_FormatData _Img::_formats[]= {
   { ImgFormat::R8G8B8A8_SSCALED,        32, {8, 8, 8, 8}, {_R, _G, _B, _A}, 4, 0, _Img::from8, _Img::to8 GLPART},
   { ImgFormat::R8G8B8A8_UINT,           32, {8, 8, 8, 8}, {_R, _G, _B, _A}, 4, 0, _Img::from8, _Img::to8 GLPART},
   { ImgFormat::R8G8B8A8_SINT,           32, {8, 8, 8, 8}, {_R, _G, _B, _A}, 4, 0, _Img::from8, _Img::to8 GLPART},
-  { ImgFormat::R8G8B8A8_SRGB,           32, {8, 8, 8, 8}, {_R, _G, _B, _A}, 4, 0, null, null GLPART},
+  { ImgFormat::R8G8B8A8_SRGB,           32, {8, 8, 8, 8}, {_R, _G, _B, _A}, 4, 0, nullptr, nullptr GLPART},
   { ImgFormat::B8G8R8A8_UNORM,          32, {8, 8, 8, 8}, {_B, _G, _R, _A}, 4, 0, _Img::from8, _Img::to8 GLPART},
   { ImgFormat::B8G8R8A8_SNORM,          32, {8, 8, 8, 8}, {_B, _G, _R, _A}, 4, 0, _Img::from8, _Img::to8 GLPART},
   { ImgFormat::B8G8R8A8_USCALED,        32, {8, 8, 8, 8}, {_B, _G, _R, _A}, 4, 0, _Img::from8, _Img::to8 GLPART},
   { ImgFormat::B8G8R8A8_SSCALED,        32, {8, 8, 8, 8}, {_B, _G, _R, _A}, 4, 0, _Img::from8, _Img::to8 GLPART},
   { ImgFormat::B8G8R8A8_UINT,           32, {8, 8, 8, 8}, {_B, _G, _R, _A}, 4, 0, _Img::from8, _Img::to8 GLPART},
   { ImgFormat::B8G8R8A8_SINT,           32, {8, 8, 8, 8}, {_B, _G, _R, _A}, 4, 0, _Img::from8, _Img::to8 GLPART},
-  { ImgFormat::B8G8R8A8_SRGB,           32, {8, 8, 8, 8}, {_B, _G, _R, _A}, 4, 0, null, null GLPART},
+  { ImgFormat::B8G8R8A8_SRGB,           32, {8, 8, 8, 8}, {_B, _G, _R, _A}, 4, 0, nullptr, nullptr GLPART},
   { ImgFormat::A8B8G8R8_UNORM_PACK32,   32, {8, 8, 8, 8}, {_A, _B, _G, _R}, 4, 0, _Img::from8, _Img::to8 GLPART},
   { ImgFormat::A8B8G8R8_SNORM_PACK32,   32, {8, 8, 8, 8}, {_A, _B, _G, _R}, 4, 0, _Img::from8, _Img::to8 GLPART},
   { ImgFormat::A8B8G8R8_USCALED_PACK32, 32, {8, 8, 8, 8}, {_A, _B, _G, _R}, 4, 0, _Img::from8, _Img::to8 GLPART},
   { ImgFormat::A8B8G8R8_SSCALED_PACK32, 32, {8, 8, 8, 8}, {_A, _B, _G, _R}, 4, 0, _Img::from8, _Img::to8 GLPART},
   { ImgFormat::A8B8G8R8_UINT_PACK32,    32, {8, 8, 8, 8}, {_A, _B, _G, _R}, 4, 0, _Img::from8, _Img::to8 GLPART},
   { ImgFormat::A8B8G8R8_SINT_PACK32,    32, {8, 8, 8, 8}, {_A, _B, _G, _R}, 4, 0, _Img::from8, _Img::to8 GLPART},
-  { ImgFormat::A8B8G8R8_SRGB_PACK32,    32, {8, 8, 8, 8}, {_A, _B, _G, _R}, 4, 0, null, null GLPART},
+  { ImgFormat::A8B8G8R8_SRGB_PACK32,    32, {8, 8, 8, 8}, {_A, _B, _G, _R}, 4, 0, nullptr, nullptr GLPART},
 
   { ImgFormat::A2R10G10B10_UNORM_PACK32,    32, {2, 10, 10, 10}, {_A, _R, _G, _B}, 4, 0, _Img::from2101010, _Img::to2101010 GLPART},
   { ImgFormat::A2R10G10B10_SNORM_PACK32,    32, {2, 10, 10, 10}, {_A, _R, _G, _B}, 4, 0, _Img::from2101010, _Img::to2101010 GLPART},
@@ -600,129 +605,129 @@ _Img::_FormatData _Img::_formats[]= {
   { ImgFormat::R16_SSCALED, 16, {16, 0, 0, 0}, {_R, _G, _B, _A}, 1, 0, _Img::from16, _Img::to16 GLPART},
   { ImgFormat::R16_UINT,    16, {16, 0, 0, 0}, {_R, _G, _B, _A}, 1, 0, _Img::from16, _Img::to16 GLPART},
   { ImgFormat::R16_SINT,    16, {16, 0, 0, 0}, {_R, _G, _B, _A}, 1, 0, _Img::from16, _Img::to16 GLPART},
-  { ImgFormat::R16_SFLOAT,  16, {16, 0, 0, 0}, {_R, _G, _B, _A}, 1, 0, null, null GLPART},
+  { ImgFormat::R16_SFLOAT,  16, {16, 0, 0, 0}, {_R, _G, _B, _A}, 1, 0, nullptr, nullptr GLPART},
   { ImgFormat::R16G16_UNORM,    32, {16, 16, 0, 0}, {_R, _G, _B, _A}, 2, 0, _Img::from16, _Img::to16 GLPART},
   { ImgFormat::R16G16_SNORM,    32, {16, 16, 0, 0}, {_R, _G, _B, _A}, 2, 0, _Img::from16, _Img::to16 GLPART},
   { ImgFormat::R16G16_USCALED,  32, {16, 16, 0, 0}, {_R, _G, _B, _A}, 2, 0, _Img::from16, _Img::to16 GLPART},
   { ImgFormat::R16G16_SSCALED,  32, {16, 16, 0, 0}, {_R, _G, _B, _A}, 2, 0, _Img::from16, _Img::to16 GLPART},
   { ImgFormat::R16G16_UINT,     32, {16, 16, 0, 0}, {_R, _G, _B, _A}, 2, 0, _Img::from16, _Img::to16 GLPART},
   { ImgFormat::R16G16_SINT,     32, {16, 16, 0, 0}, {_R, _G, _B, _A}, 2, 0, _Img::from16, _Img::to16 GLPART},
-  { ImgFormat::R16G16_SFLOAT,   32, {16, 16, 0, 0}, {_R, _G, _B, _A}, 2, 0, null, null GLPART},
+  { ImgFormat::R16G16_SFLOAT,   32, {16, 16, 0, 0}, {_R, _G, _B, _A}, 2, 0, nullptr, nullptr GLPART},
   { ImgFormat::R16G16B16_UNORM,       48, {16, 16, 16, 0}, {_R, _G, _B, _A}, 3, 0, _Img::from16, _Img::to16 GLPART},
   { ImgFormat::R16G16B16_SNORM,       48, {16, 16, 16, 0}, {_R, _G, _B, _A}, 3, 0, _Img::from16, _Img::to16 GLPART},
   { ImgFormat::R16G16B16_USCALED,     48, {16, 16, 16, 0}, {_R, _G, _B, _A}, 3, 0, _Img::from16, _Img::to16 GLPART},
   { ImgFormat::R16G16B16_SSCALED,     48, {16, 16, 16, 0}, {_R, _G, _B, _A}, 3, 0, _Img::from16, _Img::to16 GLPART},
   { ImgFormat::R16G16B16_UINT,        48, {16, 16, 16, 0}, {_R, _G, _B, _A}, 3, 0, _Img::from16, _Img::to16 GLPART},
   { ImgFormat::R16G16B16_SINT,        48, {16, 16, 16, 0}, {_R, _G, _B, _A}, 3, 0, _Img::from16, _Img::to16 GLPART},
-  { ImgFormat::R16G16B16_SFLOAT,      48, {16, 16, 16, 0}, {_R, _G, _B, _A}, 3, 0, null, null GLPART},
+  { ImgFormat::R16G16B16_SFLOAT,      48, {16, 16, 16, 0}, {_R, _G, _B, _A}, 3, 0, nullptr, nullptr GLPART},
   { ImgFormat::R16G16B16A16_UNORM,    64, {16, 16, 16, 16}, {_R, _G, _B, _A}, 4, 0, _Img::from16, _Img::to16 GLPART},
   { ImgFormat::R16G16B16A16_SNORM,    64, {16, 16, 16, 16}, {_R, _G, _B, _A}, 4, 0, _Img::from16, _Img::to16 GLPART},
   { ImgFormat::R16G16B16A16_USCALED,  64, {16, 16, 16, 16}, {_R, _G, _B, _A}, 4, 0, _Img::from16, _Img::to16 GLPART},
   { ImgFormat::R16G16B16A16_SSCALED,  64, {16, 16, 16, 16}, {_R, _G, _B, _A}, 4, 0, _Img::from16, _Img::to16 GLPART},
   { ImgFormat::R16G16B16A16_UINT,     64, {16, 16, 16, 16}, {_R, _G, _B, _A}, 4, 0, _Img::from16, _Img::to16 GLPART},
   { ImgFormat::R16G16B16A16_SINT,     64, {16, 16, 16, 16}, {_R, _G, _B, _A}, 4, 0, _Img::from16, _Img::to16 GLPART},
-  { ImgFormat::R16G16B16A16_SFLOAT,   64, {16, 16, 16, 16}, {_R, _G, _B, _A}, 4, 0, null, null GLPART},
+  { ImgFormat::R16G16B16A16_SFLOAT,   64, {16, 16, 16, 16}, {_R, _G, _B, _A}, 4, 0, nullptr, nullptr GLPART},
 
   { ImgFormat::R32_UINT,              32, {32, 0, 0, 0}, {_R, _G, _B, _A}, 1, 0, _Img::from32, _Img::to32 GLPART},
   { ImgFormat::R32_SINT,              32, {32, 0, 0, 0}, {_R, _G, _B, _A}, 1, 0, _Img::from32, _Img::to32 GLPART},
-  { ImgFormat::R32_SFLOAT,            32, {32, 0, 0, 0}, {_R, _G, _B, _A}, 1, 0, null, null GLPART},
+  { ImgFormat::R32_SFLOAT,            32, {32, 0, 0, 0}, {_R, _G, _B, _A}, 1, 0, nullptr,      nullptr    GLPART},
   { ImgFormat::R32G32_UINT,           64, {32, 32, 0, 0}, {_R, _G, _B, _A}, 2, 0, _Img::from32, _Img::to32 GLPART},
   { ImgFormat::R32G32_SINT,           64, {32, 32, 0, 0}, {_R, _G, _B, _A}, 2, 0, _Img::from32, _Img::to32 GLPART},
-  { ImgFormat::R32G32_SFLOAT,         64, {32, 32, 0, 0}, {_R, _G, _B, _A}, 2, 0, null, null GLPART},
+  { ImgFormat::R32G32_SFLOAT,         64, {32, 32, 0, 0}, {_R, _G, _B, _A}, 2, 0, nullptr, nullptr GLPART},
   { ImgFormat::R32G32B32_UINT,        96, {32, 32, 32, 0}, {_R, _G, _B, _A}, 3, 0, _Img::from32, _Img::to32 GLPART},
   { ImgFormat::R32G32B32_SINT,        96, {32, 32, 32, 0}, {_R, _G, _B, _A}, 3, 0, _Img::from32, _Img::to32 GLPART},
-  { ImgFormat::R32G32B32_SFLOAT,      96, {32, 32, 32, 0}, {_R, _G, _B, _A}, 3, 0, null, null GLPART},
+  { ImgFormat::R32G32B32_SFLOAT,      96, {32, 32, 32, 0}, {_R, _G, _B, _A}, 3, 0, nullptr, nullptr GLPART},
   { ImgFormat::R32G32B32A32_UINT,     128, {32, 32, 32, 32}, {_R, _G, _B, _A}, 4, 0, _Img::from32, _Img::to32 GLPART},
   { ImgFormat::R32G32B32A32_SINT,     128, {32, 32, 32, 32}, {_R, _G, _B, _A}, 4, 0, _Img::from32, _Img::to32 GLPART},
-  { ImgFormat::R32G32B32A32_SFLOAT,   128, {32, 32, 32, 32}, {_R, _G, _B, _A}, 4, 0, null, null GLPART},
+  { ImgFormat::R32G32B32A32_SFLOAT,   128, {32, 32, 32, 32}, {_R, _G, _B, _A}, 4, 0, nullptr, nullptr GLPART},
 
   { ImgFormat::R64_UINT,              64, {64, 0, 0, 0}, {_R, _G, _B, _A}, 1, 0, _Img::from64, _Img::to64 GLPART},
   { ImgFormat::R64_SINT,              64, {64, 0, 0, 0}, {_R, _G, _B, _A}, 1, 0, _Img::from64, _Img::to64 GLPART},
-  { ImgFormat::R64_SFLOAT,            64, {64, 0, 0, 0}, {_R, _G, _B, _A}, 1, 0, null, null GLPART},
+  { ImgFormat::R64_SFLOAT,            64, {64, 0, 0, 0}, {_R, _G, _B, _A}, 1, 0, nullptr, nullptr GLPART},
   { ImgFormat::R64G64_UINT,           128, {64, 64, 0, 0}, {_R, _G, _B, _A}, 2, 0, _Img::from64, _Img::to64 GLPART},
   { ImgFormat::R64G64_SINT,           128, {64, 64, 0, 0}, {_R, _G, _B, _A}, 2, 0, _Img::from64, _Img::to64 GLPART},
-  { ImgFormat::R64G64_SFLOAT,         128, {64, 64, 0, 0}, {_R, _G, _B, _A}, 2, 0, null, null GLPART},
+  { ImgFormat::R64G64_SFLOAT,         128, {64, 64, 0, 0}, {_R, _G, _B, _A}, 2, 0, nullptr, nullptr GLPART},
   { ImgFormat::R64G64B64_UINT,        192, {64, 64, 64, 0}, {_R, _G, _B, _A}, 3, 0, _Img::from64, _Img::to64 GLPART},
   { ImgFormat::R64G64B64_SINT,        192, {64, 64, 64, 0}, {_R, _G, _B, _A}, 3, 0, _Img::from64, _Img::to64 GLPART},
-  { ImgFormat::R64G64B64_SFLOAT,      192, {64, 64, 64, 0}, {_R, _G, _B, _A}, 3, 0, null, null GLPART},
+  { ImgFormat::R64G64B64_SFLOAT,      192, {64, 64, 64, 0}, {_R, _G, _B, _A}, 3, 0, nullptr, nullptr GLPART},
   { ImgFormat::R64G64B64A64_UINT,     256, {64, 64, 64, 64}, {_R, _G, _B, _A}, 4, 0, _Img::from64, _Img::to64 GLPART},
   { ImgFormat::R64G64B64A64_SINT,     256, {64, 64, 64, 64}, {_R, _G, _B, _A}, 4, 0, _Img::from64, _Img::to64 GLPART},
-  { ImgFormat::R64G64B64A64_SFLOAT,   256, {64, 64, 64, 64}, {_R, _G, _B, _A}, 4, 0, null, null GLPART},
+  { ImgFormat::R64G64B64A64_SFLOAT,   256, {64, 64, 64, 64}, {_R, _G, _B, _A}, 4, 0, nullptr, nullptr GLPART},
 
-  { ImgFormat::B10G11R11_UFLOAT_PACK32, 32, {10, 11, 11, 0}, {_B, _G, _R, _A}, 3, 0, null, null GLPART},
-  { ImgFormat::E5B9G9R9_UFLOAT_PACK32,  32, {5,  9,  9,  9}, {_A, _B, _G, _R}, 4, 0, null, null GLPART},
+  { ImgFormat::B10G11R11_UFLOAT_PACK32, 32, {10, 11, 11, 0}, {_B, _G, _R, _A}, 3, 0, nullptr, nullptr GLPART},
+  { ImgFormat::E5B9G9R9_UFLOAT_PACK32,  32, {5,  9,  9,  9}, {_A, _B, _G, _R}, 4, 0, nullptr, nullptr GLPART},
   // depth/stencil
-  { ImgFormat::D16_UNORM,               16, {16, 0, 0, 0}, {_R, _G, _B, _A}, 1, 0, null, null GLPART},
-  { ImgFormat::X8_D24_UNORM_PACK32,     32, {24, 0, 0, 0}, {_R, _G, _B, _A}, 1, 0, null, null GLPART},
-  { ImgFormat::D32_SFLOAT,              32, {32, 0, 0, 0}, {_R, _G, _B, _A}, 1, 0, null, null GLPART},
-  { ImgFormat::S8_UINT,                 8,  {8, 0, 0, 0},  {_R, _G, _B, _A}, 1, 0, null, null GLPART},
-  { ImgFormat::D16_UNORM_S8_UINT,       24, {16, 8, 0, 0}, {_R, _G, _B, _A}, 2, 0, null, null GLPART},
-  { ImgFormat::D24_UNORM_S8_UINT,       32, {24, 8, 0, 0}, {_R, _G, _B, _A}, 2, 0, null, null GLPART},
-  { ImgFormat::D32_SFLOAT_S8_UINT,      40, {32, 8, 0, 0}, {_R, _G, _B, _A}, 2, 0, null, null GLPART},
+  { ImgFormat::D16_UNORM,               16, {16, 0, 0, 0}, {_R, _G, _B, _A}, 1, 0, nullptr, nullptr GLPART},
+  { ImgFormat::X8_D24_UNORM_PACK32,     32, {24, 0, 0, 0}, {_R, _G, _B, _A}, 1, 0, nullptr, nullptr GLPART},
+  { ImgFormat::D32_SFLOAT,              32, {32, 0, 0, 0}, {_R, _G, _B, _A}, 1, 0, nullptr, nullptr GLPART},
+  { ImgFormat::S8_UINT,                 8,  {8, 0, 0, 0},  {_R, _G, _B, _A}, 1, 0, nullptr, nullptr GLPART},
+  { ImgFormat::D16_UNORM_S8_UINT,       24, {16, 8, 0, 0}, {_R, _G, _B, _A}, 2, 0, nullptr, nullptr GLPART},
+  { ImgFormat::D24_UNORM_S8_UINT,       32, {24, 8, 0, 0}, {_R, _G, _B, _A}, 2, 0, nullptr, nullptr GLPART},
+  { ImgFormat::D32_SFLOAT_S8_UINT,      40, {32, 8, 0, 0}, {_R, _G, _B, _A}, 2, 0, nullptr, nullptr GLPART},
   // BC1-7 compressed
-  { ImgFormat::BC1_RGB_UNORM_BLOCK,   0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 3, 1, null, null GLPART},
-  { ImgFormat::BC1_RGB_SRGB_BLOCK,    0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 3, 1, null, null GLPART},
-  { ImgFormat::BC1_RGBA_UNORM_BLOCK,  0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::BC1_RGBA_SRGB_BLOCK,   0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::BC2_UNORM_BLOCK,       0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::BC2_SRGB_BLOCK,        0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::BC3_UNORM_BLOCK,       0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::BC3_SRGB_BLOCK,        0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::BC4_UNORM_BLOCK,       0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 1, 1, null, null GLPART},
-  { ImgFormat::BC4_SNORM_BLOCK,       0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 1, 1, null, null GLPART},
-  { ImgFormat::BC5_UNORM_BLOCK,       0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 2, 1, null, null GLPART},
-  { ImgFormat::BC5_SNORM_BLOCK,       0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 2, 1, null, null GLPART},
-  { ImgFormat::BC6H_UFLOAT_BLOCK,     0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 3, 1, null, null GLPART},
-  { ImgFormat::BC6H_SFLOAT_BLOCK,     0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 3, 1, null, null GLPART},
-  { ImgFormat::BC7_UNORM_BLOCK,       0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::BC7_SRGB_BLOCK,        0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
+  { ImgFormat::BC1_RGB_UNORM_BLOCK,   0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 3, 1, nullptr, nullptr GLPART},
+  { ImgFormat::BC1_RGB_SRGB_BLOCK,    0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 3, 1, nullptr, nullptr GLPART},
+  { ImgFormat::BC1_RGBA_UNORM_BLOCK,  0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::BC1_RGBA_SRGB_BLOCK,   0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::BC2_UNORM_BLOCK,       0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::BC2_SRGB_BLOCK,        0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::BC3_UNORM_BLOCK,       0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::BC3_SRGB_BLOCK,        0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::BC4_UNORM_BLOCK,       0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 1, 1, nullptr, nullptr GLPART},
+  { ImgFormat::BC4_SNORM_BLOCK,       0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 1, 1, nullptr, nullptr GLPART},
+  { ImgFormat::BC5_UNORM_BLOCK,       0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 2, 1, nullptr, nullptr GLPART},
+  { ImgFormat::BC5_SNORM_BLOCK,       0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 2, 1, nullptr, nullptr GLPART},
+  { ImgFormat::BC6H_UFLOAT_BLOCK,     0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 3, 1, nullptr, nullptr GLPART},
+  { ImgFormat::BC6H_SFLOAT_BLOCK,     0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 3, 1, nullptr, nullptr GLPART},
+  { ImgFormat::BC7_UNORM_BLOCK,       0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::BC7_SRGB_BLOCK,        0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
   // ETC2 compressed
-  { ImgFormat::ETC2_R8G8B8_UNORM_BLOCK,   0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 3, 1, null, null GLPART},
-  { ImgFormat::ETC2_R8G8B8_SRGB_BLOCK,    0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 3, 1, null, null GLPART},
-  { ImgFormat::ETC2_R8G8B8A1_UNORM_BLOCK, 0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::ETC2_R8G8B8A1_SRGB_BLOCK,  0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::ETC2_R8G8B8A8_UNORM_BLOCK, 0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::ETC2_R8G8B8A8_SRGB_BLOCK,  0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
+  { ImgFormat::ETC2_R8G8B8_UNORM_BLOCK,   0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 3, 1, nullptr, nullptr GLPART},
+  { ImgFormat::ETC2_R8G8B8_SRGB_BLOCK,    0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 3, 1, nullptr, nullptr GLPART},
+  { ImgFormat::ETC2_R8G8B8A1_UNORM_BLOCK, 0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::ETC2_R8G8B8A1_SRGB_BLOCK,  0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::ETC2_R8G8B8A8_UNORM_BLOCK, 0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::ETC2_R8G8B8A8_SRGB_BLOCK,  0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
   // EAC compressed
-  { ImgFormat::EAC_R11_UNORM_BLOCK,     0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 1, 1, null, null GLPART},
-  { ImgFormat::EAC_R11_SNORM_BLOCK,     0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 1, 1, null, null GLPART},
-  { ImgFormat::EAC_R11G11_UNORM_BLOCK,  0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 2, 1, null, null GLPART},
-  { ImgFormat::EAC_R11G11_SNORM_BLOCK,  0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 2, 1, null, null GLPART},
+  { ImgFormat::EAC_R11_UNORM_BLOCK,     0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 1, 1, nullptr, nullptr GLPART},
+  { ImgFormat::EAC_R11_SNORM_BLOCK,     0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 1, 1, nullptr, nullptr GLPART},
+  { ImgFormat::EAC_R11G11_UNORM_BLOCK,  0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 2, 1, nullptr, nullptr GLPART},
+  { ImgFormat::EAC_R11G11_SNORM_BLOCK,  0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 2, 1, nullptr, nullptr GLPART},
   // ASTC compressed
-  { ImgFormat::ASTC_4x4_UNORM_BLOCK,    0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::ASTC_4x4_SRGB_BLOCK,     0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::ASTC_5x4_UNORM_BLOCK,    0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::ASTC_5x4_SRGB_BLOCK,     0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::ASTC_5x5_UNORM_BLOCK,    0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::ASTC_5x5_SRGB_BLOCK,     0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::ASTC_6x5_UNORM_BLOCK,    0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::ASTC_6x5_SRGB_BLOCK,     0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::ASTC_6x6_UNORM_BLOCK,    0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::ASTC_6x6_SRGB_BLOCK,     0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::ASTC_8x5_UNORM_BLOCK,    0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::ASTC_8x5_SRGB_BLOCK,     0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::ASTC_8x6_UNORM_BLOCK,    0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::ASTC_8x6_SRGB_BLOCK,     0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::ASTC_8x8_UNORM_BLOCK,    0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::ASTC_8x8_SRGB_BLOCK,     0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::ASTC_10x5_UNORM_BLOCK,   0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::ASTC_10x5_SRGB_BLOCK,    0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::ASTC_10x6_UNORM_BLOCK,   0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::ASTC_10x6_SRGB_BLOCK,    0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::ASTC_10x8_UNORM_BLOCK,   0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::ASTC_10x8_SRGB_BLOCK,    0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::ASTC_10x10_UNORM_BLOCK,  0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::ASTC_10x10_SRGB_BLOCK,   0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::ASTC_12x10_UNORM_BLOCK,  0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::ASTC_12x10_SRGB_BLOCK,   0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::ASTC_12x12_UNORM_BLOCK,  0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
-  { ImgFormat::ASTC_12x12_SRGB_BLOCK,   0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, null, null GLPART},
+  { ImgFormat::ASTC_4x4_UNORM_BLOCK,    0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::ASTC_4x4_SRGB_BLOCK,     0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::ASTC_5x4_UNORM_BLOCK,    0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::ASTC_5x4_SRGB_BLOCK,     0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::ASTC_5x5_UNORM_BLOCK,    0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::ASTC_5x5_SRGB_BLOCK,     0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::ASTC_6x5_UNORM_BLOCK,    0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::ASTC_6x5_SRGB_BLOCK,     0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::ASTC_6x6_UNORM_BLOCK,    0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::ASTC_6x6_SRGB_BLOCK,     0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::ASTC_8x5_UNORM_BLOCK,    0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::ASTC_8x5_SRGB_BLOCK,     0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::ASTC_8x6_UNORM_BLOCK,    0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::ASTC_8x6_SRGB_BLOCK,     0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::ASTC_8x8_UNORM_BLOCK,    0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::ASTC_8x8_SRGB_BLOCK,     0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::ASTC_10x5_UNORM_BLOCK,   0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::ASTC_10x5_SRGB_BLOCK,    0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::ASTC_10x6_UNORM_BLOCK,   0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::ASTC_10x6_SRGB_BLOCK,    0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::ASTC_10x8_UNORM_BLOCK,   0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::ASTC_10x8_SRGB_BLOCK,    0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::ASTC_10x10_UNORM_BLOCK,  0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::ASTC_10x10_SRGB_BLOCK,   0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::ASTC_12x10_UNORM_BLOCK,  0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::ASTC_12x10_SRGB_BLOCK,   0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::ASTC_12x12_UNORM_BLOCK,  0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
+  { ImgFormat::ASTC_12x12_SRGB_BLOCK,   0, {0, 0, 0, 0}, {_R, _G, _B, _A}, 4, 1, nullptr, nullptr GLPART},
 
   { ImgFormat::CMAP_RGB,                24, {8, 8, 8, 0}, {_R, _G, _B, _A}, 3, 0, _Img::fromCMAP_8, _Img::toCMAP_8 GLPART},
   { ImgFormat::CMAP_RGBA,               32, {8, 8, 8, 8}, {_R, _G, _B, _A}, 4, 0, _Img::fromCMAP_8, _Img::toCMAP_8 GLPART},
 
   // terminator
-  { ImgFormat::UNDEFINED,             0,  {0, 0, 0, 0}, {_R, _G, _B, _A}, 0, 0, null, null GLPART}
+  { ImgFormat::UNDEFINED,             0,  {0, 0, 0, 0}, {_R, _G, _B, _A}, 0, 0, nullptr, nullptr GLPART}
   #undef _R
   #undef _G
   #undef _B
@@ -774,10 +779,10 @@ _Img _imgClassPrivateConstructor;
 
 
 Img::Img() {
-  bitmap= null;
-  cmap= null;
+  bitmap= nullptr;
+  cmap= nullptr;
   _wrap= false;
-  wrapBitmap= null;
+  wrapBitmap= nullptr;
 
   err= 0;
   
@@ -787,15 +792,15 @@ Img::Img() {
 
 void Img::delData() {
   if(_wrap) {
-    if(*wrapBitmap) delete[] (int8 *)*wrapBitmap;
-    *wrapBitmap= null;
-    bitmap= null;
+    if(*wrapBitmap) delete[] (int8_t *)*wrapBitmap;
+    *wrapBitmap= nullptr;
+    bitmap= nullptr;
    
   } else {
     if(bitmap)
-      delete[] (int8 *)bitmap;
-    bitmap= null;
-    wrapBitmap= null;
+      delete[] (int8_t *)bitmap;
+    bitmap= nullptr;
+    wrapBitmap= nullptr;
   }
   
   fileName.delData();
@@ -806,7 +811,7 @@ void Img::delData() {
   nchannels= bpc[0]= bpc[1]= bpc[2]= bpc[3]= 0;
   compressed= false;
 
-  if(cmap) { delete[] cmap; cmap= null; }
+  if(cmap) { delete[] cmap; cmap= nullptr; }
   //cmapBpp= 0;
   
   //hasTrnCol= false;
@@ -820,10 +825,10 @@ void Img::delData() {
 
 
 
-void Img::wrap(void **p, uint32 _dx, uint32 _dy, ImgFormat t) {
+void Img::wrap(void **p, uint32_t _dx, uint32_t _dy, ImgFormat t) {
   delData();
-  bitmap= (uint8 *)*p;
-  wrapBitmap= (uint8 **)p;
+  bitmap= (uint8_t *)*p;
+  wrapBitmap= (uint8_t **)p;
   if(_dx) dx= _dx;
   if(_dy) dy= _dy;
   if(t== ImgFormat::UNDEFINED) {
@@ -837,8 +842,8 @@ void Img::wrap(void **p, uint32 _dx, uint32 _dy, ImgFormat t) {
 
 void Img::stopWrapping() {
   _wrap= false;
-  wrapBitmap= null;
-  bitmap= null;
+  wrapBitmap= nullptr;
+  bitmap= nullptr;
 
   delData();
 }
@@ -866,16 +871,16 @@ inline bool Img::_checkVars(Img *p) {
 #define IMAGE_IDX(x,y) (((x)+(y)*width)*components)
 #define NIMAGE_IDX(x,y) (((x)+(y)*newWidth)*components)
 
-void *Img::resample2(void *image, uint32 width, uint32 height, uint32 components, uint32 &err) {
-  uint32 newWidth, newHeight;
-  uint8 *newPtr, *ptr;
+void *Img::resample2(void *image, uint32_t width, uint32_t height, uint32_t components, uint32_t &err) {
+  uint32_t newWidth, newHeight;
+  uint8_t *newPtr, *ptr;
   
   if(width < 1 || height < 1 || components < 1 || components > 4 || image == NULL) {
     err = 14;	// invalid input
     return NULL;
   }
 
-  ptr = (uint8 *)image;
+  ptr = (uint8_t *)image;
   
   if(width > 2)
     newWidth = width / 2;
@@ -887,25 +892,25 @@ void *Img::resample2(void *image, uint32 width, uint32 height, uint32 components
   else
     newHeight = 1;
 
-  newPtr = new uint8[newWidth * newHeight * components];
+  newPtr = new uint8_t[newWidth * newHeight * components];
   if(newPtr == NULL)
   {
     err = 12; // not enough memory
     return NULL;
   }
 
-  for(uint32 i = 0; i < newWidth; i++) {
-    for(uint32 j = 0; j < newHeight; j++) {
+  for(uint32_t i = 0; i < newWidth; i++) {
+    for(uint32_t j = 0; j < newHeight; j++) {
       int nidx = NIMAGE_IDX(i, j);
         
-      uint32 idx1 = IMAGE_IDX((i* 2)%    width, (j* 2)%    height);
-      uint32 idx2 = IMAGE_IDX((i* 2)%    width, (j* 2+ 1)% height);
-      uint32 idx3 = IMAGE_IDX((i* 2+ 1)% width, (j* 2+ 1)% height);
-      uint32 idx4 = IMAGE_IDX((i* 2+ 1)% width, (j* 2)%    height);
+      uint32_t idx1 = IMAGE_IDX((i* 2)%    width, (j* 2)%    height);
+      uint32_t idx2 = IMAGE_IDX((i* 2)%    width, (j* 2+ 1)% height);
+      uint32_t idx3 = IMAGE_IDX((i* 2+ 1)% width, (j* 2+ 1)% height);
+      uint32_t idx4 = IMAGE_IDX((i* 2+ 1)% width, (j* 2)%    height);
 
-      for(uint32 k = 0; k < components; k++){
-        uint64 x = ((uint64)ptr[idx1 + k] + (uint64)ptr[idx2 + k] + (uint64)ptr[idx3 + k] + (uint64)ptr[idx4 + k])/ 4;
-        newPtr[k+ nidx] = (uint8)x;
+      for(uint32_t k = 0; k < components; k++){
+        uint64_t x = ((uint64_t)ptr[idx1 + k] + (uint64_t)ptr[idx2 + k] + (uint64_t)ptr[idx3 + k] + (uint64_t)ptr[idx4 + k])/ 4;
+        newPtr[k+ nidx] = (uint8_t)x;
       }
     }
   }
@@ -920,7 +925,7 @@ bool Img::areSizesPowerOfTwo() {
        by= (dy? false: true),
        bd= (depth? false: true);
 
-  for(uint a= 1, b= 0; b< 20; b++, a*= 2) { /// 1,048,576 max size (2^20)
+  for(unsigned int a= 1, b= 0; b< 20; b++, a*= 2) { /// 1,048,576 max size (2^20)
     if(dx== a) bx= true;        /// width
     if(dy== a) by= true;        /// height
     if(depth== a) bd= true;     /// depth must be POT too
@@ -933,7 +938,7 @@ bool Img::areSizesPowerOfTwo() {
 }
 
 
-bool Img::loadPalette(cchar *name, uint8 in_bpp) {
+bool Img::loadPalette(const char *name, uint8_t in_bpp) {
   if((in_bpp!= 32) && (in_bpp!= 24))
     return false;
 
@@ -941,12 +946,12 @@ bool Img::loadPalette(cchar *name, uint8 in_bpp) {
   if(!f) { err= 8; return false; }
 
   if(cmap) delete[] cmap;
-  uint32 n= 256* (in_bpp/ 8); /// cmap size in bytes, based on the file Bpp
-  cmap= new uint8[n];
+  uint32_t n= 256* (in_bpp/ 8); /// cmap size in bytes, based on the file Bpp
+  cmap= new uint8_t[n];
 
   if(fread(cmap, n, 1, f)!= 1) {
     delete[] cmap;
-    cmap= null;
+    cmap= nullptr;
     fclose(f);
     err= 9;
     return false;
@@ -958,7 +963,7 @@ bool Img::loadPalette(cchar *name, uint8 in_bpp) {
 }
 
 
-bool Img::savePalette(cchar *name) {
+bool Img::savePalette(const char *name) {
   int cmapBpp;
   if(format== ImgFormat::CMAP_RGB) cmapBpp= 24;
   else if(format== ImgFormat::CMAP_RGBA) cmapBpp= 32;
@@ -976,7 +981,7 @@ bool Img::savePalette(cchar *name) {
 
 
 
-bool Img::load(cchar *fname) {
+bool Img::load(const char *fname) {
 
   
   // distinguish between a normal file load and a 3D texture load, with multiple files
@@ -1003,7 +1008,7 @@ bool Img::load(cchar *fname) {
 }
 
 
-bool Img::save(cchar *fname, int dummy) {
+bool Img::save(const char *fname, int dummy) {
   str8 s= pointFileExt(fname);
   s.lower();
   
@@ -1013,7 +1018,7 @@ bool Img::save(cchar *fname, int dummy) {
 }
 
 // filename must be a base - first image on disk would be [basename0000.format]
-bool Img::load3D(cchar *in_fn) {
+bool Img::load3D(const char *in_fn) {
   delData();
   err= 0;
   
@@ -1023,8 +1028,8 @@ bool Img::load3D(cchar *in_fn) {
   getFileExt(in_fn, &ext);
   ext2= ext; ext2.lower();        /// ext2 will be the lowercase extension, used to check strings - the filename will be case in linux
 
-  uint len= Str::strlen8(in_fn);
-  fname.d= (char *)new uint8[len+ 4];
+  unsigned int len= Str::strlen8(in_fn);
+  fname.d= (char *)new uint8_t[len+ 4];
 
   /// Img::depth - count how many images the 3D texture has
   for(depth= 0; depth< 10000; depth++) {
@@ -1039,9 +1044,9 @@ bool Img::load3D(cchar *in_fn) {
   if(ext2!= "png" || ext2!= "tga") { err= 14; return false; }
   
   Img t;
-  uint32 bsize= 0;
+  uint32_t bsize= 0;
 
-  for(uint a= 0; a< depth; a++) { /// for each 3D image
+  for(unsigned int a= 0; a< depth; a++) { /// for each 3D image
     sprintf(fname.d, "%s%04d.%s", base.d, a, ext.d);
     if(!t.load(fname)) { delData(); err= t.err; return false; }
       
@@ -1068,24 +1073,24 @@ bool Img::load3D(cchar *in_fn) {
       //trnCol.g= t.trnCol.g;
       //trnCol.b= t.trnCol.b;
       
-      if(packedPixels) bsize= (uint64)(((dx* bpp)/ 8)* dy)* depth;
-      else             bsize= (uint64)((bpp< 8? dx* dy: dx* dy* (bpp/ 8)))* depth;
+      if(packedPixels) bsize= (uint64_t)(((dx* bpp)/ 8)* dy)* depth;
+      else             bsize= (uint64_t)((bpp< 8? dx* dy: dx* dy* (bpp/ 8)))* depth;
 
       if(_wrap) {
-        *wrapBitmap= new uint8[bsize];
+        *wrapBitmap= new uint8_t[bsize];
         bitmap= *wrapBitmap;
       } else
-        bitmap=      new uint8[bsize];
+        bitmap=      new uint8_t[bsize];
 
     } /// first time alloc / var populate
 
-    Str::memcpy((uint8 *)bitmap+ (bsize* a), t.bitmap, bsize);
+    Str::memcpy((uint8_t *)bitmap+ (bsize* a), t.bitmap, bsize);
   } /// for each 3D image
   return true;
 }
 
 
-bool Img::save3D(cchar *in_fn) {
+bool Img::save3D(const char *in_fn) {
   if(depth<= 1) { err= 2; return false; }
   if(!bitmap) { err= 1; return false; }
   err= 0;
@@ -1096,8 +1101,8 @@ bool Img::save3D(cchar *in_fn) {
   getFileExt(in_fn, &ext);
   ext2= ext; ext2.lower();
   if(ext2!= "png" || ext2!= "tga") { err= 14; return false; }
-  uint len= (uint)Str::strlen8(in_fn);
-  fname.d= (char *)new uint8[len+ 4];
+  unsigned int len= (unsigned int)Str::strlen8(in_fn);
+  fname.d= (char *)new uint8_t[len+ 4];
 
   /// update this-> fileName and fileType
   fileName= in_fn;
@@ -1120,25 +1125,25 @@ bool Img::save3D(cchar *in_fn) {
   //i.trnCol.b= trnCol.b;
   i.packedPixels= packedPixels;
 
-  uint64 bsize;
-  if(packedPixels) bsize= (uint64)((dx* bpp)/ 8)* dy;
-  else             bsize= (uint64)(bpp< 8? dx* dy: dx* dy* (bpp/ 8));
+  uint64_t bsize;
+  if(packedPixels) bsize= (uint64_t)((dx* bpp)/ 8)* dy;
+  else             bsize= (uint64_t)(bpp< 8? dx* dy: dx* dy* (bpp/ 8));
 
 
-  for(uint a= 0; a< depth; a++) {
+  for(unsigned int a= 0; a< depth; a++) {
     sprintf(fname.d, "%s%04d.%s", base.d, a, ext.d);
-    i.bitmap= (uint8 *)bitmap+ bsize* a;
-    if(!i.save(fname)) { err= i.err; i.bitmap= null; return false; }
+    i.bitmap= (uint8_t *)bitmap+ bsize* a;
+    if(!i.save(fname)) { err= i.err; i.bitmap= nullptr; return false; }
   }
 
-  i.bitmap= null;
+  i.bitmap= nullptr;
   return true;
 }
 
 
-uint32 Img::mipmapGetMaxLevels(Img *i) {
-  uint32 a= 1;
-  for(uint b= MAX(MAX(i->dx, i->dy), i->depth); b!= 1; b/= 2)
+uint32_t Img::mipmapGetMaxLevels(Img *i) {
+  uint32_t a= 1;
+  for(unsigned int b= MAX(MAX(i->dx, i->dy), i->depth); b!= 1; b/= 2)
     a++;
   return a;
 }
@@ -1163,7 +1168,7 @@ void Img::computePixelInfo(ImgFormat in_f) {
 
 void Img::_set(ImgFormat in_f) {
   _Img::_FormatData *fd= _Img::_FormatData::get(in_f);
-  if(fd== null) return;
+  if(fd== nullptr) return;
 
   format= in_f;
   bpc[0]= fd->bpc[0];
@@ -1180,7 +1185,7 @@ void Img::_set(ImgFormat in_f) {
 
 
 
-cchar *Img::getError() {
+const char *Img::getError() {
   if(err== 0)  return "OK - No errors";
   if(err== 1)  return "Image internal data error";
   if(err== 2)  return "Image size error";
@@ -1245,8 +1250,8 @@ bool Img::convert(ImgFormat in_newFormat){
   _Img::_FormatData *newFormat= _Img::_FormatData::get(in_newFormat);
   if(oldFormat== newFormat) return true;
 
-  if(oldFormat->_fromFunc== null) { err= 14; return false; }
-  if(newFormat->_toFunc== null) { err= 14; return false; }
+  if(oldFormat->_fromFunc== nullptr) { err= 14; return false; }
+  if(newFormat->_toFunc== nullptr) { err= 14; return false; }
 
   void *oldBitmap= (_wrap? *wrapBitmap: bitmap);
   //ImgFormat oldFormat= format;
@@ -1259,36 +1264,36 @@ bool Img::convert(ImgFormat in_newFormat){
   computePixelInfo();      /// compute the new bpp, bpc and nchannels, based on the new image type
 
   /// image line size in bytes, 1 byte added if needed
-  uint64 oldLineSize= ((dx* oldFormat->bpp)% 8? (dx* oldFormat->bpp)/ 8+ 1: (dx* oldFormat->bpp)/ 8);
-  uint64 lineSize=    ((dx* bpp   )% 8? (dx* bpp   )/ 8+ 1: (dx* bpp   )/ 8);
+  uint64_t oldLineSize= ((dx* oldFormat->bpp)% 8? (dx* oldFormat->bpp)/ 8+ 1: (dx* oldFormat->bpp)/ 8);
+  uint64_t lineSize=    ((dx* bpp   )% 8? (dx* bpp   )/ 8+ 1: (dx* bpp   )/ 8);
 
   /// new bitmap alloc
   if(!_wrap)
-    bitmap= new uint8[lineSize* dy];
+    bitmap= new uint8_t[lineSize* dy];
   else {
-    *wrapBitmap= new uint8[lineSize* dy];
+    *wrapBitmap= new uint8_t[lineSize* dy];
     bitmap= *wrapBitmap;
   }
 
   /// pass thru all pixels and convert them
-  for(uint32 a= 0; a< dy; a++)          /// for each dy - image line
-    for(uint32 b= 0; b< dx; b++) {      /// for each dx - pixel on line a
+  for(uint32_t a= 0; a< dy; a++)          /// for each dy - image line
+    for(uint32_t b= 0; b< dx; b++) {      /// for each dx - pixel on line a
       _Img::RGBAconv pixel;                   /// will hold the pixel value, for the transfer between oldBitmap - newBitmap
     
-      uint32 srcBytePos= (b* (uint32)oldFormat->bpp)/ 8;
-      uint8 srcBitPos= (uint8)(uint32)((b* (uint32)oldFormat->bpp)% 8);
-      oldFormat->_fromFunc((uint8 *)oldBitmap+ a* oldLineSize+ srcBytePos, oldFormat, srcBitPos, &pixel);
+      uint32_t srcBytePos= (b* (uint32_t)oldFormat->bpp)/ 8;
+      uint8_t srcBitPos= (uint8_t)(uint32_t)((b* (uint32_t)oldFormat->bpp)% 8);
+      oldFormat->_fromFunc((uint8_t *)oldBitmap+ a* oldLineSize+ srcBytePos, oldFormat, srcBitPos, &pixel);
 
-      uint32 dstBytePos= (b* (uint32)bpp)/ 8;
-      uint8 dstBitPos= (uint8)(uint32)((b* (uint32)bpp)% 8);
-      newFormat->_toFunc(&pixel, (uint8 *)bitmap+ a* lineSize+ dstBytePos, newFormat, dstBitPos);
+      uint32_t dstBytePos= (b* (uint32_t)bpp)/ 8;
+      uint8_t dstBitPos= (uint8_t)(uint32_t)((b* (uint32_t)bpp)% 8);
+      newFormat->_toFunc(&pixel, (uint8_t *)bitmap+ a* lineSize+ dstBytePos, newFormat, dstBitPos);
     }
 
   _updateWrap(this);
 
   /// dealloc old bitmap
   if(oldBitmap)
-    delete[] (uint8 *)oldBitmap;
+    delete[] (uint8_t *)oldBitmap;
   
   return true;
 }
@@ -1327,35 +1332,35 @@ bool Img::packPixels() {
     return false;
   }
 
-  uint8 *oldBitmap= (uint8 *)(_wrap? *wrapBitmap: bitmap);
+  uint8_t *oldBitmap= (uint8_t *)(_wrap? *wrapBitmap: bitmap);
 
   /// image line size in bytes, 1 byte added if needed
-  //uint64 oldLineSize= dx* nchannels;
-  uint64 lineSize= ((dx* bpp)% 8? ((dx* bpp)/ 8)+ 1: (dx* bpp)/ 8);
+  //uint64_t oldLineSize= dx* nchannels;
+  uint64_t lineSize= ((dx* bpp)% 8? ((dx* bpp)/ 8)+ 1: (dx* bpp)/ 8);
 
   /// new bitmap alloc
   if(!_wrap)
-    bitmap= new uint8[lineSize* dy];
+    bitmap= new uint8_t[lineSize* dy];
   else {
-    *wrapBitmap= new uint8[lineSize* dy];
+    *wrapBitmap= new uint8_t[lineSize* dy];
     bitmap= *wrapBitmap;
   }
 
-  uint16 n= 0;
-  uint8 nbit= 0;
-  //uint8 *p= (uint8 *)bitmap; *p= 0;
-  uint8 *p= (uint8 *)oldBitmap;
-  uint8 *p8;
-  uint16 *p16;
+  uint16_t n= 0;
+  uint8_t nbit= 0;
+  //uint8_t *p= (uint8_t *)bitmap; *p= 0;
+  uint8_t *p= (uint8_t *)oldBitmap;
+  uint8_t *p8;
+  uint16_t *p16;
 
   // actual packing done in next part; some splitting was done to eliminate further checks per pixel
 
   // less than 8bpp formats, 1 channel only (weird cmaps)
   if(bpp< 8 && nchannels== 1) {
 
-    p8= (uint8 *)bitmap; *p8= 0; // clear initial byte
+    p8= (uint8_t *)bitmap; *p8= 0; // clear initial byte
 
-    for(uint32 a= dx* dy; a> 0; a--, n++) {
+    for(uint32_t a= dx* dy; a> 0; a--, n++) {
         *p+= oldBitmap[n]<< (8- bpp- nbit);
         nbit+= bpp;
 
@@ -1370,8 +1375,8 @@ bool Img::packPixels() {
   // 8bpp formats
   } else if(bpc[0]+ bpc[1]+ bpc[2]+ bpc[3]== 8) {
 
-    p8= (uint8 *)bitmap;
-    for(uint32 a= dx* dy; a> 0; a--, p+= nchannels)
+    p8= (uint8_t *)bitmap;
+    for(uint32_t a= dx* dy; a> 0; a--, p+= nchannels)
       *p8=     (p8[0]<< (bpc[1]+ bpc[2]+ bpc[3]))+
       (bpc[1]? (p8[1]<< (bpc[2]+ bpc[3])):     0)+
       (bpc[2]? (p8[2]<<  bpc[3]):              0)+
@@ -1380,12 +1385,12 @@ bool Img::packPixels() {
 
   // 16bpp formats
   } else if(bpc[0]+ bpc[1]+ bpc[2]+ bpc[3]<= 16) {
-    p16= (uint16 *)bitmap;
-    for(uint32 a= dx* dy; a> 0; a--, p+= nchannels)
-      *p16++= (((uint16)p[0])<< (bpc[1]+ bpc[2]+ bpc[3]))+
-     (bpc[1]? (((uint16)p[1])<< (bpc[2]+ bpc[3])):     0)+
-     (bpc[2]? (((uint16)p[2])<< (bpc[3])):             0)+
-     (bpc[3]? (((uint16)p[3])):                        0);
+    p16= (uint16_t *)bitmap;
+    for(uint32_t a= dx* dy; a> 0; a--, p+= nchannels)
+      *p16++= (((uint16_t)p[0])<< (bpc[1]+ bpc[2]+ bpc[3]))+
+     (bpc[1]? (((uint16_t)p[1])<< (bpc[2]+ bpc[3])):     0)+
+     (bpc[2]? (((uint16_t)p[2])<< (bpc[3])):             0)+
+     (bpc[3]? (((uint16_t)p[3])):                        0);
   }
 
   /// dealloc old bitmap
@@ -1415,30 +1420,30 @@ bool Img::unpackPixels() {
     return false;
   }
 
-  uint8 *oldBitmap= (uint8 *)(_wrap? *wrapBitmap: bitmap);
-  uint64 lineSize= dx* nchannels;
+  uint8_t *oldBitmap= (uint8_t *)(_wrap? *wrapBitmap: bitmap);
+  uint64_t lineSize= dx* nchannels;
 
   /// new bitmap alloc
   if(!_wrap)
-    bitmap= new uint8[lineSize* dy];
+    bitmap= new uint8_t[lineSize* dy];
   else {
-    *wrapBitmap= new uint8[lineSize* dy];
+    *wrapBitmap= new uint8_t[lineSize* dy];
     bitmap= *wrapBitmap;
   }
 
-  uint8 nbit= 0;
-  uint8 *p= (uint8 *)bitmap;
-  uint8 *p8;
-  uint16 *p16;
-  uint16 mask[3];
+  uint8_t nbit= 0;
+  uint8_t *p= (uint8_t *)bitmap;
+  uint8_t *p8;
+  uint16_t *p16;
+  uint16_t mask[3];
 
   // less than 8bit formats
   if((bpp< 8) && (nchannels== 1)) {
 
-    p8= (uint8 *)oldBitmap;
+    p8= (uint8_t *)oldBitmap;
     mask[0]= 0xFF>> (8- bpp);  /// [bpp= 1, mask= 1] [bpp=2, mask= 11] [bpp= 4, mask= 1111]
 
-    for(uint32 a= dx* dy; a> 0; a--) {
+    for(uint32_t a= dx* dy; a> 0; a--) {
       *p++= (*p8>> (8- bpp- nbit))& mask[0];
       nbit+= bpp;
       if(nbit== 8)           /// check if reached the end of the byte
@@ -1447,12 +1452,12 @@ bool Img::unpackPixels() {
 
   // 8bit formats
   } else if(bpc[0]+ bpc[1]+ bpc[2]+ bpc[3]== 8) {
-    p8= (uint8 *)oldBitmap;
+    p8= (uint8_t *)oldBitmap;
     mask[0]= 0xFF>> (8- bpc[1]);
     mask[1]= 0xFF>> (8- bpc[2]);
     mask[2]= 0xFF>> (8- bpc[3]);
 
-    for(uint32 a= dx* dy; a> 0; a--, p8++) {
+    for(uint32_t a= dx* dy; a> 0; a--, p8++) {
       *p++= (*p8)>> (bpc[1]+ bpc[2]+ bpc[3]) ;
       if(bpc[1]) *p++= ((*p8)>> (bpc[2]+ bpc[3]))& mask[0];
       if(bpc[2]) *p++= ((*p8)>>  bpc[3])&          mask[1];
@@ -1461,12 +1466,12 @@ bool Img::unpackPixels() {
 
   // 16bit formats
   } else if(bpc[0]+ bpc[1]+ bpc[2]+ bpc[3]<= 16) {
-    p16= (uint16 *)oldBitmap;
+    p16= (uint16_t *)oldBitmap;
     mask[0]= 0xFFFF>> (16- bpc[1]);
     mask[1]= 0xFFFF>> (16- bpc[2]);
     mask[2]= 0xFFFF>> (16- bpc[3]);
 
-    for(uint32 a= dx* dy; a> 0; a--, p16++) {
+    for(uint32_t a= dx* dy; a> 0; a--, p16++) {
       *p++= (*p16)>> (bpc[1]+ bpc[2]+ bpc[3]);
       if(bpc[1]) *p++= ((*p16)>> (bpc[2]+ bpc[3]))& mask[0];
       if(bpc[2]) *p++= ((*p16)>>  bpc[3])&          mask[1];
@@ -1483,7 +1488,7 @@ bool Img::unpackPixels() {
 
 
 
-bool Img::swapChannel(uint8 c1, uint8 c2) {
+bool Img::swapChannel(uint8_t c1, uint8_t c2) {
   err= 0;
   /// error checks
   if(!packedPixels) { err= 4; return false; }
@@ -1492,18 +1497,18 @@ bool Img::swapChannel(uint8 c1, uint8 c2) {
   if(nchannels== 1) return true;  // can't swap same channel
 
   /// tmp vars
-  uint8 *p8= (uint8 *)bitmap;
-  uint16 *p16= (uint16 *)bitmap;
-  uint32 *p32= (uint32 *)bitmap;
-  uint64 *p64= (uint64 *)bitmap;
+  uint8_t *p8= (uint8_t *)bitmap;
+  uint16_t *p16= (uint16_t *)bitmap;
+  uint32_t *p32= (uint32_t *)bitmap;
+  uint64_t *p64= (uint64_t *)bitmap;
   
-  uint32 arr32[4];
-  //uint64 arr64[4];
-  uint32 s32;       /// will be used for channel swapping
-  uint64 s64;       /// will be used for channel swapping
+  uint32_t arr32[4];
+  //uint64_t arr64[4];
+  uint32_t s32;       /// will be used for channel swapping
+  uint64_t s64;       /// will be used for channel swapping
 
   if(format== ImgFormat::R5G6B5_UNORM_PACK16 || format== ImgFormat::B5G6R5_UNORM_PACK16) {
-    for(uint32 a= dx* dy; a> 0; a--, p16++) {
+    for(uint32_t a= dx* dy; a> 0; a--, p16++) {
       arr32[0]= getR565(*p16);
       arr32[1]= getG565(*p16);
       arr32[2]= getB565(*p16);
@@ -1526,7 +1531,7 @@ bool Img::swapChannel(uint8 c1, uint8 c2) {
     } /// for each texel
 
   } else if(format== ImgFormat::R5G5B5A1_UNORM_PACK16 || format== ImgFormat::B5G5R5A1_UNORM_PACK16) {
-    for(uint32 a= dx* dy; a> 0; a--, p16++) {
+    for(uint32_t a= dx* dy; a> 0; a--, p16++) {
       arr32[0]= getR5551(*p16);
       arr32[1]= getG5551(*p16);
       arr32[2]= getB5551(*p16);
@@ -1540,7 +1545,7 @@ bool Img::swapChannel(uint8 c1, uint8 c2) {
     }
 
   } else if(format== ImgFormat::A1R5G5B5_UNORM_PACK16) {
-    for(uint32 a= dx* dy; a> 0; a--, p16++) {
+    for(uint32_t a= dx* dy; a> 0; a--, p16++) {
       arr32[0]= getR1555(*p16);
       arr32[1]= getG1555(*p16);
       arr32[2]= getB1555(*p16);
@@ -1554,7 +1559,7 @@ bool Img::swapChannel(uint8 c1, uint8 c2) {
     }
 
   } else if(format== ImgFormat::R4G4_UNORM_PACK8) {
-    for(uint32 a= dx* dy; a> 0; a--, p8++) {
+    for(uint32_t a= dx* dy; a> 0; a--, p8++) {
       arr32[0]= (*p8)>> 4;
       arr32[1]= (*p8)& 0xF;
 
@@ -1562,7 +1567,7 @@ bool Img::swapChannel(uint8 c1, uint8 c2) {
     }
 
   } else if(format== ImgFormat::R4G4B4A4_UNORM_PACK16 || format== ImgFormat::B4G4R4A4_UNORM_PACK16) {
-    for(uint32 a= dx* dy; a> 0; a--, p16++) {
+    for(uint32_t a= dx* dy; a> 0; a--, p16++) {
       arr32[0]= (*p16)>> 12;
       arr32[1]= ((*p16)>> 8)& 0xF;
       arr32[2]= ((*p16)>> 4)& 0xF;
@@ -1580,28 +1585,28 @@ bool Img::swapChannel(uint8 c1, uint8 c2) {
 
     // 8bpc
     if(bpc[c1]== 8) {
-      for(uint32 a= dx* dy; a> 0; a--, p8+= nchannels)
+      for(uint32_t a= dx* dy; a> 0; a--, p8+= nchannels)
         s32=    p8[c1],
         p8[c1]= p8[c2],
-        p8[c2]= (uint8)s32;
+        p8[c2]= (uint8_t)s32;
 
     // 16 bpc
     } else if(bpc[c1]== 16) {
-      for(uint32 a= dx* dy; a> 0; a--, p16+= nchannels)
+      for(uint32_t a= dx* dy; a> 0; a--, p16+= nchannels)
         s32=     p16[c1],
         p16[c1]= p16[c2],
-        p16[c2]= (uint16)s32;
+        p16[c2]= (uint16_t)s32;
 
     // 32 bpc
     } else if(bpc[c1]== 32) {
-      for(uint32 a= dx* dy; a> 0; a--, p32+= nchannels)
+      for(uint32_t a= dx* dy; a> 0; a--, p32+= nchannels)
         s32=     p32[c1],
         p32[c1]= p32[c2],
         p32[c2]= s32;
 
     // 64 bpc
     } else if(bpc[c1]== 64) {
-      for(uint32 a= dx* dy; a> 0; a--, p64+= nchannels)
+      for(uint32_t a= dx* dy; a> 0; a--, p64+= nchannels)
         s64=     p64[c1],
         p64[c1]= p64[c2],
         p64[c2]= s64;
@@ -2019,7 +2024,7 @@ bool Img::glConvertCompatible() {
   return true;
 }
 
-int32 Img::glGetGlType(Img::Type in_type) {
+int32_t Img::glGetGlType(Img::Type in_type) {
   if(in_type== Type::T_2D) return GL_TEXTURE_2D;
   if(in_type== Type::T_1D) return GL_TEXTURE_1D;
   if(in_type== Type::T_3D) return GL_TEXTURE_3D;
@@ -2027,7 +2032,7 @@ int32 Img::glGetGlType(Img::Type in_type) {
 }
 
 
-Img::Type Img::glGetType(int32 in_type) {
+Img::Type Img::glGetType(int32_t in_type) {
   if(in_type== GL_TEXTURE_2D) return Type::T_2D;
   if(in_type== GL_TEXTURE_1D) return Type::T_1D;
   if(in_type== GL_TEXTURE_3D) return Type::T_3D;
@@ -2035,7 +2040,7 @@ Img::Type Img::glGetType(int32 in_type) {
 }
 
 
-int32 Img::glGetGlWrap(Wrap in_wrap) {
+int32_t Img::glGetGlWrap(Wrap in_wrap) {
   if(in_wrap== Wrap::REPEAT)               return GL_REPEAT;
   if(in_wrap== Wrap::MIRRORED_REPEAT)      return GL_MIRRORED_REPEAT;
   if(in_wrap== Wrap::CLAMP_TO_EDGE)        return GL_CLAMP_TO_EDGE;
@@ -2045,7 +2050,7 @@ int32 Img::glGetGlWrap(Wrap in_wrap) {
 }
 
 
-Img::Wrap Img::glGetWrap(int32 in_wrap) {
+Img::Wrap Img::glGetWrap(int32_t in_wrap) {
   if(in_wrap== GL_REPEAT)               return Wrap::REPEAT;
   if(in_wrap== GL_MIRRORED_REPEAT)      return Wrap::MIRRORED_REPEAT;
   if(in_wrap== GL_CLAMP_TO_EDGE)        return Wrap::CLAMP_TO_EDGE;
@@ -2147,7 +2152,7 @@ bool Img::vkConvertCompatible() {
 }
 
 
-uint32 Img::vkGetAspectFromFormat(ImgFormat in_format) {
+uint32_t Img::vkGetAspectFromFormat(ImgFormat in_format) {
   if((in_format>= ImgFormat::D16_UNORM) && (in_format<= ImgFormat::D32_SFLOAT))
     return VK_IMAGE_ASPECT_DEPTH_BIT;
   if(in_format== ImgFormat::S8_UINT)

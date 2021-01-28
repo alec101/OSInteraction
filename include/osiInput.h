@@ -30,6 +30,7 @@
 #define MAX_JOYSTICKS 20          /// nr of maximum joysticks/gamepads/gamewheels, NOT JUST JOYSTICKS
 
 
+
 // --------------============= MOUSE CLASS ============--------------
 ///==================================================================
 class osiMouse {
@@ -95,11 +96,14 @@ private:
   friend class osiInput;
   friend class osinteraction;
   #ifdef OS_WIN
-  friend LRESULT CALLBACK _processMSG(HWND, UINT, WPARAM, LPARAM);
+  //friend LRESULT CALLBACK _processMSG(HWND, UINT, WPARAM, LPARAM);
 
   #ifdef USING_DIRECTINPUT
-  LPDIRECTINPUTDEVICE8 _diDevice;
-  DIMOUSESTATE2 _diStats;
+  void *_diDevice;
+  struct {
+    long lX, lY, lZ;
+    unsigned char rgbButtons[8];
+} _diStats;
   #endif /// USING DIRECT INPUT
 
   #endif /// OS_WIN
@@ -187,7 +191,7 @@ private:
 
   #ifdef OS_WIN  
   #ifdef USING_DIRECTINPUT
-  LPDIRECTINPUTDEVICE8 _diDevice;
+  void *_diDevice;
   #endif /// USING_DIRECTINPUT
   #endif /// OS_WIN
 
@@ -292,11 +296,29 @@ private:
   int16_t _id;                    // windows id (THIS MIGHT BE UNIVERSAL)
   
   #ifdef USING_DIRECTINPUT        // primary
-  friend BOOL CALLBACK _diDevCallback(LPCDIDEVICEINSTANCE, LPVOID);
-  LPDIRECTINPUTDEVICE8 _diDevice;
+  friend BOOL CALLBACK _diDevCallback(void *, void *);
+  void *_diDevice;
   //LPCDIDEVICEINSTANCE diID;       // ID of the device; if a new one is plugged, it will differ from current IDs
-  GUID _diID;                     // ID of the device; if a new one is plugged, it will differ from current IDs
-  DIJOYSTATE2 _diStats;
+  struct _GUID {
+    uint32_t Data1;  uint16_t Data2, Data3;  uint8_t Data4[8];
+  } _diID;                        // ID of the device; if a new one is plugged, it will differ from current IDs
+
+  struct _DIJOYSTATE2 {
+    int32_t  lX, lY, lZ;             // x,y,z-axis position
+    int32_t  lRx, lRy, lRz;          // x,y,z-axis rotation
+    int32_t  rglSlider[2];           // extra axes positions         
+    uint32_t rgdwPOV[4];             // POV directions               
+    uint8_t  rgbButtons[128];        // 128 buttons                  
+    int32_t  lVX, lVY, lVZ;          // x,y,z-axis velocity              
+    int32_t  lVRx, lVRy, lVRz;       // x,y,z-axis angular velocity      
+    int32_t  rglVSlider[2];          // extra axes velocities        
+    int32_t  lAX, lAY, lAZ;          // x,y,z-axis acceleration          
+    int32_t  lARx, lARy, lARz;       // x,y,z-axis angular acceleration  
+    int32_t  rglASlider[2];          // extra axes accelerations     
+    int32_t  lFX, lFY, lFZ;          // x-axis force                 
+    int32_t  lFRx, lFRy, lFRz;       // x-axis torque                
+    int32_t  rglFSlider[2];          // extra axes forces            
+} _diStats;
   #endif /// USING_DIRECTINPUT
 
   #ifdef USING_XINPUT             // secondary, probly main joysticks are using direct input
@@ -501,9 +523,7 @@ struct _Kv {
 // --------------============= INPUT CLASS ============-------------- //
 // ================================================================== //
 
-#ifdef USING_DIRECTINPUT
-BOOL CALLBACK _diDevCallback(LPCDIDEVICEINSTANCE, LPVOID); // no, i did not create this crap, this is direct input 'callback' func
-#endif
+
 
 class osiInput {
 public:
@@ -569,7 +589,7 @@ private:
   #ifdef OS_WIN
   #ifdef USING_DIRECTINPUT
   friend BOOL CALLBACK _diDevCallback(LPCDIDEVICEINSTANCE, LPVOID);
-  LPDIRECTINPUT8 _dInput;
+  void *_dInput;
   #endif
   #endif /// OS_WIN
 
@@ -596,6 +616,7 @@ extern osiInput in;  // only 1 global class
 
 
 #define mPos(_x, _y, _dx, _dy) ((in.m.x>= (_x)) && (in.m.x<= ((_x)+ (_dx))) && (in.m.y>= (_y)) && (in.m.y<= ((_y)+ (_dy))))
+
 
 
 

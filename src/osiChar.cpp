@@ -1,6 +1,14 @@
 #include "osinteraction.h"
 #include "util/typeShortcuts.h"
 
+#ifdef OS_WIN
+  #include <Windows.h>
+  #ifdef OSI_USING_DIRECTINPUT
+    #define DIRECTINPUT_VERSION 0x0800
+    #include OSI_DINPUTINCLUDE
+  #endif /// USING DIRECTINPUT
+#endif /// OS_WIN
+
 /* 
  * keysym2unicode is the same as http://www.cl.cam.ac.uk/~mgk25/ucs/keysym2ucs.c
  * but the list was updated from http://www.cl.cam.ac.uk/~mgk25/ucs/keysyms.txt
@@ -1351,7 +1359,7 @@ void osiKeyboard::_checkAndAddUnicode(uint32_t in_unicode) {
 
 void _Kv::populate() {
   #ifdef OS_WIN
-
+  
   
   if(in.k.mode== 1 || in.k.mode== 2) {
     esc=        VK_ESCAPE;

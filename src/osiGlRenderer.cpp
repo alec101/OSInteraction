@@ -27,8 +27,10 @@ extern void _osiGetOTHERfuncs(osiGlRenderer *);
 bool _osiGetContextFuncs(osiMonitor *, osiGlRenderer *);
 bool _osiCreateFrontBuffer(osiWindow *, osiGlRenderer *);
 bool _osiCreateContext(osiWindow *, osiGlRenderer *);
+
 #ifdef OS_WIN
 osiWindow *_osiCreateTmpWin(osiMonitor *m);
+extern LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam);
 #endif /// OS_WIN
 
 
@@ -178,11 +180,11 @@ osiGlRenderer *osinteraction::glCreateRendererMon(osiMonitor *m) {
   #endif
   rect.bottom= rect.top- 50;
 
-  w._hInstance=     GetModuleHandle(NULL);               /// grab an instance for window
+  w._hInstance=     (uint64_t)GetModuleHandle(NULL);     /// grab an instance for window
   Str::memclr(&wc, sizeof(wc));
   wc.style=         CS_HREDRAW| CS_VREDRAW| CS_OWNDC;    /// Redraw On Size, And Own DC For Window.
   wc.lpfnWndProc=   (WNDPROC) _processMSG;                // _processMSG handles messages
-  wc.hInstance=     w._hInstance;                        /// set the aquired instance
+  wc.hInstance=     (HINSTANCE)w._hInstance;             /// set the aquired instance
   wc.hIcon=         LoadIcon(NULL, IDI_WINLOGO);         /// load default icon
   wc.hCursor=       LoadCursor(NULL, IDC_ARROW);         /// load arrow pointer
   wc.lpszClassName= w.name;                              /// class name... dunno for shure what this is
@@ -195,9 +197,9 @@ osiGlRenderer *osinteraction::glCreateRendererMon(osiMonitor *m) {
   AdjustWindowRectEx(&rect, dwStyle, FALSE, dwExStyle); // Adjust Window To True Requested Size
 
   // Create The Window
-  if (!(w._hWnd= CreateWindowEx(dwExStyle, w.name, w.name, dwStyle, rect.left, rect.top, rect.right- rect.left, rect.bottom- rect.top, NULL, NULL, w._hInstance, NULL))) {
+  if (!(w._hWnd= (uint64_t)CreateWindowEx(dwExStyle, w.name, w.name, dwStyle, rect.left, rect.top, rect.right- rect.left, rect.bottom- rect.top, NULL, NULL, (HINSTANCE)w._hInstance, NULL))) {
     error.simple(func+ "tmp window: Window creation error."); goto Failed; }
-  if (!(w._hDC= GetDC(w._hWnd))) { error.simple(func+ "tmpWindow: Can't create a GL DC"); goto Failed; }
+  if (!(w._hDC= (uint64_t)GetDC((HWND)w._hWnd))) { error.simple(func+ "tmpWindow: Can't create a GL DC"); goto Failed; }
   #endif /// OS_WIN
 
 
@@ -308,12 +310,12 @@ osiWindow *_osiCreateTmpWin(osiMonitor *m) {
   #endif
   rect.bottom= rect.top- 50;
 
-  w->_hInstance=    GetModuleHandle(NULL);                /// grab an instance for window
+  w->_hInstance=    (uint64_t)GetModuleHandle(NULL);      /// grab an instance for window
   wc.style=         CS_HREDRAW | CS_VREDRAW | CS_OWNDC;   /// Redraw On Size, And Own DC For Window.
   wc.lpfnWndProc=   (WNDPROC) _processMSG;                 // _processMSG handles messages
   wc.cbClsExtra=    0;                                    /// no extra
   wc.cbWndExtra=    0;                                    /// no extra
-  wc.hInstance=     w->_hInstance;                        /// set the aquired instance
+  wc.hInstance=     (HINSTANCE)w->_hInstance;             /// set the aquired instance
   wc.hIcon=         LoadIcon(NULL, IDI_WINLOGO);          // load default icon <<<<<<<<<<<<<<<<<<<<<< ICON WORKS MUST BE MADE
   wc.hCursor=       LoadCursor(NULL, IDC_ARROW);          /// load arrow pointer
   wc.hbrBackground= NULL;                                 /// no backgraound required when using opengl
@@ -332,13 +334,13 @@ osiWindow *_osiCreateTmpWin(osiMonitor *m) {
   AdjustWindowRectEx(&rect, dwStyle, FALSE, dwExStyle); // Adjust Window To True Requested Size
 
   // Create The Window
-  if (!(w->_hWnd= CreateWindowEx(
-                dwExStyle,               // Extended Style For The Window
-                w->name,                 // class name           <--- might want a different class name?
-                w->name,                /// window title
-                dwStyle |               /// defined window style
-                WS_CLIPSIBLINGS |       /// Required Window Style ?? not shure
-                WS_CLIPCHILDREN,        /// Required Window Style ?? not shure
+  if (!(w->_hWnd= (uint64_t)CreateWindowEx(
+                dwExStyle,                 // Extended Style For The Window
+                w->name,                   // class name           <--- might want a different class name?
+                w->name,                  /// window title
+                dwStyle |                 /// defined window style
+                WS_CLIPSIBLINGS |         /// Required Window Style ?? not shure
+                WS_CLIPCHILDREN,          /// Required Window Style ?? not shure
                 w->x0,
                 #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
                 osi.display.vyMax- (w->y0+ w->dy- 1),
@@ -346,19 +348,19 @@ osiWindow *_osiCreateTmpWin(osiMonitor *m) {
                 #ifdef OSI_USE_ORIGIN_TOP_LEFT
                 w->y0,
                 #endif
-                rect.right- rect.left,  /// dx
-                rect.bottom- rect.top,  /// dy
-                NULL,                   /// parent window
-                NULL,                   /// no menu
-                w->_hInstance,          /// instance
-                NULL)))                 /// don't pass anything to WM_CREATE
+                rect.right- rect.left,    /// dx
+                rect.bottom- rect.top,    /// dy
+                NULL,                     /// parent window
+                NULL,                     /// no menu
+                (HINSTANCE)w->_hInstance, /// instance
+                NULL)))                   /// don't pass anything to WM_CREATE
   {
     error.simple("tmp window: Window creation error.");
     delete w;
     return null;
   }
 
-  if (!(w->_hDC= GetDC(w->_hWnd))) {                /// get a device context
+  if (!(w->_hDC= (uint64_t)GetDC((HWND)w->_hWnd))) {       /// get a device context
     error.simple("tmpWindow: Can't create a GL DC");
     delete w;
     return null;
@@ -368,20 +370,20 @@ osiWindow *_osiCreateTmpWin(osiMonitor *m) {
   static PIXELFORMATDESCRIPTOR pfd;
 
   /// get the current pixel format index  
-  int pixelf= GetPixelFormat(w->_hDC); 
+  int pixelf= GetPixelFormat((HDC)w->_hDC); 
 
   /// obtain a detailed description of that pixel format  
-  DescribePixelFormat(w->_hDC, pixelf, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
+  DescribePixelFormat((HDC)w->_hDC, pixelf, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
 
   pfd.dwFlags= pfd.dwFlags| PFD_DRAW_TO_WINDOW| PFD_DRAW_TO_BITMAP| PFD_SUPPORT_OPENGL| PFD_STEREO_DONTCARE| PFD_DOUBLEBUFFER; //| PFD_SWAP_EXCHANGE;//| PFD_NEED_PALETTE;
 
-  if (!(PixelFormat= ChoosePixelFormat(w->_hDC, &pfd))) {  /// lots of checks, don't think any needed
+  if (!(PixelFormat= ChoosePixelFormat((HDC)w->_hDC, &pfd))) {  /// lots of checks, don't think any needed
     error.simple("tmpWindow: Can't aquire a PixelFormat");
     delete w;
     return null;
   }
 
-  if(!SetPixelFormat(w->_hDC, PixelFormat, &pfd)) {        /// lots of checks, don't think any needed
+  if(!SetPixelFormat((HDC)w->_hDC, PixelFormat, &pfd)) {        /// lots of checks, don't think any needed
     error.simple("tmpWindow: Can't set PixelFormat");
     delete w;
     return null;
@@ -389,7 +391,7 @@ osiWindow *_osiCreateTmpWin(osiMonitor *m) {
 
   /// create a temporary legacy context that will be used to aquire the func pointers
   osiGlRenderer *r= new osiGlRenderer;
-  r->glContext= wglCreateContext(w->_hDC);
+  r->glContext= wglCreateContext((HDC)w->_hDC);
   if(!r->glContext) {
     error.simple("tmpWindow: Can't create temporary context");
     delete r;
@@ -790,7 +792,7 @@ bool _osiCreateFrontBuffer(osiWindow *w, osiGlRenderer *r) {
   int pfID= 0;
   UINT retNrFormats;
   
-  if(!((PFNWGLCHOOSEPIXELFORMATARBPROC)r->glExt.wglChoosePixelFormatARB)(w->_hDC, pfAtr, null, 1, &pfID, &retNrFormats)) {
+  if(!((PFNWGLCHOOSEPIXELFORMATARBPROC)r->glExt.wglChoosePixelFormatARB)((HDC)w->_hDC, pfAtr, null, 1, &pfID, &retNrFormats)) {
     // try WinGDI ChoosePixelFormat can be done here - this func calls wglChoosePixelFormatARB, nowadays
     /*    
     if (!(PixelFormat= ChoosePixelFormat(w->_hDC, &pfd))) {  /// lots of checks, don't think any needed
@@ -808,10 +810,10 @@ bool _osiCreateFrontBuffer(osiWindow *w, osiGlRenderer *r) {
   }
 
   PIXELFORMATDESCRIPTOR pfd;
-  DescribePixelFormat(w->_hDC, pfID, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
+  DescribePixelFormat((HDC)w->_hDC, pfID, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
   // Setting the pixel format of a window more than once can lead to significant complications
   //   for the Window Manager and for multithread applications, so it is not allowed.
-  if(!SetPixelFormat(w->_hDC, pfID, &pfd)) return false;
+  if(!SetPixelFormat((HDC)w->_hDC, pfID, &pfd)) return false;
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
@@ -893,7 +895,7 @@ bool _osiCreateContext(osiWindow *w, osiGlRenderer *r) {
 
   // requested version < 3.0
   if(osi.settings.glRenderer.minVerMajor< 3) {
-    r->glContext= wglCreateContext(w->_hDC);
+    r->glContext= wglCreateContext((HDC)w->_hDC);
     if(osi.settings.glRenderer.shareGroup)
       wglShareLists(osi.settings.glRenderer.shareGroup->glContext, r->glContext);
     
@@ -917,7 +919,7 @@ bool _osiCreateContext(osiWindow *w, osiGlRenderer *r) {
       attr[n++]= WGL_CONTEXT_FLAGS_ARB; attr[n++]= WGL_CONTEXT_DEBUG_BIT_ARB; }
     attr[n]= 0;
         
-    r->glContext= ((PFNWGLCREATECONTEXTATTRIBSARBPROC)r->glExt.wglCreateContextAttribsARB)(w->_hDC, (osi.settings.glRenderer.shareGroup? osi.settings.glRenderer.shareGroup->glContext: NULL), attr);
+    r->glContext= ((PFNWGLCREATECONTEXTATTRIBSARBPROC)r->glExt.wglCreateContextAttribsARB)((HDC)w->_hDC, (osi.settings.glRenderer.shareGroup? osi.settings.glRenderer.shareGroup->glContext: NULL), attr);
     if(!r->glContext) return false;
   }
   #endif /// OS_WIN

@@ -185,11 +185,13 @@ public:
   bool operator!=(const char32_t c) const   { return !(operator==(c)); }
   bool operator!=(char *s) const { return !(operator==((const char *)s)); }
     
-
-#ifdef OS_WIN // osinteraction for LPCSTR convertion
+  /*
+  #ifdef OS_WIN // osinteraction for LPCSTR convertion
   inline operator WCHAR*() { return (WCHAR *)convert16(); }
   inline str8 &operator= (const WCHAR *s) { return operator= ((char16_t *)s); }
-#endif /// OS_WIN
+  #endif /// OS_WIN
+  */
+
   private:
     //bool _changed;
 };

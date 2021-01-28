@@ -1,4 +1,5 @@
 #include "osinteraction.h"
+#include <stdio.h>
 #include "util/typeShortcuts.h"
 #include "util/fileOp.h"
 
@@ -22,7 +23,7 @@ void fileReadWordOrWordsInQuotes(FILE *f, str8 *out_string) {
 
 
 
-bool readLine8(FILE *f, str8 *out_str) {
+bool readLine8(void *f, str8 *out_str) {
   uint8 c;
   if(out_str== null) return false;
   if(f== null) { out_str->delData(); return false; }
@@ -33,7 +34,7 @@ bool readLine8(FILE *f, str8 *out_str) {
 
     int32 a= 0;
     for(; a< out_str->wrapSize- 1; ++a) {
-      if(!fread(&c, 1, 1, f)) break;
+      if(!fread(&c, 1, 1, (FILE *)f)) break;
       if(c== 0) break;
       out_str->d[a]= c;
       if(c== '\n') { ++a; break; }
@@ -49,7 +50,7 @@ bool readLine8(FILE *f, str8 *out_str) {
 
     /// checkout how big the line is
     while(1) {
-      if(!fread(&c, 1, 1, f)) break;
+      if(!fread(&c, 1, 1, (FILE *)f)) break;
       size++;
       if((c== '\n') || (c== 0)) break;
     }
@@ -60,7 +61,7 @@ bool readLine8(FILE *f, str8 *out_str) {
     // read the text
     uint8 *p= new uint8[size+ 1];
     osi.fseek64(f, start, SEEK_SET);
-    fread(p, 1, size, f);
+    fread(p, 1, size, (FILE *)f);
     p[size]= 0;                           /// str terminator
 
     /// returned string
@@ -75,7 +76,7 @@ bool readLine8(FILE *f, str8 *out_str) {
 
 
 
-bool readLine16(FILE *f, str16 *out_str) {
+bool readLine16(void *f, str16 *out_str) {
   if((f== null) || (out_str== null)) return false;
 
   int64 start= osi.ftell64(f);
@@ -85,7 +86,7 @@ bool readLine16(FILE *f, str16 *out_str) {
 
   /// checkout how big the line is
   while(1) {
-    if(!fread(&c, 2, 1, f)) break;
+    if(!fread(&c, 2, 1, (FILE *)f)) break;
     size++;
     if((c== '\n') || (c== 0)) break;
   }
@@ -96,7 +97,7 @@ bool readLine16(FILE *f, str16 *out_str) {
   // read the text
   uint16 *p= new uint16[size+ 1];
   osi.fseek64(f, start, SEEK_SET);
-  fread(p, 2, size, f);
+  fread(p, 2, size, (FILE *)f);
   p[size]= 0;                           /// str terminator
 
   /// returned string
@@ -109,7 +110,7 @@ bool readLine16(FILE *f, str16 *out_str) {
 
 
 
-bool readLine32(FILE *f, str32 *out_str) {
+bool readLine32(void *f, str32 *out_str) {
   if((f== null) || (out_str== null)) return false;
 
   int64 start= osi.ftell64(f);
@@ -119,7 +120,7 @@ bool readLine32(FILE *f, str32 *out_str) {
 
   /// checkout how big the line is
   while(1) {
-    if(!fread(&c, 4, 1, f)) break;
+    if(!fread(&c, 4, 1, (FILE *)f)) break;
     size++;
     if((c== '\n') || (c== 0)) break;
   }
@@ -129,8 +130,8 @@ bool readLine32(FILE *f, str32 *out_str) {
  
   // read the text
   uint32 *p= new uint32[size+ 1];
-  osi.fseek64(f, start, SEEK_SET);
-  fread(p, 4, size, f);
+  osi.fseek64((FILE *)f, start, SEEK_SET);
+  fread(p, 4, size, (FILE *)f);
   p[size]= 0;                           /// str terminator
 
   /// returned string
@@ -141,15 +142,14 @@ bool readLine32(FILE *f, str32 *out_str) {
 }
 
 
-bool readFile(FILE *f, uint8_t **out_buf) {
+bool readFile(void *f, uint8_t **out_buf) {
   if(!f) return false;
-  int64 size= fileRemain(f);
+  int64 size= fileRemain((FILE *)f);
   if(!size) { *out_buf= null; return false; }
 
   *out_buf= new uint8[size+ 7];
-  if(fread(*out_buf, 1, size, f)!= size) {
+  if(fread(*out_buf, 1, size, (FILE *)f)!= size) {
     delete []*out_buf;
-    fclose(f);
     return false;
   }
 
@@ -207,20 +207,20 @@ bool secureRead32(const char *name, str32 *out_str) {
 }
 
 
-int64_t fileSize(FILE *f) {
-  int64 pos= osi.ftell64(f);
-  osi.fseek64(f, 0, SEEK_END);
-  int64 size= osi.ftell64(f);
-  osi.fseek64(f, pos, SEEK_SET);
+int64_t fileSize(void *in_FILE) {
+  int64 pos= osi.ftell64(in_FILE);
+  osi.fseek64(in_FILE, 0, SEEK_END);
+  int64 size= osi.ftell64(in_FILE);
+  osi.fseek64(in_FILE, pos, SEEK_SET);
   return size;
 }
 
 
-int64_t fileRemain(FILE *f) {
-  int64 pos= osi.ftell64(f);
-  osi.fseek64(f, 0, SEEK_END);
-  int64 size= osi.ftell64(f)- pos;
-  osi.fseek64(f, pos, SEEK_SET);
+int64_t fileRemain(void *in_FILE) {
+  int64 pos= osi.ftell64(in_FILE);
+  osi.fseek64(in_FILE, 0, SEEK_END);
+  int64 size= osi.ftell64(in_FILE)- pos;
+  osi.fseek64(in_FILE, pos, SEEK_SET);
   return size;
 }
 

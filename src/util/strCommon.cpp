@@ -2921,7 +2921,7 @@ int32_t Str::insert16(char16_t **out_str, char32_t in_unicode, int32_t in_pos) {
   if(in_pos>= 0)
     while(in_pos-- && *p1) {
       *p2++= *p1++;
-      if(Str::isLowSurrogate(*p1))      /// copy next int16 too, if this is a (low) surrogate
+      if(Str::isLowSurrogate(*p1))      /// copy next int16_t too, if this is a (low) surrogate
         *p2++= *p1++;
     }
 
@@ -3069,7 +3069,7 @@ int32_t Str::insertStr16(char16_t **out_str, const char16_t *in_str, int32_t n, 
   if(in_pos>= 0 && p1)
     while(in_pos-- && *p1) {
       *p2++= *p1++;                 /// copy & advance pointers
-      if(Str::isLowSurrogate(*p1))  /// copy next int16 too, if this is a (low) surrogate
+      if(Str::isLowSurrogate(*p1))  /// copy next int16_t too, if this is a (low) surrogate
         *p2++= *p1++;
     }
 
@@ -3226,7 +3226,7 @@ int32_t Str::del8(char **out_str, int32_t in_nUnicodesToDel, int32_t in_pos) {
 int32_t Str::del16(char16_t **out_str, int32_t in_nUnicodesToDel, int32_t in_pos) {
   int32_t l1= strlen16(*out_str);
   uint16_t *p1= (uint16_t *)*out_str, *p2;
-  int32_t cutStart= 0, cutAmount= 0;          /// cut values (number in int16's)
+  int32_t cutStart= 0, cutAmount= 0;          /// cut values (number in int16_t's)
 
   if(in_nUnicodesToDel<= 0|| !*p1) return l1; /// basic checks, for quick return
 
@@ -3255,7 +3255,7 @@ int32_t Str::del16(char16_t **out_str, int32_t in_nUnicodesToDel, int32_t in_pos
     /// back away each unicode until in_nUnicodesToDel is satisfied
     while(in_nUnicodesToDel--) {
       cutStart--, p1--, cutAmount++;
-      if(isLowSurrogate(*p1))             /// back away another int16 if this char is made of 2 int16 (2 surrogates)
+      if(isLowSurrogate(*p1))             /// back away another int16_t if this char is made of 2 int16_t (2 surrogates)
         cutStart--, p1--, cutAmount++;
     }
 
@@ -3385,7 +3385,7 @@ int32_t Str::insert8static(char *out_buf, int32_t in_bufSize, char32_t in_unicod
 
 
 // <out_buf>- output buffer, it must be preallocated, no mem allocs happen in this func
-// <in_bufSize>- [REQUIRED] out_buf's size, in int16 units;
+// <in_bufSize>- [REQUIRED] out_buf's size, in int16_t units;
 // <in_unicode>- unicode value to insert;
 // <in_pos>- insert position (selected unicode value at position is moved to the right);
 //           if left -1, unicode is inserted at the end of the string;
@@ -3417,7 +3417,7 @@ int32_t Str::insert16static(char16_t *out_buf, int32_t in_bufSize, char32_t in_u
 
 
 // <out_buf>- output buffer, it must be preallocated, no mem allocs happen in this func
-// <in_bufSize>- [REQUIRED] out_buf's size, in int32 units;
+// <in_bufSize>- [REQUIRED] out_buf's size, in int32_t units;
 // <in_unicode>- unicode value to insert;
 // <in_pos>- insert position (selected unicode value at position is moved to the right);
 //           if left -1, unicode is inserted at the end of the string;
@@ -3462,7 +3462,7 @@ int32_t Str::insertStr8static(char *out_buf, int32_t in_bufSize, const char *in_
   /// string must fit inside the buffer - if it doesn't, whatever is possible to insert is inserted
   if(n1+ n2> in_bufSize) {
     /// pass thru in_str, try to find out how many characters would fit in the new string
-    for(p1= (uint8 *)in_str; *p1; ) {
+    for(p1= (uint8_t *)in_str; *p1; ) {
       int32_t n= Str::utf8headerBytes(*p1);
       if(n1+ n2+ n<= in_bufSize)  /// character fits
         n2+= n, p1+= n;
@@ -3485,7 +3485,7 @@ int32_t Str::insertStr8static(char *out_buf, int32_t in_bufSize, const char *in_
     *p1--= *p2--;
 
   // string insert
-  int32 n= n2;
+  int32_t n= n2;
   p1= (uint8_t *)in_str;
   while(n--)
     *insertPoint++= *p1++;
@@ -3509,9 +3509,9 @@ int32_t Str::insertStr16static(char16_t *out_buf, int32_t in_bufSize, const char
   if((n1+ n2)/ 2> in_bufSize) {
     /// pass thru in_str, try to find out how many characters would fit in the new string
     p1= (uint16_t *)in_str;
-    int16 i1= n1/ 2, i2= 0;         /// better to use these than convert from byte->int16 every pass of the loop
+    int16_t i1= n1/ 2, i2= 0;         /// better to use these than convert from byte->int16_t every pass of the loop
     while(*p1) {
-      int32 n= isHighSurrogate(*p1)? 2: 1;
+      int32_t n= isHighSurrogate(*p1)? 2: 1;
       if(i1+ i2+ n<= in_bufSize)    /// character fits
         i2+= n, p1+= n;
       else                          /// doesn't fit, end of added string
@@ -3534,7 +3534,7 @@ int32_t Str::insertStr16static(char16_t *out_buf, int32_t in_bufSize, const char
     *p1--= *p2--;
 
   // string insert
-  int32 n= n2/ 2;
+  int32_t n= n2/ 2;
   while(n--)
     *insertPoint++= *in_str++;
 
@@ -3543,7 +3543,7 @@ int32_t Str::insertStr16static(char16_t *out_buf, int32_t in_bufSize, const char
 
 
 // <out_buf>   - output buffer, it must be preallocated, no mem allocs happen in this func
-// <in_bufSize>- [REQUIRED] out_buf's size, in int32 units;
+// <in_bufSize>- [REQUIRED] out_buf's size, in int32_t units;
 // <in_str>    - NULL terminated string that is to be inserted in out_buf
 // <n>         - number of unicodes to insert; when -1 (default), will insert the whole string
 // <in_pos>    - insert position (in unicodes); when -1 (default), position is at end of string
@@ -3572,7 +3572,7 @@ int32_t Str::insertStr32static(char32_t *out_buf, int32_t in_bufSize, const char
     *p1--= *p2--;
 
   // string insert
-  int32 n= n2;
+  int32_t n= n2;
   while(n--)
     *insertPoint++= *in_str++;
 
@@ -3672,7 +3672,7 @@ int32_t Str::del16static(char16_t *out_buf, int32_t in_nUnicodesToDel, int32_t i
     /// back away each unicode until in_nUnicodesToDel is satisfied
     while(in_nUnicodesToDel--) {
       cutStart--, p1--, cutAmount++;
-      if(isLowSurrogate(*p1))             /// back away another int16 if this char is made of 2 int16 (2 surrogates)
+      if(isLowSurrogate(*p1))             /// back away another int16_t if this char is made of 2 int16_t (2 surrogates)
         cutStart--, p1--, cutAmount++;
     }
 
@@ -3719,7 +3719,7 @@ int32_t Str::del32static(char32_t *out_buf, int32_t in_nUnicodesToDel, int32_t i
       cutStart= 0, cutAmount= (l/ 4)- 1;
   }
   if(cutAmount<= 0) return l;       /// safety check
-  int32 ret= l- (cutAmount* 4);     /// resulting string length in bytes
+  int32_t ret= l- (cutAmount* 4);     /// resulting string length in bytes
   if(ret< 4) return l;              /// safety check
 
   // start cutting - got every variable needed

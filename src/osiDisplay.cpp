@@ -1,13 +1,19 @@
 #include "osinteraction.h"
 #include "util/typeShortcuts.h"
+#include <stdio.h>
+
+#ifdef OS_WIN
+  #include <Windows.h>
+  #ifdef OSI_USING_DIRECT3D
+    #include <d3d9.h>
+  #endif
+#endif
 
 #ifdef OS_LINUX
 #include <X11/extensions/Xinerama.h>
 #endif
 
-#ifdef USING_DIRECT3D
-#include <d3d9.h>
-#endif
+
 
 #ifdef OS_MAC
 /// cocoa uses these, unfortunately...
@@ -27,6 +33,7 @@
 
 //#include <CoreGraphics.framework/headers/CGDirectDisplay.h>
 #endif /// OS_MAC
+
 
 
 /* TODO:
@@ -1159,7 +1166,7 @@ void osiDisplay::populate(bool in_onlyVulkan) {
     #ifdef OSI_BE_CHATTY
     if(chatty)
       for(a= 0; a< n; a++) {
-        printf("%dx%d %d", p[a].dx, monitor[id].res[a].dy , monitor[id].res[a].nrFreq);
+        printf("%dx%d nrFreqs[%d] ", p[a].dx, monitor[id].res[a].dy , monitor[id].res[a].nrFreq);
         for(b= 0; b< p[a].nrFreq; b++)
           printf("%d ", p[a].freq[b]);
         printf("\n");
@@ -1945,7 +1952,7 @@ void _osiPopulateGrCards(osiDisplay *display) {
   display->bGPUinfoAvaibleReason= "Program not using Direct3D";    /// D3D is only used to querry cards, nothing else (oGL is missing this feature, unfortunately)
   #endif
 
-  #ifdef USING_DIRECT3D
+  #ifdef OSI_USING_DIRECT3D
   #ifdef OSI_BE_CHATTY
   if(chatty) printf("Direct3D GPU detection:\n");
   #endif
@@ -2084,7 +2091,7 @@ void _osiPopulateGrCards(osiDisplay *display) {
   if(disList) delete[] disList;
   d3d->Release();
 
-  #endif /// USING_DIRECT3D
+  #endif /// OSI_USING_DIRECT3D
   #endif /// OS_WIN
 
   #ifdef OS_LINUX

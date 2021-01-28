@@ -1,4 +1,27 @@
+#ifndef _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
+#ifdef _WIN32
+#include <SDKDDKVer.h>
+#include <Windows.h>
+#endif
+
+#include <stdio.h>
+
+#ifdef OSI_USE_VKO
+#include "vko/include/vkoPlatform.h"
+#endif
+
 #include "osinteraction.h"
+#ifdef OSI_USING_DIRECTINPUT
+  #define DIRECTINPUT_VERSION 0x0800
+  #include OSI_DINPUTINCLUDE
+#endif
+#ifdef OSI_USING_XINPUT
+  #include OSI_XINPUTINCLUDE
+#endif
+
 #include "util/typeShortcuts.h"
 #include "util/imgClass.h"
 
@@ -142,13 +165,23 @@ _NET_CLOSE_WINDOW
  */
 
 //^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+namespace _osi {
+  #ifdef OS_WIN
+  inline LARGE_INTEGER &timerFreq() { static LARGE_INTEGER _tf; return _tf; }
+  //LARGE_INTEGER timerFreq;
+  char *getWinName(uint64_t in_hwnd);
+  osiWindow *getWin(uint64_t in_hwnd);           // [internal] returns the osiWindow that has the specified HWND
+  #endif
 
+};
 
 #ifdef OS_WIN
 /// NVidia optimus http://developer.download.nvidia.com/devzone/devcenter/gamegraphics/files/OptimusRenderingPolicies.pdf
 extern "C" { _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001; }
 
-#endif
+LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam);                    // wndproc - use checkMSG() to check (it will call this one)
+BOOL CALLBACK monitorData(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData);  // not used atm
+#endif /// OS_WIN
 
 /* SCRAPE
 #ifdef OS_WIN
@@ -242,7 +275,7 @@ osinteraction::osinteraction() {
 
 
   #ifdef OS_WIN
-  QueryPerformanceFrequency(&_timerFreq);   /// read cpu frequency. used for high performance timer (querryPerformanceBlaBla)
+  QueryPerformanceFrequency(&_osi::timerFreq());   /// read cpu frequency. used for high performance timer (querryPerformanceBlaBla)
 
   cmdLine= GetCommandLine();                /// full command line - argc / *argv[] are created from this few lines down
   
@@ -1012,12 +1045,12 @@ bool osinteraction::createWindow(osiWindow *w, osiMonitor *m, const char *name, 
   #endif
   rect.bottom= rect.top+ (w->dy- 1);
 
-  w->_hInstance =   GetModuleHandle(NULL);                /// grab an instance for window
+  w->_hInstance =   (uint64_t)GetModuleHandle(NULL);      /// grab an instance for window
   wc.style=         CS_HREDRAW | CS_VREDRAW | CS_OWNDC;   /// Redraw On Size, And Own DC For Window.
   wc.lpfnWndProc=   (WNDPROC) _processMSG;                 // _processMSG handles messages
   wc.cbClsExtra=    0;                                    /// no extra
   wc.cbWndExtra=    0;                                    /// no extra
-  wc.hInstance=     w->_hInstance;                        /// set the aquired instance
+  wc.hInstance=     (HINSTANCE)w->_hInstance;             /// set the aquired instance
   wc.hIcon=         LoadIcon(NULL, IDI_WINLOGO);          // load default icon <<<<<<<<<<<<<<<<<<<<<< ICON WORKS MUST BE MADE
   wc.hCursor=       LoadCursor(NULL, IDC_ARROW);          /// load arrow pointer
   wc.hbrBackground= NULL;                                 /// no backgraound required when using opengl
@@ -1062,7 +1095,7 @@ bool osinteraction::createWindow(osiWindow *w, osiMonitor *m, const char *name, 
   str8 className= w->name;
 
   // Create The Window
-  if (!(w->_hWnd= CreateWindowEx(
+  if (!(w->_hWnd= (uint64_t)CreateWindowEx(
                 dwExStyle,                         // Extended Style For The Window
                 className,                         // class name           <--- might want a different class name?
                 w->name,                          /// window title
@@ -1078,9 +1111,9 @@ bool osinteraction::createWindow(osiWindow *w, osiMonitor *m, const char *name, 
                 #endif
                 rect.right- rect.left+ 1,         /// dx
                 rect.bottom- rect.top+ 1,         /// dy
-                primWin->_hWnd,                   /// parent window
+                (HWND)primWin->_hWnd,             /// parent window
                 NULL,                             /// no menu
-                w->_hInstance,                    /// instance
+                (HINSTANCE)w->_hInstance,         /// instance
                 NULL)))                           /// don't pass anything to WM_CREATE
   {
     destroyWindow(w);                    // Reset The Display
@@ -1088,14 +1121,14 @@ bool osinteraction::createWindow(osiWindow *w, osiMonitor *m, const char *name, 
     return false;
   }
 
-  if (!(w->_hDC= GetDC(w->_hWnd))) {                /// get a device context
+  if (!(w->_hDC= (uint64_t)GetDC((HWND)w->_hWnd))) {                /// get a device context
     destroyWindow(w);
     error.simple(func+ "Can't create a GL DC");
     return false;
   }
   
   // enable WM_UNICHAR messages - TO BE OR NOT TO BE
-  SendMessage(w->_hWnd, UNICODE_NOCHAR, 0, 0);
+  SendMessage((HWND)w->_hWnd, UNICODE_NOCHAR, 0, 0);
 
 
 
@@ -1111,10 +1144,10 @@ bool osinteraction::createWindow(osiWindow *w, osiMonitor *m, const char *name, 
 
   w->setIcon(iconFile? iconFile: _iconFile.d);
   
-  ShowWindow(w->_hWnd, SW_SHOW);  /// Show The Window
-  SetForegroundWindow(w->_hWnd);  /// Slightly Higher Priority
+  ShowWindow((HWND)w->_hWnd, SW_SHOW);  /// Show The Window
+  SetForegroundWindow((HWND)w->_hWnd);  /// Slightly Higher Priority
 
-  SetFocus(w->_hWnd);             /// Sets Keyboard Focus To The Window
+  SetFocus((HWND)w->_hWnd);             /// Sets Keyboard Focus To The Window
 
   /* REMOVED 2
   if(!glMakeCurrent(w->glr, w)) {
@@ -1396,13 +1429,13 @@ bool osinteraction::createSplashWindow(osiWindow *w, osiMonitor *m, const char *
   #ifdef OS_WIN
   WNDCLASSEX wc;                    /// extended window class, used for window creation
 
-  if(w->_imgBM) DeleteObject(w->_imgBM);
-  if(w->_imgDC) DeleteDC(w->_imgDC);
+  if(w->_imgBM) DeleteObject((HGDIOBJ)w->_imgBM);
+  if(w->_imgDC) DeleteDC((HDC)w->_imgDC);
   w->_imgBM= null;
   w->_imgDC= null;
     
 
-  w->_hInstance = GetModuleHandle(NULL);                  /// grab an instance for window
+  w->_hInstance= (uint64_t)GetModuleHandle(NULL);                  /// grab an instance for window
 
   Str::memclr(&wc, sizeof(wc));
   wc.cbSize= sizeof(WNDCLASSEX);
@@ -1411,7 +1444,7 @@ bool osinteraction::createSplashWindow(osiWindow *w, osiMonitor *m, const char *
   wc.lpfnWndProc= (WNDPROC)_processMSG;
   wc.cbClsExtra= 0;
   wc.cbWndExtra= 0;
-  wc.hInstance= w->_hInstance;
+  wc.hInstance= (HINSTANCE)w->_hInstance;
   wc.hIcon= LoadIcon(NULL, IDI_APPLICATION);
   wc.hCursor= LoadCursor(NULL, IDC_ARROW);
   wc.hbrBackground= 0; // (HBRUSH) CreatePatternBrush(bmp); - bmp would be created using CreateBitmap from bitmap pointer- this variant won't work with alpha i think
@@ -1429,19 +1462,19 @@ bool osinteraction::createSplashWindow(osiWindow *w, osiMonitor *m, const char *
 
 
   className= w->name;
-  w->_hWnd= CreateWindowEx(WS_EX_LAYERED, className, w->name,     /// type & name
-                           WS_VISIBLE| WS_POPUP,                  /// more attribs
-                           w->x0, y0, w->dx, w->dy,               /// position & size
-                           (primWin? primWin->_hWnd: NULL),       /// parent window
-                           NULL, w->_hInstance, NULL);            /// menu/ hInstance/ val to be passed to the window creation- nothing important
+  w->_hWnd= (uint64_t)CreateWindowEx(WS_EX_LAYERED, className, w->name, /// type & name
+                           WS_VISIBLE| WS_POPUP,                        /// more attribs
+                           w->x0, y0, w->dx, w->dy,                     /// position & size
+                           (primWin? (HWND)primWin->_hWnd: NULL),       /// parent window
+                           NULL, (HINSTANCE)w->_hInstance, NULL);       /// menu/ hInstance/ val to be passed to the window creation- nothing important
 
   if(!w->_hWnd)                   { error.simple("osi::createSplashWindow(): CreateWindowEx() failed"); goto Fail; }
-  if(!(w->_hDC= GetDC(w->_hWnd))) { error.simple("osi::createSplashWindow(): GetDC() failed");          goto Fail; }
+  if(!(w->_hDC= (uint64_t)GetDC((HWND)w->_hWnd))) { error.simple("osi::createSplashWindow(): GetDC() failed");          goto Fail; }
   
-  SetLayeredWindowAttributes(w->_hWnd, 0, 0, LWA_COLORKEY); // LWA_COLORKEY / LWA_ALPHA (this just changes global window alpha)
+  SetLayeredWindowAttributes((HWND)w->_hWnd, 0, 0, LWA_COLORKEY); // LWA_COLORKEY / LWA_ALPHA (this just changes global window alpha)
 
   /// create a bitmap - needs a hdc + HBITMAP handle
-  w->_imgDC= CreateCompatibleDC(w->_hDC);
+  w->_imgDC= (uint64_t)CreateCompatibleDC((HDC)w->_hDC);
 
   garbage= (img.dx% 4? 4- (img.dx% 4): 0);        /// bitmap (windows bmp's) scanlines must be divisible by 4, if they ain't, garbage is added at the end
   BITMAPINFO b;
@@ -1456,9 +1489,9 @@ bool osinteraction::createSplashWindow(osiWindow *w, osiMonitor *m, const char *
 
   
 
-  w->_imgBM= CreateDIBSection(w->_imgDC, &b, DIB_RGB_COLORS, (void **)&p, null, 0); /// CreateDIBitmap failed for me, unfortunately, probly there's a way
+  w->_imgBM= (uint64_t)CreateDIBSection((HDC)w->_imgDC, &b, DIB_RGB_COLORS, (void **)&p, null, 0); /// CreateDIBitmap failed for me, unfortunately, probly there's a way
   if(p== null) { error.window("osi::createSplashWindow: CreateDIBSection failed"); goto Fail; }
-  if(!SelectObject(w->_imgDC, w->_imgBM))     { error.window("osi::createSplashWindow: SelectObject() failed"); goto Fail; }
+  if(!SelectObject((HDC)w->_imgDC, (HGDIOBJ)w->_imgBM))     { error.window("osi::createSplashWindow: SelectObject() failed"); goto Fail; }
 
   /// RGBA top to bottom-> BGRA bottom to top
   for(uint32 a= 0; a< img.dy; a++)
@@ -1478,19 +1511,19 @@ bool osinteraction::createSplashWindow(osiWindow *w, osiMonitor *m, const char *
     blend.BlendFlags= 0;
     blend.SourceConstantAlpha= 255;
     blend.AlphaFormat= AC_SRC_ALPHA;
-    if(!GdiAlphaBlend(w->_hDC, 0, 0, (int)w->dx, (int)w->dy, w->_imgDC, 0, 0, (int)img.dx, (int)img.dy, blend)) { error.window("osi::createSplashWindow: GdiAlphaBlend failed"); goto Fail; }
+    if(!GdiAlphaBlend((HDC)w->_hDC, 0, 0, (int)w->dx, (int)w->dy, (HDC)w->_imgDC, 0, 0, (int)img.dx, (int)img.dy, blend)) { error.window("osi::createSplashWindow: GdiAlphaBlend failed"); goto Fail; }
   } else {
-    if(!BitBlt(w->_hDC, 0, 0, (int)img.dx, (int)img.dy, w->_imgDC, 0, 0, SRCCOPY)) { error.simple("osi::createSplashWindow: BitBlt failed"); goto Fail; }
+    if(!BitBlt((HDC)w->_hDC, 0, 0, (int)img.dx, (int)img.dy, (HDC)w->_imgDC, 0, 0, SRCCOPY)) { error.simple("osi::createSplashWindow: BitBlt failed"); goto Fail; }
   }
   
-  ShowWindow(w->_hWnd, SW_SHOW);
+  ShowWindow((HWND)w->_hWnd, SW_SHOW);
   //RedrawWindow(w->_hWnd, 0, 0, RDW_UPDATENOW);
 
   return true;
 
 Fail:
-  if(w->_imgBM) DeleteObject(w->_imgBM);
-  if(w->_imgDC) DeleteDC(w->_imgDC);
+  if(w->_imgBM) DeleteObject((HGDIOBJ)w->_imgBM);
+  if(w->_imgDC) DeleteDC((HDC)w->_imgDC);
   w->delData();
   return false;
   #endif /// OS_WIN
@@ -1731,17 +1764,18 @@ Fail:
 
 
 #ifdef OS_WIN
-char *osinteraction::_getWinName(HWND h) {
+char *_osi::getWinName(uint64_t in_hwnd) {
+//char *osinteraction::_getWinName(uint64_t in_hwnd) {
   for(int a= 0; a< OSI_MAX_WINDOWS; a++)
-    if(win[a]._hWnd== h)
-      return (char *)win[a].name.d;
+    if(osi.win[a]._hWnd== in_hwnd)
+      return (char *)osi.win[a].name.d;
   return (char *)"unknown window";
 }
-
-osiWindow *osinteraction::_getWin(HWND h) {
+osiWindow *_osi::getWin(uint64_t in_hwnd) {
+//osiWindow *osinteraction::_getWin(uint64_t in_hwnd) {
   for(int a= 0; a< OSI_MAX_WINDOWS; a++)
-    if(win[a]._hWnd== h)
-      return &win[a];
+    if(osi.win[a]._hWnd== in_hwnd)
+      return &osi.win[a];
   return null;
 }
 #endif /// OS_WIN
@@ -1763,7 +1797,6 @@ osiWindow *osinteraction::_getWin(void *w) {
   return null;
 }
 #endif /// OS_MAC
-
 
 
 
@@ -1808,7 +1841,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       if(m== WM_MOUSEMOVE) {
         /// removed oldx&y, dx&y, they are updated when in.update() is called; deltas are always on, now.
         /// these are inside window positions
-        if((w= osi._getWin(hWnd))) {         /// i had an instance that a msg from an unknown window was sent, so safety checks must be made
+        if((w= _osi::getWin((uint64_t)hWnd))) {         /// i had an instance that a msg from an unknown window was sent, so safety checks must be made
           in.m.x= ((int32)(int16)LOWORD(lParam));   /// msdn says not to use loword; this is what GET_X_PARAM does
           in.m.y= ((int32)(int16)HIWORD(lParam));
           /// virtual dektop coords
@@ -2047,15 +2080,15 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
         for(short a= 0; a< OSI_MAX_WINDOWS; a++) 
           if(osi.win[a].isCreated)
             if(osi.win[a].mode== 2) {
-              ShowWindow(osi.win[a]._hWnd, SW_RESTORE);
+              ShowWindow((HWND)osi.win[a]._hWnd, SW_RESTORE);
               osi.flags.minimized= false;
-              MoveWindow(osi.win[a]._hWnd, osi.win[a].monitor->x0, osi.win[a].monitor->_y0, osi.win[a].dx, osi.win[a].dy, false);
+              MoveWindow((HWND)osi.win[a]._hWnd, osi.win[a].monitor->x0, osi.win[a].monitor->_y0, osi.win[a].dx, osi.win[a].dy, false);
               #ifdef OSI_BE_CHATTY
               if(chatty) printf("window %d x0[%d] y0[%d] dx[%d] dy[%d]\n", a, osi.win[a].monitor->x0, osi.win[a].monitor->y0, osi.win[a].dx, osi.win[a].dy);
               #endif
             }
         if(osi.primWin)
-        SetForegroundWindow(osi.primWin->_hWnd);
+        SetForegroundWindow((HWND)osi.primWin->_hWnd);
         osi.flags.haveFocus= true;        /// set flag, the last
         
         /// if any HIDs are using exclusive mode, aquire it
@@ -2084,9 +2117,9 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
           if(osi.win[a].isCreated)
             if(osi.win[a].mode== 2) {
               if(&osi.win[a]== osi.primWin) /// main window gets minimized
-                ShowWindow(osi.win[a]._hWnd, SW_MINIMIZE);
+                ShowWindow((HWND)osi.win[a]._hWnd, SW_MINIMIZE);
               else                          /// all other windows must be hidden, else they get minimized into a small box
-                ShowWindow(osi.win[a]._hWnd, SW_HIDE);
+                ShowWindow((HWND)osi.win[a]._hWnd, SW_HIDE);
               osi.flags.minimized= true;
             }
 
@@ -2098,7 +2131,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 
       } /// switch gain/lose focus
       #ifdef OSI_BE_CHATTY
-      if(chatty) printf("WM_ACTIVATEAPP %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, (uint64_t)wParam, (int64_t)lParam);
+      if(chatty) printf("WM_ACTIVATEAPP %s 0x%x %llu %lld\n", _osi::getWinName((uint64_t)hWnd), m, (uint64_t)wParam, (int64_t)lParam);
       #endif
       goto ret;
 
@@ -2116,7 +2149,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 
     case WM_CLOSE:
       #ifdef OSI_BE_CHATTY
-      if(chatty) printf("WM_CLOSE %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, (uint64)wParam, (int64)lParam);
+      if(chatty) printf("WM_CLOSE %s 0x%x %llu %lld\n", _osi::getWinName((uint64_t)hWnd), m, (uint64)wParam, (int64)lParam);
       #endif
       osi.flags.exit= true;     /// main exit flag
       return 0;
@@ -2128,7 +2161,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 
     case WM_CHAR:
       #ifdef OSI_BE_CHATTY
-      if(chatty) printf("WM_CHAR %s %llu\n", osi._getWinName(hWnd), (uint64)wParam);
+      if(chatty) printf("WM_CHAR %s %llu\n", _osi::getWinName((uint64_t)hWnd), (uint64)wParam);
       #endif
 
       in.k._checkAndAddUnicode((uint32)wParam);
@@ -2138,7 +2171,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
     case WM_UNICHAR:
       //error.console("WM_UNICHAR not tested", false, null);
       #ifdef OSI_BE_CHATTY
-      if(chatty) printf("WM_UNICHAR %s %llu\n", osi._getWinName(hWnd), (uint64)wParam);
+      if(chatty) printf("WM_UNICHAR %s %llu\n", _osi::getWinName((uint64_t)hWnd), (uint64)wParam);
       #endif
       in.k._checkAndAddUnicode((uint32)wParam);
       return 0;
@@ -2159,7 +2192,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 
     case WM_MOVE:
       /// hanles normal windows (no fullscreens)
-      if((w= osi._getWin(hWnd)))              /// safety check; 'unknown windows' msgs happened in Win7
+      if((w= _osi::getWin((uint64_t)hWnd)))              /// safety check; 'unknown windows' msgs happened in Win7
         if(w->mode== 1) {
           w->x0= (int32)(int16)LOWORD(lParam);
 
@@ -2175,8 +2208,8 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
       goto ret;
 
     case WM_SIZE:
-      if(wParam== SIZE_RESTORED) {      /// handling only window size change (there are minimize and maximize messages here)
-        if((w= osi._getWin(hWnd)))      /// safety check; 'unknown windows' msgs happened in Win7
+      if(wParam== SIZE_RESTORED) {                /// handling only window size change (there are minimize and maximize messages here)
+        if((w= _osi::getWin((uint64_t)hWnd)))      /// safety check; 'unknown windows' msgs happened in Win7
           if(w->mode== 1) {
             w->dx= LOWORD(lParam),
             w->dy= HIWORD(lParam),
@@ -2185,14 +2218,14 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
             //osi.resizeGLScene(w->dx, w->dy);
           }
       } else if(wParam== SIZE_MAXIMIZED) {
-        if((w= osi._getWin(hWnd)))      /// safety check; 'unknown windows' msgs happened in Win7
+        if((w= _osi::getWin((uint64_t)hWnd)))      /// safety check; 'unknown windows' msgs happened in Win7
           if(w->mode== 1)
             w->dx= LOWORD(lParam),
             w->dy= HIWORD(lParam),
             osi.flags.windowResized= true,
             osi.flags.minimized= false;
       } else if(wParam== SIZE_MINIMIZED) {
-        if((w= osi._getWin(hWnd)))      /// safety check; 'unknown windows' msgs happened in Win7
+        if((w= _osi::getWin((uint64_t)hWnd)))      /// safety check; 'unknown windows' msgs happened in Win7
           if(w->mode== 1)
             w->dx= LOWORD(lParam),
             w->dy= HIWORD(lParam),
@@ -2205,23 +2238,23 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 
 
     case WM_SETFOCUS:         /// focus gained to a window
-      if((w= osi._getWin(hWnd))) w->hasFocus= true;
+      if((w= _osi::getWin((uint64_t)hWnd))) w->hasFocus= true;
       #ifdef OSI_BE_CHATTY
-      if(chatty) printf("WM_SETFOCUS %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, (uint64)wParam, (int64)lParam);
+      if(chatty) printf("WM_SETFOCUS %s 0x%x %llu %lld\n", _osi::getWinName((uint64_t)hWnd), m, (uint64)wParam, (int64)lParam);
       #endif
       goto ret;
 
     case WM_KILLFOCUS:        /// window lost focus
-      if((w= osi._getWin(hWnd))) w->hasFocus= false;
+      if((w= _osi::getWin((uint64_t)hWnd))) w->hasFocus= false;
       #ifdef OSI_BE_CHATTY
-      if(chatty) printf("WM_KILLFOCUS %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, (uint64)wParam, (int64)lParam);
+      if(chatty) printf("WM_KILLFOCUS %s 0x%x %llu %lld\n", _osi::getWinName((uint64_t)hWnd), m, (uint64)wParam, (int64)lParam);
       #endif
       goto ret;
 
     // system commands
     case WM_SYSCOMMAND:
       #ifdef OSI_BE_CHATTY
-      if(chatty) printf("WM_SYSCOMMAND %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, (uint64)wParam, (int64)lParam);
+      if(chatty) printf("WM_SYSCOMMAND %s 0x%x %llu %lld\n", _osi::getWinName((uint64_t)hWnd), m, (uint64)wParam, (int64)lParam);
       #endif
 
       switch (wParam)	{
@@ -2234,7 +2267,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
 				  // return 0;                         /// prevent these from happening by not calling DefWinProc
         case SC_CLOSE:
           #ifdef OSI_BE_CHATTY
-          if(chatty) printf("  SC_CLOSE %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, (uint64)wParam, (int64)lParam);
+          if(chatty) printf("  SC_CLOSE %s 0x%x %llu %lld\n", _osi::getWinName((uint64_t)hWnd), m, (uint64)wParam, (int64)lParam);
           #endif
           osi.flags.exit= true;
           return 0;
@@ -2265,11 +2298,11 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
   #ifdef OSI_BE_CHATTY
   if(chatty&& !onlyHandled)
     switch(m) {
-      case WM_ACTIVATE: if(chatty)   printf("WM_ACTIVATE %s 0x%x %llu %lld\n",   osi._getWinName(hWnd), m, (uint64)wParam, (int64)lParam); goto ret;
-      case WM_ERASEBKGND: if(chatty) printf("WM_ERASEBKGND %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, (uint64)wParam, (int64)lParam); goto ret;
-      case WM_PAINT: if(chatty)      printf("WM_PAINT %s 0x%x %llu %lld\n",      osi._getWinName(hWnd), m, (uint64)wParam, (int64)lParam); goto ret;
-      case WM_NCPAINT: if(chatty)    printf("WM_NCPAINT %s 0x%x %llu %lld\n",    osi._getWinName(hWnd), m, (uint64)wParam, (int64)lParam); goto ret;
-      case WM_NCACTIVATE: if(chatty) printf("WM_NCACTIVATE %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, (uint64)wParam, (int64)lParam); goto ret;
+      case WM_ACTIVATE: if(chatty)   printf("WM_ACTIVATE %s 0x%x %llu %lld\n",   _osi::getWinName((uint64_t)hWnd), m, (uint64)wParam, (int64)lParam); goto ret;
+      case WM_ERASEBKGND: if(chatty) printf("WM_ERASEBKGND %s 0x%x %llu %lld\n", _osi::getWinName((uint64_t)hWnd), m, (uint64)wParam, (int64)lParam); goto ret;
+      case WM_PAINT: if(chatty)      printf("WM_PAINT %s 0x%x %llu %lld\n",      _osi::getWinName((uint64_t)hWnd), m, (uint64)wParam, (int64)lParam); goto ret;
+      case WM_NCPAINT: if(chatty)    printf("WM_NCPAINT %s 0x%x %llu %lld\n",    _osi::getWinName((uint64_t)hWnd), m, (uint64)wParam, (int64)lParam); goto ret;
+      case WM_NCACTIVATE: if(chatty) printf("WM_NCACTIVATE %s 0x%x %llu %lld\n", _osi::getWinName((uint64_t)hWnd), m, (uint64)wParam, (int64)lParam); goto ret;
       case WM_GETICON: if(chatty)    printf("WM_GETICON\n"); goto ret;              /// usually is used when alt-tabbing, gets an icon for the mini alt-tab list
         // WHEN dealing with icons, must remember to develop WM_GETICON too
       case WM_IME_NOTIFY: if(chatty) printf("WM_IME_NOTIFY\n"); goto ret;
@@ -2280,7 +2313,7 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
     } /// switch
 
   if(chatty&& !onlyHandled)
-    printf("UNKNOWN %s 0x%x %llu %lld\n", osi._getWinName(hWnd), m, (uint64)wParam, (int64)lParam);
+    printf("UNKNOWN %s 0x%x %llu %lld\n", _osi::getWinName((uint64_t)hWnd), m, (uint64)wParam, (int64)lParam);
   #endif
   /// this DefWindowProc() handles window movement & resize & rest... without this, moving is not working, for example
 ret:
@@ -2813,12 +2846,13 @@ bool osinteraction::checkMSG() {
   /// set flags down 
   osi.flags.windowResized= false;
   osi.flags.windowMoved= false;
-  
+  MSG _msg;
+
   while(1)    // loop thru ALL msgs... i used to peek thru only 1 msg, that was baaad... biig LAG
-    if(PeekMessage(&primWin->_msg, NULL, 0, 0, PM_REMOVE)) {	// Is There A Message Waiting?
+    if(PeekMessage(&_msg, NULL, 0, 0, PM_REMOVE)) {	// Is There A Message Waiting?
       // eventTime= primWin->_msg.time; // not reliable. 1 sec before getMillisecs(). this time is in the dang future
-      TranslateMessage(&primWin->_msg);
-      DispatchMessage(&primWin->_msg);
+      TranslateMessage(&_msg);
+      DispatchMessage(&_msg);
 
       ret= true;
     } else
@@ -2861,8 +2895,8 @@ void osinteraction::getNanosecs(uint64_t *out) {
 
   uint64 hi= t.QuadPart/ 10000000;
   uint64 lo= t.QuadPart- (hi* 10000000);
-  lo= (lo* 1000000000)/ _timerFreq.QuadPart;
-  hi= (hi* 1000000000)/ _timerFreq.QuadPart;
+  lo= (lo* 1000000000)/ _osi::timerFreq().QuadPart;
+  hi= (hi* 1000000000)/ _osi::timerFreq().QuadPart;
   
   *out= hi* 10000000+ lo;
   #endif /// OS_WIN
@@ -2889,8 +2923,8 @@ void osinteraction::getMicrosecs(uint64_t *out) {
 
   uint64 hi= t.QuadPart/ 10000000;
   uint64 lo= t.QuadPart- (hi* 10000000);
-  hi= (hi* 1000000)/ _timerFreq.QuadPart;
-  lo= (lo* 1000000)/ _timerFreq.QuadPart;
+  hi= (hi* 1000000)/ _osi::timerFreq().QuadPart;
+  lo= (lo* 1000000)/ _osi::timerFreq().QuadPart;
 
   *out= hi* 10000000+ lo;
 
@@ -2912,7 +2946,7 @@ void osinteraction::getMillisecs(uint64_t *out) {
   #ifdef OS_WIN
   LARGE_INTEGER t;
   QueryPerformanceCounter(&t);
-  *out= (t.QuadPart* 1000)/ _timerFreq.QuadPart;
+  *out= (t.QuadPart* 1000)/ _osi::timerFreq().QuadPart;
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
@@ -2952,8 +2986,8 @@ void osinteraction::clocks2nanosecs(uint64_t *out) {
   /// there has to be a split because ((*out)* 1000000000)/ timerFreq.QuadPart reaches uint64 limit
   uint64 hi= *out/ 10000000;
   uint64 lo= *out- (hi* 10000000);
-  lo= (lo* 1000000000)/ _timerFreq.QuadPart;
-  hi= (hi* 1000000000)/ _timerFreq.QuadPart;
+  lo= (lo* 1000000000)/ _osi::timerFreq().QuadPart;
+  hi= (hi* 1000000000)/ _osi::timerFreq().QuadPart;
   
   *out= hi* 10000000+ lo;
   #endif /// OS_WIN
@@ -2973,7 +3007,7 @@ void osinteraction::clocks2nanosecs(uint64_t *out) {
 // WIP - linux problems
 void osinteraction::clocks2microsecs(uint64_t *out) {
   #ifdef OS_WIN
-  *out= (*out* 1000000)/ _timerFreq.QuadPart;
+  *out= (*out* 1000000)/ _osi::timerFreq().QuadPart;
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
@@ -2993,7 +3027,7 @@ void osinteraction::clocks2microsecs(uint64_t *out) {
 // WIP - linux problems
 void osinteraction::clocks2millisecs(uint64_t *out) {
   #ifdef OS_WIN
-  *out= (*out* 1000)/ _timerFreq.QuadPart;
+  *out= (*out* 1000)/ _osi::timerFreq().QuadPart;
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
@@ -3168,32 +3202,32 @@ bool osinteraction::getClipboard(char **out_text) {
 }
   
 // normal fseek cannot operate on files bigger than 2GB
-int osinteraction::fseek64(FILE *in_file, int64_t in_position, int in_origin) {
+int osinteraction::fseek64(void *in_file, int64_t in_position, int in_origin) {
   #ifdef OS_WIN
-  return _fseeki64(in_file, in_position, in_origin);
+  return _fseeki64((FILE *)in_file, in_position, in_origin);
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
-  return fseeko64(in_file, (off64_t)in_position, in_origin);
+  return fseeko64((FILE *)in_file, (off64_t)in_position, in_origin);
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
-  return ::fseeko(in_file, (off_t)in_position, in_origin);
+  return ::fseeko((FILE *)in_file, (off_t)in_position, in_origin);
   #endif /// OS_MAC
 }
 
 // normal ftell cannot operate on files bigger than 2GB
-int64_t osinteraction::ftell64(FILE *in_file) {
+int64_t osinteraction::ftell64(void *in_file) {
   #ifdef OS_WIN
-  return (int64_t)_ftelli64(in_file);
+  return (int64_t)_ftelli64((FILE *)in_file);
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
-  return (int64_t)ftello64(in_file);
+  return (int64_t)ftello64((FILE *)in_file);
   #endif /// OS_LINUX
 
   #ifdef OS_MAC
-  return (int64_t)ftello(in_file);
+  return (int64_t)ftello((FILE *)in_file);
   #endif /// OS_MAC
 }
 
@@ -3317,7 +3351,7 @@ void osinteraction::glSwapPrimaryBuffers() {
 void osinteraction::glSwapBuffers(osiWindow *w) {
   #ifdef OS_WIN
   //SwapBuffers(w->hDC);      /// standard; the wgl one has more possibilities
-  wglSwapLayerBuffers(w->_hDC, WGL_SWAP_MAIN_PLANE);
+  wglSwapLayerBuffers((HDC)w->_hDC, WGL_SWAP_MAIN_PLANE);
   #endif /// OS_WIN
 
   #ifdef OS_LINUX
@@ -3356,7 +3390,7 @@ bool osinteraction::glMakeCurrent(osiRenderer *in_renderer, osiWindow *w) {
 
   #ifdef OS_WIN
   if(r && w) {
-    return wglMakeCurrent(w->_hDC, r->glContext)? true: false;
+    return wglMakeCurrent((HDC)w->_hDC, r->glContext)? true: false;
   } else
     return wglMakeCurrent(null, null)? true: false;
   #endif /// OS_WIN

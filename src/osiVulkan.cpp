@@ -1,3 +1,4 @@
+#include "vko/include/vkoPlatform.h"
 #include "osinteraction.h"
 #include "util/typeShortcuts.h"
 
@@ -42,8 +43,8 @@ bool createSurface(vkObject *in_vk, osiWindow *in_w) {
   s.sType= VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR;
   s.pNext= null;
   s.flags= 0;
-  s.hinstance= in_w->_hInstance;
-  s.hwnd= in_w->_hWnd;
+  s.hinstance= (HINSTANCE)in_w->_hInstance;
+  s.hwnd= (HWND)in_w->_hWnd;
   
   if(in_vk->CreateWin32SurfaceKHR(*in_vk, &s, *in_vk, (VkSurfaceKHR *)&in_w->vkSurface)!= VK_SUCCESS) {
     error.detail("vkCreateWin32SurfaceKHR failed", __FUNCTION__);

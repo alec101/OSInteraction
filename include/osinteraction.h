@@ -4,8 +4,8 @@
 // you can define OSI_USE_OPENGL_LEGACY before including this file, to signal osi to use all the deprecated / legacy / extensions in OpenGL (the old way)
 // you can define OSI_USE_OPENGL_EXOTIC_EXT before including this file, to signal osi to use exotic extensions when in core ARB mode
 
-//#define OSI_USE_OPENGL 1        // <<< enable/disalbe all opengl functionability
-//#define OSI_USE_VKO 1           // <<< enable/disable all Vulkan object functionability
+//#define OSI_USE_OPENGL 1        // <<< enable/disalbe all opengl functionability - best to use a project define for this
+//#define OSI_USE_VKO 1           // <<< enable/disable all Vulkan object functionability - best to use a project define for this
 
 // one of the next must be enabled:
 #define OSI_USE_ORIGIN_TOP_LEFT 1     // <<< coordinate system origin top left, with +y axis going down
@@ -148,62 +148,52 @@ main() {
 #ifdef OS_WIN
 
 // the following can be turned off; just comment the lines; the whole DirectX part can be excluded from build;
-#define USING_DIRECTINPUT                   // <<< [turn on / off] - dinput compatible HIDs
-#define USING_XINPUT                        // <<< [turn on / off] - xinput compatible HIDs
-#define USING_DIRECT3D                      // <<< [turn on / off] - used only for graphics card info (without this, you can't know what monitor is on what card)
+#define OSI_USING_DIRECTINPUT                   // <<< [turn on / off] - dinput compatible HIDs
+#define OSI_USING_XINPUT                        // <<< [turn on / off] - xinput compatible HIDs
+#define OSI_USING_DIRECT3D                      // <<< [turn on / off] - used only for graphics card info (without this, you can't know what monitor is on what card)
 // <<< download directx sdk: http://www.microsoft.com/en-us/download/confirmation.aspx?id=6812 >>>
 
 // the following are directory locations; libraries MUST BE MANUALLY included, if not using visual studio (#pragma lib only works in vstudio)
-#define XINPUTINCLUDE "../extlib/directx/include/XInput.h"    // <<< xinput header file & directory location, if used - manually set this if using other
-#define DINPUTINCLUDE "../extlib/directx/include/dinput.h"    // <<< dinput header file & directory location, if used - manually set this if using other
-#define D3DINCLUDE    "../extlib/directx/include/d3d9.h"      // <<< direct3D9 header file & direcotry location, if used - manually set this if using other
-#define XINPUTLIB32 "../extlib/directx/lib/XInput_32.lib"         // <<< xinput 32bit library file & directory location, if used
-#define XINPUTLIB64 "../extlib/directx/lib/XInput_64.lib"         // <<< xinput 64bit library file & directory location, if used
-#define DINPUTLIB32 "../extlib/directx/lib/dinput8_32.lib"        // <<< dinput 32bit library file & directory location, if used
-#define DINPUTLIB64 "../extlib/directx/lib/dinput8_64.lib"        // <<< dinput 64bit library file & directory location, if used
-#define DXGUIDLIB32 "../extlib/directx/lib/dxguid_32.lib"         // <<< direct input guid 32bit library file & directory location, if dinput is used
-#define DXGUIDLIB64 "../extlib/directx/lib/dxguid_64.lib"         // <<< direct input guid 64bit library file & directory location, if dinput is used
-#define D3D9LIB32   "../extlib/directx/lib/d3d9_32.lib"           // <<< direct3D9 32bit library file & directory location, if it is used
-#define D3D9LIB64   "../extlib/directx/lib/d3d9_64.lib"           // <<< direct3D9 64bit library file & directory location, if it is used
+#define OSI_XINPUTINCLUDE "../extlib/directx/include/XInput.h"    // <<< xinput header file & directory location, if used - manually set this if using other
+#define OSI_DINPUTINCLUDE "../extlib/directx/include/dinput.h"    // <<< dinput header file & directory location, if used - manually set this if using other
+#define OSI_D3DINCLUDE    "../extlib/directx/include/d3d9.h"      // <<< direct3D9 header file & direcotry location, if used - manually set this if using other
 
 // WINDOWS SETTINGS / DIRECTORIES ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #ifndef _CRT_SECURE_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 
-//#ifndef _WIN32_WINNT
-//#define _WIN32_WINNT 0x05010000
-//#endif
 
-//#define WINVER 0x0501
-#include <SDKDDKVer.h>
-#include <Windows.h>
-
-#ifdef USING_DIRECTINPUT
-  #define DIRECTINPUT_VERSION 0x0800
-  #include DINPUTINCLUDE
-  //#pragma comment(lib, DINPUTLIB32)   /// if not using visual studio, this lib must be manually included, if using directinput
-  //#pragma comment(lib, DINPUTLIB64)   /// if not using visual studio, this lib must be manually included, if using directinput
-  //#pragma comment(lib, DXGUIDLIB32)   /// if not using visual studio, this lib must be manually included, if using directinput
-  //#pragma comment(lib, DXGUIDLIB64)   /// if not using visual studio, this lib must be manually included, if using directinput
+// if not using visual studio, these libs must be manually included - #pragma comment is Microsoft/Windows specific
+#ifdef OSI_USING_DIRECTINPUT
+  #if defined(_WIN64) && defined(_MSC_VER)                    // 64bit direct input libs
+  #pragma comment(lib, "../extlib/directx/lib/dinput8_64.lib")
+  #pragma comment(lib, "../extlib/directx/lib/dxguid_64.lib")
+  #else                                                       // 32bit direct input libs
+  #pragma comment(lib, "../extlib/directx/lib/dinput8_32.lib")
+  #pragma comment(lib, "../extlib/directx/lib/dxguid_32.lib")
+  #endif
 #endif
 
-#ifdef USING_XINPUT
-  #include XINPUTINCLUDE
-  //#pragma comment(lib, XINPUTLIB64)   /// if not using visual studio, this lib must be manually included, if using xinput
-  //#pragma comment(lib, XINPUTLIB32)   /// if not using visual studio, this lib must be manually included, if using xinput
+#ifdef OSI_USING_XINPUT
+  #if defined(_WIN64) && defined(_MSC_VER)                    // 64bit xinput lib
+  #pragma comment(lib, "../extlib/directx/lib/XInput_64.lib")
+  #else                                                       // 32bit xinput lib
+  #pragma comment(lib, "../extlib/directx/lib/XInput_32.lib")
+  #endif
 #endif
 
-#ifdef USING_DIRECT3D
-  //#pragma comment(lib, D3D9LIB32)     /// if not using visual studio, this lib must be manually included, if using direct3d
-  //#pragma comment(lib, D3D9LIB64)     /// if not using visual studio, this lib must be manually included, if using direct3d
+#ifdef OSI_USING_DIRECT3D
+  #if defined(_WIN64) && defined(_MSC_VER)                    // 64bit direct3d lib
+  #pragma comment(lib, "../extlib/directx/lib/d3d9_64.lib")
+  #else                                                       // 32bit direct3d lib
+  #pragma comment(lib, "../extlib/directx/lib/d3d9_32.lib")
+  #endif
 #endif /// USING_DIRECT3D
 
 #endif /// OS_WIN
 
 
-// standard libs includes
-#include <stdio.h>
 #include <stdint.h>
 
 
@@ -485,8 +475,8 @@ public:
   void setClipboard(const char *in_text);   // sends text to the clipboard/pasteboard - used for copy/paste operations between programs
   bool getClipboard(char **out_text);       // gets text (if any) from the clipbard/pasteboard - used for copy/paste operations between programs (returned text is null if nothing is there) - DO NOT FORGET TO delete[] THE RETURNED TEXT WHEN DONE
 
-  int fseek64(FILE *, int64_t, int);    // normal fseek cannot operate on files bigger than 2GB
-  int64_t ftell64(FILE *);              // normal ftell cannot operate on files bigger than 2GB
+  int fseek64(void *stdioFILE, int64_t, int);    // normal fseek cannot operate on files bigger than 2GB
+  int64_t ftell64(void *stdioFILE);              // normal ftell cannot operate on files bigger than 2GB
 
   // window creation / deletion
   // this function will not attach any renderer
@@ -591,14 +581,6 @@ public:
   // internals from here on; nothing to bother
 private:
   str8 _iconFile;
-  #ifdef OS_WIN
-
-  LARGE_INTEGER _timerFreq;
-
-  char *_getWinName(HWND h);
-  osiWindow *_getWin(HWND h);           // [internal] returns the osiWindow that has the specified HWND
-  friend LRESULT CALLBACK _processMSG(HWND, UINT, WPARAM, LPARAM);  /// windows processMSG() is outside class
-  #endif /// OS_WIN
 
   #ifdef OS_LINUX
   osiWindow *_getWin(Window *w);       // [internal] returns the osiWindow that has the specified X11 Window *
@@ -618,14 +600,12 @@ private:
   #endif /// OS_MAC
 
   // friending funcs (happy happy joy joy)
-  
   friend bool _osiDoChange(osiMonitor *, osiResolution *, int16_t);
   friend void _osiPopulateGrCards(osiDisplay *);
   friend class osiDisplay;
   friend class osiMouse;
   friend class osiKeyboard;
   friend class osiJoystick;
-  
 };
 
 
@@ -633,10 +613,6 @@ private:
 
 
 
-#ifdef OS_WIN
-LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam); // wndproc - use checkMSG() to check (it will call this one)
-BOOL CALLBACK monitorData(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData);  // not used atm
-#endif /// OS_WIN
 
 #ifdef OS_MAC
 /*extern "C"*/ bool _processMSG(void);   /// declared in OScocoa.mm

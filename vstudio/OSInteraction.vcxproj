@@ -51,11 +51,21 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\src\osiChar.cpp" />
-    <ClCompile Include="..\src\osiDisplay.cpp" />
-    <ClCompile Include="..\src\osiGlExt.cpp" />
-    <ClCompile Include="..\src\osiGlRenderer.cpp" />
-    <ClCompile Include="..\src\osiInput.cpp" />
+    <ClCompile Include="..\src\osiChar.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='vkDebug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\src\osiDisplay.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='vkDebug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\src\osiGlExt.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='vkDebug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\src\osiGlRenderer.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='vkDebug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\src\osiInput.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='vkDebug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="..\src\osinteraction.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='glRelease|Win32'">Create</PrecompiledHeader>
@@ -65,13 +75,17 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='vkRelease|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='glRelease|x64'">Create</PrecompiledHeader>
-      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='vkDebug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='vkDebug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='glDebug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='vkRelease|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="..\src\osiVulkan.cpp" />
-    <ClCompile Include="..\src\osiWindow.cpp" />
+    <ClCompile Include="..\src\osiVulkan.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='vkDebug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="..\src\osiWindow.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='vkDebug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="..\src\util\errorHandling.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='glRelease|Win32'">NotUsing</PrecompiledHeader>
@@ -128,7 +142,9 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='glDebug|x64'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='vkRelease|x64'">NotUsing</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="..\src\util\imgClass.cpp" />
+    <ClCompile Include="..\src\util\imgClass.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='vkDebug|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="..\src\util\mzPacker.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='glRelease|Win32'">NotUsing</PrecompiledHeader>

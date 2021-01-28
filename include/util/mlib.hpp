@@ -1,7 +1,7 @@
 #pragma once
 #define MLIB_INCLUDED 1
-#include "typeShortcuts.h"
 
+#include <stdint.h>
 
 /* TODO:
   - glsl has swizzling: vec3 thirdVec = otherVec.zyy; or thirdVec= otherVec.zyw
@@ -30,19 +30,19 @@ inline float degrees(float radians) { return radians* RAD2DEG; }
 inline float radians(float degrees) { return degrees* DEG2RAD; }
 
 
-inline int64 abs64(int64 n)  { return (n< 0? -n: n); }
-inline int32 abs32(int32 n)  { return (n< 0? -n: n); }
+inline int64_t abs64(int64_t n)  { return (n< 0? -n: n); }
+inline int32_t abs32(int32_t n)  { return (n< 0? -n: n); }
 inline float absf(float n)   { return (n< 0? -n: n); }
 inline double absd(double n) { return (n< 0? -n: n); }
 
 
 //#define cInt(x) ((x)> 0? (((x)- int(x)< 0.5)? int(x): int(x)+ 1) : ((int(x)- (x)< 0.5)? int(x): int(x)- 1))
-inline int32 roundf(float f)  { return (int32)(f> 0.0f? (f+ 0.5f): f- 0.5f); }
-inline int64 roundd(double d) { return (int64)(d> 0.0?  (d+ 0.5):  d- 0.5); }
-inline int32 ceilf(float f)  { return (f>= 0.0f? int32(f)+ 1: int32(f)); }
-inline int64 ceild(double d) { return (d>= 0.0 ? int64(d)+ 1: int64(d)); }
-inline int32 floorf(float f)  { return (f>= 0.0f? (int32)(f): (int32)(f)- 1); }
-inline int64 floord(double f) { return (f>= 0.0 ? (int64)(f): (int64)(f)- 1); }
+inline int32_t roundf(float f)  { return (int32_t)(f> 0.0f? (f+ 0.5f): f- 0.5f); }
+inline int64_t roundd(double d) { return (int64_t)(d> 0.0?  (d+ 0.5):  d- 0.5); }
+inline int32_t ceilf(float f)  { return (f>= 0.0f? int32_t(f)+ 1: int32_t(f)); }
+inline int64_t ceild(double d) { return (d>= 0.0 ? int64_t(d)+ 1: int64_t(d)); }
+inline int32_t floorf(float f)  { return (f>= 0.0f? (int32_t)(f): (int32_t)(f)- 1); }
+inline int64_t floord(double f) { return (f>= 0.0 ? (int64_t)(f): (int64_t)(f)- 1); }
 
 #ifndef MAX
 #define MAX(a, b)   (((a)< (b))? (b): (a))
@@ -65,7 +65,7 @@ inline int64 floord(double f) { return (f>= 0.0 ? (int64)(f): (int64)(f)- 1); }
 // extreem precise
 inline float isqrtfPrecise(float n) {
   float nhalf= n* 0.5f;
-  int32 *i= (int32 *)&n;
+  int32_t *i= (int32_t *)&n;
   *i= 0x5f3759df- (*i>> 1);     // the magic constant
 
   n*= (1.5f- (nhalf* n* n));    // iteration 1 <<< 3.4% error
@@ -78,7 +78,7 @@ inline float isqrtfPrecise(float n) {
 // 0.17% error
 inline float isqrtf(float n) {
   float nhalf= n* 0.5f;
-  int32 *i= (int32 *)&n;
+  int32_t *i= (int32_t *)&n;
   *i= 0x5f3759df- (*i>> 1);     // the magic constant
 
   n*= (1.5f- (nhalf* n* n));    // iteration 1 <<< 3.4% error
@@ -90,7 +90,7 @@ inline float isqrtf(float n) {
 // 3.4% error
 inline float isqrtfFast(float n) {
   float nhalf= n* 0.5f;
-  int32 *i= (int32 *)&n;
+  int32_t *i= (int32_t *)&n;
   *i= 0x5f3759df- (*i>> 1);     // the magic constant
 
   n*= (1.5f- (nhalf* n* n));    // iteration 1 <<< 3.4% error
@@ -250,7 +250,7 @@ vec3 refract(vec3 &v1, vec3 &v2, float eta) {
 // = vec2 =---------------------------------------------------------------------
 ///========
 
-struct ALIGNED(4) vec2 {
+struct alignas(4) vec2 {
   union {
     struct { float x, y; };
     struct { float r, g; };
@@ -375,89 +375,89 @@ inline const vec2 operator/(float n, const vec2 &v) { return vec2(n/ v.x, n/ v.y
 // = vec2i =--------------------------------------------------------------------
 // =========
 
-struct ALIGNED(4) vec2i {
+struct alignas(4) vec2i {
   union {
-    struct { int32 x, y; };
-    struct { int32 r, g; };
-    int32 v[2];
+    struct { int32_t x, y; };
+    struct { int32_t r, g; };
+    int32_t v[2];
   };
   inline int getComponents() { return 2; } /// xy
 
   // constructors
 
-  inline vec2i():                   x(0),    y(0) {}
-  inline vec2i(int32 _x, int32 _y): x(_x),   y(_y)   {}
-  inline vec2i(const int32 *n):     x(n[0]), y(n[1]) {}
-  inline vec2i(int32 n):            x(n),    y(n)    {}
-  inline vec2i(const vec2i &v2):    x(v2.x), y(v2.y) {}
+  inline vec2i():                       x(0),    y(0)    {}
+  inline vec2i(int32_t _x, int32_t _y): x(_x),   y(_y)   {}
+  inline vec2i(const int32_t *n):       x(n[0]), y(n[1]) {}
+  inline vec2i(int32_t n):              x(n),    y(n)    {}
+  inline vec2i(const vec2i &v2):        x(v2.x), y(v2.y) {}
   vec2i(const vec3i &v2);
   //vec2i(const vec4 &v2);
 
   // operators
 
-  inline vec2i &operator=(int32 n)         { x= y= n;          return *this; }
-  inline vec2i &operator=(const int32 *n)  { x= n[0], y= n[1]; return *this; }      /// array with 2 floats
-  inline vec2i &operator=(const vec2i &v2) { x= v2.x, y= v2.y; return *this; }
+  inline vec2i &operator=(int32_t n)        { x= y= n;          return *this; }
+  inline vec2i &operator=(const int32_t *n) { x= n[0], y= n[1]; return *this; }      /// array with 2 floats
+  inline vec2i &operator=(const vec2i &v2)  { x= v2.x, y= v2.y; return *this; }
   vec2i &operator=(const vec3i &v2);
   //vec2i &operator=(const vec4i &v2);
 
-  inline vec2i &operator+=(int32 n)         { x+= n,    y+= n;    return *this; }
-  inline vec2i &operator+=(const int32 *n)  { x+= n[0], y+= n[1]; return *this; }     /// array with 2 floats
-  inline vec2i &operator+=(const vec2i &v2) { x+= v2.x, y+= v2.y; return *this; }
+  inline vec2i &operator+=(int32_t n)        { x+= n,    y+= n;    return *this; }
+  inline vec2i &operator+=(const int32_t *n) { x+= n[0], y+= n[1]; return *this; }     /// array with 2 floats
+  inline vec2i &operator+=(const vec2i &v2)  { x+= v2.x, y+= v2.y; return *this; }
   vec2i &operator+=(const vec3i &v2);
   //vec2i &operator+=(const vec4i &v2);
 
-  inline vec2i &operator-=(int32 n)         { x-= n,    y-= n;    return *this; }
-  inline vec2i &operator-=(const int32 *n)  { x-= n[0], y-= n[1]; return *this; }      /// array with 2 floats
-  inline vec2i &operator-=(const vec2i &v2) { x-= v2.x, y-= v2.y; return *this; }
+  inline vec2i &operator-=(int32_t n)        { x-= n,    y-= n;    return *this; }
+  inline vec2i &operator-=(const int32_t *n) { x-= n[0], y-= n[1]; return *this; }      /// array with 2 floats
+  inline vec2i &operator-=(const vec2i &v2)  { x-= v2.x, y-= v2.y; return *this; }
   vec2i &operator-=(const vec3i &v2);
   //vec2i &operator-=(const vec4i &v2);
 
-  inline vec2i &operator*=(int32 n)         { x*= n,    y*= n;    return *this; }
-  inline vec2i &operator*=(const int32 *n)  { x*= n[0], y*= n[1]; return *this; }     /// array with 2 floats
-  inline vec2i &operator*=(const vec2i &v2) { x*= v2.x, y*= v2.y; return *this; }
+  inline vec2i &operator*=(int32_t n)        { x*= n,    y*= n;    return *this; }
+  inline vec2i &operator*=(const int32_t *n) { x*= n[0], y*= n[1]; return *this; }     /// array with 2 floats
+  inline vec2i &operator*=(const vec2i &v2)  { x*= v2.x, y*= v2.y; return *this; }
   vec2i &operator*=(const vec3i &v2);
   //vec2i &operator*=(const vec4i &v2);
 
-  inline vec2i &operator/=(int32 n)         { x/= n,    y/= n;    return *this; }
-  inline vec2i &operator/=(const int32 *n)  { x/= n[0], y/= n[1]; return *this; }     /// array with 2 floats
-  inline vec2i &operator/=(const vec2i &v2) { x/= v2.x, y/= v2.y; return *this; }
+  inline vec2i &operator/=(int32_t n)        { x/= n,    y/= n;    return *this; }
+  inline vec2i &operator/=(const int32_t *n) { x/= n[0], y/= n[1]; return *this; }     /// array with 2 floats
+  inline vec2i &operator/=(const vec2i &v2)  { x/= v2.x, y/= v2.y; return *this; }
   vec2i &operator/=(const vec3i &v2);
   //vec2i &operator/=(const vec4i &v2);
 
-  inline const vec2i operator+(int32 n)         const { return vec2i(*this)+= n; }
-  inline const vec2i operator+(const int32 *n)  const { return vec2i(*this)+= n; }
-  inline const vec2i operator+(const vec2i &v2) const { return vec2i(*this)+= v2; }
+  inline const vec2i operator+(int32_t n)        const { return vec2i(*this)+= n; }
+  inline const vec2i operator+(const int32_t *n) const { return vec2i(*this)+= n; }
+  inline const vec2i operator+(const vec2i &v2)  const { return vec2i(*this)+= v2; }
   const vec2i operator+(const vec3i &v2) const;
   //const vec2i operator+(const vec4i &v2) const;
 
-  inline const vec2i operator-(int32 n)         const { return vec2i(*this)-= n; }
-  inline const vec2i operator-(const int32 *n)  const { return vec2i(*this)-= n; }
-  inline const vec2i operator-(const vec2i &v2) const { return vec2i(*this)-= v2; }
+  inline const vec2i operator-(int32_t n)        const { return vec2i(*this)-= n; }
+  inline const vec2i operator-(const int32_t *n) const { return vec2i(*this)-= n; }
+  inline const vec2i operator-(const vec2i &v2)  const { return vec2i(*this)-= v2; }
   const vec2i operator-(const vec3i &v2) const;
   //const vec2i operator-(const vec4i &v2) const;
 
-  inline const vec2i operator*(int32 n)         const { return vec2i(*this)*= n; }
-  inline const vec2i operator*(const int32 *n)  const { return vec2i(*this)*= n; }
-  inline const vec2i operator*(const vec2i &v2) const { return vec2i(*this)*= v2; }
+  inline const vec2i operator*(int32_t n)        const { return vec2i(*this)*= n; }
+  inline const vec2i operator*(const int32_t *n) const { return vec2i(*this)*= n; }
+  inline const vec2i operator*(const vec2i &v2)  const { return vec2i(*this)*= v2; }
   const vec2i operator*(const vec3i &v2) const;
   //const vec2i operator*(const vec4i &v2) const;
 
-  inline const vec2i operator/(int32 n)         const { return vec2i(*this)/= n; }
-  inline const vec2i operator/(const int32 *n)  const { return vec2i(*this)/= n; }
-  inline const vec2i operator/(const vec2i &v2) const { return vec2i(*this)/= v2; }
+  inline const vec2i operator/(int32_t n)        const { return vec2i(*this)/= n; }
+  inline const vec2i operator/(const int32_t *n) const { return vec2i(*this)/= n; }
+  inline const vec2i operator/(const vec2i &v2)  const { return vec2i(*this)/= v2; }
   const vec2i operator/(const vec3i &v2) const;
   //const vec2i operator/(const vec4i &v2) const;
 
-  inline bool operator==(int32 n)         const { return (n== length()); }   // this compares vector's length, not each element to n
-  inline bool operator==(const int32 *n)  const { return ((x== n[0]) && (y== n[1])); }
-  inline bool operator==(const vec2i &v2) const { return ((x== v2.x) && (y== v2.y)); }
+  inline bool operator==(int32_t n)        const { return (n== length()); }   // this compares vector's length, not each element to n
+  inline bool operator==(const int32_t *n) const { return ((x== n[0]) && (y== n[1])); }
+  inline bool operator==(const vec2i &v2)  const { return ((x== v2.x) && (y== v2.y)); }
   bool operator==(const vec3i &v2) const;
   //bool operator==(const vec4i &v2) const;
   
-  inline bool operator!=(int32 n)         const { return (n!= length()); }    // this compares vector's length, not each element to n
-  inline bool operator!=(const int32 *n)  const { return ((x!= n[0]) || (y!= n[1])); }
-  inline bool operator!=(const vec2i &v2) const { return ((x!= v2.x) || (y!= v2.y)); }
+  inline bool operator!=(int32_t n)        const { return (n!= length()); }    // this compares vector's length, not each element to n
+  inline bool operator!=(const int32_t *n) const { return ((x!= n[0]) || (y!= n[1])); }
+  inline bool operator!=(const vec2i &v2)  const { return ((x!= v2.x) || (y!= v2.y)); }
   bool operator!=(const vec3i &v2) const;
   //bool operator!=(const vec4i &v2) const;
 
@@ -465,31 +465,31 @@ struct ALIGNED(4) vec2i {
   
   inline const vec2i operator-() const { return vec2i(-x, -y); }
 
-  //inline int32 &operator[](int i)            { return v[i]; }
-  inline const int32 operator[](int i) const { return v[i]; }
-  inline operator int32* ()                  { return v; }
-  inline operator const int32 *()      const { return v; }
+  //inline int32_t &operator[](int i)            { return v[i]; }
+  inline const int32_t operator[](int i) const { return v[i]; }
+  inline operator int32_t* ()                  { return v; }
+  inline operator const int32_t *()      const { return v; }
 
   // dot product
 
-  inline int32 dot(int32 _x, int32 _y) const { return (x* _x)+ (y* _y); }
-  inline int32 dot(const int32 *n)     const { return this->dot(n[0], n[1]); }
-  inline int32 dot(const vec2i &v2)     const { return this->dot(v2.x, v2.y); }
-  int32 dot(const vec3i &v2) const;
-  //int32 dot(const vec4i &v2) const;
+  inline int32_t dot(int32_t _x, int32_t _y) const { return (x* _x)+ (y* _y); }
+  inline int32_t dot(const int32_t *n)       const { return this->dot(n[0], n[1]); }
+  inline int32_t dot(const vec2i &v2)        const { return this->dot(v2.x, v2.y); }
+  int32_t dot(const vec3i &v2) const;
+  //int32_t dot(const vec4i &v2) const;
 
   // rest of funcs
-  inline vec2i &set(int32 in_x, int32 in_y) { x= in_x, y= in_y; return *this; }
-  inline vec2i &normalize() { int32 size= length(); if(size) this->operator/=(size); return *this; } // return vec* inversesqrt(dot(vec, vec)); - another option
-  inline int32 length() const { return roundf(sqrtf((float)((x* x)+ (y* y)))); }
-  inline int32 norm2() { return (x* x) + (y* y); }
+  inline vec2i &set(int32_t in_x, int32_t in_y) { x= in_x, y= in_y; return *this; }
+  inline vec2i &normalize() { int32_t size= length(); if(size) this->operator/=(size); return *this; } // return vec* inversesqrt(dot(vec, vec)); - another option
+  inline int32_t length() const { return roundf(sqrtf((float)((x* x)+ (y* y)))); }
+  inline int32_t norm2() { return (x* x) + (y* y); }
 };
 
 
-inline const vec2i operator+(int32 n, const vec2i &v) { return vec2i(n+ v.x, n+ v.y); }
-inline const vec2i operator-(int32 n, const vec2i &v) { return vec2i(n- v.x, n- v.y); }
-inline const vec2i operator*(int32 n, const vec2i &v) { return vec2i(n* v.x, n* v.y); }
-inline const vec2i operator/(int32 n, const vec2i &v) { return vec2i(n/ v.x, n/ v.y); }
+inline const vec2i operator+(int32_t n, const vec2i &v) { return vec2i(n+ v.x, n+ v.y); }
+inline const vec2i operator-(int32_t n, const vec2i &v) { return vec2i(n- v.x, n- v.y); }
+inline const vec2i operator*(int32_t n, const vec2i &v) { return vec2i(n* v.x, n* v.y); }
+inline const vec2i operator/(int32_t n, const vec2i &v) { return vec2i(n/ v.x, n/ v.y); }
 
 
 
@@ -502,7 +502,7 @@ inline const vec2i operator/(int32 n, const vec2i &v) { return vec2i(n/ v.x, n/ 
 // = vec3 =---------------------------------------------------------------------
 // ========
 
-struct ALIGNED(4) vec3 {
+struct alignas(4) vec3 {
   union {
     struct { float x, y, z; };
     struct { float r, g, b; };
@@ -647,127 +647,127 @@ inline const vec3 operator/(float n, const vec3 &v) { return vec3(n/ v.x, n/ v.y
 ///=========
 
 
-struct ALIGNED(4) vec3i {
+struct alignas(4) vec3i {
   union {
-    struct { int32 x, y, z; };
-    struct { int32 r, g, b; };
-    int32 v[3];
+    struct { int32_t x, y, z; };
+    struct { int32_t r, g, b; };
+    int32_t v[3];
   };
   inline int getComponents() { return 3; } /// xyz
 
   // constructors
 
-  inline vec3i():                             x(0),    y(0),    z(0)    {}
-  inline vec3i(int32 _x, int32 _y, int32 _z): x(0),    y(0),    z(0)    {}
-  inline vec3i(const int32 *n):               x(n[0]), y(n[1]), z(n[2]) {}
-  inline vec3i(int32 n):                      x(n),    y(n),    z(n)    {}
-  inline vec3i(const vec2i &v2, int32 _z= 0): x(v2.x), y(v2.y), z(_z)   {}
-  inline vec3i(const vec3i &v2):              x(v2.x), y(v2.y), z(v2.z) {}
+  inline vec3i():                                   x(0),    y(0),    z(0)    {}
+  inline vec3i(int32_t _x, int32_t _y, int32_t _z): x(0),    y(0),    z(0)    {}
+  inline vec3i(const int32_t *n):                   x(n[0]), y(n[1]), z(n[2]) {}
+  inline vec3i(int32_t n):                          x(n),    y(n),    z(n)    {}
+  inline vec3i(const vec2i &v2, int32_t _z= 0):     x(v2.x), y(v2.y), z(_z)   {}
+  inline vec3i(const vec3i &v2):                    x(v2.x), y(v2.y), z(v2.z) {}
   //vec3i(const vec4i &v2);
 
   // operators
 
-  inline vec3i &operator=(int32 n)         { x= y= z= n;                return *this; }
-  inline vec3i &operator=(const int32 *n)  { x= n[0], y= n[1], z= n[2]; return *this; }
-  inline vec3i &operator=(const vec2i &v2) { x= v2.x, y= v2.y;          return *this; }
-  inline vec3i &operator=(const vec3i &v2) { x= v2.x, y= v2.y, z= v2.y; return *this; }
+  inline vec3i &operator=(int32_t n)        { x= y= z= n;                return *this; }
+  inline vec3i &operator=(const int32_t *n) { x= n[0], y= n[1], z= n[2]; return *this; }
+  inline vec3i &operator=(const vec2i &v2)  { x= v2.x, y= v2.y;          return *this; }
+  inline vec3i &operator=(const vec3i &v2)  { x= v2.x, y= v2.y, z= v2.y; return *this; }
   //vec3i &operator=(const vec4i &v2);
   
-  inline vec3i &set(int32 in_x, int32 in_y, int32 in_z) { x= in_x, y= in_y, z= in_z; return *this; }
+  inline vec3i &set(int32_t in_x, int32_t in_y, int32_t in_z) { x= in_x, y= in_y, z= in_z; return *this; }
 
-  inline vec3i &operator+=(int32 n)         { x+= n,    y+= n,    z+= n;    return *this; }
-  inline vec3i &operator+=(const int32 *n)  { x+= n[0], y+= n[1], z+= n[2]; return *this; }
-  inline vec3i &operator+=(const vec2i &v2) { x+= v2.x, y+= v2.y;           return *this; }
-  inline vec3i &operator+=(const vec3i &v2) { x+= v2.x, y+= v2.y, z+= v2.z; return *this; }
+  inline vec3i &operator+=(int32_t n)        { x+= n,    y+= n,    z+= n;    return *this; }
+  inline vec3i &operator+=(const int32_t *n) { x+= n[0], y+= n[1], z+= n[2]; return *this; }
+  inline vec3i &operator+=(const vec2i &v2)  { x+= v2.x, y+= v2.y;           return *this; }
+  inline vec3i &operator+=(const vec3i &v2)  { x+= v2.x, y+= v2.y, z+= v2.z; return *this; }
   //vec3i &operator+=(const vec4i &v2);
   
-  inline vec3i &operator-=(int32 n)         { x-= n,    y-= n,    z-= n;    return *this; }
-  inline vec3i &operator-=(const int32 *n)  { x-= n[0], y-= n[1], z-= n[2]; return *this; }
-  inline vec3i &operator-=(const vec2i &v2) { x-= v2.x, y-= v2.y;           return *this; }
-  inline vec3i &operator-=(const vec3i &v2) { x-= v2.x, y-= v2.y, z-= v2.z; return *this; }
+  inline vec3i &operator-=(int32_t n)        { x-= n,    y-= n,    z-= n;    return *this; }
+  inline vec3i &operator-=(const int32_t *n) { x-= n[0], y-= n[1], z-= n[2]; return *this; }
+  inline vec3i &operator-=(const vec2i &v2)  { x-= v2.x, y-= v2.y;           return *this; }
+  inline vec3i &operator-=(const vec3i &v2)  { x-= v2.x, y-= v2.y, z-= v2.z; return *this; }
   //vec3i &operator-=(const vec4i &v2);
   
-  inline vec3i &operator*=(int32 n)         { x*= n,    y*= n,    z*= n;    return *this; }
-  inline vec3i &operator*=(const int32 *n)  { x*= n[0], y*= n[1], z*= n[2]; return *this; }
-  inline vec3i &operator*=(const vec2i &v2) { x*= v2.x, y*= v2.y;           return *this; }
-  inline vec3i &operator*=(const vec3i &v2) { x*= v2.x, y*= v2.y, z*= v2.z; return *this; }
+  inline vec3i &operator*=(int32_t n)        { x*= n,    y*= n,    z*= n;    return *this; }
+  inline vec3i &operator*=(const int32_t *n) { x*= n[0], y*= n[1], z*= n[2]; return *this; }
+  inline vec3i &operator*=(const vec2i &v2)  { x*= v2.x, y*= v2.y;           return *this; }
+  inline vec3i &operator*=(const vec3i &v2)  { x*= v2.x, y*= v2.y, z*= v2.z; return *this; }
   //vec3i &operator*=(const vec4i &v2);
 
-  inline vec3i &operator/=(int32 n)         { x/= n,    y/= n,    z/= n;    return *this; }
-  inline vec3i &operator/=(const int32 *n)  { x/= n[0], y/= n[1], z/= n[2]; return *this; }
-  inline vec3i &operator/=(const vec2i &v2) { x/= v2.x, y/= v2.y;           return *this; }
-  inline vec3i &operator/=(const vec3i &v2) { x/= v2.x, y/= v2.y, z/= v2.z; return *this; }
+  inline vec3i &operator/=(int32_t n)        { x/= n,    y/= n,    z/= n;    return *this; }
+  inline vec3i &operator/=(const int32_t *n) { x/= n[0], y/= n[1], z/= n[2]; return *this; }
+  inline vec3i &operator/=(const vec2i &v2)  { x/= v2.x, y/= v2.y;           return *this; }
+  inline vec3i &operator/=(const vec3i &v2)  { x/= v2.x, y/= v2.y, z/= v2.z; return *this; }
   //vec3i &operator/=(const vec4i &v2);
 
-  inline const vec3i operator+(int32 n)         const { return vec3i(*this)+= n; }
-  inline const vec3i operator+(const int32 *n)  const { return vec3i(*this)+= n; }
-  inline const vec3i operator+(const vec2i &v2) const { return vec3i(*this)+= v2; }
-  inline const vec3i operator+(const vec3i &v2) const { return vec3i(*this)+= v2; }
+  inline const vec3i operator+(int32_t n)        const { return vec3i(*this)+= n; }
+  inline const vec3i operator+(const int32_t *n) const { return vec3i(*this)+= n; }
+  inline const vec3i operator+(const vec2i &v2)  const { return vec3i(*this)+= v2; }
+  inline const vec3i operator+(const vec3i &v2)  const { return vec3i(*this)+= v2; }
   //const vec3i operator+(const vec4i &v2) const;
 
-  inline const vec3i operator-(int32 n)         const { return vec3i(*this)-= n; }
-  inline const vec3i operator-(const int32 *n)  const { return vec3i(*this)-= n; }
-  inline const vec3i operator-(const vec2i &v2) const { return vec3i(*this)-= v2; }
-  inline const vec3i operator-(const vec3i &v2) const { return vec3i(*this)-= v2; }
+  inline const vec3i operator-(int32_t n)        const { return vec3i(*this)-= n; }
+  inline const vec3i operator-(const int32_t *n) const { return vec3i(*this)-= n; }
+  inline const vec3i operator-(const vec2i &v2)  const { return vec3i(*this)-= v2; }
+  inline const vec3i operator-(const vec3i &v2)  const { return vec3i(*this)-= v2; }
   //const vec3i operator-(const vec4i &v2) const;
 
-  inline const vec3i operator*(int32 n)         const { return vec3i(*this)*= n; }
-  inline const vec3i operator*(const int32 *n)  const { return vec3i(*this)*= n; }
-  inline const vec3i operator*(const vec2i &v2) const { return vec3i(*this)*= v2; }
-  inline const vec3i operator*(const vec3i &v2) const { return vec3i(*this)*= v2; }
+  inline const vec3i operator*(int32_t n)        const { return vec3i(*this)*= n; }
+  inline const vec3i operator*(const int32_t *n) const { return vec3i(*this)*= n; }
+  inline const vec3i operator*(const vec2i &v2)  const { return vec3i(*this)*= v2; }
+  inline const vec3i operator*(const vec3i &v2)  const { return vec3i(*this)*= v2; }
   //const vec3i operator*(const vec4i &v2) const;
 
-  inline const vec3i operator/(int32 n)         const { return vec3i(*this)/= n; }
-  inline const vec3i operator/(const int32 *n)  const { return vec3i(*this)/= n; }
-  inline const vec3i operator/(const vec2i &v2) const { return vec3i(*this)/= v2; }
-  inline const vec3i operator/(const vec3i &v2) const { return vec3i(*this)/= v2; }
+  inline const vec3i operator/(int32_t n)        const { return vec3i(*this)/= n; }
+  inline const vec3i operator/(const int32_t *n) const { return vec3i(*this)/= n; }
+  inline const vec3i operator/(const vec2i &v2)  const { return vec3i(*this)/= v2; }
+  inline const vec3i operator/(const vec3i &v2)  const { return vec3i(*this)/= v2; }
   //const vec3i operator/(const vec4i &v2) const;
 
-  inline bool operator==(int32 n)         const { return (n== length()); } // this compares vector's length, not each element with n
-  inline bool operator==(const int32 *n)  const { return ((x== n[0]) && (y== n[1]) && (z== n[2])); }
-  inline bool operator==(const vec2i &v2) const { return ((x== v2.x) && (y== v2.y)); }
-  inline bool operator==(const vec3i &v2) const { return ((x== v2.x) && (y== v2.y) && (z== v2.z)); }
+  inline bool operator==(int32_t n)        const { return (n== length()); } // this compares vector's length, not each element with n
+  inline bool operator==(const int32_t *n) const { return ((x== n[0]) && (y== n[1]) && (z== n[2])); }
+  inline bool operator==(const vec2i &v2)  const { return ((x== v2.x) && (y== v2.y)); }
+  inline bool operator==(const vec3i &v2)  const { return ((x== v2.x) && (y== v2.y) && (z== v2.z)); }
   //bool operator==(const vec4i &v2) const;
 
-  inline bool operator!=(int32 n)         const { return (n!= length());} // this compares vector's length, not each element with n
-  inline bool operator!=(const int32 *n)  const { return ((x!= n[0]) || (y!= n[1]) || (z!= n[2])); }
-  inline bool operator!=(const vec2i &v2) const { return ((x!= v2.x) || (y!= v2.y)); }
-  inline bool operator!=(const vec3i &v2) const { return ((x!= v2.x) || (y!= v2.y) || (z!= v2.z)); }
+  inline bool operator!=(int32_t n)        const { return (n!= length());} // this compares vector's length, not each element with n
+  inline bool operator!=(const int32_t *n) const { return ((x!= n[0]) || (y!= n[1]) || (z!= n[2])); }
+  inline bool operator!=(const vec2i &v2)  const { return ((x!= v2.x) || (y!= v2.y)); }
+  inline bool operator!=(const vec3i &v2)  const { return ((x!= v2.x) || (y!= v2.y) || (z!= v2.z)); }
   //bool operator!=(const vec4i &v2)   const;
 
   inline bool operator!() const { return !(x && y); }
 
   inline const vec3i operator-() const { return vec3i(-x, -y, -z); }
 
-  inline int32 &operator[](int i)            { return v[i]; }
-  inline const int32 operator[](int i) const { return v[i]; }
-  inline operator int32 *()                  { return v; }
-  inline operator const int32 *()      const { return v; }
+  inline int32_t &operator[](int i)            { return v[i]; }
+  inline const int32_t operator[](int i) const { return v[i]; }
+  inline operator int32_t *()                  { return v; }
+  inline operator const int32_t *()      const { return v; }
 
   // dot product
 
-  inline int32 dot(int32 _x, int32 _y, int32 _z) const { return (x* _x)+  (y* _y)+ (z* _z); }
-  inline int32 dot(const int32 *n)               const { return this->dot(n[0], n[1], n[2]); }
-  inline int32 dot(const vec2i &v2, int32 _z= 0) const { return this->dot(v2.x, v2.y, _z); }
-  inline int32 dot(const vec3i &v2)              const { return this->dot(v2.x, v2.y, v2.z); }
-  //inline int32 dot(const vec4i &v2)              const { return this->dot(v2.x, v2.y, v2.z); }
+  inline int32_t dot(int32_t _x, int32_t _y, int32_t _z) const { return (x* _x)+  (y* _y)+ (z* _z); }
+  inline int32_t dot(const int32_t *n)                   const { return this->dot(n[0], n[1], n[2]); }
+  inline int32_t dot(const vec2i &v2, int32_t _z= 0)     const { return this->dot(v2.x, v2.y, _z); }
+  inline int32_t dot(const vec3i &v2)                    const { return this->dot(v2.x, v2.y, v2.z); }
+  //inline int32_t dot(const vec4i &v2)                    const { return this->dot(v2.x, v2.y, v2.z); }
 
   // cross product
 
-  inline vec3i cross(int32 _x, int32 _y, int32 _z) const { return vec3i((y* _z)- (z* _y),  (z* _x)- (x* _z), (x* _y)- (y* _x)); }
-  inline vec3i cross(const vec2i &v2, int32 _z)    const { return this->cross(v2.x, v2.y,   _z); }
-  inline vec3i cross(const vec3i &v2)              const { return this->cross(v2.x, v2.y, v2.z); }
-  //inline vec3i vec3i::cross(const vec4i &v2)              const { return this->cross(v2.x, v2.y, v2.z); }
+  inline vec3i cross(int32_t _x, int32_t _y, int32_t _z) const { return vec3i((y* _z)- (z* _y),  (z* _x)- (x* _z), (x* _y)- (y* _x)); }
+  inline vec3i cross(const vec2i &v2, int32_t _z)        const { return this->cross(v2.x, v2.y,   _z); }
+  inline vec3i cross(const vec3i &v2)                    const { return this->cross(v2.x, v2.y, v2.z); }
+  //inline vec3i vec3i::cross(const vec4i &v2)             const { return this->cross(v2.x, v2.y, v2.z); }
 
   // funcs - research: https://github.com/g-truc/glm/blob/master/glm/detail/func_geometric.inl
 
-  inline vec3i &normalize() { int32 size= length(); if(size) this->operator/= (size); return *this; } // return vec* inversesqrt(dot(vec, vec)); - another option
+  inline vec3i &normalize() { int32_t size= length(); if(size) this->operator/= (size); return *this; } // return vec* inversesqrt(dot(vec, vec)); - another option
 
-  inline int32 length() const { return roundf(sqrtf((float)((x* x)+ (y* y)+ (z* z)))); };
-  inline int32 norm2() const { return (x* x)+ (y* y)+ (z* z); }
+  inline int32_t length() const { return roundf(sqrtf((float)((x* x)+ (y* y)+ (z* z)))); };
+  inline int32_t norm2() const { return (x* x)+ (y* y)+ (z* z); }
 
-  inline void addConstant(int32 n) {
-    int32 xx= x* x, yy= y* y, zz= z* z, size= length()+ n;
+  inline void addConstant(int32_t n) {
+    int32_t xx= x* x, yy= y* y, zz= z* z, size= length()+ n;
     if(x!= 0) x= (abs32(x)/ x)* size/ roundf(sqrtf(yy/ xx+ zz/ xx+ 1.0f));
     if(y!= 0) y= (abs32(y)/ y)* size/ roundf(sqrtf(xx/ yy+ zz/ yy+ 1.0f));
     if(z!= 0) z= (abs32(z)/ z)* size/ roundf(sqrtf(xx/ zz+ yy/ zz+ 1.0f));
@@ -775,10 +775,10 @@ struct ALIGNED(4) vec3i {
 };
 
 
-inline const vec3i operator+(int32 n, const vec3i &v) { return vec3i(n+ v.x, n+ v.y, n+ v.z); }
-inline const vec3i operator-(int32 n, const vec3i &v) { return vec3i(n- v.x, n- v.y, n- v.z); }
-inline const vec3i operator*(int32 n, const vec3i &v) { return vec3i(n* v.x, n* v.y, n* v.z); }
-inline const vec3i operator/(int32 n, const vec3i &v) { return vec3i(n/ v.x, n/ v.y, n/ v.z); }
+inline const vec3i operator+(int32_t n, const vec3i &v) { return vec3i(n+ v.x, n+ v.y, n+ v.z); }
+inline const vec3i operator-(int32_t n, const vec3i &v) { return vec3i(n- v.x, n- v.y, n- v.z); }
+inline const vec3i operator*(int32_t n, const vec3i &v) { return vec3i(n* v.x, n* v.y, n* v.z); }
+inline const vec3i operator/(int32_t n, const vec3i &v) { return vec3i(n/ v.x, n/ v.y, n/ v.z); }
 
 
 
@@ -800,7 +800,7 @@ inline const vec3i operator/(int32 n, const vec3i &v) { return vec3i(n/ v.x, n/ 
 ///========
 
 
-struct ALIGNED(4) vec4 {    // alignment of 16 if in the future intrinsics will be used
+struct alignas(4) vec4 {    // alignment of 16 if in the future intrinsics will be used
   union {
     struct { float x, y, z, w; };
     struct { float r, g, b, a; };
@@ -937,7 +937,7 @@ inline const vec4 operator/(float n, const vec4 &v) { return vec4(n/ v.x, n/ v.y
 ///========
 
 
-struct ALIGNED(4) mat4 {
+struct alignas(4) mat4 {
   float v[16];
   
   // constructors
@@ -1510,8 +1510,8 @@ inline bool vec2i::operator!=(const vec3i &o)  const { return ((x!= o.x)  || (y!
 
 // dot product
 
-inline int32 vec2i::dot(const vec3i &o) const { return this->dot(o.x,  o.y); }
-//inline int32 vec2i::dot(const vec4i &o) const { return this->dot(o.x,  o.y); }
+inline int32_t vec2i::dot(const vec3i &o) const { return this->dot(o.x,  o.y); }
+//inline int32_t vec2i::dot(const vec4i &o) const { return this->dot(o.x,  o.y); }
 
 
 
@@ -1599,7 +1599,7 @@ inline vec3 vec3::cross(const vec4 &o)          const { return vec3((y* o.z)- (z
 
 // dot product
 
-//inline int32 vec3i::dot(const vec4i &o)                     const { return x* o.x+   y* o.y+  z* o.z; }
+//inline int32_t vec3i::dot(const vec4i &o)                     const { return x* o.x+   y* o.y+  z* o.z; }
 
 // cross product
 
@@ -1781,9 +1781,9 @@ inline float sinf_ZXSpectrum(float n) {
   
   /// make n -PI to +PI
   if(n> PI)
-    n-= ((int32)((n+ PI)* FPII))* PI_DBL;         /// n-= ((int32)((n+ PI)/ PI_DBL))* PI_DBL;   OR  if(n> PI) while(n> PI) n-= PI_DBL;
+    n-= ((int32_t)((n+ PI)* FPII))* PI_DBL;         /// n-= ((int32_t)((n+ PI)/ PI_DBL))* PI_DBL;   OR  if(n> PI) while(n> PI) n-= PI_DBL;
   else if(n< -PI)
-    n+= ((int32)((-n+ PI)* FPII))* PI_DBL;        /// n+= ((int32)((-n+ PI)/ PI_DBL))* PI_DBL;  OR  if(n< -PI) while(n< -PI) n+= PI_DBL;
+    n+= ((int32_t)((-n+ PI)* FPII))* PI_DBL;        /// n+= ((int32_t)((-n+ PI)/ PI_DBL))* PI_DBL;  OR  if(n< -PI) while(n< -PI) n+= PI_DBL;
 
   /// make n -PI/2 to +PI/2
   if(n> PI/ 2)

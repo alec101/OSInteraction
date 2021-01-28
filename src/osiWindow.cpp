@@ -2,14 +2,14 @@
 #include "util/typeShortcuts.h"
 #include "util/imgClass.h"
 
+#ifdef OS_WIN
+#include <Windows.h>
+#endif
 
 // -----------============= WINDOW CLASS =============------------------
 ///=====================================================================
 
 
-#ifdef OS_WIN
-MSG osiWindow::_msg= {0};
-#endif
 
 #ifdef OS_LINUX
 //Display *osinteraction::_dis= null;
@@ -91,27 +91,27 @@ void osiWindow::delData() {
 
   #ifdef OS_WIN
   if(_imgBM) {              /// splash window bmp image
-    DeleteObject(_imgBM);
+    DeleteObject((HGDIOBJ)_imgBM);
     _imgBM= null;
   }
 
   if(_imgDC) {              /// splash window dc
-    DeleteDC(_imgDC);
+    DeleteDC((HDC)_imgDC);
     _imgDC= null;
   }
 
   if(_hDC) {
-    ReleaseDC(_hWnd, _hDC);
+    ReleaseDC((HWND)_hWnd, (HDC)_hDC);
     _hDC= NULL;
   }
 
   if(_hWnd) {
-    DestroyWindow(_hWnd);
+    DestroyWindow((HWND)_hWnd);
     _hWnd= NULL;
   }
 
   if(name.len) {
-    UnregisterClass(name, _hInstance);   // << in case class name will differ in future
+    UnregisterClass(name, (HINSTANCE)_hInstance);   // << in case class name will differ in future
     _hInstance= NULL;
   }
   // do not return;
@@ -243,7 +243,7 @@ bool osiWindow::setIcon(cchar *file) {
 
   HICON hIcon= CreateIcon(null, dx, dy, depth, 8, null, bitmap);
   
-  SendMessage((osi.primWin? osi.primWin->_hWnd: _hWnd), WM_SETICON, ICON_BIG, (LPARAM)hIcon);
+  SendMessage((HWND)(osi.primWin? osi.primWin->_hWnd: _hWnd), WM_SETICON, ICON_BIG, (LPARAM)hIcon);
 
   // small icon???
   //hIconSm = LoadImage(NULL, "menu_two.ico", IMAGE_ICON, 16, 16, LR_LOADFROMFILE);
@@ -313,7 +313,7 @@ void osiWindow::setName(cchar *s) {
   if(!s) return;
   name= s;
   #ifdef OS_WIN
-  SetWindowText(_hWnd, name);
+  SetWindowText((HWND)_hWnd, name);
   #endif /// OS_WIN
   
   #ifdef OS_LINUX
@@ -328,7 +328,7 @@ void osiWindow::setName(cchar *s) {
 
 void osiWindow::show() {
   #ifdef OS_WIN
-  ShowWindow(_hWnd, SW_SHOW);
+  ShowWindow((HWND)_hWnd, SW_SHOW);
   #endif /// OS_WIN
   
   #ifdef OS_LINUX
@@ -344,7 +344,7 @@ void osiWindow::show() {
 
 void osiWindow::hide() {
   #ifdef OS_WIN
-  ShowWindow(_hWnd, SW_HIDE);
+  ShowWindow((HWND)_hWnd, SW_HIDE);
   #endif /// OS_WIN
   
   #ifdef OS_LINUX
@@ -362,10 +362,10 @@ void osiWindow::move(int in_x, int in_y) {
   //if(mode!= 1) return;
   #ifdef OS_WIN
     #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
-    MoveWindow(_hWnd, x0, osi.display.vyMax- (y0+ dy- 1), dx, dy, false);
+    MoveWindow((HWND)_hWnd, x0, osi.display.vyMax- (y0+ dy- 1), dx, dy, false);
     #endif
     #ifdef OSI_USE_ORIGIN_TOP_LEFT
-    MoveWindow(_hWnd, x0, y0, dx, dy, false);
+    MoveWindow((HWND)_hWnd, x0, y0, dx, dy, false);
     #endif
   #endif /// OS_WIN
   
@@ -389,10 +389,10 @@ void osiWindow::resize(int in_dx, int in_dy) {
   
   #ifdef OS_WIN
     #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
-    MoveWindow(_hWnd, x0, osi.display.vyMax- (y0+ dy- 1), dx, dy, false);
+    MoveWindow((HWND)_hWnd, x0, osi.display.vyMax- (y0+ dy- 1), dx, dy, false);
     #endif
     #ifdef OSI_USE_ORIGIN_TOP_LEFT
-    MoveWindow(_hWnd, x0, y0, dx, dy, false);
+    MoveWindow((HWND)_hWnd, x0, y0, dx, dy, false);
     #endif
   #endif /// OS_WIN
   

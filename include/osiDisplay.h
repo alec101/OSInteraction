@@ -121,7 +121,7 @@ struct osiMonitor {
   str8 _monitorName;        // [internal] monitor description (did not find any use for it ina ANY windows function)
   // if a monitor is set to duplicate another monitor, windows returns only one display,
   // with combined resolution options, and monitorID+monitorName for each. Can't do anything with any of them, so im not storing them anywhere.
-  friend LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam);
+  //friend LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam);
   #endif /// OS_WIN
   
   #ifdef OS_LINUX
@@ -140,10 +140,10 @@ struct osiMonitor {
   uint32_t _oglDisplayMask; // [internal] OpenGL Display Mask. each monitor have a place in this mask
   #endif /// OS_MAC
 
-private:
-  bool _inProgRes;          // [internal] flag used for res changes
   int32_t _y0;              // not changed, os specific, monitor position on the y axis
 
+private:
+  bool _inProgRes;          // [internal] flag used for res changes
 
   friend class osiDisplay;
   friend void _osiGetMonitorPos(osiMonitor *m);

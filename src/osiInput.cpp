@@ -1,6 +1,21 @@
 #include "osinteraction.h"
 #include "util/typeShortcuts.h"
 #include <math.h>
+#ifdef OSI_BE_CHATTY
+#include <stdio.h>
+#endif
+
+#ifdef OSI_USING_DIRECTINPUT
+  #ifndef DIRECTINPUT_VERSION
+    #define DIRECTINPUT_VERSION 0x0800
+  #endif
+  #include OSI_DINPUTINCLUDE
+#endif
+#ifdef OSI_USING_XINPUT
+  #include OSI_XINPUTINCLUDE
+#endif
+
+
 
 #ifdef OS_LINUX
 #include <unistd.h>
@@ -34,6 +49,9 @@ struct js_event {
 #include <CoreGraphics/CoreGraphics.h>  // trying to pinpoint quartz
 #endif
 
+#ifdef USING_DIRECTINPUT
+BOOL CALLBACK _diDevCallback(LPCDIDEVICEINSTANCE, LPVOID); // this is direct input 'callback' func
+#endif
 
 // private funcs
 void checkGamepadType(osiGamePad *p);  // it is found in the gamepad area, at the end
@@ -412,7 +430,6 @@ void osiInput::populate(bool scanMouseKeyboard) {
   #ifdef OSI_BE_CHATTY
   /// debug
   bool chatty= false;
-  uint64 start, end;
   bool timer= false;
   #endif
 
@@ -499,6 +516,7 @@ void osiInput::populate(bool scanMouseKeyboard) {
   #ifdef OS_LINUX
 
   #ifdef OSI_BE_CHATTY
+  uint64 start, end;
   if(timer) osi.getNanosecs(&start);
   #endif
 
@@ -1803,15 +1821,16 @@ void osiJoystick::update() {
 
   uint64 presentMilli= osi.present/ 1000000;      /// present time in milliseconds
   osiButLog blog;
-  bool found;
-  
 
 
   // -----------============ MODE 1 JOYSTICKS ============------------
   if(mode== 1) {
     #ifdef OS_WIN
+    
     // CRASHES TO DESKTOP, BUGGY READING, USES DIRECT INPUT ANYWAYS  >>> SCRAP <<<
     /*
+    bool found;
+    
     /// read values from OS
     JOYINFOEX jinfo;
     //for(short a= 0; a< sizeof(jinfo); a++) ((char *)&jinfo)[a]= 0;    /// wipe jinfo
