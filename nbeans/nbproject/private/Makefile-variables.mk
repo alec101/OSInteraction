@@ -3,11 +3,8 @@
 #
 # NOCDDL
 #
-# linux64D configuration
-# linux64R configuration
-# linux32D configuration
-# linux32R configuration
-# mac64D configuration
-# mac64R configuration
-# mac32D configuration
-# mac32R configuration
+# lin64.dbg configuration
+# lin64 configuration
+# lin32.dbg configuration
+# lin32 configuration
+# vk.lin64.dbg configuration

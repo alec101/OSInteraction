@@ -65,8 +65,10 @@ public:
   Window _win;            // window 'handle' or watever
   XWindowAttributes _gwa; // window attributes (size/etc)
   XVisualInfo *_vi;       // this can be extracted from _fbID, but only on newer versions
+  #ifdef OSI_USE_OPENGL
   GLXFBConfig _fbID;      // front buffer ID
-  
+  #endif
+
   bool _isMapped;         // internal flag used when resolution is changing <<NOT USED ANYMORE I THINK>>
   uint64_t *_iconData;    // NEEDS TO BE ULONG (64bit for linux64) due to a bug - it might be fixed in the future
 
@@ -78,7 +80,12 @@ public:
   void _setWMprop(const char *wmID, const char *wmProp, uint32_t val1, uint32_t val2= 0); // documentation is @ end of osinteraction.h
   void _setWMstate(uint32_t val, const char *prop1, const char *prop2= (const char*)0);   // documentation is @ end of osinteraction.h
   void _setWMtype(const char *wmType);  // sets the _NET_WM_WINDOW_TYPE http://standards.freedesktop.org/wm-spec/latest/ar01s05.html
-  bool _createFBandVisual();            // creates front buffer object and visual info (need monitor to point to a valid monitor)
+  #ifdef OSI_USE_OPENGL
+  bool _glCreateFBandVisual();            // creates front buffer object and visual info (need monitor to point to a valid monitor)
+  #endif
+  #ifdef OSI_USE_VKO
+  bool _vkCreateVisual();
+  #endif
   #endif
 
   #ifdef OS_MAC

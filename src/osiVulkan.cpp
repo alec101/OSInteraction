@@ -1,6 +1,9 @@
 #include "vko/include/vkoPlatform.h"
 #include "osinteraction.h"
 #include "util/typeShortcuts.h"
+#ifdef OSI_BE_CHATTY
+#include <stdio.h>
+#endif
 
 #ifdef OSI_USE_VKO
 namespace osiVk {
@@ -53,13 +56,26 @@ bool createSurface(vkObject *in_vk, osiWindow *in_w) {
   #endif /// OS_WIN
    
   #ifdef OS_LINUX
-  makeme
-  error.makeme(__FUNCTION__);
+  if(in_vk->CreateXlibSurfaceKHR== null) { error.detail("CreateXlibSurfaceKHR not avaible. vk_KHR_xlib_surface must be enabled/ avaible", __FUNCTION__); return false; }
+  
+  VkXlibSurfaceCreateInfoKHR s;
+  s.sType= VK_STRUCTURE_TYPE_XLIB_SURFACE_CREATE_INFO_KHR;
+  s.pNext= null;
+  s.flags= 0;             // no flags as of 2021
+  s.dpy= in_w->_dis;
+  s.window= in_w->_win;
+  
+  if(in_vk->CreateXlibSurfaceKHR(*in_vk, &s, *in_vk, (VkSurfaceKHR *)&in_w->vkSurface)!= VK_SUCCESS) {
+    error.detail("vkCreateXlibSurfaceKHR failed", __FUNCTION__);
+    return false;
+  }
   #endif /// OS_LINUX
 
 
   #ifdef OS_MAC
   makeme
+  VK_EXT_metal_surface vs VK_MVK_macos_surface ??? i'm not sure if any difference - i'm guessing the metal surface is newer
+  so might as well just go directly for a metal surface
   error.makeme(__FUNCTION__);
   #endif /// OS_MAC
 
@@ -84,6 +100,169 @@ bool recreateSurface(vkObject *in_vk, osiWindow *in_win) {
 
 
 
+
+
+
+
+
+
+
+/*
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#include <X11/extensions/Xcomposite.h>
+
+#include <stdio.h>
+
+int main(int argc, char **argv)
+{
+  Display *dpy;
+  XVisualInfo vinfo;
+  int depth;
+  XVisualInfo *visual_list;
+  XVisualInfo visual_template;
+  int nxvisuals;
+  int i;
+  XSetWindowAttributes attrs;
+  Window parent;
+  Visual *visual;
+
+  dpy = XOpenDisplay(NULL);
+
+  nxvisuals = 0;
+  visual_template.screen = DefaultScreen(dpy);
+  visual_list = XGetVisualInfo (dpy, VisualScreenMask, &visual_template, &nxvisuals);
+
+  for (i = 0; i < nxvisuals; ++i)
+    {
+      printf("  %3d: visual 0x%lx class %d (%s) depth %d\n",
+             i,
+             visual_list[i].visualid,
+             visual_list[i].class,
+             visual_list[i].class == TrueColor ? "TrueColor" : "unknown",
+             visual_list[i].depth);
+    }
+
+
+  if (!XMatchVisualInfo(dpy, XDefaultScreen(dpy), 32, TrueColor, &vinfo)) {
+    fprintf(stderr, "no such visual\n");
+    return 1;
+  }
+
+  printf("Matched visual 0x%lx class %d (%s) depth %d\n",
+         vinfo.visualid,
+         vinfo.class,
+         vinfo.class == TrueColor ? "TrueColor" : "unknown",
+         vinfo.depth);
+
+  parent = XDefaultRootWindow(dpy);
+
+  XSync(dpy, True);
+
+  printf("creating RGBA child\n");
+
+  visual = vinfo.visual;
+  depth = vinfo.depth;
+
+  attrs.colormap = XCreateColormap(dpy, XDefaultRootWindow(dpy), visual, AllocNone);
+  attrs.background_pixel = 0;
+  attrs.border_pixel = 0;
+
+  XCreateWindow(dpy, parent, 10, 10, 150, 100, 0, depth, InputOutput,
+                visual, CWBackPixel | CWColormap | CWBorderPixel, &attrs);
+
+  XSync(dpy, True);
+
+  printf("No error\n");
+
+  return 0;
+}
+
+*/
+
+
+
+
+#ifdef OS_LINUX
+bool chooseVisual(vkObject *in_vk, osiWindow *in_win) {
+  XVisualInfo viRequest;
+  XVisualInfo *ret= null;                 // INIT 1
+  int nrRet;
+  const char *err= nullptr;
+  int errL= 0;
+  VkoQueue *q= nullptr;
+  #ifdef OSI_BE_CHATTY
+  bool chatty= true;
+  #endif
+
+  if(in_win->_vi) XFree(in_win->_vi);
+  in_win->_vi= nullptr;
+
+  //if(in_vk->GetPhysicalDeviceXlibPresentationSupportKHR== null) {
+  //  err= "vk->GetPhysicalDeviceXlibPresentationSupportKHR() not avaible", errL= __LINE__; goto Exit;
+  //}
+  
+  /// get the first graphics queue in Vko
+  //for(uint32_t a= 0; a< in_vk->nrQueues; a++)
+  //  if(in_vk->queue[a].typeFlags& VK_QUEUE_GRAPHICS_BIT)
+  //   q= &in_vk->queue[a];
+  
+  //if(q== nullptr) {
+  //  err= "No graphics queue setup before creating a window; one is needed to choose a proper visual", errL= __LINE__;
+  //  goto Exit;
+  //}
+  
+  // try 2 times to get a proper visual; once for 32bit visuals, once for 24bit visuals
+  for(int d= 0; d< 2; d++) {
+    if(ret) XFree(ret);
+    ret= nullptr;
+    nrRet= 0;
+    
+    /// request a visual supported by the current screen and has 24/32 bit depth
+      //#define VisualNoMask            0x0
+      //#define VisualIDMask            0x1
+      //#define VisualScreenMask        0x2
+      //#define VisualDepthMask         0x4
+      //#define VisualClassMask         0x8
+      //#define VisualRedMaskMask       0x10
+      //#define VisualGreenMaskMask     0x20
+      //#define VisualBlueMaskMask      0x40
+      //#define VisualColormapSizeMask  0x80
+      //#define VisualBitsPerRGBMask    0x100
+      //#define VisualAllMask           0x1FF
+    viRequest.screen= DefaultScreen(osi._dis);
+    if     (d== 0) viRequest.depth= 24;
+    else if(d== 1) viRequest.depth= 32;
+    ret= XGetVisualInfo(osi._dis, VisualScreenMask| VisualDepthMask, &viRequest, &nrRet); // ALLOC 1
+      
+    // loop thru all visuals returned, find one that is accepted by vulkan
+    for(int a= 0; a< nrRet; a++) {
+      //if(in_vk->GetPhysicalDeviceXlibPresentationSupportKHR(*in_vk, q->family, osi._dis, ret[a].visualid)== VK_TRUE) {
+        viRequest.visualid= ret[a].visualid;
+        in_win->_vi= XGetVisualInfo(osi._dis, VisualIDMask, &viRequest, &nrRet);
+        #ifdef OSI_BE_CHATTY
+        if(chatty)
+          printf("[%d] total visuals, choosing visual: [%d]depth [%d]index\n", nrRet, in_win->_vi->depth, a);
+        #endif
+        goto Exit;
+      //}
+    }
+  }
+  
+Exit:
+  if(ret) XFree(ret);     // DEALLOC 1
+
+  if(err!= nullptr) {
+    error.detail(err, __FUNCTION__, errL);
+    
+    error.window("STOP"); // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<,,
+    
+    return false;
+  } else
+    return true;
+
+}
+#endif /// OS_LINUX
 
 } // osiVk
 

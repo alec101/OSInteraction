@@ -3,10 +3,11 @@
 //  - GL_EXT_texture_filter_anisotropic
 //#define OSI_USE_OPENGL_EXOTIC_EXT 1
 
-
+#ifdef OSI_BE_CHATTY
+#include <stdio.h>
+#endif
 
 #ifdef OSI_USE_OPENGL
-
 #include "util/typeShortcuts.h"
         
 using namespace Str;
@@ -568,14 +569,14 @@ bool _osiGetContextFuncs(osiMonitor *m, osiGlRenderer *r) {
   
   
   #ifdef OS_WIN
-  ret= _osiGetGlProc("wglGetExtensionsStringARB", (void **)&r->glExt.wglGetExtensionsStringARB);      /// make shure this func is avaible
+  ret= _osiGetGlProc("wglGetExtensionsStringARB", (void **)&r->glExt.wglGetExtensionsStringARB);      /// make sure this func is available
   //if(!ret) { error.simple("_getContextFuncs(): Cannot get wglGetExtensionsStringARB"); return false; }
   #endif /// OS_WIN
 
   
   osi.glGetVersion(&major, &minor);
 
-  /// 2 ways to get extensions, 1 for ogl less than 3, another for ogl 3 and bigger
+  /// 2 ways to get extensions, 1 for ogl less than 3, another for ogl 3 and above
   // ogl <3 ===---
   if(major< 3) {
     ext= (cuint8 *)glGetString(GL_EXTENSIONS);       /// oGL extensions string

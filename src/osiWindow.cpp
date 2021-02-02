@@ -42,7 +42,9 @@ osiWindow::osiWindow() {
   _root= 0;              /// root window (desktop/server main window/ watever)
   _win= 0;               /// window 'handle' or watever (per monitor)
   _vi= null;
+  #ifdef OSI_USE_OPENGL
   _fbID= 0;
+  #endif
   _isMapped= false;
   _img= null;            /// window background / mainly used on splash windows
   _gc= null;             /// graphics context used when drawing a window background
@@ -128,8 +130,9 @@ void osiWindow::delData() {
     if(_gc)      { XFreeGC(_dis, _gc); _gc= null; }
     if(_vi)      { XFree(_vi);         _vi= null; }
     if(_iconData){ delete[] _iconData; _iconData= null; }
-    
+    #ifdef OSI_USE_OPENGL
     _fbID= 0;
+    #endif
     if(mode == 2)
       osi.display.restoreRes(monitor);
     this->_isMapped= false;
@@ -196,11 +199,18 @@ void osiWindow::_setWMtype(cchar *wmType) {
   XChangeProperty(_dis, _win, type, data, 32, PropModeReplace, reinterpret_cast<unsigned char*>(&value), 1);
 }
 
-
+#ifdef OSI_USE_OPENGL
 extern bool _osiCreateFrontBuffer(osiWindow *w, osiGlRenderer *r);
-bool osiWindow::_createFBandVisual() {
+bool osiWindow::_glCreateFBandVisual() {
   return _osiCreateFrontBuffer(this, null);
 }
+#endif
+
+#ifdef OSI_USE_VKO
+bool osiWindow::_vkCreateVisual() {
+  return osiVk::chooseVisual(osi.vk, this);
+}
+#endif
 
 #endif /// OS_LINUX
 

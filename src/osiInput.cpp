@@ -1812,7 +1812,7 @@ void osiJoystick::update() {
   #ifdef OSI_BE_CHATTY
   bool chatty= false;
   #endif
-
+  bool found;
   if(!_bActive) return;                           /// a stick/pad/wheel must be marked as active, for updating to take place
                                                   /// this must be used, as updating same device with mutiple drives, will create a bad mess
 
@@ -1829,7 +1829,7 @@ void osiJoystick::update() {
     
     // CRASHES TO DESKTOP, BUGGY READING, USES DIRECT INPUT ANYWAYS  >>> SCRAP <<<
     /*
-    bool found;
+    
     
     /// read values from OS
     JOYINFOEX jinfo;

@@ -1184,9 +1184,10 @@ bool osinteraction::createWindow(osiWindow *w, osiMonitor *m, const char *name, 
   }
   */
 
+  /* MOVED TO vk/gl CreateWindow
   if(!w->_createFBandVisual()) {
     return false;
-  }
+  }*/
 
   w->_root= m->_root;                                        // 'desktop window'
   w->_dis= _dis;                                           // XServer connection
@@ -1201,8 +1202,7 @@ bool osinteraction::createWindow(osiWindow *w, osiMonitor *m, const char *name, 
   
   w->mode= mode;
 
-
-  cmap= XCreateColormap(w->_dis, w->_root, w->_vi->visual, AllocNone);
+  cmap= XCreateColormap(w->_dis, w->_root, (w->_vi? w->_vi->visual: CopyFromParent), AllocNone);
   swa.colormap= cmap;
   
   swa.event_mask= ExposureMask|                       // redraw events
@@ -1220,18 +1220,18 @@ bool osinteraction::createWindow(osiWindow *w, osiMonitor *m, const char *name, 
   w->_win= XCreateWindow(w->_dis, w->_root,
                          w->x0,                          // window x position
                          #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
-                         display.vyMax- (w->y0+ w->dy- 1),  // window y position
+                         display.vyMax- (w->y0+ w->dy- 1),        // window y position
                          #endif
                          #ifdef OSI_USE_ORIGIN_TOP_LEFT
-                         w->y0,                          // window y position
+                         w->y0,                                   // window y position
                          #endif
-                         w->dx, w->dy,                   // window size
-                         0,                              // border size
-                         w->_vi->depth,                  // depth can be CopyFromParent
-                         InputOutput,                    // InputOnly/ InputOutput/ CopyFromParent
-                         w->_vi->visual,                 // can be CopyFromParent
-                         CWColormap| CWEventMask| CWOverrideRedirect,       // tied with &swa
-                         &swa);                          //
+                         w->dx, w->dy,                            // window size
+                         0,                                       // border size
+                         (w->_vi? w->_vi->depth: CopyFromParent), // depth can be CopyFromParent
+                         InputOutput,                             // InputOnly/ InputOutput/ CopyFromParent
+                         (w->_vi? w->_vi->visual: CopyFromParent),// can be CopyFromParent
+                         CWColormap| CWEventMask| CWOverrideRedirect, // tied with &swa
+                         &swa);                                       //
 
 
 // tring to see what this group hint is
@@ -1616,18 +1616,18 @@ Fail:
   
   /// create image32: convert from RGBA to BGRA, and if the image is 24bpp, pad it to 32bpp anyways (there can be only 8/16/32 pad between pixels)
   if(w->_imgData) delete[] w->_imgData;
-  w->_imgData= new uint8[dx* dy* 4];
-  uint8 *src= bitmap;
+  w->_imgData= new uint8[img.dx* img.dy* 4];
+  uint8 *src= img.bitmap;
   uint8 *dst= w->_imgData;
   
-  for(int64 a= 0, n= dx* dy; a< n; a++, dst+= 4, src+= depth) {
+  for(int64 a= 0, n= img.dx* img.dy; a< n; a++, dst+= 4, src+= depth) {
     dst[0]= src[2];
     dst[1]= src[1];
     dst[2]= src[0];
     dst[3]= (depth== 4? src[3]: 255);
   }
   
-  w->_img= XCreateImage(_dis, XDefaultVisual(_dis, 0), XDefaultDepth(_dis, 0), ZPixmap, 0, (char *)w->_imgData, dx, dy, 32, 0);
+  w->_img= XCreateImage(_dis, XDefaultVisual(_dis, 0), XDefaultDepth(_dis, 0), ZPixmap, 0, (char *)w->_imgData, img.dx, img.dy, 32, 0);
   
   // try transparent 8bit pixmap - no time now. the gc functions, they all are crap. -->clipmap to a pixmap<-- (hopefully is not 0 and 1 only)
   // http://stackoverflow.com/questions/10513367/xlib-draw-only-set-bits-of-a-bitmap-on-a-window
@@ -1640,7 +1640,7 @@ Fail:
   
   w->_gc= XCreateGC(_dis, w->_root, GCFunction, &gcval);
   
-  XPutImage(_dis, w->_win, w->_gc, w->_img, 0, 0, 0, 0, dx, dy);
+  XPutImage(_dis, w->_win, w->_gc, w->_img, 0, 0, 0, 0, img.dx, img.dy);
   
     
   //GC gc= XCreateGC(_dis, w->_win, 0, null);
@@ -1648,7 +1648,7 @@ Fail:
   //GC gcpix;
   //Pixmap pix;
   
-  if(bpp== 32) {
+  if(img.bpp== 32) {
     /*
     uint8 *alpha= new uint8[dx* dy* 4];
     Str::memclr(alpha, dx* dy* 4);
@@ -2790,19 +2790,28 @@ bool osinteraction::_processMSG()  {
           flags.windowResized= true;
         int32 xold= w->x0, yold= w->y0;
 
-        w->x0= event.xconfigure.x;
-
-        #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
-        w->y0= (display.vy0+ display.vdy)- (event.xconfigure.y+ event.xconfigure.height);
-        #endif
-        #ifdef OSI_USE_ORIGIN_TOP_LEFT
-        w->y0= event.xconfigure.y;
-        #endif
-
+        // xconfigure.x/y are not exact virtual desktop coords at all
+        
         w->dx= event.xconfigure.width;
         w->dy= event.xconfigure.height;
+        
+        // https://www.lemoda.net/c/xlib-coordinates/ - in-depth about coords example
+        Window child_dummy;
+        XTranslateCoordinates(w->_dis, w->_win, w->_root, 0, 0, &w->x0, &w->y0, &child_dummy);
+        #ifdef OSI_USE_ORIGIN_BOTTOM_LEFT
+        w->y0= (display.vy0+ display.vdy)- (w->y0+ w->dy);
+        #endif
+        
         if((w->x0 != xold) || (w->y0!= yold))
           flags.windowMoved= true;
+        
+        // METHOD 3: XGetGeometry(w->_dis,  <<<< another way to try
+        
+        // METHOD 1: THIS I DONO WHAT IT RETURNS, CUZ IT AIN'T THESE WINDOW'S coords
+        //XWindowAttributes wcfg= {};
+        //XGetWindowAttributes(osi._dis, w->_win, &wcfg);
+        //printf("xconf[%d]x[%d]y winAttrib[%d]x[%d]y\n", event.xconfigure.x, event.xconfigure.y, wcfg.x, wcfg.y);
+        
       }
       if(floodChatty) printf("ConfigureNotify[%s]: x[%d] y[%d] dx[%d] dy[%d] win->y0[%d]\n", w->name.d, event.xconfigure.x, event.xconfigure.y, event.xconfigure.width, event.xconfigure.height, w->y0);
       
@@ -3238,10 +3247,17 @@ int64_t osinteraction::ftell64(void *in_file) {
 // ============= OPENGL SPECIFIC STUFF ============= //
 ///-------------=======================-------------///
 
-
 #ifdef OSI_USE_OPENGL
 bool osinteraction::glCreateWindow(osiWindow *w, osiMonitor *m, const char *name, int32_t dx, int32_t dy, int8_t mode, int16_t freq, const char *iconFile) {
   str8 func= "osi::glCreateWindow(): ";
+  
+  #ifdef OS_LINUX
+  if(!w->_glCreateFBandVisual())
+    return false;
+  #endif
+  
+  
+  
   if(!createWindow(w, m, name, dx, dy, mode, freq, iconFile))
     return false;
 
@@ -3461,6 +3477,25 @@ void osinteraction::glGetVersion(int *outMajor, int *outMinor) {
 
 #ifdef OSI_USE_VKO
 bool osinteraction::vkCreateWindow(osiWindow *w, osiMonitor *m, const char *name, int32_t dx, int32_t dy, int8_t mode, int16_t freq, const char *iconFile) {
+  
+// required extensions
+//    vk.cfg.extensions.instance.vk_KHR_xlib_surface.enable= 1;
+//    vk.cfg.extensions.instance.vk_KHR_display.enable= 1;
+//    vk.cfg.extensions.instance.vk_EXT_direct_mode_display.enable= 1;
+//    vk.cfg.extensions.instance.vk_EXT_acquire_xlib_display.enable= 1;
+
+  #ifdef OS_LINUX
+  if(vk->CreateXlibSurfaceKHR== null) {
+    error.detail("VK_KHS_xlib_surface extension is required for window creation. aborting.", __FUNCTION__);
+    return false;
+  }
+  #endif
+  
+  #ifdef OS_LINUX
+  if(!w->_vkCreateVisual())
+    return false;
+  #endif
+
   if(!createWindow(w, m, name, dx, dy, mode, freq, iconFile))
     return false;
   

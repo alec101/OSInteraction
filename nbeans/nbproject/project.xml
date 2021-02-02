@@ -12,35 +12,39 @@
             <sourceRootList/>
             <confList>
                 <confElem>
-                    <name>linux64D</name>
+                    <name>lin64.dbg</name>
                     <type>3</type>
                 </confElem>
                 <confElem>
-                    <name>linux64R</name>
+                    <name>lin64</name>
                     <type>3</type>
                 </confElem>
                 <confElem>
-                    <name>linux32D</name>
+                    <name>lin32.dbg</name>
                     <type>3</type>
                 </confElem>
                 <confElem>
-                    <name>linux32R</name>
+                    <name>lin32</name>
                     <type>3</type>
                 </confElem>
                 <confElem>
-                    <name>mac64D</name>
+                    <name>mac64.dbg</name>
                     <type>3</type>
                 </confElem>
                 <confElem>
-                    <name>mac64R</name>
+                    <name>mac64</name>
                     <type>3</type>
                 </confElem>
                 <confElem>
-                    <name>mac32D</name>
+                    <name>mac32.dbg</name>
                     <type>3</type>
                 </confElem>
                 <confElem>
-                    <name>mac32R</name>
+                    <name>mac32</name>
+                    <type>3</type>
+                </confElem>
+                <confElem>
+                    <name>vk.lin64.dbg</name>
                     <type>3</type>
                 </confElem>
             </confList>

@@ -6325,8 +6325,8 @@ inline GLXPbufferSGIX glXCreateGLXPbufferSGIX (Display *dpy, GLXFBConfigSGIX con
   return ((PFNGLXCREATEGLXPBUFFERSGIXPROC)_glr->glExt.glXCreateGLXPbufferSGIX) (dpy, config, width, height, attrib_list);}
 inline void glXDestroyGLXPbufferSGIX (Display *dpy, GLXPbufferSGIX pbuf) {
   ((PFNGLXDESTROYGLXPBUFFERSGIXPROC)_glr->glExt.glXDestroyGLXPbufferSGIX) (dpy, pbuf);}
-inline int glXQueryGLXPbufferSGIX (Display *dpy, GLXPbufferSGIX pbuf, int attribute, unsigned int *value) {
-  return ((PFNGLXQUERYGLXPBUFFERSGIXPROC)_glr->glExt.glXQueryGLXPbufferSGIX) (dpy, pbuf, attribute, value);}
+inline void glXQueryGLXPbufferSGIX (Display *dpy, GLXPbufferSGIX pbuf, int attribute, unsigned int *value) {
+  ((PFNGLXQUERYGLXPBUFFERSGIXPROC)_glr->glExt.glXQueryGLXPbufferSGIX) (dpy, pbuf, attribute, value);}
 inline void glXSelectEventSGIX (Display *dpy, GLXDrawable drawable, unsigned long mask) {
   ((PFNGLXSELECTEVENTSGIXPROC)_glr->glExt.glXSelectEventSGIX) (dpy, drawable, mask);}
 inline void glXGetSelectedEventSGIX (Display *dpy, GLXDrawable drawable, unsigned long *mask) {
@@ -6392,7 +6392,7 @@ inline int glXWaitVideoSyncSGI (int divisor, int remainder, unsigned int *count)
 #endif
 
 #if(GLX_SUN_get_transparent_index== 1)
-inline Status glXGetTransparentIndexSUN (Display *dpy, Window overlay, Window underlay, long *pTransparentIndex) {
+inline Status glXGetTransparentIndexSUN (Display *dpy, Window overlay, Window underlay, unsigned long *pTransparentIndex) {
   return ((PFNGLXGETTRANSPARENTINDEXSUNPROC)_glr->glExt.glXGetTransparentIndexSUN) (dpy, overlay, underlay, pTransparentIndex);}
 #endif
 

@@ -109,11 +109,11 @@ class _Img {
 
 
 
-  static const uint64_t _2toConv= 0x5555555555555555Ui64;  // u64 max / u2 max (3)=            0x5555555555555555
-  static const uint64_t _4toConv= 0x1111111111111111Ui64;  // u64 max / u4 max (15)=           0x1111111111111111
-  static const uint64_t _8toConv= 0x101010101010101Ui64;   // u64 max / u8 max (255)=          0x101010101010101
-  static const uint64_t _16toConv= 0x1000100010001Ui64;    // u64 max / u16 max (65535)=       0x1000100010001
-  static const uint64_t _32toConv= 0x100000001Ui64;        // u64 max / u32 max (‭4294967295‬)=  0x100000001
+  static const uint64_t _2toConv= 0x5555555555555555ULL;  // u64 max / u2 max (3)=            0x5555555555555555
+  static const uint64_t _4toConv= 0x1111111111111111ULL;  // u64 max / u4 max (15)=           0x1111111111111111
+  static const uint64_t _8toConv= 0x101010101010101ULL;   // u64 max / u8 max (255)=          0x101010101010101
+  static const uint64_t _16toConv= 0x1000100010001ULL;    // u64 max / u16 max (65535)=       0x1000100010001
+  static const uint64_t _32toConv= 0x100000001ULL;        // u64 max / u32 max (‭4294967295‬)=  0x100000001
 //const uint64_t _10toConv= 0xFFFFFFFFFFFFFFFFui64/ 0x3FFui64;
                      
 // const uint16_t _8to16= 257; u16 max/ 255= 257
@@ -176,7 +176,7 @@ class _Img {
     ret->r= ((( (uint64_t)*p16>> 11)*       65535)/ 31)* _16toConv;   /// scaling: RGB565 R max is 31, R16G16B16 max is 65535
     ret->g= (((((uint64_t)*p16>> 5)& 0x3F)* 65535)/ 63)* _16toConv;   /// scaling: RGB565 G max is 63, R16G16B16 max is 65535
     ret->b= ((( (uint64_t)*p16     & 0x1F)* 65535)/ 31)* _16toConv;
-    ret->a= ~0ui64;
+    ret->a= ~0ull;
   }
 
   static void from5551(uint8_t *from, _FormatData *f, uint8_t unused2, RGBAconv *ret) {
@@ -184,7 +184,7 @@ class _Img {
     ret->r= ((( (uint64_t)*p16>> 11)*       65535)/ 31)* _16toConv;   /// scaling: RGB565 R max is 31, R16G16B16 max is 65535
     ret->g= (((((uint64_t)*p16>> 6)& 0x1F)* 65535)/ 31)* _16toConv;
     ret->b= (((((uint64_t)*p16>> 1)& 0x1F)* 65535)/ 31)* _16toConv;
-    ret->a= (*p16& 0x01? ~0ui64: 0);
+    ret->a= (*p16& 0x01? ~0ull: 0);
   }
 
   static void from1555(uint8_t *from, _FormatData *f, uint8_t unused2, RGBAconv *ret) {
@@ -192,7 +192,7 @@ class _Img {
     ret->r= (((((uint64_t)*p16>> 10)& 0x1F)* 0xFFFF)/ 0x1F)* _16toConv;   /// scaling: RGB565 R max is 31, R16G16B16 max is 65535
     ret->g= (((((uint64_t)*p16>> 5)&  0x1F)* 0xFFFF)/ 0x1F)* _16toConv;
     ret->b= (((((uint64_t)*p16)&      0x1F)* 0xFFFF)/ 0x1F)* _16toConv;
-    ret->a= (*p16>> 15? ~0ui64: 0);
+    ret->a= (*p16>> 15? ~0ull: 0);
   }
 
   static void from2101010(uint8_t *from, _FormatData *f, uint8_t unused2, RGBAconv *ret) {

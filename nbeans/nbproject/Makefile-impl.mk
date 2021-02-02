@@ -27,11 +27,11 @@ CLEAN_SUBPROJECTS=${CLEAN_SUBPROJECTS_${SUBPROJECTS}}
 PROJECTNAME=nbeans
 
 # Active Configuration
-DEFAULTCONF=linux64D
+DEFAULTCONF=lin64.dbg
 CONF=${DEFAULTCONF}
 
 # All Configurations
-ALLCONFS=linux64D linux64R linux32D linux32R mac64D mac64R mac32D mac32R 
+ALLCONFS=lin64.dbg lin64 lin32.dbg lin32 mac64.dbg mac64 mac32.dbg mac32 vk.lin64.dbg 
 
 
 # build

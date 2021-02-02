@@ -1,3 +1,4 @@
+#include "vko/include/vkoPlatform.h"
 #include "osinteraction.h"
 #include "util/typeShortcuts.h"
 #include <stdio.h>
@@ -596,7 +597,10 @@ void osiDisplay::restoreRes(osiMonitor *m) {
 ///-----------------------------------------------------------------------------///
 
 bool _osiDoChange(osiMonitor *m, osiResolution *r, int16_t freq) {
-  //bool chatty= false;
+  #ifdef OSI_BE_CHATTY
+  bool chatty= false;
+  #endif
+
   #ifdef OS_WIN
   DEVMODE dm;
   for(short a= 0; a< sizeof(DEVMODE); a++) ((int8 *)&dm)[a]= 0;
@@ -2162,6 +2166,9 @@ void _osiPopulateGrCards(osiDisplay *display) {
   
   XRRFreeProviderResources(cards);
   XRRFreeScreenResources(scr);
+  
+  display->bGPUinfoAvaible= true;
+  display->bGPUinfoAvaibleReason= "";
   #endif
 
   #ifdef OS_MAC
@@ -2297,15 +2304,21 @@ void osiDisplay::_vkPopulate() {
   // all these extensions are enabled by default, but if you make your own instance, these extensions should be enabled in order for osi to work properly
 
   #ifdef OSI_USE_VKO
-  if(this->bGPUinfoAvaible== false) return;
+  if(this->bGPUinfoAvaible== false) {
+    error.detail(bGPUinfoAvaibleReason, __FUNCTION__, __LINE__);
+    return;
+  }
   if(osi.vk== null) return;
 
   /// check if vulkan is present and functions are got
   if(!osi.vk->EnumeratePhysicalDevices) return;
   #ifdef OS_LINUX
-  if(!osi.vk->GetRandROutputDisplayEXT) return;
+  if(!osi.vk->GetRandROutputDisplayEXT) {
+    error.simple("required vulkan extensions VK_KHR_display VK_EXT_direct_mode_display VK_EXT_acquire_xlib_display are not present");
+    return;
+  }
   #endif
-  
+
   bool chatty= true;
         
   /// tmp vars
@@ -2375,9 +2388,6 @@ void osiDisplay::_vkPopulate() {
     // - GPUs that are not connected with any monitor, will be matched by name, nothing else needed.
     //   NEED xrandr working
   
-    ok it seems only like 2 instance funcs are on this system, and xrandr one is not one of them, must further test this
-            
-    
     VkDisplayKHR vkMonitor;
   
     for(int a= 0; a< nrPDev; a++) {           // loop thru all vkPhysicalDevices

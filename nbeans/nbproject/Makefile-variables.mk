@@ -6,70 +6,46 @@
 CND_BASEDIR=`pwd`
 CND_BUILDDIR=build
 CND_DISTDIR=dist
-# linux64D configuration
-CND_PLATFORM_linux64D=GNU-Linux
-CND_ARTIFACT_DIR_linux64D=../lib
-CND_ARTIFACT_NAME_linux64D=osi64lin-dbg.so
-CND_ARTIFACT_PATH_linux64D=../lib/osi64lin-dbg.so
-CND_PACKAGE_DIR_linux64D=dist/linux64D/GNU-Linux/package
-CND_PACKAGE_NAME_linux64D=nbeans.tar
-CND_PACKAGE_PATH_linux64D=dist/linux64D/GNU-Linux/package/nbeans.tar
-# linux64R configuration
-CND_PLATFORM_linux64R=GNU-Linux
-CND_ARTIFACT_DIR_linux64R=../lib
-CND_ARTIFACT_NAME_linux64R=osi64lin.so
-CND_ARTIFACT_PATH_linux64R=../lib/osi64lin.so
-CND_PACKAGE_DIR_linux64R=dist/linux64R/GNU-Linux/package
-CND_PACKAGE_NAME_linux64R=nbeans.tar
-CND_PACKAGE_PATH_linux64R=dist/linux64R/GNU-Linux/package/nbeans.tar
-# linux32D configuration
-CND_PLATFORM_linux32D=GNU-Linux
-CND_ARTIFACT_DIR_linux32D=../lib
-CND_ARTIFACT_NAME_linux32D=osi32lin-dbg.so
-CND_ARTIFACT_PATH_linux32D=../lib/osi32lin-dbg.so
-CND_PACKAGE_DIR_linux32D=dist/linux32D/GNU-Linux/package
-CND_PACKAGE_NAME_linux32D=nbeans.tar
-CND_PACKAGE_PATH_linux32D=dist/linux32D/GNU-Linux/package/nbeans.tar
-# linux32R configuration
-CND_PLATFORM_linux32R=GNU-Linux
-CND_ARTIFACT_DIR_linux32R=../lib
-CND_ARTIFACT_NAME_linux32R=osi32lin.so
-CND_ARTIFACT_PATH_linux32R=../lib/osi32lin.so
-CND_PACKAGE_DIR_linux32R=dist/linux32R/GNU-Linux/package
-CND_PACKAGE_NAME_linux32R=nbeans.tar
-CND_PACKAGE_PATH_linux32R=dist/linux32R/GNU-Linux/package/nbeans.tar
-# mac64D configuration
-CND_PLATFORM_mac64D=CLang-MacOSX
-CND_ARTIFACT_DIR_mac64D=../output
-CND_ARTIFACT_NAME_mac64D=OSInteraction_dbg.mac
-CND_ARTIFACT_PATH_mac64D=../output/OSInteraction_dbg.mac
-CND_PACKAGE_DIR_mac64D=dist/mac64D/CLang-MacOSX/package
-CND_PACKAGE_NAME_mac64D=nbeans.tar
-CND_PACKAGE_PATH_mac64D=dist/mac64D/CLang-MacOSX/package/nbeans.tar
-# mac64R configuration
-CND_PLATFORM_mac64R=CLang-MacOSX
-CND_ARTIFACT_DIR_mac64R=../output
-CND_ARTIFACT_NAME_mac64R=OSInteraction.mac
-CND_ARTIFACT_PATH_mac64R=../output/OSInteraction.mac
-CND_PACKAGE_DIR_mac64R=dist/mac64R/CLang-MacOSX/package
-CND_PACKAGE_NAME_mac64R=nbeans.tar
-CND_PACKAGE_PATH_mac64R=dist/mac64R/CLang-MacOSX/package/nbeans.tar
-# mac32D configuration
-CND_PLATFORM_mac32D=CLang-MacOSX
-CND_ARTIFACT_DIR_mac32D=../output
-CND_ARTIFACT_NAME_mac32D=OSInteraction32_dbg.mac
-CND_ARTIFACT_PATH_mac32D=../output/OSInteraction32_dbg.mac
-CND_PACKAGE_DIR_mac32D=dist/mac32D/CLang-MacOSX/package
-CND_PACKAGE_NAME_mac32D=nbeans.tar
-CND_PACKAGE_PATH_mac32D=dist/mac32D/CLang-MacOSX/package/nbeans.tar
-# mac32R configuration
-CND_PLATFORM_mac32R=CLang-MacOSX
-CND_ARTIFACT_DIR_mac32R=../output
-CND_ARTIFACT_NAME_mac32R=OSInteraction32.mac
-CND_ARTIFACT_PATH_mac32R=../output/OSInteraction32.mac
-CND_PACKAGE_DIR_mac32R=dist/mac32R/CLang-MacOSX/package
-CND_PACKAGE_NAME_mac32R=nbeans.tar
-CND_PACKAGE_PATH_mac32R=dist/mac32R/CLang-MacOSX/package/nbeans.tar
+# lin64.dbg configuration
+CND_PLATFORM_lin64.dbg=CLang-Linux
+CND_ARTIFACT_DIR_lin64.dbg=../lib
+CND_ARTIFACT_NAME_lin64.dbg=osi.lin64.dbg.so
+CND_ARTIFACT_PATH_lin64.dbg=../lib/osi.lin64.dbg.so
+CND_PACKAGE_DIR_lin64.dbg=dist/lin64.dbg/CLang-Linux/package
+CND_PACKAGE_NAME_lin64.dbg=nbeans.tar
+CND_PACKAGE_PATH_lin64.dbg=dist/lin64.dbg/CLang-Linux/package/nbeans.tar
+# lin64 configuration
+CND_PLATFORM_lin64=GNU-Linux
+CND_ARTIFACT_DIR_lin64=../lib
+CND_ARTIFACT_NAME_lin64=osi.lin64.so
+CND_ARTIFACT_PATH_lin64=../lib/osi.lin64.so
+CND_PACKAGE_DIR_lin64=dist/lin64/GNU-Linux/package
+CND_PACKAGE_NAME_lin64=nbeans.tar
+CND_PACKAGE_PATH_lin64=dist/lin64/GNU-Linux/package/nbeans.tar
+# lin32.dbg configuration
+CND_PLATFORM_lin32.dbg=GNU-Linux
+CND_ARTIFACT_DIR_lin32.dbg=../lib
+CND_ARTIFACT_NAME_lin32.dbg=osi.lin32.dbg.so
+CND_ARTIFACT_PATH_lin32.dbg=../lib/osi.lin32.dbg.so
+CND_PACKAGE_DIR_lin32.dbg=dist/lin32.dbg/GNU-Linux/package
+CND_PACKAGE_NAME_lin32.dbg=nbeans.tar
+CND_PACKAGE_PATH_lin32.dbg=dist/lin32.dbg/GNU-Linux/package/nbeans.tar
+# lin32 configuration
+CND_PLATFORM_lin32=GNU-Linux
+CND_ARTIFACT_DIR_lin32=../lib
+CND_ARTIFACT_NAME_lin32=osi.lin32.so
+CND_ARTIFACT_PATH_lin32=../lib/osi.lin32.so
+CND_PACKAGE_DIR_lin32=dist/lin32/GNU-Linux/package
+CND_PACKAGE_NAME_lin32=nbeans.tar
+CND_PACKAGE_PATH_lin32=dist/lin32/GNU-Linux/package/nbeans.tar
+# vk.lin64.dbg configuration
+CND_PLATFORM_vk.lin64.dbg=CLang-Linux
+CND_ARTIFACT_DIR_vk.lin64.dbg=../lib
+CND_ARTIFACT_NAME_vk.lin64.dbg=osi.vk.lin64.dbg.so
+CND_ARTIFACT_PATH_vk.lin64.dbg=../lib/osi.vk.lin64.dbg.so
+CND_PACKAGE_DIR_vk.lin64.dbg=dist/vk.lin64.dbg/CLang-Linux/package
+CND_PACKAGE_NAME_vk.lin64.dbg=nbeans.tar
+CND_PACKAGE_PATH_vk.lin64.dbg=dist/vk.lin64.dbg/CLang-Linux/package/nbeans.tar
 #
 # include compiler specific variables
 #
