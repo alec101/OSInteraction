@@ -24,7 +24,7 @@
 // COMPILING / LINKING //
 ///===================///
 
-// - C++ standard must be set to C++11
+// - C++ standard must be set to C++11 minimum
 // - make sure osi header files are in [Additional include directories] (include search path)
 // - osi comes with some basic directx libs (if you didn't install directx sdk), but the path
 //     to them must be set somehow (in visual Studio it's "additional library directories")
@@ -46,9 +46,9 @@
 //
 // WIN libs: [opengl32] [glu32] - OpenGL libraries
 //           if any dinput, xinput or direct3d are used, some directx sdk files (libs+includes) are provided, but directx sdk can be downloaded and used instead
-//           [d3d9]:             [#define USING_DIRECT3D] must be set in osinteraction.h - used ONLY for GPU detection (hopefully oGL will have an extension for this, in the future)
-//           [dinput8] [dxguid]: [#define USING_DIRECTINPUT] must be set in osinteration.h - used for direct input HIDs - joysticks gamepads etc
-//           [xinput]:           [#define USING_XINPUT] must be set in osinteraction.h - used for xinput HIDs - probly only gamepads
+//           [d3d9]:             [#define OSI_USING_DIRECT3D] must be set in osinteraction.h - used ONLY for GPU detection (hopefully oGL will have an extension for this, in the future)
+//           [dinput8] [dxguid]: [#define OSI_USING_DIRECTINPUT] must be set in osinteration.h - used for direct input HIDs - joysticks gamepads etc
+//           [xinput]:           [#define OSI_USING_XINPUT] must be set in osinteraction.h - used for xinput HIDs - probly only gamepads
 //
 //           the next libs should be auto-included, but here is the list in case something is missing:
 //             kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)
@@ -77,11 +77,8 @@
 // or the freeglu one
 // sudo apt-get install libx11-dev         for X11/Xlib.h  - probably this is already installed
 // sudo apt-get install libxrandr-dev      used for resolution changes
-// sudo apt-get install libxi-dev          NOT USED ATM (SCRAPED even)
-// sudo apt-get install libc6-dev-i386     the 32-bit C libraries (only 64bit libs are in linux64)
-// sudo apt-get install xxxxxxxxxxxx       the 64-bit C libraries (only 32bit libs are in linux32)
 // sudo apt-get install libxinerama-dev    Xinerama header files, used to identify monitors
-// sudo apt-get install gcc-4.8-multilib g++-4.8-multilib     - or whatever your gcc version is, if you get [fatal error: 'bits/c++config.h' file not found]
+// get clang or gcc, for a compiler - latest version
 
 
 
@@ -301,12 +298,7 @@ main() {
 
 #ifdef OS_LINUX
 #include <X11/extensions/Xrandr.h>
-//#include <locale.h> printf won't work without locale, to print unicode chars...
 #endif /// OS_LINUX
-
-#ifdef OS_MAC
-// includes moved to each cpp file
-#endif /// OS_MAC
 
 // utility classes
 
@@ -334,8 +326,6 @@ main() {
 #include "osiWindow.h"
 
 
-
-// WIP vvv - works, but i don't like this
 // You can start the program with this macro; starting with main() in windows signals to create a console
 #define osiMain \
 #ifdef OS_WIN \
@@ -343,11 +333,7 @@ int WinMain(_In_  HINSTANCE hInstance, _In_  HINSTANCE hPrevInstance, _In_  LPST
 #else \
 int main(int argc, char *argv[], char *envp[]) { \
 #endif 
-// WIP ^^^
 
-
-
-//class osiGlRenderer;
 
 
 struct osiSettings {
@@ -372,7 +358,6 @@ struct osiSettings {
   struct {
     int minVerMajor;                // [def:0]
     int minVerMinor;                // [def:0]
-    //osiGlRenderer *customRenderer;  // [def:NULL] - when creating the next window(s), use this renderer instead (oneRendererPerXXX/oneRenderer are ignored)
     osiGlRenderer *shareGroup;      // [def:NULL] - after a renderer is created, you can set this pointer to point to it, and the next created renderers will share data (wglShareLists / etc)
     bool legacyCompatibility;       // [def:true] - using legacy (OpenGL 1.0 - 2.x) functions. If set to false, the old ways to draw stuff will not work.
     bool debugRenderer;             // [def:false] - slower opengl context, but lots of bug checks and reports. used when developing applications
@@ -493,23 +478,11 @@ public:
   ///=======///
 
   #ifdef OSI_USE_VKO
-  // -Critical instance creation vulkan funcs (around 5 for vulkan 1.1) are auto-linked and are avaible in <vk> global struct.
-  // -For the rest of instance funcs, <vkInit> must be called. If you created a vulkan instance by yourself,
-  //   pass it to this func and osi will use it to get all the global instance funcs, in <vk> struct.
-  // -If you let osi create the vulkan instance (leave <in_instance> null), it will use the settings from <osi.settings.vulkan>,
-  //   so be sure to fill those out first if you want more customisation
-  // Note: Vulkan device funcs will be aquired in vkInit, but global device funcs will have driver overhead - they will require more cpu.
-  //       when the osiVkRenderer is created, and a vulkan device is tied to it, funcs specific for that device will be linked.
-  //       These funcs are faster, with no driver overhead. It is recomanded to use those. (osiVkRenderer::vk struct)
-  //void vkInit(void *in_instance= NULL) { osiVk::init(in_instance); }
-
+  // >>> after you create your instance with VKO, pass it to OSI, asap, before creating any window <<<
   void vkInit(vkObject *in_vk) { vk= in_vk; osiVk::init(this); }
   vkObject *vk;
 
-  //void vkClose() { osiVk::close(); }   // called by osi destructor, destroys all created vulkan devices/surfaces
-
   // Vulkan window creation / deletion funcs
-
 
   // [mode1]: windowed, using size, center screen [mode2] fullscreen [mode3] fullscreen window [mode4] full Virtual Screen window, on all monitors
   // this func will create a device with using osi.settings.vulkan struct for configuration
@@ -519,18 +492,11 @@ public:
   
   // next funcs call vkCreateWindow; they might make life easier, but nothing more
   
-  bool vkPrimaryWindow(const char *name, int32_t dx, int32_t dy, int8_t mode, int16_t freq= 0); // mode: 1= windowed, 2= fullscreen, 3= fullscreeen window(must research this one), 4= fullscreen virtual desktop (every monitor)
+  bool vkPrimaryWindow(const char *name, int32_t dx, int32_t dy, int8_t mode, int16_t freq= 0); // mode: 1= windowed, 2= fullscreen, 3= fullscreeen window, 4= fullscreen virtual desktop (every monitor)
   bool vkPrimaryWindow();              // creates a basic window, fullscreen
 
   void vkDestroyAllSurfaces();
   void vkDestroySurface(osiWindow *in_w) { osiVk::destroySurface(vk, in_w); }
-
-
-
-//  chainList vkRenderers;        // chainlist with all the vulkan renderers active; PURELY INFORMATIONAL / one per window
-  //VkInstance vkInstance;        // Vulkan instance handle assigned to this app
-  //uint32_t vkApiVersion;        // OS installed Vulkan api version, on the instance level at least; use VK_VERSION_MAJOR(vkApiVersion) VK_VERSION_MINOR(vkApiVersion) VK_VERSION_PATCH(vkApiVersion) to extract the version
-
   #endif // OSI_USE_VKO
 
 
@@ -549,8 +515,6 @@ public:
   
   bool glPrimaryWindow(const char *name, int32_t dx, int32_t dy, int8_t mode, int16_t freq= 0); // mode: 1= windowed, 2= fullscreen, 3= fullscreeen window, 4= fullscreen virtual desktop (every monitor)
   bool glPrimaryWindow();              // creates a basic window, fullscreen
-  
-
 
   // OPENGL funcs
 

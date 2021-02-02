@@ -288,7 +288,7 @@ osinteraction::osinteraction() {
   
   #ifdef OS_LINUX
 /// printf won't work without setlocale. but hopefully it won't be needed.
-//    setlocale(LC_ALL, ""); // can't rely on setlocale. everything is different on each os. rely on StringClass32/8 and that's that.
+//    setlocale(LC_ALL, ""); // can't rely on setlocale. everything is different on each os. rely on str8/32 and that's that.
 //  setlocale(LC_CTYPE, "");
   
   
@@ -386,23 +386,10 @@ osinteraction::~osinteraction() {
   // XSync(primWin->dis, False);
   // delData();
   // XCloseDisplay(primWin->dis);             // DISPLAY CONNECTION TERMINATION
-
-  /* vulkan stuff moved to VKO
-  if(_osiVulkanLib!= null)
-    dlclose(_osiVulkanLib);
-  _osiVulkanLib= null;
-  */
   #endif
-
   
   #ifdef OS_MAC
-  /* vulkan stuff moved to VKO
-  if(_osiVulkanLib!= null)
-    dlclose(_osiVulkanLib);
-  _osiVulkanLib= null;
-  */
   #endif
-  
 }
 
 
@@ -1368,7 +1355,7 @@ bool osinteraction::createWindow(osiWindow *w, osiMonitor *m, const char *name, 
 
 
 
-// ----------------============= GLWINDOW DELETION ==============-------------
+// ----------------============= WINDOW DELETION ==============-------------
 bool osinteraction::destroyPrimaryWindow() {
   if(!primWin) return false;
   return destroyWindow(primWin);
@@ -1700,79 +1687,14 @@ Fail:
 
 
 
-
-
-// THREADS =====================---------------------------
-// scraped: std::thread is way easier, no special libraries/compiler options needed in linux
-
-//void osinteraction::startThread(void func(void *)) {
-//  #ifdef OS_WIN
-  // CreateThread(..) option 1 - thing is, _beginthread is more advanced than these funcs, i think.
-  // >> windows, it seems wants these funcs gone, and replaced in windows 8 with some 'windows store' compatible object which is crap <<
-  // >> so support for xp / win 7 will go away? will see in time, what the heck they want <<
-
-  // msdn:
-  // Like the Win32 ExitThread API, _endthreadex does not close the thread handle. Therefore, when you use _beginthreadex and _endthreadex,
-  // you must close the thread handle by calling the Win32 CloseHandle API.
-//  _beginthread(func, 0, null);
-//  #endif /// OS_WIN
-
-//  #ifdef OS_LINUX
-/* WARNING:
- * XInitThreads() function initializes Xlib support for concurrent threads.
- *   This function must be the first Xlib function a multi-threaded program calls,
- *   and it must complete before any other Xlib call is made. 
- * 
- * XLock/UnlockDisplay() - keep an eye on, something like this might be implemented for all os-es, for threads
- * 
- * std::threads works on every os... it's new.... 
- * 
- */
-//  pthread_t thread;
-//  pthread_attr_t attr;
-//  pthread_attr_init(&attr);
-//  pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-//  pthread_create(&thread, &attr, (void *(*)(void *))func, null);
-//  pthread_attr_destroy(&attr);
-//  #endif /// OS_LINUX
-
-//  #ifdef OS_MAC
-//  mekeme
-//  #endif /// OS_MAC
-//}
-
-//void osinteraction::endThread(int status) {
-//  #ifdef OS_WIN
-//  _endthread();       /// endthreadex() does not close the handle, beware, if used instead of this
-//  #endif /// OS_WIN
-//
-//  #ifdef OS_LINUX
-//  pthread_exit(&status);
-//  #endif /// OS_LINUX
-//
-//  #ifdef OS_MAC
-//  makeme
-//  #endif /// OS_MAC
-//}
-
-
-
-
-
-
-
-
-
 #ifdef OS_WIN
 char *_osi::getWinName(uint64_t in_hwnd) {
-//char *osinteraction::_getWinName(uint64_t in_hwnd) {
   for(int a= 0; a< OSI_MAX_WINDOWS; a++)
     if(osi.win[a]._hWnd== in_hwnd)
       return (char *)osi.win[a].name.d;
   return (char *)"unknown window";
 }
 osiWindow *_osi::getWin(uint64_t in_hwnd) {
-//osiWindow *osinteraction::_getWin(uint64_t in_hwnd) {
   for(int a= 0; a< OSI_MAX_WINDOWS; a++)
     if(osi.win[a]._hWnd== in_hwnd)
       return &osi.win[a];
