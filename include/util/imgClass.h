@@ -217,7 +217,7 @@ public:
 
   // base vars
 
-  str8 fileName;        // image base fileName, if there is one
+  str8 fileName;          // image base fileName, if there is one
   uint8_t fileType;       // 0= TEX, 1= TGA, 2= PNG
   uint8_t *bitmap;        // raw data
   uint32_t dx, dy;        // image size
@@ -226,8 +226,8 @@ public:
   uint16_t bpp;           // bits per pixel
   uint8_t bpc[4];         // bits per channel, for all 4 possible channels
   uint8_t nchannels;      // number of channels per pixel (rgb= 3, rgba= 4, etc)
-  ImgFormat format;     // image format - check ImageFormat enum
-  bool compressed;      // the image is compressed or not
+  ImgFormat format;       // image format - check ImageFormat enum
+  bool compressed;        // the image is compressed or not
 
   uint8_t *cmap;          // color map palette
   //uint8 cmapBpp;        // color palette bits per color (16 / 24 / 32)
@@ -278,7 +278,9 @@ public:
   bool unpackPixels();                  // for images with less than 8bpp, this unpacks pixels: each pixel will have 1 byte
 
   static ImgFormat compressedToUncompressed(ImgFormat);  // returns a coresponding format that would fit best the compressed format
-  
+
+  static void getPixelInfo(ImgFormat in_format, uint16_t *out_bpp= nullptr, uint8_t *out_nchannels= nullptr, uint8_t *out_bpc[4]= nullptr); // returns all format data, any parameter that is left null is ignored
+  static bool isFormatCompressed(ImgFormat in_format);
 
   bool areSizesPowerOfTwo();            // checks if the image sizes are power of 2 (usefull for OpenGL mainly)
   static void *resample2(void *image, uint32_t width, uint32_t height, uint32_t components, uint32_t &err); // 2->1 average (linear) resampling, tex power of 2

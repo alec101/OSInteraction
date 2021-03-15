@@ -1165,6 +1165,20 @@ void Img::computePixelInfo(ImgFormat in_f) {
 }
 
 
+void Img::getPixelInfo(ImgFormat in_f, uint16_t *out_bpp, uint8_t *out_nchannels, uint8_t *out_bpc[4]) {
+  const _Img::_FormatData *p= _Img::_FormatData::get(in_f);
+  if(p== nullptr) return;
+  if(out_bpp) *out_bpp= p->bpp;
+  if(out_nchannels) *out_nchannels= p->nchannels;
+  if(out_bpc) *out_bpc[0]= p->bpc[0], *out_bpc[1]= p->bpc[1], *out_bpc[2]= p->bpc[2], *out_bpc[3]= p->bpc[3];
+}
+
+
+bool Img::isFormatCompressed(ImgFormat in_f) {
+  const _Img::_FormatData *p= _Img::_FormatData::get(in_f);
+  return p->compressed;
+}
+
 
 void Img::_set(ImgFormat in_f) {
   _Img::_FormatData *fd= _Img::_FormatData::get(in_f);

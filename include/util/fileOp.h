@@ -3,6 +3,7 @@
 #define _CRT_SECURE_NO_WARNINGS 1
 #endif
 
+
 bool readLine8(void *stdioFILE, str8 *out_str);         // works with wrapped str8's
 bool readLine16(void *stdioFILE, str16 *out_str);       // wrapping not done
 bool readLine32(void *stdioFILE, str32 *out_str);       // wrapping not done

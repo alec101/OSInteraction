@@ -31,10 +31,10 @@ bool readLine8(void *f, str8 *out_str) {
   // wrapping output str8
   if(out_str->wrapping) {
     if(out_str->wrapSize< 2) return false;
-
+    bool eof= false;
     int32 a= 0;
     for(; a< out_str->wrapSize- 1; ++a) {
-      if(!fread(&c, 1, 1, (FILE *)f)) break;
+      if(!fread(&c, 1, 1, (FILE *)f)) { eof= true; break; }
       if(c== 0) break;
       out_str->d[a]= c;
       if(c== '\n') { ++a; break; }
@@ -42,6 +42,7 @@ bool readLine8(void *f, str8 *out_str) {
 
     out_str->d[a]= 0;
     out_str->updateLen();
+    if(eof && !out_str->nrUnicodes) return false;
 
   // non-wrapping output str8 - ALLOCS + SLOWER!
   } else {
