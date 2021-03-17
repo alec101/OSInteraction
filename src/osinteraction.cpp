@@ -3174,6 +3174,7 @@ bool osinteraction::glCreateWindow(osiWindow *w, osiMonitor *m, const char *name
   str8 func= "osi::glCreateWindow(): ";
   
   #ifdef OS_LINUX
+  w->monitor= m;
   if(!w->_glCreateFBandVisual())
     return false;
   #endif

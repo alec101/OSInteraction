@@ -1,12 +1,24 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.30723.0
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31112.23
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "OSInteraction", "OSInteraction.vcxproj", "{00A87F24-CF13-4904-858D-783E5154643B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		glDebug|Mixed Platforms = glDebug|Mixed Platforms
+		glDebug|Win32 = glDebug|Win32
+		glDebug|x64 = glDebug|x64
+		glRelease|Mixed Platforms = glRelease|Mixed Platforms
+		glRelease|Win32 = glRelease|Win32
+		glRelease|x64 = glRelease|x64
+		vkDebug|Mixed Platforms = vkDebug|Mixed Platforms
+		vkDebug|Win32 = vkDebug|Win32
+		vkDebug|x64 = vkDebug|x64
+		vkRelease|Mixed Platforms = vkRelease|Mixed Platforms
+		vkRelease|Win32 = vkRelease|Win32
+		vkRelease|x64 = vkRelease|x64
 		winDebug|Mixed Platforms = winDebug|Mixed Platforms
 		winDebug|Win32 = winDebug|Win32
 		winDebug|x64 = winDebug|x64
@@ -15,21 +27,48 @@ Global
 		winRelease|x64 = winRelease|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{00A87F24-CF13-4904-858D-783E5154643B}.glDebug|Mixed Platforms.ActiveCfg = glDebug|Win32
+		{00A87F24-CF13-4904-858D-783E5154643B}.glDebug|Mixed Platforms.Build.0 = glDebug|Win32
+		{00A87F24-CF13-4904-858D-783E5154643B}.glDebug|Win32.ActiveCfg = glDebug|Win32
+		{00A87F24-CF13-4904-858D-783E5154643B}.glDebug|Win32.Build.0 = glDebug|Win32
+		{00A87F24-CF13-4904-858D-783E5154643B}.glDebug|x64.ActiveCfg = glDebug|x64
+		{00A87F24-CF13-4904-858D-783E5154643B}.glDebug|x64.Build.0 = glDebug|x64
+		{00A87F24-CF13-4904-858D-783E5154643B}.glRelease|Mixed Platforms.ActiveCfg = glRelease|Win32
+		{00A87F24-CF13-4904-858D-783E5154643B}.glRelease|Mixed Platforms.Build.0 = glRelease|Win32
+		{00A87F24-CF13-4904-858D-783E5154643B}.glRelease|Win32.ActiveCfg = glRelease|Win32
+		{00A87F24-CF13-4904-858D-783E5154643B}.glRelease|Win32.Build.0 = glRelease|Win32
+		{00A87F24-CF13-4904-858D-783E5154643B}.glRelease|x64.ActiveCfg = glRelease|x64
+		{00A87F24-CF13-4904-858D-783E5154643B}.glRelease|x64.Build.0 = glRelease|x64
+		{00A87F24-CF13-4904-858D-783E5154643B}.vkDebug|Mixed Platforms.ActiveCfg = vkDebug|Win32
+		{00A87F24-CF13-4904-858D-783E5154643B}.vkDebug|Mixed Platforms.Build.0 = vkDebug|Win32
+		{00A87F24-CF13-4904-858D-783E5154643B}.vkDebug|Win32.ActiveCfg = vkDebug|Win32
+		{00A87F24-CF13-4904-858D-783E5154643B}.vkDebug|Win32.Build.0 = vkDebug|Win32
+		{00A87F24-CF13-4904-858D-783E5154643B}.vkDebug|x64.ActiveCfg = vkDebug|x64
+		{00A87F24-CF13-4904-858D-783E5154643B}.vkDebug|x64.Build.0 = vkDebug|x64
+		{00A87F24-CF13-4904-858D-783E5154643B}.vkRelease|Mixed Platforms.ActiveCfg = vkRelease|Win32
+		{00A87F24-CF13-4904-858D-783E5154643B}.vkRelease|Mixed Platforms.Build.0 = vkRelease|Win32
+		{00A87F24-CF13-4904-858D-783E5154643B}.vkRelease|Win32.ActiveCfg = vkRelease|Win32
+		{00A87F24-CF13-4904-858D-783E5154643B}.vkRelease|Win32.Build.0 = vkRelease|Win32
+		{00A87F24-CF13-4904-858D-783E5154643B}.vkRelease|x64.ActiveCfg = vkRelease|x64
+		{00A87F24-CF13-4904-858D-783E5154643B}.vkRelease|x64.Build.0 = vkRelease|x64
 		{00A87F24-CF13-4904-858D-783E5154643B}.winDebug|Mixed Platforms.ActiveCfg = winDebug|Win32
 		{00A87F24-CF13-4904-858D-783E5154643B}.winDebug|Mixed Platforms.Build.0 = winDebug|Win32
 		{00A87F24-CF13-4904-858D-783E5154643B}.winDebug|Win32.ActiveCfg = winDebug|Win32
 		{00A87F24-CF13-4904-858D-783E5154643B}.winDebug|Win32.Build.0 = winDebug|Win32
-		{00A87F24-CF13-4904-858D-783E5154643B}.winDebug|x64.ActiveCfg = winDebug|x64
-		{00A87F24-CF13-4904-858D-783E5154643B}.winDebug|x64.Build.0 = winDebug|x64
+		{00A87F24-CF13-4904-858D-783E5154643B}.winDebug|x64.ActiveCfg = Debug|x64
+		{00A87F24-CF13-4904-858D-783E5154643B}.winDebug|x64.Build.0 = Debug|x64
 		{00A87F24-CF13-4904-858D-783E5154643B}.winRelease|Mixed Platforms.ActiveCfg = winRelease|Win32
 		{00A87F24-CF13-4904-858D-783E5154643B}.winRelease|Mixed Platforms.Build.0 = winRelease|Win32
 		{00A87F24-CF13-4904-858D-783E5154643B}.winRelease|Win32.ActiveCfg = winRelease|Win32
 		{00A87F24-CF13-4904-858D-783E5154643B}.winRelease|Win32.Build.0 = winRelease|Win32
-		{00A87F24-CF13-4904-858D-783E5154643B}.winRelease|x64.ActiveCfg = winRelease|x64
-		{00A87F24-CF13-4904-858D-783E5154643B}.winRelease|x64.Build.0 = winRelease|x64
+		{00A87F24-CF13-4904-858D-783E5154643B}.winRelease|x64.ActiveCfg = Release|x64
+		{00A87F24-CF13-4904-858D-783E5154643B}.winRelease|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {039B7AA0-56E9-4BA2-AFD7-1D5677BE1A58}
 	EndGlobalSection
 	GlobalSection(Performance) = preSolution
 		HasPerformanceSessions = true

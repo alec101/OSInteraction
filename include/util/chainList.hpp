@@ -54,7 +54,7 @@ struct chainList {
 
   chainList(): first(nullptr), last(nullptr), nrNodes(0) {}
   ~chainList() { delData(); }
-  void delData() { while(first) del(first); } // teh real destructor (tm) - can be called at any time to dealloc everything
+  void delData() { while(first) del(first); } // teh real destructor - can be called at any time to dealloc everything
 }; /// chainList class
 
 
