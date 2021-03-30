@@ -2054,7 +2054,7 @@ void mzPacker::_mzPackerResults::delPartialData() {
 
 
 /// from miniz::deflateBound
-int64 mzPacker::compressBound(int64 srcSize) {
+int64_t mzPacker::compressBound(int64_t srcSize) {
   // This is really over conservative. (And lame, but it's actually pretty tricky to compute a true upper bound given the way tdefl's blocking works.)
   int64 a= 128+ (srcSize* 110)/ 100;
   int64 b= 128+ srcSize+ ((srcSize/ (31* 1024))+ 1)* 5;
@@ -2062,12 +2062,12 @@ int64 mzPacker::compressBound(int64 srcSize) {
 }
 
 /// from miniz::inflateBound
-int64 mzPacker::decompressBound(int64 srcSize) {
+int64_t mzPacker::decompressBound(int64_t srcSize) {
   return compressBound(srcSize);
 }
 
 
-void mzPacker::setCompressionLevel(int8 c) {
+void mzPacker::setCompressionLevel(int8_t c) {
   if(c< 0)
     c= 0;
   if(c> 10)
@@ -2080,7 +2080,7 @@ void mzPacker::setCompressionLevel(int8 c) {
 ///================///
 // COMPRESSION func //
 ///================///
-bool mzPacker::compress(const void *src, int64 srcLen, void *out, int64 outLen) {
+bool mzPacker::compress(const void *src, int64_t srcLen, void *out, int64_t outLen) {
 
   results.delData();    /// clear results; this struct holds useful return values after compression is done
   /// parameter check
@@ -2139,7 +2139,7 @@ bool mzPacker::compress(const void *src, int64 srcLen, void *out, int64 outLen) 
 ///==================///
 // DECOMPRESSION func //
 ///==================///
-bool mzPacker::decompress(const void *src, int64 srcLen, void *out, int64 outLen) {
+bool mzPacker::decompress(const void *src, int64_t srcLen, void *out, int64_t outLen) {
   results.delData();
   /// parameter check
   err= 0;
@@ -2190,7 +2190,7 @@ bool mzPacker::decompress(const void *src, int64 srcLen, void *out, int64 outLen
 // ---=== advanced decompiler ===--- //
 ///=================================///
 
-bool mzPacker::startAdvDecomp(int64 nrBytes, mzTarget srcType, cvoid *src, int64 srcLen, mzTarget outType, cvoid *out, int64 outLen) {
+bool mzPacker::startAdvDecomp(int64_t nrBytes, mzTarget srcType, const void *src, int64_t srcLen, mzTarget outType, const void *out, int64_t outLen) {
   ((tinfl_decompressor *)_partDecomp)->init();
   results.delData();
   err= 0;
@@ -2249,7 +2249,7 @@ bool mzPacker::startAdvDecomp(int64 nrBytes, mzTarget srcType, cvoid *src, int64
 
 
 
-void *mzPacker::doAdvDecomp(int64 chunkSize, int64 *retLen) {
+void *mzPacker::doAdvDecomp(int64_t chunkSize, int64_t *retLen) {
   if(_nrBytes- _bytesProcessed== 0) { if(retLen) *retLen= 0; return null; }   // JOB DONE, return null
 
   results.delPartialData();
@@ -2426,7 +2426,7 @@ void *mzPacker::doAdvDecomp(int64 chunkSize, int64 *retLen) {
 // ---=== advanced compiler ===--- //
 ///===============================///
 
-bool mzPacker::startAdvComp(int64 nrBytes, mzTarget srcType, cvoid *src, int64 srcLen, mzTarget outType, cvoid *out, int64 outLen) {
+bool mzPacker::startAdvComp(int64_t nrBytes, mzTarget srcType, const void *src, int64_t srcLen, mzTarget outType, const void *out, int64_t outLen) {
   // compressor init, based on compression level
   /// compression level [0 - 10]; avoid level 10: it's miniz's 'uber' compression
   if(compressionLevel< 0)  compressionLevel= 0;
@@ -2497,7 +2497,7 @@ bool mzPacker::startAdvComp(int64 nrBytes, mzTarget srcType, cvoid *src, int64 s
 
 
 
-void *mzPacker::doAdvComp(int64 chunkSize, int64 *retLen) {
+void *mzPacker::doAdvComp(int64_t chunkSize, int64_t *retLen) {
   if(_nrBytes- _bytesProcessed== 0) { if(retLen) *retLen= 0; return null; }   // JOB DONE, return null
 
   results.delPartialData();

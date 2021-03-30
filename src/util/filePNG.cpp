@@ -241,8 +241,10 @@ bool Img::_loadPNG(const char *fname, Img *i) {
   mzPacker pack;
   int64 size;               /// size of the decompressed data
   uint8 *p1;                /// p1 will walk the decompressed data
+  uint64 idatTotalSize= 0;
   /// filter tmp variables
   //uint8 *pprev= null;
+  long start;
 
   _ImgPNG::IDATdata d;
 
@@ -262,6 +264,21 @@ bool Img::_loadPNG(const char *fname, Img *i) {
   if(strcmp8("\x89PNG\xd\xa\x1a\xa", PNGfileCheck)) {
     i->err= 14; goto ReadError; }
 
+  /// one pass thru the file to count all idat chunk sizes
+  start= ftell(f);
+  while(1) {
+    SFREAD(&clength, 4, 1, f) clength= _ImgPNG::byteSwp32(clength);
+    SFREAD(cname, 4, 1, f);
+
+    if(!strcmp8(cname, "IDAT")) idatTotalSize+= (uint64)clength;
+    else if(!strcmp8(cname, "IEND")) break;
+    //else continue;
+    fseek(f, clength, SEEK_CUR);
+    SFREAD(&cCRC, 4, 1, f) cCRC= _ImgPNG::byteSwp32(cCRC);
+  }
+
+  if(idatTotalSize== 0) { i->err= 20; goto ReadError; }
+  fseek(f, start, SEEK_SET);
 
   /// pass thru all PNG chunks, until end chunk
   while(1) {
@@ -359,6 +376,7 @@ bool Img::_loadPNG(const char *fname, Img *i) {
 
       /// alloc the bitmap
       if(!bitmap) {
+        
         bitmap= new uint8[(unsigned int)bitmapSize];
         if(i->_wrap) *i->wrapBitmap= bitmap;
         i->bitmap= bitmap;
@@ -377,88 +395,86 @@ bool Img::_loadPNG(const char *fname, Img *i) {
             d.linePos=  d.lineCur;
           }
         }
-      }
-      
-      
-      //pack.startAdvDecomp(clength, mzTarget::STDIO_FILE, f, (int64)clength, mzTarget::INT_BUFFER, null, 0);
-      pack.startAdvDecomp(clength, mzTarget::STDIO_FILE, f, clength, mzTarget::INT_BUFFER, null, 0);
 
-      while(1) {
-        p1= (uint8 *)pack.doAdvDecomp(0, &size);
-        if(pack.err) { i->err= 16; goto ReadError; }
-        if((!size) && pack.results.srcFullyProcessed) break;
+        // start only on new bitmap
+        pack.startAdvDecomp(idatTotalSize, mzTarget::STDIO_FILE, f, clength, mzTarget::INT_BUFFER, null, 0);
+      }
+
+      p1= (uint8 *)pack.doAdvDecomp(clength, &size);
+      if(pack.err) { i->err= 16; goto ReadError; }
         
-        /// the start of the process - only
-        if((!d.xpos) && (!d.ypos)) {
-          d.fline= *p1;
-          p1++;
-          size--;
+      /// the start of the process - only
+      if((!d.xpos) && (!d.ypos)) {
+        d.fline= *p1;
+        p1++;
+        size--;
+      }
+
+      /// helper vars
+      uint8 ntimes= (d.bpp< 8? 8/ d.bpp: 1);            /// number of times that each decompressed byte will be processed
+      uint8 *linePos= (uint8 *)bitmap+ d.ypos* d.lineSize;/// pointer to the start of the current line
+
+      // pass thru all the bytes in the unpacked data
+      for(uint64 a= 0; a< (uint64)size; a++, p1++) {
+        if(d.xpos>= (int32)i->dx) {
+          d.fline= *p1;                                   /// filter type byte
+          if(interlace) {
+            if(!_ImgPNG::_findGoodXY(d.ilevel, d.xpos, d.ypos, i->dx, i->dy)) {
+              i->err= 20;
+              goto ReadError;
+            }
+          } else {
+            d.xpos= 0;                                    /// reset x position on bitmap
+            d.ypos++;                                     /// increase y position on bitmap (only if n> 0)
+            if(d.ypos>= (int32)i->dy) {
+              i->err= 20;
+              goto ReadError; }
+          }
+          linePos= (uint8 *)bitmap+ d.ypos* d.lineSize;  /// pointer to the start of the bitmap line (yposition)
+          d.p= linePos+ ((d.xpos* d.bpp)/ 8);            /// update p
+          d.nbit= (d.xpos* d.bpp)% 8;                    /// update nbit
+
+          /// this next code is used only for less than 8bpp interlaced PNGs, swaps 2 scanline buffers
+          if(useLineBuffers) {
+            d.linePos= d.lineCur;                         /// d.linePos is used here as middle for swapping
+            d.lineCur= d.linePrev;
+            d.linePrev= d.linePos;
+            d.linePos= d.lineCur;
+          }
+          continue;
         }
 
-        /// helper vars
-        uint8 ntimes= (d.bpp< 8? 8/ d.bpp: 1);            /// number of times that each decompressed byte will be processed
-        uint8 *linePos= (uint8 *)bitmap+ d.ypos* d.lineSize;/// pointer to the start of the current line
+        uint8 v= *p1;                                     /// working and changing p1, results in mzPacker decompression errors
 
-        // pass thru all the bytes in the unpacked data
-        for(uint64 a= 0; a< (uint64)size; a++, p1++) {
-          if(d.xpos>= (int32)i->dx) {
-            d.fline= *p1;                                   /// filter type byte
-            if(interlace) {
-              if(!_ImgPNG::_findGoodXY(d.ilevel, d.xpos, d.ypos, i->dx, i->dy)) { i->err= 20; goto ReadError; }
-            } else {
-              d.xpos= 0;                                    /// reset x position on bitmap
-              d.ypos++;                                     /// increase y position on bitmap (only if n> 0)
-              if(d.ypos>= (int32)i->dy) {
-                i->err= 20;
-                goto ReadError; }
-            }
-            linePos= (uint8 *)bitmap+ d.ypos* d.lineSize;  /// pointer to the start of the bitmap line (yposition)
-            d.p= linePos+ ((d.xpos* d.bpp)/ 8);            /// update p
-            d.nbit= (d.xpos* d.bpp)% 8;                    /// update nbit
+        if(filter== 0)
+          v+= _ImgPNG::_filter(interlace, &d);            /// apply the filter
 
-            /// this next code is used only for less than 8bpp interlaced PNGs, swaps 2 scanline buffers
-            if(useLineBuffers) {
-              d.linePos= d.lineCur;                         /// d.linePos is used here as middle for swapping
-              d.lineCur= d.linePrev;
-              d.linePrev= d.linePos;
-              d.linePos= d.lineCur;
-            }
-            continue;
-          }
+        if(useLineBuffers)                                /// interlaced+filter garbage for less than 8bpp PNGs
+          *d.linePos= v;
 
-          uint8 v= *p1;                                     /// working and changing p1, results in mzPacker decompression errors
+        for(uint b= 0; b< ntimes; b++) {                  /// process a whole byte
+          if(d.xpos>= (int32)i->dx) break;                /// ignore the rest of the byte (garbage at the end of the line)
 
-          if(filter== 0)
-            v+= _ImgPNG::_filter(interlace, &d);            /// apply the filter
+          *d.p= (d.bpp>= 8? v: *d.p+ (((v>> (8- d.bpp- b))& d.mask)<< (8- d.bpp- d.nbit)));
 
-          if(useLineBuffers)                                /// interlaced+filter garbage for less than 8bpp PNGs
-            *d.linePos= v;
+          if((++d.pixByte)>= d.depth) {
+            d.pixByte= 0;
+            if(interlace) d.xpos+= _ImgPNG::adam7[d.ilevel].xnext; /// advance xpos
+            else          d.xpos++;
 
-          for(uint b= 0; b< ntimes; b++) {                  /// process a whole byte
-            if(d.xpos>= (int32)i->dx) break;                /// ignore the rest of the byte (garbage at the end of the line)
+            d.p= linePos+ (d.xpos* d.bpp)/ 8;            /// update p
+            d.nbit= (d.xpos* d.bpp)% 8;                  /// update nbit
 
-            *d.p= (d.bpp>= 8? v: *d.p+ (((v>> (8- d.bpp- b))& d.mask)<< (8- d.bpp- d.nbit)));
+          } else
+            d.p++;
 
-            if((++d.pixByte)>= d.depth) {
-              d.pixByte= 0;
-              if(interlace) d.xpos+= _ImgPNG::adam7[d.ilevel].xnext; /// advance xpos
-              else          d.xpos++;
+        } /// pass thru all bits in the byte (or just one pass for bpp>=8)
 
-              d.p= linePos+ (d.xpos* d.bpp)/ 8;            /// update p
-              d.nbit= (d.xpos* d.bpp)% 8;                  /// update nbit
+        if(useLineBuffers)                                /// interlaced+filter garbage for less than 8bpp 
+          d.linePos++;
+      } /// pass thru each byte decompressed
 
-            } else
-              d.p++;
-
-          } /// pass thru all bits in the byte (or just one pass for bpp>=8)
-
-          if(useLineBuffers)                                /// interlaced+filter garbage for less than 8bpp 
-            d.linePos++;
-        } /// pass thru each byte decompressed
-      } /// extract whole data
-
-
-      // convert the bitmap from less than 8bpp to 8bpp
+      // convert the bitmap from <8bpp to 8bpp
       /// there's only 2 posibilities this can happen: cmap and greyscale.
       if(d.bpp< 8) {
         uint8 *oldBitmap= bitmap;
