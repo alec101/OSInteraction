@@ -20,6 +20,7 @@ namespace mlib {
 
 #define FPII 0.159154943091895f                   // 1/ (2* PI)
 #define PI_HALF 1.570796326794896619f             // PI/ 2
+#define PI_QRTR 0.785398163397448309f             // PI/ 4
 #define PI_DBL 6.283185307179586476925286766559f  // PI* 2
 #define II_PI 0.63661977236758134307553505349006f // 2/ PI
 
@@ -187,6 +188,56 @@ inline float tanfPrecise(float n) {
   float c= mlib::cosfPrecise(n);
   return c== 0.0f? 0.0f: mlib::sinfPrecise(n)/ c;
 }
+
+
+
+// https://developer.download.nvidia.com/cg/acos.html
+// nvidia's version
+inline float acosf(float x) {
+  float negate= float(x< 0.0f);
+  x= mlib::absf(x);
+  float ret= -0.0187293f;
+  ret*= x;
+  ret+= 0.0742610f;
+  ret*= x;
+  ret-= 0.2121144f;
+  ret*= x;
+  ret+= 1.5707288f;
+  ret*= sqrtf(1.0f- x);
+  ret-= 2.0f* negate* ret;
+  return negate* PI+ ret;
+}
+
+// nvidia's version
+inline float asinf(float x) {
+  float negate= float(x< 0.0f);
+  x= mlib::absf(x);
+  float ret= -0.0187293f;
+  ret*= x;
+  ret+= 0.0742610f;
+  ret*= x;
+  ret-= 0.2121144f;
+  ret*= x;
+  ret+= 1.5707288f;
+  ret= PI_HALF- (sqrtf(1.0f- x)* ret);
+  return ret- 2.0f* negate* ret;
+}
+
+
+// https://stackoverflow.com/questions/42537957/fast-accurate-atan-arctan-approximation-algorithm
+// ok precision - NOT TESTED
+inline float atanf(float x) {
+  float xx= x* x;
+  float a= 0.0776509570923569f;
+  float b= -0.287434475393028f;
+  return ((a* xx+ b)* xx+ (PI_QRTR- a- b))* x;
+}
+
+// lower precision - NOT TESTED
+inline float atanf_fast(float x) {
+  return (PI_QRTR* x)- x* (mlib::absf(x)- 1.0f)* (0.2447f+ (0.0663f* mlib::absf(x)));
+}
+
 
 
 
