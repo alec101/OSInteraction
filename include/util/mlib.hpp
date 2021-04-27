@@ -709,7 +709,7 @@ struct alignas(4) vec3i {
   // constructors
 
   inline vec3i():                                   x(0),    y(0),    z(0)    {}
-  inline vec3i(int32_t _x, int32_t _y, int32_t _z): x(0),    y(0),    z(0)    {}
+  inline vec3i(int32_t _x, int32_t _y, int32_t _z): x(_x),   y(_y),   z(_z)   {}
   inline vec3i(const int32_t *n):                   x(n[0]), y(n[1]), z(n[2]) {}
   inline vec3i(int32_t n):                          x(n),    y(n),    z(n)    {}
   inline vec3i(const vec2i &v2, int32_t _z= 0):     x(v2.x), y(v2.y), z(_z)   {}
@@ -721,7 +721,7 @@ struct alignas(4) vec3i {
   inline vec3i &operator=(int32_t n)        { x= y= z= n;                return *this; }
   inline vec3i &operator=(const int32_t *n) { x= n[0], y= n[1], z= n[2]; return *this; }
   inline vec3i &operator=(const vec2i &v2)  { x= v2.x, y= v2.y;          return *this; }
-  inline vec3i &operator=(const vec3i &v2)  { x= v2.x, y= v2.y, z= v2.y; return *this; }
+  inline vec3i &operator=(const vec3i &v2)  { x= v2.x, y= v2.y, z= v2.z; return *this; }
   //vec3i &operator=(const vec4i &v2);
   
   inline vec3i &set(int32_t in_x, int32_t in_y, int32_t in_z) { x= in_x, y= in_y, z= in_z; return *this; }
