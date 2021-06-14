@@ -569,6 +569,7 @@ struct alignas(4) vec3 {
   inline vec3(float n):                      x(n),    y(n),    z(n)    {}
   inline vec3(const vec2 &v2, float _z= 0):  x(v2.x), y(v2.y), z(_z)   {}
   inline vec3(const vec3 &v2):               x(v2.x), y(v2.y), z(v2.z) {}
+  inline vec3(const vec3i &);
   vec3(const vec4 &v2);
 
   // operators
@@ -644,10 +645,11 @@ struct alignas(4) vec3 {
 
   inline const vec3 operator-() const { return vec3(-x, -y, -z); }
 
-  float &operator[](int i)            { return v[i]; }
-  const float operator[](int i) const { return v[i]; }
-  operator float* ()                  { return v; }
-  operator const float *() const      { return v; }
+  inline float &operator[](int i)            { return v[i]; }
+  inline const float operator[](int i) const { return v[i]; }
+  inline operator float* ()                  { return v; }
+  inline operator const float *() const      { return v; }
+  inline operator vec3i();
 
   inline vec3 &set(float _x, float _y, float _z) { x= _x, y= _y, z= _z; return *this; }
 
@@ -714,6 +716,7 @@ struct alignas(4) vec3i {
   inline vec3i(int32_t n):                          x(n),    y(n),    z(n)    {}
   inline vec3i(const vec2i &v2, int32_t _z= 0):     x(v2.x), y(v2.y), z(_z)   {}
   inline vec3i(const vec3i &v2):                    x(v2.x), y(v2.y), z(v2.z) {}
+  inline vec3i(const vec3 &v2);
   //vec3i(const vec4i &v2);
 
   // operators
@@ -794,6 +797,7 @@ struct alignas(4) vec3i {
   inline const int32_t operator[](int i) const { return v[i]; }
   inline operator int32_t *()                  { return v; }
   inline operator const int32_t *()      const { return v; }
+  inline operator vec3() { return vec3((float)x, (float)y, (float)z); }
 
   // dot product
 
@@ -831,18 +835,13 @@ inline const vec3i operator-(int32_t n, const vec3i &v) { return vec3i(n- v.x, n
 inline const vec3i operator*(int32_t n, const vec3i &v) { return vec3i(n* v.x, n* v.y, n* v.z); }
 inline const vec3i operator/(int32_t n, const vec3i &v) { return vec3i(n/ v.x, n/ v.y, n/ v.z); }
 
+inline const vec3 operator+(vec3 &v1, vec3i &v2) { return vec3(v1.x+ (float)v2.x, v1.y+ (float)v2.y, v1.z+ (float)v2.z); }
+inline const vec3i operator+(vec3i &v1, vec3 &v2) { return vec3i(v1.x+ (int32_t)v2.x, v1.y+ (int32_t)v2.y, v1.z+ (int32_t)v2.z); }
 
+vec3::vec3(const vec3i &v2): x((float)v2.x), y((float)v2.y), z((float)v2.z) {}
+vec3i::vec3i(const vec3 &v2): x((int32_t)v2.x), y((int32_t)v2.y), z((int32_t)v2.z) {}
 
-
-
-
-
-
-
-
-
-
-
+vec3::operator vec3i() { return vec3i((int32_t)x, (int32_t)y, (int32_t)z); }
 
 
 
