@@ -895,8 +895,7 @@ void osiInput::update() {
   /// update mouse
   m.update();
   
-  /// update keyboard
-  //if(k.mode!= 1)
+  /// update keyboard - removes old chars too, so it has to be called
   k.update();
   
   
@@ -1608,24 +1607,25 @@ void osiKeyboard::resetButtons() {
 
 // returns a character that user has typed (from a buffer wich has 1 second lifetime)
 uint32 osiKeyboard::getChar() {
-  if(!charTyped.nrNodes)
-    return 0;
-
-  /// clear old typed characters (must have stayed in buffer longer than 1 sec)
-  uint64 present= osi.present/ 1000000;
-  
-  while(charTyped.first)
-    if( (present- ((chTyped*)charTyped.last)->time)> 1000)  // if character stayed in buffer longer than 1 second, delete. IS 1 SEC OK?????
-      charTyped.del(charTyped.last);
-    else                                                    /// the rest of chars couldn't have stayed in buffer longer than 1 sec if the last char didn't
-      break;
-
   if(!charTyped.last) return 0;
+
   /// return the last character in buffer (usually there is only 1... maybe in cases of low framerate, loading stuff while typeing... etc)
   uint32 ret= ((chTyped*)(charTyped.last))->c;
   charTyped.del(charTyped.last);                            /// del character from buffer
   return ret;
 }
+
+/// called by osiKeyboard::update(), that is called by osiInput::update()
+void osiKeyboard::removeOldChars(uint64_t in_howOld) {
+  uint64 present= osi.present/ 1000000;
+  
+  while(charTyped.first)
+    if( (present- ((chTyped *)charTyped.last)->time)> in_howOld)  // if character stayed in buffer longer than 1 second, delete. IS 1 SEC OK?????
+      charTyped.del(charTyped.last);
+    else                                                    /// the rest of chars couldn't have stayed in buffer longer than 1 sec if the last char didn't
+      break;
+}
+
 
 /*
 // basically same func as getChar, but for the other stream of string manipulation keys

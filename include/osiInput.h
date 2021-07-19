@@ -176,6 +176,8 @@ public:
   void _checkAndAddUnicode(uint32_t in_char);   // [internal] OSchar.cpp. checks if current unicode and keys pressed form a char manip, if they do, it adds it into charTyped
   void _checkKeyManip(uint32_t in_keyCode);     // [internal] OSchar.cpp. checks if current keys pressed form a char manip, if they do, it adds it in charTyped
 
+  void removeOldChars(uint64_t in_howOld= 1000); // [in_howOld: milisecs] remove chars that were not used from [charTyped]
+
   inline void swapBuffers();                  // swaps what key and lastKey point to (so no copying is involved)
 
   osiKeyboard();
@@ -528,8 +530,8 @@ struct _Kv {
 class osiInput {
 public:
 
-  osiMouse m;                     // more than 1 mouse?
-  osiKeyboard k;                  // more than 1 keyboard?
+  osiMouse m;                     // the main mouse class
+  osiKeyboard k;                  // the main keyboard class
   osiJoystick j[MAX_JOYSTICKS];   //  j[0-7]= OS driver;  j[8-15] XINPUT;  j[16-19] DIRECT INPUT
   osiGamePad gp[MAX_JOYSTICKS];   // gp[0-7]= OS driver; gp[8-15] XINPUT; gp[16-19] DIRECT INPUT
   osiGameWheel gw[MAX_JOYSTICKS]; // gw[0-7]= OS driver; gw[8-15] XINPUT; gw[16-19] DIRECT INPUT

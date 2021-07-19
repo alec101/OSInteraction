@@ -229,6 +229,8 @@ main() {
 #ifdef OS_WIN
 
 #ifdef OSI_USE_OPENGL_LEGACY                    // legacy / compatibility / old deprecated stuff are loaded
+#define WIN32_LEAN_AND_MEAN 1
+#include <windows.h>
 #include <gl/GL.h>
 #include <gl/GLU.h>
 #else                                           // core ARB mode - the way they want OpenGL to function - deprecated stuff is out
