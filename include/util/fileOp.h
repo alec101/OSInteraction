@@ -20,6 +20,7 @@ void getFileExt(const char *in_fn, str8 *out_ext);   // out_ext will contain the
 const char *pointFileExt(const char *in_fn);              // returns the start of the extension, pointing to the same string
 int getFileNameLen(const char *in_fn);               // returns the file name length in bytes, stops when '.' or str teminator is found 
 void getFileName(const char *in_f, str8 *out_name);  // return in [out_name] only the name of the file, without the extension
+void getFilePath(const char *in_file, str8 *out_path);
 
 
 

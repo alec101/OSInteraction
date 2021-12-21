@@ -275,9 +275,9 @@ float length(const vec4 &o);
 float distance(const vec2 &v1, const vec2 &v2);
 float distance(const vec3 &v1, const vec3 &v2);
 float distance(const vec4 &v1, const vec4 &v2);
-const vec2 &normalize(vec2 *inout_v);
-const vec3 &normalize(vec3 *inout_v);
-const vec4 &normalize(vec4 *inout_v);
+const vec2 normalize(const vec2 &in_v);
+const vec3 normalize(const vec3 &in_v);
+const vec4 normalize(const vec4 &in_v);
 float dot(const vec2 &v1, const vec2 &v2);
 float dot(const vec3 &v1, const vec3 &v2);
 float dot(const vec4 &v1, const vec4 &v2);
@@ -956,6 +956,7 @@ struct alignas(4) vec4 {    // alignment of 16 if in the future intrinsics will 
   // funcs - research: https://github.com/g-truc/glm/blob/master/glm/detail/func_geometric.inl
 
   inline vec4 &setColoru8(uint8_t _r, uint8_t _g, uint8_t _b, uint8_t _a) { return set(((float)_r)/ 255.0f, ((float)_g)/ 255.0f, ((float)_b)/ 255.0f, ((float)_a)/ 255.0f); }
+  inline vec4 &setColoru8v(uint8_t c[4]) { return set(((float)c[0])/ 255.0f, ((float)c[1])/ 255.0f, ((float)c[2])/ 255.0f, ((float)c[3])/ 255.0f); }
   inline vec4 &set(float _x, float _y, float _z, float _w) { x= _x, y= _y, z= _z, w= _w; return *this; }
   inline vec4 &normalize() { float size= length(); if(size) { this->operator/=(size); } return *this; } // return vec* inversesqrt(dot(vec, vec)); - another option
   inline float length() const { return sqrtf((x* x)+ (y* y)+ (z* z)+ (w* w)); };
@@ -1024,6 +1025,9 @@ struct alignas(4) mat4 {
     return *this;
   }
   inline mat4 &zero() { v[0]= v[4]= v[8]= v[12]= v[1]= v[5]= v[9]= v[13]= v[2]= v[6]= v[10]= v[14]= v[3]= v[7]= v[11]= v[15]= 0.0f; return *this; };
+
+  
+  
 
   // rotation functions
 
@@ -1130,6 +1134,7 @@ struct alignas(4) mat4 {
     v[2]= 0.0f;   v[6]= -s;     v[10]= c;      v[14]= 0.0f;
     v[3]= 0.0f;   v[7]= 0.0f;   v[11]= 0.0f;   v[15]= 1.0f;
 
+
     return *this;
   }
 
@@ -1207,7 +1212,17 @@ struct alignas(4) mat4 {
   } 
 
   inline mat4 &translate(float x, float y, float z) { return translate(vec3(x, y, z)); }
-  
+
+  inline mat4 &applyTranslation(const vec4 &o) {
+    v[12]= v[0]* o.x+ v[4]* o.y+  v[8]* o.z+ v[12]* o.w,
+    v[13]= v[1]* o.x+ v[5]* o.y+  v[9]* o.z+ v[13]* o.w,
+    v[14]= v[2]* o.x+ v[6]* o.y+ v[10]* o.z+ v[14]* o.w,
+    v[15]= v[3]* o.x+ v[7]* o.y+ v[11]* o.z+ v[15]* o.w;
+    return *this;
+  }
+
+
+
   inline mat4 &scale(const vec3 &o) {
     v[0]= o[0];   v[4]= 0.0f;   v[8]= 0.0f;    v[12]= 0.0f;
     v[1]= 0.0f;   v[5]= o[1];   v[9]= 0.0f;    v[13]= 0.0f;
@@ -1276,6 +1291,8 @@ struct alignas(4) mat4 {
                 v[3]* o[12]+ v[7]* o[13]+ v[11]* o[14]+ v[15]* o[15]);
                 /// wheew. done.
   }
+
+
 
   // assume the vectors are padded with a 1 (homogenous coordinates)
   inline vec2 operator*(const vec2 &o) {
@@ -1355,12 +1372,14 @@ struct alignas(4) mat4 {
       return *this;
 
     float dz= zn- zf,   ctg= 1.0f/ tanf((fovy* 0.5f)* DEG2RAD);
+    //float dz= zf- zn,   ctg= 1.0f/ tanf((fovy* 0.5f)* DEG2RAD);     // mk2
   
     v[0]= ctg/ aspect;  v[4]= 0.0f;   v[8]= 0;        v[12]= 0.0f;
     v[1]= 0.0f;         v[5]= -ctg;   v[9]= 0;        v[13]= 0.0f;
     v[3]= 0.0f;         v[6]= 0.0f;   v[10]= zf/ dz;  v[14]= (zn* zf)/ dz;
+    //v[3]= 0.0f;         v[6]= 0.0f;   v[10]= (zf+ zn)/ dz;  v[14]= 2.0f* zn* zf/ dz;    // works also
+    //v[3]= 0.0f;         v[6]= 0.0f;   v[10]= zn/ dz ;  v[14]= (zn* zf)/ dz;  // paired with mk2
     v[2]= 0.0f;         v[7]= 0.0f;   v[11]= -1.0f;   v[15]= 1.0f;
-
     return *this;
   }
 
@@ -1378,16 +1397,16 @@ struct alignas(4) mat4 {
     return *this;
   }
 
-  inline mat4 &vkLookAt(const vec3 &eye, const vec3 &center, const vec3 &up) {
-    // MUST TEST THIS
-    vec3 f(center- eye);  f.normalize();
-    vec3 s(cross(f, up)); s.normalize();
-    vec3 u(cross(s, f));
-  
-    v[0]=  s.x;   v[4]=  s.y;   v[8]=   s.z;   v[12]= -dot(s, eye);
-    v[1]=  u.x;   v[5]=  u.y;   v[9]=   u.z;   v[13]= -dot(u, eye);
-    v[2]= -f.x;   v[6]= -f.y;   v[10]= -f.z;   v[14]=  dot(f, eye);
-    v[3]= 0.0f;   v[7]= 0.0f;   v[11]= 0.0f;   v[15]=  1.0f;
+  inline mat4 &vkLookAt(const vec3 &pos, const vec3 &target, const vec3 &up) {
+    vec3 zAxis(normalize(pos- target));         // [norm(pos- target)]           z should be negative
+    vec3 xAxis(normalize(cross(up, zAxis)));    // [normalize(cross(up, zAxis))] right vector direction; up is 0, 0, 1
+    vec3 yAxis(normalize(cross(zAxis, xAxis))); // [norm(cross(zAxis, xAxis))]   
+    
+    v[0]= xAxis.x; v[4]= xAxis.y; v[8]=  xAxis.z; v[12]= -dot(xAxis, pos);
+    v[1]= yAxis.x; v[5]= yAxis.y; v[9]=  yAxis.z; v[13]= -dot(yAxis, pos);
+    v[2]= zAxis.x; v[6]= zAxis.y; v[10]= zAxis.z; v[14]= -dot(zAxis, pos);
+    v[3]= 0.0f;    v[7]= 0.0f;    v[11]= 0.0f;    v[15]=  1.0f;
+
     return *this;
   }
   
@@ -1444,9 +1463,9 @@ inline float length(const vec4 &o) { return sqrtf(o.x* o.x+ o.y* o.y+ o.z* o.z+ 
 inline float distance(const vec2 &v1, const vec2 &v2) { return length(v2- v1); }
 inline float distance(const vec3 &v1, const vec3 &v2) { return length(v2- v1); }
 inline float distance(const vec4 &v1, const vec4 &v2) { return length(v2- v1); }
-inline const vec2 &normalize(vec2 *out_v) { return out_v->normalize(); }
-inline const vec3 &normalize(vec3 *out_v) { return out_v->normalize(); }
-inline const vec4 &normalize(vec4 *out_v) { return out_v->normalize(); }
+inline const vec2 normalize(const vec2 &in_v) { vec2 ret(in_v); float size= in_v.length(); if(size) ret/= size; return ret; }
+inline const vec3 normalize(const vec3 &in_v) { vec3 ret(in_v); float size= in_v.length(); if(size) ret/= size; return ret; }
+inline const vec4 normalize(const vec4 &in_v) { vec4 ret(in_v); float size= in_v.length(); if(size) ret/= size; return ret; }
 inline float dot(const vec2 &v1, const vec2 &v2) { return v1.x* v2.x+ v1.y* v2.y; }
 inline float dot(const vec3 &v1, const vec3 &v2) { return v1.x* v2.x+ v1.y* v2.y+ v1.z* v2.z; }
 inline float dot(const vec4 &v1, const vec4 &v2) { return v1.x* v2.x+ v1.y* v2.y+ v1.z* v2.z+ v1.w* v2.w; }

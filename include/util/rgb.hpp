@@ -1,6 +1,6 @@
 #pragma once
 
-#include "util/mlib.hpp"
+#include "osi/include/util/rgb.hpp"
 
 #define b2f(x) ((float)x)* (1.0f/ 255.0f)
 #define f2b(x) (uint8_t)(((float)x)* 255.0f)

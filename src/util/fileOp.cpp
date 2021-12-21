@@ -297,6 +297,34 @@ void getFileExt(const char *in_file, str8 *out_ext) {
 */
 
 
+void getFilePath(const char *in_file, str8 *out_path) {
+  if(in_file== null) return;
+  out_path->delData();
+
+  // go to end of string
+  int8 *p= (int8 *)in_file;       /// will hold the end of string
+  while(*p)
+    p++;
+
+  // walk backwards, until '/' is found
+  for(int8 *r= p- 1; r> (int8 *)in_file; r--)
+
+    if(*r== '/' || *r== '\\') { 
+      int32 len= (int32)(r- (int8 *)in_file+ 1);            // +1 the char is pointing to
+
+      if(out_path->wrapping) {
+         if(len+ 1> out_path->wrapSize) {
+           error.detail("out_path's wrap length is too small. Path will not fit inside.", __FUNCTION__, __LINE__);
+           return;
+         }
+      } else
+        out_path->d= (char *)new int8[len+ 1];              // +1 terminator
+
+      Str::strncpybytes8(out_path->d, in_file, len, true);
+      out_path->updateLen();
+      return;
+    }
+}
 
 
 

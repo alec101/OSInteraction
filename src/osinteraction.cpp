@@ -3099,7 +3099,7 @@ bool osinteraction::getClipboard(char **out_text) {
     uint8 *buf= new uint8[len+ 4];
     buf[len]= 0; buf[len+ 1]= 0; buf[len+ 2]= 0; buf[len+ 3]= 0;  // utf32 terminator - 4 bytes
 
-    Str::strncpy8((char *)buf, xdata, len);
+    Str::strncpybytes8((char *)buf, xdata, len);
 
     str8 s8;
     s8.secureUTF8((char *)buf);

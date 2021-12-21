@@ -533,6 +533,14 @@ void Str::strncpy8(char *dst, const char *src, int32_t n, bool terminator) {
   if(terminator) *p1= 0;
 }
 
+/// copies n bytes from src to dst
+void Str::strncpybytes8(char *dst, const char *src, int32_t nbytes, bool terminator) {
+  uint8_t *p1= (uint8_t *)dst, *p2= (uint8_t *)src;
+  while(nbytes--)
+    *p1++= *p2++;
+  if(terminator) *p1= 0;
+}
+
 
 void Str::strcpy16(char16_t *dst, const char16_t *src, bool terminator) {
   uint16_t *p1= (uint16_t *)dst, *p2= (uint16_t *)src;

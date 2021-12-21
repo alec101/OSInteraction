@@ -58,6 +58,7 @@ namespace Str {
 
   void strcpy8(char *dst, const char *src, bool terminator= true);                    // UTF-8: copies src to dst; dst must be prealocated;  <terminator>: when true, dst ends with a terminator (null)
   void strncpy8(char *dst, const char *src, int32_t, bool terminator= true);          // UTF-8: copies n unicode values from src to dst; dst must be prealocated <terminator>: when true, dst ends with a terminator (null)
+  void strncpybytes8(char *dst, const char *src, int32_t, bool terminator= true);     // UTF-8: copies n bytes from src to dst; dst must be prealocated <terminator>: when true, dst ends with a terminator (null)
   void strcpy16(char16_t *dst, const char16_t *src, bool terminator= true);           // UTF-16: copies src to dst; dst must be prealocated;  <terminator>: when true, dst ends with a terminator (null)
   void strncpy16(char16_t *dst, const char16_t *src, int32_t, bool terminator= true); // UTF-16: copies n unicode values from src to dst; dst must be prealocated <terminator>: when true, dst ends with a terminator (null)
   void strcpy32(char32_t *dst, const char32_t *src, bool terminator= true);           // UTF-32: copies src to dst; dst must be prealocated;  <terminator>: when true, dst ends with a terminator (null)
