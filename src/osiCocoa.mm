@@ -702,6 +702,7 @@ bool _processMSG(void) {
   /// set flags down
   osi.flags.windowResized= false;
   osi.flags.windowMoved= false;
+  osi.flags.windowMinimized= false;
 
   osi.eventTime= osi.present/ 1000000;
 

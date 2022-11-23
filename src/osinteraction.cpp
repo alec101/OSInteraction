@@ -79,7 +79,6 @@
    - [all] LEGACY- SCRAPE INCOMING IF SO, THIS CAN JUST GO OR VERY LOW PRIORITY custom pbuffer object, glBlaBla instead wglBlaBla for pbuffers - this will ease the use of pbuffers a ton
  * - [all] LEGACY- SCRAPE INCOMING GlMakeCurrent on window/pbuffer so glMakeCurrent(osiRenderer, void *surface, int surfaceType= 0 ) (0= window / 1= bitmap / 2= pbuffer)
 
- * -xx [all(mostly mac)] threads !!!SCRAPE?! why: std::threads adopted in c++11, which is already needed xx
  
 */
 
@@ -256,12 +255,14 @@ osinteraction::osinteraction() {
 
   flags.exit= false;
   flags.haveFocus= false;
-  flags.minimized= false;
+  //flags.minimized= false;
+  
   flags.buttonPress= false;
   flags.keyPress= false;
   //flags.systemInSuspend= false; LINUX NOTHING FOUND
   flags.windowResized= false;
   flags.windowMoved= false;
+  flags.windowMinimized= false;
 
   primWin= null;
   
@@ -276,6 +277,11 @@ osinteraction::osinteraction() {
 
   #ifdef OS_WIN
   QueryPerformanceFrequency(&_osi::timerFreq());   /// read cpu frequency. used for high performance timer (querryPerformanceBlaBla)
+
+  /// remove any scalling that windows enforces upon most coordinates
+  #if(WINVER>= _WIN32_WINNT_VISTA)
+  SetProcessDPIAware();
+  #endif
 
   cmdLine= GetCommandLine();                /// full command line - argc / *argv[] are created from this few lines down
   
@@ -2003,7 +2009,8 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
           if(osi.win[a].isCreated)
             if(osi.win[a].mode== 2) {
               ShowWindow((HWND)osi.win[a]._hWnd, SW_RESTORE);
-              osi.flags.minimized= false;
+              osi.win[a].isMinimized= false;
+              //osi.flags.minimized= false;
               MoveWindow((HWND)osi.win[a]._hWnd, osi.win[a].monitor->x0, osi.win[a].monitor->_y0, osi.win[a].dx, osi.win[a].dy, false);
               #ifdef OSI_BE_CHATTY
               if(chatty) printf("window %d x0[%d] y0[%d] dx[%d] dy[%d]\n", a, osi.win[a].monitor->x0, osi.win[a].monitor->y0, osi.win[a].dx, osi.win[a].dy);
@@ -2042,7 +2049,8 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
                 ShowWindow((HWND)osi.win[a]._hWnd, SW_MINIMIZE);
               else                          /// all other windows must be hidden, else they get minimized into a small box
                 ShowWindow((HWND)osi.win[a]._hWnd, SW_HIDE);
-              osi.flags.minimized= true;
+              osi.win[a].isMinimized= true;
+              osi.flags.windowMinimized= true;
             }
 
         /// change back original monitors resolutions in case of fullscreen
@@ -2136,7 +2144,8 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
             w->dx= LOWORD(lParam),
             w->dy= HIWORD(lParam),
             osi.flags.windowResized= true,
-            osi.flags.minimized= false;
+            w->isMinimized= false;
+            //osi.flags.windowMinimized= false;
             //osi.resizeGLScene(w->dx, w->dy);
           }
       } else if(wParam== SIZE_MAXIMIZED) {
@@ -2145,13 +2154,15 @@ LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam) {
             w->dx= LOWORD(lParam),
             w->dy= HIWORD(lParam),
             osi.flags.windowResized= true,
-            osi.flags.minimized= false;
+            w->isMinimized= false;
+            //osi.flags.minimized= false;
       } else if(wParam== SIZE_MINIMIZED) {
         if((w= _osi::getWin((uint64_t)hWnd)))      /// safety check; 'unknown windows' msgs happened in Win7
           if(w->mode== 1)
             w->dx= LOWORD(lParam),
             w->dy= HIWORD(lParam),
-            osi.flags.minimized= true;
+            w->isMinimized= true,
+            osi.flags.windowMinimized= true;
       }
       goto ret;
 
@@ -2535,7 +2546,7 @@ bool osinteraction::_processMSG()  {
       continue;
       
     // -------------============ ENTER NOTIFY =================-----------------
-    /// mouse moves to a certain window... might be usefull in the future
+    /// mouse moves to a certain window... might be useful in the future
     } else if(event.type == EnterNotify) {
       if((event.xcrossing.mode== NotifyGrab)|| (event.xcrossing.mode==NotifyUngrab)) /// ignore
         continue;
@@ -2544,7 +2555,7 @@ bool osinteraction::_processMSG()  {
         continue;
 
     // -------------============ LEAVE NOTIFY =================-----------------
-    /// mouse leaves a certain window... might be usefull in the future
+    /// mouse leaves a certain window... might be useful in the future
     } else if(event.type == LeaveNotify) {
       if((event.xcrossing.mode== NotifyGrab)|| (event.xcrossing.mode==NotifyUngrab)) /// ignore grabs
         continue;
@@ -2572,7 +2583,11 @@ bool osinteraction::_processMSG()  {
         /// aplication gained focus
         flags.minimized= false;
         flags.haveFocus= true;
-        
+
+        specific window minimized, not whole app;
+        flags.minimized is raised once per processMSG, lowered, after, so you know you must check your windows for minimization;
+        this must be redone, and tested;
+
         /*
         /// call every HID's init (if there's one)
         in.m.aquire();
@@ -2654,8 +2669,11 @@ bool osinteraction::_processMSG()  {
           if(win[a].isCreated) {
             if(win[a].mode== 2) {
               XIconifyWindow(_dis, win[a]._win, win[a].monitor->_screen); /// the only way so far to put fullscreen windows to the background
-              flags.minimized= true;
-              
+              win[a].isMinimized= true;
+              flags.windowMinimized= true;
+
+              win[a].isMinimized is never put down; // <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
             } else if(win[a].mode== 3 || win[a].mode== 4) {
               w->_setWMstate(0, "_NET_WM_STATE_FULLSCREEN"); // this works, but temporary makes the window a normal window, with controls...
               //XLowerWindow(_dis, win[a]._win);                   // !!! i think this is bugged, it doesn't allow for focus out !!!
@@ -2711,7 +2729,7 @@ bool osinteraction::_processMSG()  {
         if((event.xconfigure.width!= w->dx) || (event.xconfigure.height!= w->dy))
           flags.windowResized= true;
         int32 xold= w->x0, yold= w->y0;
-
+        
         // xconfigure.x/y are not exact virtual desktop coords at all
         
         w->dx= event.xconfigure.width;
@@ -2777,6 +2795,7 @@ bool osinteraction::checkMSG() {
   /// set flags down 
   osi.flags.windowResized= false;
   osi.flags.windowMoved= false;
+  osi.flags.windowMinimized= false;
   MSG _msg;
 
   while(1)    // loop thru ALL msgs... i used to peek thru only 1 msg, that was baaad... biig LAG

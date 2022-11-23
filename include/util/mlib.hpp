@@ -248,7 +248,7 @@ struct mat4;
 
 struct vec2i;
 struct vec3i;
-
+struct vec4i;
 
 
 
@@ -284,6 +284,15 @@ float dot(const vec4 &v1, const vec4 &v2);
 const vec3 cross(const vec3 &v1, const vec3 &v2);
 const vec3 faceForward(const vec3 *v1, const vec3 &v2, const vec3 &v3); // <<<< NO SSE
 
+void rgb2hsv(vec4 *out_hsv, const vec4 in_rgb);
+void hsv2rgb(vec4 *out_rgb, const vec4 in_hsv);
+
+
+
+void quaternionToMat4(const vec4 &quaternion, mat4 *result);
+void mat4ToQuaternion(mat4 &mat, vec4 *result);
+
+
 // reflect & refract checkout further <<<
 /*
 vec3 refract(vec3 &v1, vec3 &v2, float eta) {
@@ -318,6 +327,8 @@ struct alignas(4) vec2 {
   inline vec2(const vec2 &v2):     x(v2.x), y(v2.y)  {}
   vec2(const vec3 &v2);
   vec2(const vec4 &v2);
+
+  inline vec2 &set(float in_x, float in_y) { x= in_x, y= in_y; return *this; }
 
   // operators
 
@@ -387,7 +398,7 @@ struct alignas(4) vec2 {
   bool operator!=(const vec3 &v2) const;
   bool operator!=(const vec4 &v2) const;
 
-  inline bool operator!() const { return (x== 0.0f) && (y== 0.0f); }
+  inline bool operator!() const { return (x== y== 0.0f); }
   
   inline const vec2 operator-() const { return vec2(-x, -y); }
 
@@ -442,7 +453,7 @@ struct alignas(4) vec2i {
   inline vec2i(int32_t n):              x(n),    y(n)    {}
   inline vec2i(const vec2i &v2):        x(v2.x), y(v2.y) {}
   vec2i(const vec3i &v2);
-  //vec2i(const vec4 &v2);
+  vec2i(const vec4i &v2);
 
   // operators
 
@@ -450,69 +461,69 @@ struct alignas(4) vec2i {
   inline vec2i &operator=(const int32_t *n) { x= n[0], y= n[1]; return *this; }      /// array with 2 floats
   inline vec2i &operator=(const vec2i &v2)  { x= v2.x, y= v2.y; return *this; }
   vec2i &operator=(const vec3i &v2);
-  //vec2i &operator=(const vec4i &v2);
+  vec2i &operator=(const vec4i &v2);
 
   inline vec2i &operator+=(int32_t n)        { x+= n,    y+= n;    return *this; }
   inline vec2i &operator+=(const int32_t *n) { x+= n[0], y+= n[1]; return *this; }     /// array with 2 floats
   inline vec2i &operator+=(const vec2i &v2)  { x+= v2.x, y+= v2.y; return *this; }
   vec2i &operator+=(const vec3i &v2);
-  //vec2i &operator+=(const vec4i &v2);
+  vec2i &operator+=(const vec4i &v2);
 
   inline vec2i &operator-=(int32_t n)        { x-= n,    y-= n;    return *this; }
   inline vec2i &operator-=(const int32_t *n) { x-= n[0], y-= n[1]; return *this; }      /// array with 2 floats
   inline vec2i &operator-=(const vec2i &v2)  { x-= v2.x, y-= v2.y; return *this; }
   vec2i &operator-=(const vec3i &v2);
-  //vec2i &operator-=(const vec4i &v2);
+  vec2i &operator-=(const vec4i &v2);
 
   inline vec2i &operator*=(int32_t n)        { x*= n,    y*= n;    return *this; }
   inline vec2i &operator*=(const int32_t *n) { x*= n[0], y*= n[1]; return *this; }     /// array with 2 floats
   inline vec2i &operator*=(const vec2i &v2)  { x*= v2.x, y*= v2.y; return *this; }
   vec2i &operator*=(const vec3i &v2);
-  //vec2i &operator*=(const vec4i &v2);
+  vec2i &operator*=(const vec4i &v2);
 
   inline vec2i &operator/=(int32_t n)        { x/= n,    y/= n;    return *this; }
   inline vec2i &operator/=(const int32_t *n) { x/= n[0], y/= n[1]; return *this; }     /// array with 2 floats
   inline vec2i &operator/=(const vec2i &v2)  { x/= v2.x, y/= v2.y; return *this; }
   vec2i &operator/=(const vec3i &v2);
-  //vec2i &operator/=(const vec4i &v2);
+  vec2i &operator/=(const vec4i &v2);
 
   inline const vec2i operator+(int32_t n)        const { return vec2i(*this)+= n; }
   inline const vec2i operator+(const int32_t *n) const { return vec2i(*this)+= n; }
   inline const vec2i operator+(const vec2i &v2)  const { return vec2i(*this)+= v2; }
   const vec2i operator+(const vec3i &v2) const;
-  //const vec2i operator+(const vec4i &v2) const;
+  const vec2i operator+(const vec4i &v2) const;
 
   inline const vec2i operator-(int32_t n)        const { return vec2i(*this)-= n; }
   inline const vec2i operator-(const int32_t *n) const { return vec2i(*this)-= n; }
   inline const vec2i operator-(const vec2i &v2)  const { return vec2i(*this)-= v2; }
   const vec2i operator-(const vec3i &v2) const;
-  //const vec2i operator-(const vec4i &v2) const;
+  const vec2i operator-(const vec4i &v2) const;
 
   inline const vec2i operator*(int32_t n)        const { return vec2i(*this)*= n; }
   inline const vec2i operator*(const int32_t *n) const { return vec2i(*this)*= n; }
   inline const vec2i operator*(const vec2i &v2)  const { return vec2i(*this)*= v2; }
   const vec2i operator*(const vec3i &v2) const;
-  //const vec2i operator*(const vec4i &v2) const;
+  const vec2i operator*(const vec4i &v2) const;
 
   inline const vec2i operator/(int32_t n)        const { return vec2i(*this)/= n; }
   inline const vec2i operator/(const int32_t *n) const { return vec2i(*this)/= n; }
   inline const vec2i operator/(const vec2i &v2)  const { return vec2i(*this)/= v2; }
   const vec2i operator/(const vec3i &v2) const;
-  //const vec2i operator/(const vec4i &v2) const;
+  const vec2i operator/(const vec4i &v2) const;
 
   inline bool operator==(int32_t n)        const { return (n== length()); }   // this compares vector's length, not each element to n
   inline bool operator==(const int32_t *n) const { return ((x== n[0]) && (y== n[1])); }
   inline bool operator==(const vec2i &v2)  const { return ((x== v2.x) && (y== v2.y)); }
   bool operator==(const vec3i &v2) const;
-  //bool operator==(const vec4i &v2) const;
+  bool operator==(const vec4i &v2) const;
   
   inline bool operator!=(int32_t n)        const { return (n!= length()); }    // this compares vector's length, not each element to n
   inline bool operator!=(const int32_t *n) const { return ((x!= n[0]) || (y!= n[1])); }
   inline bool operator!=(const vec2i &v2)  const { return ((x!= v2.x) || (y!= v2.y)); }
   bool operator!=(const vec3i &v2) const;
-  //bool operator!=(const vec4i &v2) const;
+  bool operator!=(const vec4i &v2) const;
 
-  inline bool operator!() const { return (x== 0.0f) && (y== 0.0f); }
+  inline bool operator!() const { return (x== y== 0); }
   
   inline const vec2i operator-() const { return vec2i(-x, -y); }
 
@@ -527,7 +538,7 @@ struct alignas(4) vec2i {
   inline int32_t dot(const int32_t *n)       const { return this->dot(n[0], n[1]); }
   inline int32_t dot(const vec2i &v2)        const { return this->dot(v2.x, v2.y); }
   int32_t dot(const vec3i &v2) const;
-  //int32_t dot(const vec4i &v2) const;
+  int32_t dot(const vec4i &v2) const;
 
   // rest of funcs
   inline vec2i &set(int32_t in_x, int32_t in_y) { x= in_x, y= in_y; return *this; }
@@ -680,6 +691,14 @@ struct alignas(4) vec3 {
     if(y!= 0.0f) y= (absf(y)/ y)* size/ sqrtf((xx/ yy)+ (zz/ yy)+ 1.0f);
     if(z!= 0.0f) z= (absf(z)/ z)* size/ sqrtf((xx/ zz)+ (yy/ zz)+ 1.0f);
   };
+
+  void interpolate(const vec3 &start, const vec3 &end, float progression) {
+		x= start.x+ (end.x- start.x)* progression;
+		y= start.y+ (end.y- start.y)* progression;
+		z= start.z+ (end.z- start.z)* progression;
+	}
+
+
 };
 
 inline const vec3 operator+(float n, const vec3 &v) { return vec3(n+ v.x, n+ v.y, n+ v.z); }
@@ -717,7 +736,7 @@ struct alignas(4) vec3i {
   inline vec3i(const vec2i &v2, int32_t _z= 0):     x(v2.x), y(v2.y), z(_z)   {}
   inline vec3i(const vec3i &v2):                    x(v2.x), y(v2.y), z(v2.z) {}
   inline vec3i(const vec3 &v2);
-  //vec3i(const vec4i &v2);
+  vec3i(const vec4i &v2);
 
   // operators
 
@@ -725,7 +744,7 @@ struct alignas(4) vec3i {
   inline vec3i &operator=(const int32_t *n) { x= n[0], y= n[1], z= n[2]; return *this; }
   inline vec3i &operator=(const vec2i &v2)  { x= v2.x, y= v2.y;          return *this; }
   inline vec3i &operator=(const vec3i &v2)  { x= v2.x, y= v2.y, z= v2.z; return *this; }
-  //vec3i &operator=(const vec4i &v2);
+  vec3i &operator=(const vec4i &v2);
   
   inline vec3i &set(int32_t in_x, int32_t in_y, int32_t in_z) { x= in_x, y= in_y, z= in_z; return *this; }
 
@@ -733,63 +752,63 @@ struct alignas(4) vec3i {
   inline vec3i &operator+=(const int32_t *n) { x+= n[0], y+= n[1], z+= n[2]; return *this; }
   inline vec3i &operator+=(const vec2i &v2)  { x+= v2.x, y+= v2.y;           return *this; }
   inline vec3i &operator+=(const vec3i &v2)  { x+= v2.x, y+= v2.y, z+= v2.z; return *this; }
-  //vec3i &operator+=(const vec4i &v2);
+  vec3i &operator+=(const vec4i &v2);
   
   inline vec3i &operator-=(int32_t n)        { x-= n,    y-= n,    z-= n;    return *this; }
   inline vec3i &operator-=(const int32_t *n) { x-= n[0], y-= n[1], z-= n[2]; return *this; }
   inline vec3i &operator-=(const vec2i &v2)  { x-= v2.x, y-= v2.y;           return *this; }
   inline vec3i &operator-=(const vec3i &v2)  { x-= v2.x, y-= v2.y, z-= v2.z; return *this; }
-  //vec3i &operator-=(const vec4i &v2);
+  vec3i &operator-=(const vec4i &v2);
   
   inline vec3i &operator*=(int32_t n)        { x*= n,    y*= n,    z*= n;    return *this; }
   inline vec3i &operator*=(const int32_t *n) { x*= n[0], y*= n[1], z*= n[2]; return *this; }
   inline vec3i &operator*=(const vec2i &v2)  { x*= v2.x, y*= v2.y;           return *this; }
   inline vec3i &operator*=(const vec3i &v2)  { x*= v2.x, y*= v2.y, z*= v2.z; return *this; }
-  //vec3i &operator*=(const vec4i &v2);
+  vec3i &operator*=(const vec4i &v2);
 
   inline vec3i &operator/=(int32_t n)        { x/= n,    y/= n,    z/= n;    return *this; }
   inline vec3i &operator/=(const int32_t *n) { x/= n[0], y/= n[1], z/= n[2]; return *this; }
   inline vec3i &operator/=(const vec2i &v2)  { x/= v2.x, y/= v2.y;           return *this; }
   inline vec3i &operator/=(const vec3i &v2)  { x/= v2.x, y/= v2.y, z/= v2.z; return *this; }
-  //vec3i &operator/=(const vec4i &v2);
+  vec3i &operator/=(const vec4i &v2);
 
   inline const vec3i operator+(int32_t n)        const { return vec3i(*this)+= n; }
   inline const vec3i operator+(const int32_t *n) const { return vec3i(*this)+= n; }
   inline const vec3i operator+(const vec2i &v2)  const { return vec3i(*this)+= v2; }
   inline const vec3i operator+(const vec3i &v2)  const { return vec3i(*this)+= v2; }
-  //const vec3i operator+(const vec4i &v2) const;
+  const vec3i operator+(const vec4i &v2) const;
 
   inline const vec3i operator-(int32_t n)        const { return vec3i(*this)-= n; }
   inline const vec3i operator-(const int32_t *n) const { return vec3i(*this)-= n; }
   inline const vec3i operator-(const vec2i &v2)  const { return vec3i(*this)-= v2; }
   inline const vec3i operator-(const vec3i &v2)  const { return vec3i(*this)-= v2; }
-  //const vec3i operator-(const vec4i &v2) const;
+  const vec3i operator-(const vec4i &v2) const;
 
   inline const vec3i operator*(int32_t n)        const { return vec3i(*this)*= n; }
   inline const vec3i operator*(const int32_t *n) const { return vec3i(*this)*= n; }
   inline const vec3i operator*(const vec2i &v2)  const { return vec3i(*this)*= v2; }
   inline const vec3i operator*(const vec3i &v2)  const { return vec3i(*this)*= v2; }
-  //const vec3i operator*(const vec4i &v2) const;
+  const vec3i operator*(const vec4i &v2) const;
 
   inline const vec3i operator/(int32_t n)        const { return vec3i(*this)/= n; }
   inline const vec3i operator/(const int32_t *n) const { return vec3i(*this)/= n; }
   inline const vec3i operator/(const vec2i &v2)  const { return vec3i(*this)/= v2; }
   inline const vec3i operator/(const vec3i &v2)  const { return vec3i(*this)/= v2; }
-  //const vec3i operator/(const vec4i &v2) const;
+  const vec3i operator/(const vec4i &v2) const;
 
   inline bool operator==(int32_t n)        const { return (n== length()); } // this compares vector's length, not each element with n
   inline bool operator==(const int32_t *n) const { return ((x== n[0]) && (y== n[1]) && (z== n[2])); }
   inline bool operator==(const vec2i &v2)  const { return ((x== v2.x) && (y== v2.y)); }
   inline bool operator==(const vec3i &v2)  const { return ((x== v2.x) && (y== v2.y) && (z== v2.z)); }
-  //bool operator==(const vec4i &v2) const;
+  bool operator==(const vec4i &v2) const;
 
   inline bool operator!=(int32_t n)        const { return (n!= length());} // this compares vector's length, not each element with n
   inline bool operator!=(const int32_t *n) const { return ((x!= n[0]) || (y!= n[1]) || (z!= n[2])); }
   inline bool operator!=(const vec2i &v2)  const { return ((x!= v2.x) || (y!= v2.y)); }
   inline bool operator!=(const vec3i &v2)  const { return ((x!= v2.x) || (y!= v2.y) || (z!= v2.z)); }
-  //bool operator!=(const vec4i &v2)   const;
+  bool operator!=(const vec4i &v2)   const;
 
-  inline bool operator!() const { return !(x && y); }
+  inline bool operator!() const { return (x== y== z== 0); }
 
   inline const vec3i operator-() const { return vec3i(-x, -y, -z); }
 
@@ -805,14 +824,14 @@ struct alignas(4) vec3i {
   inline int32_t dot(const int32_t *n)                   const { return this->dot(n[0], n[1], n[2]); }
   inline int32_t dot(const vec2i &v2, int32_t _z= 0)     const { return this->dot(v2.x, v2.y, _z); }
   inline int32_t dot(const vec3i &v2)                    const { return this->dot(v2.x, v2.y, v2.z); }
-  //inline int32_t dot(const vec4i &v2)                    const { return this->dot(v2.x, v2.y, v2.z); }
+  int32_t dot(const vec4i &v2) const;
 
   // cross product
 
   inline vec3i cross(int32_t _x, int32_t _y, int32_t _z) const { return vec3i((y* _z)- (z* _y),  (z* _x)- (x* _z), (x* _y)- (y* _x)); }
   inline vec3i cross(const vec2i &v2, int32_t _z)        const { return this->cross(v2.x, v2.y,   _z); }
   inline vec3i cross(const vec3i &v2)                    const { return this->cross(v2.x, v2.y, v2.z); }
-  //inline vec3i vec3i::cross(const vec4i &v2)             const { return this->cross(v2.x, v2.y, v2.z); }
+  vec3i cross(const vec4i &v2) const;
 
   // funcs - research: https://github.com/g-truc/glm/blob/master/glm/detail/func_geometric.inl
 
@@ -936,8 +955,6 @@ struct alignas(4) vec4 {    // alignment of 16 if in the future intrinsics will 
   inline bool operator!=(const vec3 &v2) const { return ((x!= v2.x) || (y!= v2.y) || (z!= v2.z)); }
   inline bool operator!=(const vec4 &v2) const { return ((x!= v2.x) || (y!= v2.y) || (z!= v2.z) || (w!= v2.w)); }
   
-  inline bool operator!() const { return (x!= 0.0f) && (y!= 0.0f) && (z!= 0.0f) && (w!= 0.0f); }
-
   inline const vec4 operator-() const { return vec4(-x, -y, -z, -w); }
 
   inline float &operator[](int i)            { return v[i]; }
@@ -953,6 +970,13 @@ struct alignas(4) vec4 {    // alignment of 16 if in the future intrinsics will 
   inline float dot(const vec3 &v2, float _w= 0.0f)                 const { return this->dot(v2.x, v2.y, v2.z,   _w); }
   inline float dot(const vec4 &v2)                                 const { return this->dot(v2.x, v2.y, v2.z, v2.w); }
 
+  // cross product - w is ignored
+
+  inline vec4 cross(float _x, float _y, float _z) const { return vec3((y* _z)- (z* _y), (z* _x)- (x* _z), (x* _y)- (y* _x)); }
+  inline vec4 cross(const vec2 &v2, float _z)     const { return this->cross(v2.x, v2.y,   _z); }
+  inline vec4 cross(const vec3 &v2)               const { return this->cross(v2.x, v2.y, v2.z); }
+  inline vec4 cross(const vec4 &v2)               const { return this->cross(v2.x, v2.y, v2.z); }
+
   // funcs - research: https://github.com/g-truc/glm/blob/master/glm/detail/func_geometric.inl
 
   inline vec4 &setColoru8(uint8_t _r, uint8_t _g, uint8_t _b, uint8_t _a) { return set(((float)_r)/ 255.0f, ((float)_g)/ 255.0f, ((float)_b)/ 255.0f, ((float)_a)/ 255.0f); }
@@ -961,12 +985,190 @@ struct alignas(4) vec4 {    // alignment of 16 if in the future intrinsics will 
   inline vec4 &normalize() { float size= length(); if(size) { this->operator/=(size); } return *this; } // return vec* inversesqrt(dot(vec, vec)); - another option
   inline float length() const { return sqrtf((x* x)+ (y* y)+ (z* z)+ (w* w)); };
   inline float norm2() const { return (x* x)+ (y* y)+ (z* z)+ (w* w); }
+
+  inline void quaternionInterpolate(const vec4 &a, const vec4 &b, float blend) {
+    set(0.0f, 0.0f, 0.0f, 1.0f);
+		float dot= a.w* b.w+ a.x* b.x+ a.y* b.y+ a.z* b.z;
+		float blendI= 1.0f- blend;
+		if(dot< 0.0f) {
+			w= blendI* a.w+ blend* -b.w;
+			x= blendI* a.x+ blend* -b.x;
+			y= blendI* a.y+ blend* -b.y;
+			z= blendI* a.z+ blend* -b.z;
+		} else {
+			w= blendI* a.w+ blend* b.w;
+			x= blendI* a.x+ blend* b.x;
+			y= blendI* a.y+ blend* b.y;
+			z= blendI* a.z+ blend* b.z;
+		}
+    normalize();
+	}
+
+  inline mat4 quaternionToMat4() const; // { mat4 result; mlib::quaternionToMat4(*this, &result); return result; }
+
+  typedef struct {
+    double r;       // a fraction between 0 and 1
+    double g;       // a fraction between 0 and 1
+    double b;       // a fraction between 0 and 1
+  } rgb;
+
+  typedef struct {
+      double h;       // angle in degrees
+      double s;       // a fraction between 0 and 1
+      double v;       // a fraction between 0 and 1
+  } hsv;
+
+
+  vec4 &toHSV() { rgb2hsv(this, *this); return *this; }
+  vec4 &toRGB() { hsv2rgb(this, *this); return *this; }
+
 };
 
 inline const vec4 operator+(float n, const vec4 &v) { return vec4(n+ v.x, n+ v.y, n+ v.z, n+ v.w); }
 inline const vec4 operator-(float n, const vec4 &v) { return vec4(n- v.x, n- v.y, n- v.z, n- v.w); }
 inline const vec4 operator*(float n, const vec4 &v) { return vec4(n* v.x, n* v.y, n* v.z, n* v.w); }
 inline const vec4 operator/(float n, const vec4 &v) { return vec4(n/ v.x, n/ v.y, n/ v.z, n/ v.w); }
+
+
+
+
+
+///=========
+// = vec4i =--------------------------------------------------------------------
+///=========
+
+
+struct alignas(4) vec4i {
+  union {
+    struct { int32_t x, y, z, w; };
+    struct { int32_t r, g, b, a; };
+    int32_t v[4];
+  };
+  inline int getComponents() { return 4; } /// xyzw
+
+  // constructors
+
+  inline vec4i():                                               x(0),    y(0),    z(0),    w(0)    {}
+  inline vec4i(int32_t _x, int32_t _y, int32_t _z, int32_t _w): x(_x),   y(_y),   z(_z),   w(_w)   {}
+  inline vec4i(const int32_t *n):                               x(n[0]), y(n[1]), z(n[2]), w(n[3]) {}
+  inline vec4i(int32_t n):                                      x(n),    y(n),    z(n),    w(n)    {}
+  inline vec4i(const vec2i &v2, int32_t _z= 0, int32_t _w= 0):  x(v2.x), y(v2.y), z(_z),   w(_w)   {}
+  inline vec4i(const vec3i &v2, int32_t _w= 0):                 x(v2.x), y(v2.y), z(v2.z), w(_w)   {}
+  inline vec4i(const vec4i &v2):                                x(v2.x), y(v2.y), z(v2.z), w(v2.w) {}
+  inline vec4i(const vec4 &v2):                                 x((int32_t)v2.x), y((int32_t)v2.y), z((int32_t)v2.z), w((int32_t)v2.w) {}
+
+  // operators
+
+  inline vec4i &operator=(int32_t n)        { x= y= z= w= n;                      return *this; }
+  inline vec4i &operator=(const int32_t *n) { x= n[0], y= n[1], z= n[2], w= n[3]; return *this; }
+  inline vec4i &operator=(const vec2i &v2)  { x= v2.x, y= v2.y;                   return *this; }
+  inline vec4i &operator=(const vec3i &v2)  { x= v2.x, y= v2.y, z= v2.z;          return *this; }
+  inline vec4i &operator=(const vec4i &v2)  { x= v2.x, y= v2.y, z= v2.z, w= v2.w; return *this; }
+  
+  inline vec4i &set(int32_t in_x, int32_t in_y, int32_t in_z, int32_t in_w) { x= in_x, y= in_y, z= in_z, w= in_w; return *this; }
+
+  inline vec4i &operator+=(int32_t n)        { x+= n,    y+= n,    z+= n,    w+= n;    return *this; }
+  inline vec4i &operator+=(const int32_t *n) { x+= n[0], y+= n[1], z+= n[2], w+= n[3]; return *this; }
+  inline vec4i &operator+=(const vec2i &v2)  { x+= v2.x, y+= v2.y;                     return *this; }
+  inline vec4i &operator+=(const vec3i &v2)  { x+= v2.x, y+= v2.y, z+= v2.z;           return *this; }
+  inline vec4i &operator+=(const vec4i &v2)  { x+= v2.x, y+= v2.y, z+= v2.z, w+= v2.w; return *this; }
+  
+  inline vec4i &operator-=(int32_t n)        { x-= n,    y-= n,    z-= n,    w-= n;    return *this; }
+  inline vec4i &operator-=(const int32_t *n) { x-= n[0], y-= n[1], z-= n[2], w-= n[3]; return *this; }
+  inline vec4i &operator-=(const vec2i &v2)  { x-= v2.x, y-= v2.y;                     return *this; }
+  inline vec4i &operator-=(const vec3i &v2)  { x-= v2.x, y-= v2.y, z-= v2.z;           return *this; }
+  inline vec4i &operator-=(const vec4i &v2)  { x-= v2.x, y-= v2.y, z-= v2.z; w-= v2.w; return *this; }
+  
+  inline vec4i &operator*=(int32_t n)        { x*= n,    y*= n,    z*= n, w*= n;       return *this; }
+  inline vec4i &operator*=(const int32_t *n) { x*= n[0], y*= n[1], z*= n[2], w*= n[3]; return *this; }
+  inline vec4i &operator*=(const vec2i &v2)  { x*= v2.x, y*= v2.y;                     return *this; }
+  inline vec4i &operator*=(const vec3i &v2)  { x*= v2.x, y*= v2.y, z*= v2.z;           return *this; }
+  inline vec4i &operator*=(const vec4i &v2)  { x*= v2.x, y*= v2.y, z*= v2.z, w*= v2.w; return *this; }
+
+  inline vec4i &operator/=(int32_t n)        { x/= n,    y/= n,    z/= n,    w/= n;    return *this; }
+  inline vec4i &operator/=(const int32_t *n) { x/= n[0], y/= n[1], z/= n[2], w/= n[3]; return *this; }
+  inline vec4i &operator/=(const vec2i &v2)  { x/= v2.x, y/= v2.y;                     return *this; }
+  inline vec4i &operator/=(const vec3i &v2)  { x/= v2.x, y/= v2.y, z/= v2.z;           return *this; }
+  inline vec4i &operator/=(const vec4i &v2)  { x/= v2.x, y/= v2.y, z/= v2.z, w/= v2.w; return *this; }
+
+  inline const vec4i operator+(int32_t n)        const { return vec4i(*this)+= n; }
+  inline const vec4i operator+(const int32_t *n) const { return vec4i(*this)+= n; }
+  inline const vec4i operator+(const vec2i &v2)  const { return vec4i(*this)+= v2; }
+  inline const vec4i operator+(const vec3i &v2)  const { return vec4i(*this)+= v2; }
+  inline const vec4i operator+(const vec4i &v2)  const { return vec4i(*this)+= v2; }
+
+  inline const vec4i operator-(int32_t n)        const { return vec4i(*this)-= n; }
+  inline const vec4i operator-(const int32_t *n) const { return vec4i(*this)-= n; }
+  inline const vec4i operator-(const vec2i &v2)  const { return vec4i(*this)-= v2; }
+  inline const vec4i operator-(const vec3i &v2)  const { return vec4i(*this)-= v2; }
+  inline const vec4i operator-(const vec4i &v2)  const { return vec4i(*this)-= v2; }
+
+  inline const vec4i operator*(int32_t n)        const { return vec4i(*this)*= n; }
+  inline const vec4i operator*(const int32_t *n) const { return vec4i(*this)*= n; }
+  inline const vec4i operator*(const vec2i &v2)  const { return vec4i(*this)*= v2; }
+  inline const vec4i operator*(const vec3i &v2)  const { return vec4i(*this)*= v2; }
+  inline const vec4i operator*(const vec4i &v2)  const { return vec4i(*this)*= v2; }
+
+  inline const vec4i operator/(int32_t n)        const { return vec4i(*this)/= n; }
+  inline const vec4i operator/(const int32_t *n) const { return vec4i(*this)/= n; }
+  inline const vec4i operator/(const vec2i &v2)  const { return vec4i(*this)/= v2; }
+  inline const vec4i operator/(const vec3i &v2)  const { return vec4i(*this)/= v2; }
+  inline const vec4i operator/(const vec4i &v2)  const { return vec4i(*this)/= v2; }
+
+  inline bool operator==(int32_t n)        const { return (n== length()); } // this compares vector's length, not each element with n
+  inline bool operator==(const int32_t *n) const { return ((x== n[0]) && (y== n[1]) && (z== n[2])); }
+  inline bool operator==(const vec2i &v2)  const { return ((x== v2.x) && (y== v2.y)); }
+  inline bool operator==(const vec3i &v2)  const { return ((x== v2.x) && (y== v2.y) && (z== v2.z)); }
+  inline bool operator==(const vec4i &v2)  const { return ((x== v2.x) && (y== v2.y) && (z== v2.z) && (w== v2.w)); }
+
+  inline bool operator!=(int32_t n)        const { return (n!= length());} // this compares vector's length, not each element with n
+  inline bool operator!=(const int32_t *n) const { return ((x!= n[0]) || (y!= n[1]) || (z!= n[2])); }
+  inline bool operator!=(const vec2i &v2)  const { return ((x!= v2.x) || (y!= v2.y)); }
+  inline bool operator!=(const vec3i &v2)  const { return ((x!= v2.x) || (y!= v2.y) || (z!= v2.z)); }
+  inline bool operator!=(const vec4i &v2)  const { return ((x!= v2.x) || (y!= v2.y) || (z!= v2.z) && (w!= v2.w)); }
+
+  inline bool operator!() const { return (x== y== z== w== 0); }
+
+  inline const vec4i operator-() const { return vec4i(-x, -y, -z, -w); }
+
+  inline int32_t &operator[](int i)            { return v[i]; }
+  inline const int32_t operator[](int i) const { return v[i]; }
+  inline operator int32_t *()                  { return v; }
+  inline operator const int32_t *()      const { return v; }
+  inline operator vec4() { return vec4((float)x, (float)y, (float)z, (float)w); }
+
+  // dot product
+
+  inline int32_t dot(int32_t _x, int32_t _y, int32_t _z, int32_t _w) const { return (x* _x)+  (y* _y)+ (z* _z)+ (w* _w); }
+  inline int32_t dot(const int32_t *n)                               const { return this->dot(n[0], n[1], n[2], n[3]); }
+  inline int32_t dot(const vec2i &v2, int32_t _z= 0, int32_t _w= 0)  const { return this->dot(v2.x, v2.y, _z,   _w);   }
+  inline int32_t dot(const vec3i &v2, int32_t _w)                    const { return this->dot(v2.x, v2.y, v2.z, _w);   }
+  inline int32_t dot(const vec4i &v2)                                const { return this->dot(v2.x, v2.y, v2.z, v2.w); }
+
+  // cross product
+
+  inline vec4i cross(int32_t _x, int32_t _y, int32_t _z) const { return vec3i((y* _z)- (z* _y),  (z* _x)- (x* _z), (x* _y)- (y* _x)); }
+  inline vec4i cross(const vec2i &v2, int32_t _z)        const { return this->cross(v2.x, v2.y,   _z); }
+  inline vec4i cross(const vec3i &v2)                    const { return this->cross(v2.x, v2.y, v2.z); }
+  inline vec4i cross(const vec4i &v2)                    const { return this->cross(v2.x, v2.y, v2.z); }
+
+  // funcs - research: https://github.com/g-truc/glm/blob/master/glm/detail/func_geometric.inl
+
+  inline vec4i &normalize() { int32_t size= length(); if(size) this->operator/= (size); return *this; } // return vec* inversesqrt(dot(vec, vec)); - another option
+
+  inline int32_t length() const { return roundf(sqrtf((float)((x* x)+ (y* y)+ (z* z)+ (w* w)))); };
+  inline int32_t norm2() const { return (x* x)+ (y* y)+ (z* z)+ (w* w); }
+
+  // w is ignored
+  inline void addConstant(int32_t n) {
+    int32_t xx= x* x, yy= y* y, zz= z* z, size= length()+ n;
+    if(x!= 0) x= (abs32(x)/ x)* size/ roundf(sqrtf(yy/ xx+ zz/ xx+ 1.0f));
+    if(y!= 0) y= (abs32(y)/ y)* size/ roundf(sqrtf(xx/ yy+ zz/ yy+ 1.0f));
+    if(z!= 0) z= (abs32(z)/ z)* size/ roundf(sqrtf(xx/ zz+ yy/ zz+ 1.0f));
+  };
+};
+
+
 
 
 
@@ -993,7 +1195,7 @@ struct alignas(4) mat4 {
   
   // constructors
 
-  inline mat4() { identity(); };
+  inline mat4() { /*identity();*/ };
   inline mat4(const mat4 &o) {	
     v[0]= o[0];   v[4]= o[4];   v[8]=  o[8];    v[12]= o[12];
     v[1]= o[1];   v[5]= o[5];   v[9]=  o[9];    v[13]= o[13];
@@ -1268,7 +1470,7 @@ struct alignas(4) mat4 {
                 v[12]- n,   v[13]- n,   v[14]- n,    v[15]- n);
   }
 
-  inline mat4 operator*(const mat4 &o) {
+  inline mat4 operator*(const mat4 &o) const {
                   /// first column
     return mat4(v[0]* o[0]+  v[4]* o[1]+  v[8]*  o[2]+  v[12]* o[3],
                 v[1]* o[0]+  v[5]* o[1]+  v[9]*  o[2]+  v[13]* o[3],
@@ -1318,12 +1520,244 @@ struct alignas(4) mat4 {
   inline mat4 &operator-=(const mat4 &o) { return *this= *this- o; }
 
 
+
+  // https://stackoverflow.com/questions/1148309/inverting-a-4x4-matrix
+  // from bool gluInvertMatrix(const double m[16], double invOut[16])  
+  inline mat4 &invert(const mat4 &o) {
+    mat4 inv;
+    float det;
+
+    inv.v[0]=   o.v[5] * o.v[10]* o.v[15]-    o.v[5] * o.v[11]* o.v[14]-
+                o.v[9] * o.v[6] * o.v[15]+    o.v[9] * o.v[7] * o.v[14]+
+                o.v[13]* o.v[6] * o.v[11]-    o.v[13]* o.v[7] * o.v[10];
+
+    inv.v[4]=  -o.v[4] * o.v[10]* o.v[15]+    o.v[4] * o.v[11]* o.v[14]+
+                o.v[8] * o.v[6] * o.v[15]-    o.v[8] * o.v[7] * o.v[14]-
+                o.v[12]* o.v[6] * o.v[11]+    o.v[12]* o.v[7] * o.v[10];
+    
+    inv.v[8]=   o.v[4] * o.v[9] * o.v[15]-    o.v[4] * o.v[11]* o.v[13]-
+                o.v[8] * o.v[5] * o.v[15]+    o.v[8] * o.v[7] * o.v[13]+
+                o.v[12]* o.v[5] * o.v[11]-    o.v[12]* o.v[7] * o.v[9];
+
+    inv.v[12]= -o.v[4] * o.v[9] * o.v[14]+    o.v[4] * o.v[10]* o.v[13]+
+                o.v[8] * o.v[5] * o.v[14]-    o.v[8] * o.v[6] * o.v[13]-
+                o.v[12]* o.v[5] * o.v[10]+    o.v[12]* o.v[6] * o.v[9];
+
+    inv.v[1]=  -o.v[1] * o.v[10]* o.v[15]+    o.v[1] * o.v[11]* o.v[14]+
+                o.v[9] * o.v[2] * o.v[15]-    o.v[9] * o.v[3] * o.v[14]-
+                o.v[13]* o.v[2] * o.v[11]+    o.v[13]* o.v[3] * o.v[10];
+
+    inv.v[5]=   o.v[0] * o.v[10]* o.v[15]-    o.v[0] * o.v[11]* o.v[14]-
+                o.v[8] * o.v[2] * o.v[15]+    o.v[8] * o.v[3] * o.v[14]+
+                o.v[12]* o.v[2] * o.v[11]-    o.v[12]* o.v[3] * o.v[10];
+
+    inv.v[9]=  -o.v[0] * o.v[9] * o.v[15]+    o.v[0] * o.v[11]* o.v[13]+
+                o.v[8] * o.v[1] * o.v[15]-    o.v[8] * o.v[3] * o.v[13]-
+                o.v[12]* o.v[1] * o.v[11]+    o.v[12]* o.v[3] * o.v[9];
+
+    inv.v[13]=  o.v[0] * o.v[9] * o.v[14]-    o.v[0] * o.v[10]* o.v[13]-
+                o.v[8] * o.v[1] * o.v[14]+    o.v[8] * o.v[2] * o.v[13]+
+                o.v[12]* o.v[1] * o.v[10]-    o.v[12]* o.v[2] * o.v[9];
+
+    inv.v[2]=   o.v[1] * o.v[6] * o.v[15]-    o.v[1] * o.v[7] * o.v[14]-
+                o.v[5] * o.v[2] * o.v[15]+    o.v[5] * o.v[3] * o.v[14]+
+                o.v[13]* o.v[2] * o.v[7] -    o.v[13]* o.v[3] * o.v[6];
+
+    inv.v[6]=  -o.v[0] * o.v[6] * o.v[15]+    o.v[0] * o.v[7] * o.v[14]+
+                o.v[4] * o.v[2] * o.v[15]-    o.v[4] * o.v[3] * o.v[14]-
+                o.v[12]* o.v[2] * o.v[7] +    o.v[12]* o.v[3] * o.v[6];
+
+    inv.v[10]=  o.v[0] * o.v[5] * o.v[15]-    o.v[0] * o.v[7] * o.v[13]-
+                o.v[4] * o.v[1] * o.v[15]+    o.v[4] * o.v[3] * o.v[13]+
+                o.v[12]* o.v[1] * o.v[7] -    o.v[12]* o.v[3] * o.v[5];
+
+    inv.v[14]= -o.v[0] * o.v[5] * o.v[14]+    o.v[0] * o.v[6] * o.v[13]+
+                o.v[4] * o.v[1] * o.v[14]-    o.v[4] * o.v[2] * o.v[13]-
+                o.v[12]* o.v[1] * o.v[6] +    o.v[12]* o.v[2] * o.v[5];
+
+    inv.v[3]=  -o.v[1] * o.v[6] * o.v[11]+    o.v[1] * o.v[7] * o.v[10]+
+                o.v[5] * o.v[2] * o.v[11]-    o.v[5] * o.v[3] * o.v[10]-
+                o.v[9] * o.v[2] * o.v[7] +    o.v[9] * o.v[3] * o.v[6];
+
+    inv.v[7]=   o.v[0] * o.v[6] * o.v[11]-    o.v[0] * o.v[7] * o.v[10]-
+                o.v[4] * o.v[2] * o.v[11]+    o.v[4] * o.v[3] * o.v[10]+
+                o.v[8] * o.v[2] * o.v[7] -    o.v[8] * o.v[3] * o.v[6];
+
+    inv.v[11]= -o.v[0] * o.v[5] * o.v[11]+    o.v[0] * o.v[7] * o.v[9]+
+                o.v[4] * o.v[1] * o.v[11]-    o.v[4] * o.v[3] * o.v[9]-
+                o.v[8] * o.v[1] * o.v[7] +    o.v[8] * o.v[3] * o.v[5];
+
+    inv.v[15]=  o.v[0] * o.v[5] * o.v[10]-    o.v[0] * o.v[6] * o.v[9]-
+                o.v[4] * o.v[1] * o.v[10]+    o.v[4] * o.v[2] * o.v[9]+
+                o.v[8] * o.v[1] * o.v[6] -    o.v[8] * o.v[2] * o.v[5];
+    
+    det= o.v[0]* inv.v[0]+ o.v[1]* inv.v[4]+ o.v[2]* inv.v[8]+ o.v[3]* inv.v[12];
+
+    // return zero, i think, if it fails
+    
+    if(det== 0.0f) {      // return zero() if it fails... there could be a true/false return val, instead of this
+      return (zero());
+
+    } else {
+      det= 1.0f/ det;
+      for(int i= 0; i< 16; i++)
+        v[i]= inv.v[i]* det;
+      return *this;
+    }
+
+
+    /*
+    double inv[16], det;
+    int i;
+
+    inv[0] = m[5]  * m[10] * m[15] - 
+             m[5]  * m[11] * m[14] - 
+             m[9]  * m[6]  * m[15] + 
+             m[9]  * m[7]  * m[14] +
+             m[13] * m[6]  * m[11] - 
+             m[13] * m[7]  * m[10];
+
+    inv[4] = -m[4]  * m[10] * m[15] + 
+              m[4]  * m[11] * m[14] + 
+              m[8]  * m[6]  * m[15] - 
+              m[8]  * m[7]  * m[14] - 
+              m[12] * m[6]  * m[11] + 
+              m[12] * m[7]  * m[10];
+
+    inv[8] = m[4]  * m[9] * m[15] - 
+             m[4]  * m[11] * m[13] - 
+             m[8]  * m[5] * m[15] + 
+             m[8]  * m[7] * m[13] + 
+             m[12] * m[5] * m[11] - 
+             m[12] * m[7] * m[9];
+
+    inv[12] = -m[4]  * m[9] * m[14] + 
+               m[4]  * m[10] * m[13] +
+               m[8]  * m[5] * m[14] - 
+               m[8]  * m[6] * m[13] - 
+               m[12] * m[5] * m[10] + 
+               m[12] * m[6] * m[9];
+
+    inv[1] = -m[1]  * m[10] * m[15] + 
+              m[1]  * m[11] * m[14] + 
+              m[9]  * m[2] * m[15] - 
+              m[9]  * m[3] * m[14] - 
+              m[13] * m[2] * m[11] + 
+              m[13] * m[3] * m[10];
+
+    inv[5] = m[0]  * m[10] * m[15] - 
+             m[0]  * m[11] * m[14] - 
+             m[8]  * m[2] * m[15] + 
+             m[8]  * m[3] * m[14] + 
+             m[12] * m[2] * m[11] - 
+             m[12] * m[3] * m[10];
+
+    inv[9] = -m[0]  * m[9] * m[15] + 
+              m[0]  * m[11] * m[13] + 
+              m[8]  * m[1] * m[15] - 
+              m[8]  * m[3] * m[13] - 
+              m[12] * m[1] * m[11] + 
+              m[12] * m[3] * m[9];
+
+    inv[13] = m[0]  * m[9] * m[14] - 
+              m[0]  * m[10] * m[13] - 
+              m[8]  * m[1] * m[14] + 
+              m[8]  * m[2] * m[13] + 
+              m[12] * m[1] * m[10] - 
+              m[12] * m[2] * m[9];
+
+    inv[2] = m[1]  * m[6] * m[15] - 
+             m[1]  * m[7] * m[14] - 
+             m[5]  * m[2] * m[15] + 
+             m[5]  * m[3] * m[14] + 
+             m[13] * m[2] * m[7] - 
+             m[13] * m[3] * m[6];
+
+    inv[6] = -m[0]  * m[6] * m[15] + 
+              m[0]  * m[7] * m[14] + 
+              m[4]  * m[2] * m[15] - 
+              m[4]  * m[3] * m[14] - 
+              m[12] * m[2] * m[7] + 
+              m[12] * m[3] * m[6];
+
+    inv[10] = m[0]  * m[5] * m[15] - 
+              m[0]  * m[7] * m[13] - 
+              m[4]  * m[1] * m[15] + 
+              m[4]  * m[3] * m[13] + 
+              m[12] * m[1] * m[7] - 
+              m[12] * m[3] * m[5];
+
+    inv[14] = -m[0]  * m[5] * m[14] + 
+               m[0]  * m[6] * m[13] + 
+               m[4]  * m[1] * m[14] - 
+               m[4]  * m[2] * m[13] - 
+               m[12] * m[1] * m[6] + 
+               m[12] * m[2] * m[5];
+
+    inv[3] = -m[1] * m[6] * m[11] + 
+              m[1] * m[7] * m[10] + 
+              m[5] * m[2] * m[11] - 
+              m[5] * m[3] * m[10] - 
+              m[9] * m[2] * m[7] + 
+              m[9] * m[3] * m[6];
+
+    inv[7] = m[0] * m[6] * m[11] - 
+             m[0] * m[7] * m[10] - 
+             m[4] * m[2] * m[11] + 
+             m[4] * m[3] * m[10] + 
+             m[8] * m[2] * m[7] - 
+             m[8] * m[3] * m[6];
+
+    inv[11] = -m[0] * m[5] * m[11] + 
+               m[0] * m[7] * m[9] + 
+               m[4] * m[1] * m[11] - 
+               m[4] * m[3] * m[9] - 
+               m[8] * m[1] * m[7] + 
+               m[8] * m[3] * m[5];
+
+    inv[15] = m[0] * m[5] * m[10] - 
+              m[0] * m[6] * m[9] - 
+              m[4] * m[1] * m[10] + 
+              m[4] * m[2] * m[9] + 
+              m[8] * m[1] * m[6] - 
+              m[8] * m[2] * m[5];
+
+    det = m[0] * inv[0] + m[1] * inv[4] + m[2] * inv[8] + m[3] * inv[12];
+
+    // return zero, i think, if it fails
+
+    if (det == 0)
+        return false;
+
+    det = 1.0 / det;
+
+    for (i = 0; i < 16; i++)
+        invOut[i] = inv[i] * det;
+
+    return true;
+    */
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   // funcs
 
   // l= left, r= right, b= bottom, t= top, zn= z coord near, zf= z coord far
   inline mat4 &vkOrtho(float l, float r, float b, float t, float zn, float zf) {
     float dx= r- l,  dy= b- t,  dz= zn- zf;       /// used more than once
-    
+
     v[0]= 2.0f/ dx,
     v[1]= 0.0f,
     v[2]= 0.0f,
@@ -1424,21 +1858,88 @@ struct alignas(4) mat4 {
 
   // vector operations
 
-  
+  inline vec4 toQuaternion() { vec4 result; mlib::mat4ToQuaternion(*this, &result); return result; }
 
   // matrix operations
 
 
-};
+}; /// mat4
+
+inline mat4 vec4::quaternionToMat4() const { 
+  mat4 result;
+  mlib::quaternionToMat4(*this, &result);
+  return result;
+}
+
+
+inline void quaternionToMat4(const vec4 &quaternion, mat4 *result) {
+  float xy= quaternion.x* quaternion.y;
+  float xz= quaternion.x* quaternion.z;
+  float xw= quaternion.x* quaternion.w;
+  float yz= quaternion.y* quaternion.z;
+  float yw= quaternion.y* quaternion.w;
+  float zw= quaternion.z* quaternion.w;
+  float xSquared= quaternion.x* quaternion.x;
+  float ySquared= quaternion.y* quaternion.y;
+  float zSquared= quaternion.z* quaternion.z;
+
+  result->v[0]= 1.0f- 2.0f* (ySquared+ zSquared);
+  result->v[1]= 2.0f* (xy- zw);
+  result->v[2]= 2.0f* (xz+ yw);
+  result->v[3]= 0.0f;
+
+  result->v[4]= 2.0f* (xy+ zw);
+  result->v[5]= 1.0f- 2.0f* (xSquared+ zSquared);
+  result->v[6]= 2.0f* (yz- xw);
+  result->v[7]= 0.0f;
+
+  result->v[8]= 2.0f* (xz- yw);
+  result->v[9]= 2.0f* (yz+ xw);
+  result->v[10]= 1.0f- 2.0f* (xSquared+ ySquared);
+  result->v[11]= 0.0f;
+
+  result->v[12]= 0.0f;
+  result->v[13]= 0.0f;
+  result->v[14]= 0.0f;
+  result->v[15]= 1.0f;
+}
 
 
 
-
-
-
-
-
-
+// 0  4  8   12
+// 1  5  9   13
+// 2  6  10  14
+// 3  7  11  15
+inline void mat4ToQuaternion(mat4 &mat, vec4 *result) {
+  float w, x, y, z;
+  float diagonal= mat.v[0]+ mat.v[5]+ mat.v[10];
+  if (diagonal > 0) {
+    float w4= sqrtf(diagonal+ 1.0f)* 2.0f;
+    w= w4 / 4.0f;
+    x= (mat.v[9]- mat.v[6])/ w4;
+    y= (mat.v[2]- mat.v[8])/ w4;
+    z= (mat.v[4]- mat.v[1])/ w4;
+  } else if((mat.v[0]> mat.v[5]) && (mat.v[0]> mat.v[10])) {
+    float x4= sqrtf(1.0f+ mat.v[0]- mat.v[5]- mat.v[10])* 2.0f;
+    w= (mat.v[9]- mat.v[6])/ x4;
+    x= x4/ 4.0f;
+    y= (mat.v[1]+ mat.v[4])/ x4;
+    z= (mat.v[2]+ mat.v[8])/ x4;
+  } else if (mat.v[5]> mat.v[10]) {
+    float y4= sqrtf(1.0f+ mat.v[5]- mat.v[0]- mat.v[10])* 2.0f;
+    w= (mat.v[2]- mat.v[8])/ y4;
+    x= (mat.v[1]+ mat.v[4])/ y4;
+    y= y4 / 4.0f;
+    z= (mat.v[6]+ mat.v[9])/ y4;
+  } else {
+    float z4= sqrtf(1.0f+ mat.v[10]- mat.v[0]- mat.v[5])* 2.0f;
+    w= (mat.v[4]- mat.v[1])/ z4;
+    x= (mat.v[2]+ mat.v[8])/ z4;
+    y= (mat.v[6]+ mat.v[9])/ z4;
+    z= z4 / 4.0f;
+  }
+  result->set(x, y, z, w);
+}
 
 
 
@@ -1486,48 +1987,48 @@ inline const vec3 faceForward(vec3 *out_v1, const vec3 &v2, const vec3 &v3) { re
 // constructors
 
 
-inline vec2::vec2(const vec3 &o):      x(o.x),  y(o.y)  {}
-inline vec2::vec2(const vec4 &o):      x(o.x),  y(o.y)  {}
+inline vec2::vec2(const vec3 &v2):      x(v2.x),  y(v2.y)  {}
+inline vec2::vec2(const vec4 &v2):      x(v2.x),  y(v2.y)  {}
 
 // operators
 
-inline vec2 &vec2::operator=(const vec3 &o)  { x= o.x;  y= o.y;  return *this; }
-inline vec2 &vec2::operator=(const vec4 &o)  { x= o.x;  y= o.y;  return *this; }
+inline vec2 &vec2::operator=(const vec3 &v2)  { x= v2.x;  y= v2.y;  return *this; }
+inline vec2 &vec2::operator=(const vec4 &v2)  { x= v2.x;  y= v2.y;  return *this; }
 
-inline vec2 &vec2::operator+=(const vec3 &o)  { x+= o.x;  y+= o.y;  return *this; }
-inline vec2 &vec2::operator+=(const vec4 &o)  { x+= o.x;  y+= o.y;  return *this; }
+inline vec2 &vec2::operator+=(const vec3 &v2)  { x+= v2.x;  y+= v2.y;  return *this; }
+inline vec2 &vec2::operator+=(const vec4 &v2)  { x+= v2.x;  y+= v2.y;  return *this; }
 
-inline vec2 &vec2::operator-=(const vec3 &o)  { x-= o.x;  y-= o.y;  return *this; }
-inline vec2 &vec2::operator-=(const vec4 &o)  { x-= o.x;  y-= o.y;  return *this; }
+inline vec2 &vec2::operator-=(const vec3 &v2)  { x-= v2.x;  y-= v2.y;  return *this; }
+inline vec2 &vec2::operator-=(const vec4 &v2)  { x-= v2.x;  y-= v2.y;  return *this; }
 
-inline vec2 &vec2::operator*=(const vec3 &o)  { x*= o.x;  y*= o.y;  return *this; }
-inline vec2 &vec2::operator*=(const vec4 &o)  { x*= o.x;  y*= o.y;  return *this; }
+inline vec2 &vec2::operator*=(const vec3 &v2)  { x*= v2.x;  y*= v2.y;  return *this; }
+inline vec2 &vec2::operator*=(const vec4 &v2)  { x*= v2.x;  y*= v2.y;  return *this; }
 
-inline vec2 &vec2::operator/=(const vec3 &o)  { x/= o.x;  y/= o.y;  return *this; }
-inline vec2 &vec2::operator/=(const vec4 &o)  { x/= o.x;  y/= o.y;  return *this; }
+inline vec2 &vec2::operator/=(const vec3 &v2)  { x/= v2.x;  y/= v2.y;  return *this; }
+inline vec2 &vec2::operator/=(const vec4 &v2)  { x/= v2.x;  y/= v2.y;  return *this; }
 
-inline const vec2 vec2::operator+(const vec3 &o)  const { return vec2(*this)+= o; }
-inline const vec2 vec2::operator+(const vec4 &o)  const { return vec2(*this)+= o; }
+inline const vec2 vec2::operator+(const vec3 &v2)  const { return vec2(*this)+= v2; }
+inline const vec2 vec2::operator+(const vec4 &v2)  const { return vec2(*this)+= v2; }
 
-inline const vec2 vec2::operator-(const vec3 &o)  const { return vec2(*this)-= o; }
-inline const vec2 vec2::operator-(const vec4 &o)  const { return vec2(*this)-= o; }
+inline const vec2 vec2::operator-(const vec3 &v2)  const { return vec2(*this)-= v2; }
+inline const vec2 vec2::operator-(const vec4 &v2)  const { return vec2(*this)-= v2; }
 
-inline const vec2 vec2::operator*(const vec3 &o)  const { return vec2(*this)*= o; }
-inline const vec2 vec2::operator*(const vec4 &o)  const { return vec2(*this)*= o; }
+inline const vec2 vec2::operator*(const vec3 &v2)  const { return vec2(*this)*= v2; }
+inline const vec2 vec2::operator*(const vec4 &v2)  const { return vec2(*this)*= v2; }
 
-inline const vec2 vec2::operator/(const vec3 &o)  const { return vec2(*this)/= o; }
-inline const vec2 vec2::operator/(const vec4 &o)  const { return vec2(*this)/= o; }
+inline const vec2 vec2::operator/(const vec3 &v2)  const { return vec2(*this)/= v2; }
+inline const vec2 vec2::operator/(const vec4 &v2)  const { return vec2(*this)/= v2; }
 
-inline bool vec2::operator==(const vec3 &o)  const { return ((x== o.x)  && (y== o.y)); }
-inline bool vec2::operator==(const vec4 &o)  const { return ((x== o.x)  && (y== o.y)); }
+inline bool vec2::operator==(const vec3 &v2)  const { return ((x== v2.x)  && (y== v2.y)); }
+inline bool vec2::operator==(const vec4 &v2)  const { return ((x== v2.x)  && (y== v2.y)); }
 
-inline bool vec2::operator!=(const vec3 &o)  const { return ((x!= o.x)  || (y!= o.y)); }
-inline bool vec2::operator!=(const vec4 &o)  const { return ((x!= o.x)  || (y!= o.y)); }
+inline bool vec2::operator!=(const vec3 &v2)  const { return ((x!= v2.x)  || (y!= v2.y)); }
+inline bool vec2::operator!=(const vec4 &v2)  const { return ((x!= v2.x)  || (y!= v2.y)); }
 
 // dot product
 
-inline float vec2::dot(const vec3 &o) const { return this->dot(o.x,  o.y); }
-inline float vec2::dot(const vec4 &o) const { return this->dot(o.x,  o.y); }
+inline float vec2::dot(const vec3 &v2) const { return this->dot(v2.x,  v2.y); }
+inline float vec2::dot(const vec4 &v2) const { return this->dot(v2.x,  v2.y); }
 
 
 
@@ -1539,48 +2040,48 @@ inline float vec2::dot(const vec4 &o) const { return this->dot(o.x,  o.y); }
 // constructors
 
 
-inline vec2i::vec2i(const vec3i &o):      x(o.x),  y(o.y)  {}
-//inline vec2i::vec2i(const vec4i &o):      x(o.x),  y(o.y)  {}
+inline vec2i::vec2i(const vec3i &v2):      x(v2.x),  y(v2.y)  {}
+inline vec2i::vec2i(const vec4i &v2):      x(v2.x),  y(v2.y)  {}
 
 // operators
 
-inline vec2i &vec2i::operator=(const vec3i &o)  { x= o.x;  y= o.y;  return *this; }
-//inline vec2i &vec2i::operator=(const vec4i &o)  { x= o.x;  y= o.y;  return *this; }
+inline vec2i &vec2i::operator=(const vec3i &v2)  { x= v2.x;  y= v2.y;  return *this; }
+inline vec2i &vec2i::operator=(const vec4i &v2)  { x= v2.x;  y= v2.y;  return *this; }
 
-inline vec2i &vec2i::operator+=(const vec3i &o)  { x+= o.x;  y+= o.y;  return *this; }
-//inline vec2i &vec2i::operator+=(const vec4i &o)  { x+= o.x;  y+= o.y;  return *this; }
+inline vec2i &vec2i::operator+=(const vec3i &v2)  { x+= v2.x;  y+= v2.y;  return *this; }
+inline vec2i &vec2i::operator+=(const vec4i &v2)  { x+= v2.x;  y+= v2.y;  return *this; }
 
-inline vec2i &vec2i::operator-=(const vec3i &o)  { x-= o.x;  y-= o.y;  return *this; }
-//inline vec2i &vec2i::operator-=(const vec4i &o)  { x-= o.x;  y-= o.y;  return *this; }
+inline vec2i &vec2i::operator-=(const vec3i &v2)  { x-= v2.x;  y-= v2.y;  return *this; }
+inline vec2i &vec2i::operator-=(const vec4i &v2)  { x-= v2.x;  y-= v2.y;  return *this; }
 
-inline vec2i &vec2i::operator*=(const vec3i &o)  { x*= o.x;  y*= o.y;  return *this; }
-//inline vec2i &vec2i::operator*=(const vec4i &o)  { x*= o.x;  y*= o.y;  return *this; }
+inline vec2i &vec2i::operator*=(const vec3i &v2)  { x*= v2.x;  y*= v2.y;  return *this; }
+inline vec2i &vec2i::operator*=(const vec4i &v2)  { x*= v2.x;  y*= v2.y;  return *this; }
 
-inline vec2i &vec2i::operator/=(const vec3i &o)  { x/= o.x;  y/= o.y;  return *this; }
-//inline vec2i &vec2i::operator/=(const vec4i &o)  { x/= o.x;  y/= o.y;  return *this; }
+inline vec2i &vec2i::operator/=(const vec3i &v2)  { x/= v2.x;  y/= v2.y;  return *this; }
+inline vec2i &vec2i::operator/=(const vec4i &v2)  { x/= v2.x;  y/= v2.y;  return *this; }
 
-inline const vec2i vec2i::operator+(const vec3i &o)  const { return vec2i(*this)+= o; }
-//inline const vec2i vec2i::operator+(const vec4i &o)  const { return vec2i(*this)+= o; }
+inline const vec2i vec2i::operator+(const vec3i &v2)  const { return vec2i(*this)+= v2; }
+inline const vec2i vec2i::operator+(const vec4i &v2)  const { return vec2i(*this)+= v2; }
 
-inline const vec2i vec2i::operator-(const vec3i &o)  const { return vec2i(*this)-= o; }
-//inline const vec2i vec2i::operator-(const vec4i &o)  const { return vec2i(*this)-= o; }
+inline const vec2i vec2i::operator-(const vec3i &v2)  const { return vec2i(*this)-= v2; }
+inline const vec2i vec2i::operator-(const vec4i &v2)  const { return vec2i(*this)-= v2; }
 
-inline const vec2i vec2i::operator*(const vec3i &o)  const { return vec2i(*this)*= o; }
-//inline const vec2i vec2i::operator*(const vec4i &o)  const { return vec2i(*this)*= o; }
+inline const vec2i vec2i::operator*(const vec3i &v2)  const { return vec2i(*this)*= v2; }
+inline const vec2i vec2i::operator*(const vec4i &v2)  const { return vec2i(*this)*= v2; }
 
-inline const vec2i vec2i::operator/(const vec3i &o)  const { return vec2i(*this)/= o; }
-//inline const vec2i vec2i::operator/(const vec4i &o)  const { return vec2i(*this)/= o; }
+inline const vec2i vec2i::operator/(const vec3i &v2)  const { return vec2i(*this)/= v2; }
+inline const vec2i vec2i::operator/(const vec4i &v2)  const { return vec2i(*this)/= v2; }
 
-inline bool vec2i::operator==(const vec3i &o)  const { return ((x== o.x)  && (y== o.y)); }
-//inline bool vec2i::operator==(const vec4i &o)  const { return ((x== o.x)  && (y== o.y)); }
+inline bool vec2i::operator==(const vec3i &v2)  const { return ((x== v2.x) && (y== v2.y)); }
+inline bool vec2i::operator==(const vec4i &v2)  const { return ((x== v2.x) && (y== v2.y)); }
 
-inline bool vec2i::operator!=(const vec3i &o)  const { return ((x!= o.x)  || (y!= o.y)); }
-//inline bool vec2i::operator!=(const vec4i &o)  const { return ((x!= o.x)  || (y!= o.y)); }
+inline bool vec2i::operator!=(const vec3i &v2)  const { return ((x!= v2.x)  || (y!= v2.y)); }
+inline bool vec2i::operator!=(const vec4i &v2)  const { return ((x!= v2.x)  || (y!= v2.y)); }
 
 // dot product
 
-inline int32_t vec2i::dot(const vec3i &o) const { return this->dot(o.x,  o.y); }
-//inline int32_t vec2i::dot(const vec4i &o) const { return this->dot(o.x,  o.y); }
+inline int32_t vec2i::dot(const vec3i &v2) const { return this->dot(v2.x,  v2.y); }
+inline int32_t vec2i::dot(const vec4i &v2) const { return this->dot(v2.x,  v2.y); }
 
 
 
@@ -1596,39 +2097,31 @@ inline int32_t vec2i::dot(const vec3i &o) const { return this->dot(o.x,  o.y); }
 
 // constructors
 
-inline vec3::vec3(const vec4 &o):                x(o.x),  y(o.y),  z(o.z)  {}
+inline vec3::vec3(const vec4 &v2): x(v2.x), y(v2.y), z(v2.z) {}
 
 // operators
 
-inline vec3 &vec3::operator=(const vec4 &o)  { x= o.x;  y= o.y;  z= o.z;  return *this; }
+inline vec3 &vec3::operator=(const vec4 &v2)  { x=  v2.x; y=  v2.y; z=  v2.z; return *this; }
+inline vec3 &vec3::operator+=(const vec4 &v2) { x+= v2.x; y+= v2.y; z+= v2.z; return *this; }
+inline vec3 &vec3::operator-=(const vec4 &v2) { x-= v2.x; y-= v2.y; z-= v2.z; return *this; }
+inline vec3 &vec3::operator*=(const vec4 &v2) { x*= v2.x; y*= v2.y; z*= v2.z; return *this; }
+inline vec3 &vec3::operator/=(const vec4 &v2) { x/= v2.x; y/= v2.y; z/= v2.z; return *this; }
 
-inline vec3 &vec3::operator+=(const vec4 &o)  { x+= o.x;  y+= o.y;  z+= o.z;  return *this; }
+inline const vec3 vec3::operator+(const vec4 &v2) const { return vec3(*this)+= v2; }
+inline const vec3 vec3::operator-(const vec4 &v2) const { return vec3(*this)-= v2; }
+inline const vec3 vec3::operator*(const vec4 &v2) const { return vec3(*this)*= v2; }
+inline const vec3 vec3::operator/(const vec4 &v2) const { return vec3(*this)/= v2; }
 
-inline vec3 &vec3::operator-=(const vec4 &o)  { x-= o.x;  y-= o.y;  z-= o.z;  return *this; }
-
-inline vec3 &vec3::operator*=(const vec4 &o)  { x*= o.x;  y*= o.y;  z*= o.z;  return *this; }
-
-inline vec3 &vec3::operator/=(const vec4 &o)  { x/= o.x;  y/= o.y;  z/= o.z;  return *this; }
-
-inline const vec3 vec3::operator+(const vec4 &o)  const { return vec3(*this)+= o; }
-
-inline const vec3 vec3::operator-(const vec4 &o)  const { return vec3(*this)-= o; }
-
-inline const vec3 vec3::operator*(const vec4 &o)  const { return vec3(*this)*= o; }
-
-inline const vec3 vec3::operator/(const vec4 &o)  const { return vec3(*this)/= o; }
-
-inline bool vec3::operator==(const vec4 &o)  const { return ((x== o.x)  && (y== o.y)  && (z== o.z)); }
-
-inline bool vec3::operator!=(const vec4 &o)  const { return ((x!= o.x)  || (y!= o.y)  || (z!= o.z)); }
+inline bool vec3::operator==(const vec4 &v2) const { return ((x== v2.x) && (y== v2.y) && (z== v2.z)); }
+inline bool vec3::operator!=(const vec4 &v2) const { return ((x!= v2.x) || (y!= v2.y) || (z!= v2.z)); }
 
 // dot product
 
-inline float vec3::dot(const vec4 &o)           const { return this->dot(o.x, o.y, o.z); }
+inline float vec3::dot(const vec4 &v2) const { return this->dot(v2.x, v2.y, v2.z); }
 
 // cross product
 
-inline vec3 vec3::cross(const vec4 &o)          const { return vec3((y* o.z)- (z* o.y), (z* o.x)- (x* o.z), (x* o.y)- (y* o.x)); }
+inline vec3 vec3::cross(const vec4 &v2) const { return vec3((y* v2.z)- (z* v2.y), (z* v2.x)- (x* v2.z), (x* v2.y)- (y* v2.x)); }
 
 
 
@@ -1639,42 +2132,31 @@ inline vec3 vec3::cross(const vec4 &o)          const { return vec3((y* o.z)- (z
 ///==========================================///
 
 // constructors
-//inline vec3i::vec3i(const vec4i &o):               x(o.x),  y(o.y),  z(o.z)  {}
+inline vec3i::vec3i(const vec4i &v2): x(v2.x),  y(v2.y),  z(v2.z)  {}
 
 // operators
 
-//inline vec3i &vec3i::operator=(const vec4i &o) { x= o.x;  y= o.y;  z= o.z;  return *this; }
+inline vec3i &vec3i::operator= (const vec4i &v2) { x=  v2.x; y= v2.y;  z=  v2.z; return *this; }
+inline vec3i &vec3i::operator+=(const vec4i &v2) { x+= v2.x; y+= v2.y; z+= v2.z; return *this; }
+inline vec3i &vec3i::operator-=(const vec4i &v2) { x-= v2.x; y-= v2.y; z-= v2.z; return *this; }
+inline vec3i &vec3i::operator*=(const vec4i &v2) { x*= v2.x; y*= v2.y; z*= v2.z; return *this; }
+inline vec3i &vec3i::operator/=(const vec4i &v2) { x/= v2.x; y/= v2.y; z/= v2.z; return *this; }
 
-//inline vec3i &vec3i::operator+=(const vec4i &o) { x+= o.x;  y+= o.y;  z+= o.z;  return *this; }
+inline const vec3i vec3i::operator+(const vec4i &v2) const { return vec3i(*this)+= v2; }
+inline const vec3i vec3i::operator-(const vec4i &v2) const { return vec3i(*this)-= v2; }
+inline const vec3i vec3i::operator*(const vec4i &v2) const { return vec3i(*this)*= v2; }
+inline const vec3i vec3i::operator/(const vec4i &v2) const { return vec3i(*this)/= v2; }
 
-//inline vec3i &vec3i::operator-=(const vec4i &o)   { x-= o.x;  y-= o.y;  z-= o.z;  return *this; }
-
-//inline vec3i &vec3i::operator*=(const vec4i &o)   { x*= o.x;  y*= o.y;  z*= o.z;  return *this; }
-
-//inline vec3i &vec3i::operator/=(const vec4i &o)   { x/= o.x;  y/= o.y;  z/= o.z;  return *this; }
-
-//inline const vec3i vec3i::operator+(const vec4i &o)   const { return vec3i(*this)+= o; }
-
-//inline const vec3i vec3i::operator-(const vec4i &o)   const { return vec3i(*this)-= o; }
-
-//inline const vec3i vec3i::operator*(const vec4i &o)   const { return vec3i(*this)*= o; }
-
-//inline const vec3i vec3i::operator/(const vec4i &o)   const { return vec3i(*this)/= o; }
-
-
-//inline bool vec3i::operator==(const vec4i &o)   const { return ((x== o.x)  && (y== o.y)  && (z== o.z)); }
-
-//inline bool vec3i::operator!=(const vec4i &o)   const { return ((x!= o.x)  || (y!= o.y)  || (z!= o.z)); }
+inline bool vec3i::operator==(const vec4i &v2) const { return ((x== v2.x) && (y== v2.y) && (z== v2.z)); }
+inline bool vec3i::operator!=(const vec4i &v2) const { return ((x!= v2.x) || (y!= v2.y) || (z!= v2.z)); }
 
 // dot product
 
-//inline int32_t vec3i::dot(const vec4i &o)                     const { return x* o.x+   y* o.y+  z* o.z; }
+inline int32_t vec3i::dot(const vec4i &v2) const { return this->dot(v2.x, v2.y, v2.z); }
 
 // cross product
 
-//inline vec3i vec3i::cross(const vec4i &o)                     const { return vec3i(y* o.z- z* o.y, z* o.x- x* o.z, x* o.y- y* o.x); }
-
-
+inline vec3i vec3i::cross(const vec4i &v2) const { return this->cross(v2.x, v2.y, v2.z); }
 
 
 
@@ -1685,7 +2167,7 @@ inline vec3 vec3::cross(const vec4 &o)          const { return vec3((y* o.z)- (z
 // vec4 ================-------------------- //
 ///=========================================///
 
-
+// nothing
 
 
 
@@ -1694,26 +2176,136 @@ inline vec3 vec3::cross(const vec4 &o)          const { return vec3((y* o.z)- (z
 // mat4 ================-------------------- //
 ///=========================================///
 
-// constructors
+// nothing
 
 
 
 
-// various matrix types
-
-
-// rotation functions
 
 
 
 
-// operators
-
-// vector operations
 
 
 
-// funcs
+
+
+
+
+
+
+
+// HSV to RGB and RGB to HSV
+// https://stackoverflow.com/questions/3018313/algorithm-to-convert-rgb-to-hsv-and-hsv-to-rgb-in-range-0-255-for-both
+
+inline void rgb2hsv(vec4 *out_hsv, const vec4 in_rgb) {
+  //hsv rgb2hsv(rgb in) {
+  //  vec4 out;
+    //hsv         out;
+
+ 
+  //struct { double h, s, v; }; // h in degrees, 360 max i guess, rest is 0-1
+  //double min, max, delta;
+  float min, max, delta;
+
+  min= (in_rgb.r< in_rgb.g? in_rgb.r: in_rgb.g);
+  min= (min< in_rgb.b? min: in_rgb.b);
+
+  max= (in_rgb.r > in_rgb.g? in_rgb.r: in_rgb.g);
+  max= (max> in_rgb.b? max: in_rgb.b);
+
+  out_hsv->z= max;                                // v as in hsv... so b
+  delta= max- min;
+  if(delta< 0.00001f) {
+    out_hsv->y= 0.0f;
+    out_hsv->x= 0.0f;                           // undefined, maybe nan?
+    return;
+  }
+  if( max> 0.0 ) { // NOTE: if Max is == 0, this divide would cause a crash
+    out_hsv->y= (delta / max);                  // s
+  } else {
+    // if max is 0, then r = g = b = 0              
+    // s = 0, h is undefined
+    out_hsv->y= 0.0f;
+    out_hsv->x= 0.0f; //NAN;                            // its now undefined
+    return; // out;
+  }
+  if(in_rgb.r>= max)                           // > is bogus, just keeps compilor happy
+    out_hsv->x= (in_rgb.g- in_rgb.b)/ delta;        // between yellow & magenta
+  else if( in_rgb.g >= max )
+    out_hsv->x= 2.0f+ (in_rgb.b- in_rgb.r)/ delta;  // between cyan & yellow
+  else
+    out_hsv->x= 4.0f+ (in_rgb.r- in_rgb.g)/ delta;  // between magenta & cyan
+
+  out_hsv->x*= 60.0f;                              // degrees
+
+  if( out_hsv->x < 0.0f)
+    out_hsv->x+= 360.0f;
+}
+
+
+
+
+
+
+inline void hsv2rgb(vec4 *out_rgb, const vec4 in_hsv) {
+  float hh, p, q, t, ff;
+  long  i;
+
+  if(in_hsv.y<= 0.0f) {       // < is bogus, just shuts up warnings
+    out_rgb->r= in_hsv.z;
+    out_rgb->g= in_hsv.z;
+    out_rgb->b= in_hsv.z;
+    return;
+  }
+  hh= in_hsv.x;
+  if(hh>= 360.0f) hh= 0.0f;
+  hh/= 60.0f;
+  i= (long)hh;
+  ff= hh- i;
+  p= in_hsv.z* (1.0f- in_hsv.y);
+  q= in_hsv.z* (1.0f- (in_hsv.y* ff));
+  t= in_hsv.z* (1.0f- (in_hsv.y* (1.0f- ff)));
+
+  switch(i) {
+  case 0:
+    out_rgb->r= in_hsv.z;
+    out_rgb->g= t;
+    out_rgb->b= p;
+    break;
+  case 1:
+    out_rgb->r= q;
+    out_rgb->g= in_hsv.z;
+    out_rgb->b= p;
+    break;
+  case 2:
+    out_rgb->r= p;
+    out_rgb->g= in_hsv.z;
+    out_rgb->b= t;
+    break;
+
+  case 3:
+    out_rgb->r= p;
+    out_rgb->g= q;
+    out_rgb->b= in_hsv.z;
+    break;
+  case 4:
+    out_rgb->r= t;
+    out_rgb->g= p;
+    out_rgb->b= in_hsv.z;
+    break;
+  case 5:
+  default:
+    out_rgb->r= in_hsv.z;
+    out_rgb->g= p;
+    out_rgb->b= q;
+    break;
+  }
+}
+
+
+
+
 
 
 

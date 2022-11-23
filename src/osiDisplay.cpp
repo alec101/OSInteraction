@@ -5,6 +5,7 @@
 
 #ifdef OS_WIN
   #include <Windows.h>
+  // #include <shellscalingapi.h> // monitor scaling functions - ON SECOND THOUT, SCREW SCALING, THERE'S NOTHING OSI CAN DO WITH SCALING
   #ifdef OSI_USING_DIRECT3D
     #include <d3d9.h>
   #endif
@@ -217,13 +218,21 @@ void osiMonitor::delData() {
 #ifdef OS_WIN
 BOOL CALLBACK monitorData(HMONITOR hMonitor, HDC hdcMonitor, LPRECT lprcMonitor, LPARAM dwData) {
   // MIGHT BE USELESS <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-  MONITORINFOEX hmon;
-  hmon.cbSize= sizeof(hmon);
-  GetMonitorInfo(hMonitor, &hmon);
+
+  // without dpi awareness, this will have scaled values
+
+  MONITORINFOEX mi;
+  mi.cbSize= sizeof(mi);
+  GetMonitorInfo(hMonitor, &mi);
+
+  /// find HMONITOR for each monitor
+  //for(int16_t a= 0; a< osi.display.nrMonitors; a++)
+  //  if(osi.display.monitor[a]._id== (const char *)mi.szDevice) // found
+  //    osi.display.monitor[a]._hMonitor= hMonitor;
 
   #ifdef OSI_BE_CHATTY
   // printf("%s ", hmon.szDevice); %s or %ls depending on the windows "unicode" or mbyte... watever those really mean
-  if(hmon.dwFlags& MONITORINFOF_PRIMARY)
+  if(mi.dwFlags& MONITORINFOF_PRIMARY)
     printf("primary monitor\n");
   printf("\n");
   #endif
@@ -946,6 +955,8 @@ bool _osiDoChange(osiMonitor *m, osiResolution *r, int16_t freq) {
 
 void _osiPopulateGrCards(osiDisplay *);
 
+
+
 void osiDisplay::populate(bool in_onlyVulkan) {
   #ifdef OSI_BE_CHATTY
   bool chatty= true;
@@ -973,13 +984,17 @@ void osiDisplay::populate(bool in_onlyVulkan) {
 
   dm.dmSize= sizeof(dm);
   dd.cb= sizeof(dd);
-
+  
   /// virtual screen size
   vx0= GetSystemMetrics(SM_XVIRTUALSCREEN);
   vy0= GetSystemMetrics(SM_YVIRTUALSCREEN);
   vdx= GetSystemMetrics(SM_CXVIRTUALSCREEN);
   vdy= GetSystemMetrics(SM_CYVIRTUALSCREEN);
   vyMax= vy0+ vdy- 1;
+
+
+  
+  
 
   // EnumDisplayDevices	DISPLAY_DEVICE		gr card(s) info
 
@@ -1010,7 +1025,7 @@ void osiDisplay::populate(bool in_onlyVulkan) {
     //printf("DEVICE ID: %s\n", dd.DeviceID);
     if(chatty) printf("%s (%s)", monitor[id]._id.d, monitor[id].name.d);
     #endif
-
+    
     if(dd.StateFlags& DISPLAY_DEVICE_PRIMARY_DEVICE) {
       monitor[id].primary= true;
       primary= &monitor[id];
@@ -1021,7 +1036,9 @@ void osiDisplay::populate(bool in_onlyVulkan) {
     #ifdef OSI_BE_CHATTY
     if(chatty) printf("\n");
     #endif
+
     
+
     /// original monitor settings
     if(EnumDisplaySettings(monitor[id]._id, ENUM_CURRENT_SETTINGS, &dm)) {
       monitor[id].original.dx= dm.dmPelsWidth;
@@ -1031,13 +1048,11 @@ void osiDisplay::populate(bool in_onlyVulkan) {
       monitor[id].original.freq[0]= (int16)dm.dmDisplayFrequency;
     }
 
+    
     /// position on VIRTUAL DESKTOP		<--- if there's a need to find this position after a resolution change, a new func might be needed
     /// to get these vars & some rethinking
-    
     _osiGetMonitorPos(&monitor[id]);
-    //monitor[id].x0= dm.dmPosition.x;
-    //monitor[id]._y0= dm.dmPosition.y;
-    //monitor[id].y0= vdy- dm.dmPosition.y- dm.dmPelsHeight;   /// coordonate unification
+
     
     for(a= 0; EnumDisplayDevices(monitor[id]._id, a, &dd, null); a++) {
       #ifdef OSI_BE_CHATTY
@@ -1178,6 +1193,29 @@ void osiDisplay::populate(bool in_onlyVulkan) {
     #endif
     delete[] tmp;
   } /// displays loop
+
+  /// monitorData func could happen
+  //EnumDisplayMonitors(NULL, NULL, monitorData, 0);      // this will use monitorData func to enumerate all monitors and find HMONITOR handle
+
+  //for(int a= 0; a< nrMonitors; a++) {
+  //  DEVICE_SCALE_FACTOR dsf= DEVICE_SCALE_FACTOR_INVALID;
+  //  GetScaleFactorForMonitor((HMONITOR)(monitor[a]._hMonitor), &dsf);   THIS COULD HAPPEN, BUT I DON'T SEE WHY, JUST ENABLE DPI AWARENESS
+  //  monitor[a].scale= dsf;
+  //  MONITORINFOEX mon;                          /// monitor info struct
+  //  EnumDisplayMonitors();
+  //  mon.cbSize= sizeof(mon);                    /// mark struct's size (windows standard recognition procedure)
+  //  GetMonitorInfo(monitor[id].hmonitor hmon, &mon);                 /// populate mon
+  //}
+
+  
+
+
+
+
+
+
+
+
 
   /// grcards populate: end of proc->call _grCardPopulate()
   // IT'S OVERRRRR ... 
@@ -2042,15 +2080,22 @@ void _osiPopulateGrCards(osiDisplay *display) {
     
     /// search thru all osiDisplay's monitors, to find this [mon] (identify by position on virtual desktop)
     for(short b= 0; b< display->nrMonitors; b++)
-      if(display->monitor[b].x0== mon.rcMonitor.left)
-        if(display->monitor[b]._y0== mon.rcMonitor.top)
-          if(display->monitor[b].x0+ display->monitor[b].dx== mon.rcMonitor.right)
-            if(display->monitor[b]._y0+ display->monitor[b].dy== mon.rcMonitor.bottom) {
-              display->monitor[b].GPU= &display->GPU[n];    // MONITOR FOUND - assign that monitor to this GPU
-              #ifdef OSI_BE_CHATTY
-              if(chatty) printf("osiDisplay::monitor[%d] belongs to GPU[%d]: %s\n", b, n, display->GPU[n].name.d);
-              #endif
-            }
+      
+      // ALL VALUES MUST BE MULTIPLIED BY THE MONITOR SCALE vvv so all this code was wrong
+      //if(display->monitor[b].x0== mon.rcMonitor.left)
+      //  if(display->monitor[b]._y0== mon.rcMonitor.top)
+      //    if(display->monitor[b].x0+ display->monitor[b].dx== mon.rcMonitor.right)        
+      //      if(display->monitor[b]._y0+ display->monitor[b].dy== mon.rcMonitor.bottom)
+      #ifdef UNICODE
+      if(display->monitor[b]._id== (const char16_t *)mon.szDevice) {
+      #else
+      if(display->monitor[b]._id== (const char *)mon.szDevice) {
+      #endif
+        display->monitor[b].GPU= &display->GPU[n];    // MONITOR FOUND - assign that monitor to this GPU
+        #ifdef OSI_BE_CHATTY
+        if(chatty) printf("osiDisplay::monitor[%d] belongs to GPU[%d]: %s\n", b, n, display->GPU[n].name.d);
+        #endif
+      }
     
     /* // debug tests - unfortunately, for same model cards, these descriptions are the same, so nothing can be counted on
     printf("=========================================\n");
@@ -2088,6 +2133,7 @@ void _osiPopulateGrCards(osiDisplay *display) {
   }
 
   display->primary->GPU->primary= true;   /// set primary monitor's GPU as the primary grCard too
+
 
   /// memory deallocation
   if(gpuID) delete[] gpuID;

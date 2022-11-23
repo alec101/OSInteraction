@@ -424,14 +424,16 @@ public:
   // main flags - check these frequently (mainly after a call to checkMSG() )
   struct osiFlags {
     bool haveFocus;                    // program has FOCUS or is in the BACKGROUND
-    bool minimized;                    // program is minimized
+    
     bool exit;                         // system wants program to CLOSE
     bool keyPress;                     // a keyboard key is pressed - autoupdates @ checkMSG()
     bool buttonPress;                  // a mouse button is pressed - autoupdates @ checkMSG()
     bool HIDlostConnection;            // one of the HIDs (joysticks/gamepads/gamewheels) lost connection - a recheck of all active should be made / repopulate
     //bool sysHIDunplugged;              // system signaled that a HID was unplugged (there's no linux version, so a check to HIDlostConnection is better)
+
     bool windowResized;                // one of the windows was resized (usually need a gl aspect ratio recompute) - only for window mode 1
     bool windowMoved;                  // one of the windows was moved
+    bool windowMinimized;              // one of the windows was minimized
 
     //bool systemInSuspend;              // CAN'T FIND FOR LINUX the system entered a suspend mode - THIS IS VERY IMPORTANT TO CHECK nowadays - there HAS to be some kind of pause
   } flags;

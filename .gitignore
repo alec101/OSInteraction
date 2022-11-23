@@ -2,3 +2,6 @@ build/
 nbeans/build/
 extlib/vulkan/lib
 vstudio/build
+*.idb
+*.pdb
+

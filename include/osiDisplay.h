@@ -67,7 +67,7 @@ struct osiResolution {
   osiResolution();            // set everything to 0 (needed)
   ~osiResolution();           // calls delData()
   void delData();             // clears data/ deallocs everything
-
+  
   // private stuff from here 
 
   #ifdef OS_LINUX
@@ -89,17 +89,17 @@ struct osiMonitor {
   str8 name;                // monitor name (product description or something that can identify it)
 
   int32_t x0, y0;           // position on the VIRTUAL DESKTOP
-  int32_t dx, dy;           // current size (resolution size)
-  
+  int32_t dx, dy;           // current size)
+
+  //int32_t resDx, resDy;     // real monitor resolution, unafected by scale - SCRAPE THAT, WHAT WOULD A PROGRAM BUILT WITH OSI NEED ANY SCALING OR SCALING INFO?
+  //uint32_t scale;           // monitor scale
+
   bool primary;             // is it the primary display 
   osiGPU *GPU;              // on what GPU is attached
   osiWindow *win;           // the window that is on this monitor (if there is one)
   
-
   int16_t nrRes;            // nr of resolutions monitor can handle
   osiResolution *res;       // all resolutions the display supports (res[nrRes])
-  
-  
 
   // the next vars are kinda internal stuff
 
@@ -119,6 +119,7 @@ struct osiMonitor {
   //str8 name;                // [internal] display's card name
   str8 _monitorID;          // [internal] monitor id (NOT USED FOR ANYTHING?... wincrap rulz)
   str8 _monitorName;        // [internal] monitor description (did not find any use for it ina ANY windows function)
+  //void *_hMonitor;          // JUST DISABLED, NO NEED; monitorData func can populate this
   // if a monitor is set to duplicate another monitor, windows returns only one display,
   // with combined resolution options, and monitorID+monitorName for each. Can't do anything with any of them, so im not storing them anywhere.
   //friend LRESULT CALLBACK _processMSG(HWND hWnd, UINT m, WPARAM wParam, LPARAM lParam);
@@ -169,7 +170,7 @@ struct osiGPU {
   
   uint64_t LUID;    // LUID of the graphics card;
 
-  osiGPU() { ram= clock= 0; nrMonitors= 0; monitor= NULL; primary= false; vkGPU= NULL; }
+  osiGPU() { ram= clock= 0; nrMonitors= 0; monitor= NULL; primary= false; vkGPU= NULL; LUID= 0; }
 
   void delData() { if(nrMonitors) { delete[] monitor; nrMonitors= 0; monitor= NULL; } primary= false; name.delData(); ram= clock= 0; }
 

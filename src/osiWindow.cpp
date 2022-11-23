@@ -22,7 +22,9 @@ osiWindow::osiWindow() {
   x0= y0= dx= dy= 0;
   freq= 0;
   _isSplashWindow= false;
-  
+
+  isMinimized= false;
+
   monitor= null;
   renderer= null;
 

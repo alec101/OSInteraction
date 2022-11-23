@@ -21,6 +21,7 @@ public:
   str8 name;                // window name (program name)
   bool isCreated;           // window has been created flag
   bool hasFocus;            // has input focus (if no window has focus, program lost focus)
+  bool isMinimized;         // the window is minimized
   int32_t x0, y0, dx, dy;   // window position & size
   int16_t freq;             // frequency (if used - fullscreen)
   int8_t mode;              // 1= windowed, 2= fullscreen, 3= fullscreen window, 4= full virtual desktop

@@ -5,6 +5,8 @@
 #include <stdio.h>
 #endif
 
+
+
 #ifdef OSI_USE_VKO
 namespace osiVk {
 
